@@ -114,7 +114,7 @@
       <div class="topbar-subtitle">Control de gestión agrícola y análisis económico de cultivos</div>
     </div>
     <div class="topbar-right">
-      <div><strong>Cliente:</strong> <span id="hdrEmpresa">Cargando...</span></div>
+      <div><strong>Agrícola:</strong> <span id="hdrEmpresa">Cargando...</span></div>
       <div><strong>Temporada:</strong> <span id="hdrTemporada">Cargando...</span></div>
     </div>
   </div>
@@ -125,7 +125,7 @@
 
     <div id="loader">
       <div class="spinner"></div>
-      <h3>La IA está analizando su portafolio...</h3>
+      <h3>La IA de BData está analizando su portafolio...</h3>
       <p class="muted">Calculando márgenes, detectando alertas y buscando oportunidades.</p>
     </div>
 
@@ -134,7 +134,7 @@
       <div class="hero">
         <h2>Portafolio agrícola - <span id="txtEmpresa"></span></h2>
         <p>
-          Este panel resume el desempeño económico del campo, detecta concentración del portafolio,
+          Este panel resume el desempeño económico del <span id="txtEmpresa">, detecta concentración del portafolio,
           compara eficiencia entre cultivos comparables y sugiere escenarios de revisión o expansión
           basado en los datos reales de la temporada <span id="txtTemporada"></span>.
         </p>
@@ -218,7 +218,7 @@
             cargarReporte(clienteDesdeURL.toUpperCase());
         } else {
             // Si entró directo sin ?cliente=, mostramos error
-            mostrarError("Falta la identificación del cliente. Por favor, ingrese desde el enlace oficial de la aplicación.");
+            mostrarError("Falta la identificación del cliente. Por favor, ingrese desde el enlace oficial de la aplicación entregado por BData.");
         }
     });
 
