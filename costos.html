@@ -5,19 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BDATA Intelligence | Control de Costos</title>
   <style>
-    /* Mismo diseño base, pero con un color de marca más "Finanzas/Control" (Azul oscuro) */
     :root {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted: #64748b;
-      --line: #e2e8f0;
-      --brand: #1e40af; /* Azul finanzas */
-      --brand-dark: #1e3a8a;
-      --danger: #b91c1c;
-      --warn: #b45309;
-      --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-      --radius: 16px;
+      --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b;
+      --line: #e2e8f0; --brand: #1e40af; --brand-dark: #1e3a8a;
+      --danger: #b91c1c; --warn: #b45309;
+      --shadow: 0 10px 24px rgba(15, 23, 42, 0.08); --radius: 16px;
     }
 
     * { box-sizing: border-box; }
@@ -49,17 +41,31 @@
     .kpi-note { margin-top: 10px; font-size: 13px; color: var(--muted); }
 
     .section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
-    .card { background: var(--card); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); border: 1px solid var(--line); }
+    .card { background: var(--card); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); border: 1px solid var(--line); margin-bottom: 24px;}
     .card h3 { margin: 0 0 16px 0; font-size: 22px; color: var(--brand-dark); }
     
     .list { margin: 0; padding-left: 20px; }
     .list li { margin-bottom: 12px; line-height: 1.5; font-size: 15px; color: var(--text); }
+
+    /* Estilos para etiquetas y módulos en desarrollo */
+    .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .pill-dev { background: #e2e8f0; color: #475569; border: 1px dashed #94a3b8; }
+    .card-dev { background: #f8fafc; border: 1px dashed #cbd5e1; opacity: 0.8; }
+    .card-dev h3 { color: #64748b; display: flex; align-items: center; gap: 10px;}
+
+    /* Tabla */
+    .tabla { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); background: white; margin-top: 10px;}
+    .tabla th { text-align: left; background: #f1f5f9; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; padding: 14px; border-bottom: 1px solid var(--line); }
+    .tabla td { padding: 14px; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .tabla tr:last-child td { border-bottom: none; }
+    .tabla tr:hover { background-color: #f8fafc; }
 
     .footer-note { margin-top: 24px; font-size: 13px; color: var(--muted); text-align: center; }
 
     @media (max-width: 900px) {
       .kpi-grid, .section-grid { grid-template-columns: 1fr; }
       .topbar { padding: 16px 18px; }
+      .tabla { display: block; overflow-x: auto; }
     }
   </style>
 </head>
@@ -113,12 +119,41 @@
       </div>
 
       <div class="section-grid">
+        <div class="card card-dev">
+          <h3>Estructura de Costos <span class="pill pill-dev">En desarrollo</span></h3>
+          <p class="muted">Próximamente: Desglose automático de gastos en Mano de Obra, Insumos, Maquinaria y Gastos Generales (CF/CV).</p>
+        </div>
+
+        <div class="card card-dev">
+          <h3>Control Presupuestario <span class="pill pill-dev">En desarrollo</span></h3>
+          <p class="muted">Próximamente: Comparativa de Presupuesto vs. Real (Budget vs Actual) con cálculo de desviaciones automáticas.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Ranking de Costos por Unidad Productiva</h3>
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Centro de Costo</th>
+              <th>Hectáreas</th>
+              <th>Costo Total</th>
+              <th>Costo / Ha</th>
+              <th>Costo / Kg</th>
+            </tr>
+          </thead>
+          <tbody id="tablaCostosBody">
+            </tbody>
+        </table>
+      </div>
+
+      <div class="section-grid">
         <div class="card">
           <h3>🔍 Hallazgos de la Auditoría</h3>
           <ul class="list" id="listaHallazgos"></ul>
         </div>
 
-        <div class="card" style="background: #f8fafc;">
+        <div class="card">
           <h3>💡 Oportunidades de Ahorro</h3>
           <ul class="list" id="listaRecomendaciones"></ul>
         </div>
@@ -145,9 +180,9 @@
         }
     });
 
-    // Formateador de moneda estilo chileno
     const formatearPesos = (valor) => {
-        return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(valor);
+        if(!valor || isNaN(valor)) return '$0';
+        return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(valor);
     };
 
     function cargarReporteCostos(cliente) {
@@ -155,7 +190,6 @@
         document.getElementById('mensajeError').style.display = 'none';
         document.getElementById('loader').style.display = 'block';
 
-        // LLAMADA A LA NUEVA RUTA DE COSTOS
         const urlAPI = `https://cgraniffo.pythonanywhere.com/api/costos-web/${encodeURIComponent(cliente)}`;
 
         fetch(urlAPI)
@@ -171,12 +205,12 @@
                 const emp = data.empresa;
                 const temp = data.temporada;
                 const ana = data.analisis;
+                const detalle = data.detalle || [];
 
                 document.getElementById('hdrEmpresa').textContent = emp;
                 document.getElementById('txtEmpresa').textContent = emp;
                 document.getElementById('hdrTemporada').textContent = temp;
 
-                // Cargar KPIs
                 document.getElementById('valCostoTotal').textContent = formatearPesos(data.costo_total_operacion);
                 document.getElementById('valMayorGasto').textContent = ana.cc_mayor_gasto || 'N/A';
                 document.getElementById('valAlertaCosto').textContent = ana.cc_alerta_costo || 'N/A';
@@ -193,6 +227,31 @@
                 ulRecomendaciones.innerHTML = '';
                 ana.recomendaciones_ahorro.forEach(r => {
                     ulRecomendaciones.innerHTML += `<li>${r}</li>`;
+                });
+
+                // Llenar Tabla (Ordenada de mayor a menor gasto)
+                const tbody = document.getElementById('tablaCostosBody');
+                tbody.innerHTML = '';
+                
+                // Ordenamos el array por costo_total de mayor a menor
+                const detalleOrdenado = detalle.sort((a, b) => (b.costo_total || 0) - (a.costo_total || 0));
+
+                detalleOrdenado.forEach(item => {
+                    const tr = document.createElement('tr');
+                    
+                    // Si el nombre es igual al de la alerta, lo marcamos levemente en rojo
+                    if(item.nombre_cc === ana.cc_alerta_costo) {
+                        tr.style.backgroundColor = '#fef2f2';
+                    }
+
+                    tr.innerHTML = `
+                        <td><strong>${item.nombre_cc || 'N/A'}</strong></td>
+                        <td>${item.hectareas || 0} ha</td>
+                        <td>${formatearPesos(item.costo_total)}</td>
+                        <td>${formatearPesos(item.costo_ha_calc)}</td>
+                        <td><span class="pill pill-dev">En desarrollo</span></td>
+                    `;
+                    tbody.appendChild(tr);
                 });
 
                 document.getElementById('resultados').style.display = 'block';
