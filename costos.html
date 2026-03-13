@@ -8,7 +8,7 @@
     :root {
       --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #64748b;
       --line: #e2e8f0; --brand: #1e40af; --brand-dark: #1e3a8a;
-      --danger: #b91c1c; --warn: #b45309;
+      --danger: #b91c1c; --warn: #b45309; --success: #16a34a;
       --shadow: 0 10px 24px rgba(15, 23, 42, 0.08); --radius: 16px;
     }
 
@@ -47,25 +47,28 @@
     .list { margin: 0; padding-left: 20px; }
     .list li { margin-bottom: 12px; line-height: 1.5; font-size: 15px; color: var(--text); }
 
-    /* Estilos para etiquetas y módulos en desarrollo */
+    /* Estilos para etiquetas y tablas */
     .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
     .pill-dev { background: #e2e8f0; color: #475569; border: 1px dashed #94a3b8; }
+    .pill-danger { background: #fee2e2; color: #991b1b; }
+    .pill-success { background: #dcfce7; color: #166534; }
     .card-dev { background: #f8fafc; border: 1px dashed #cbd5e1; opacity: 0.8; }
     .card-dev h3 { color: #64748b; display: flex; align-items: center; gap: 10px;}
 
-    /* Tabla */
     .tabla { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); background: white; margin-top: 10px;}
     .tabla th { text-align: left; background: #f1f5f9; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; padding: 14px; border-bottom: 1px solid var(--line); }
     .tabla td { padding: 14px; border-bottom: 1px solid var(--line); font-size: 14px; }
     .tabla tr:last-child td { border-bottom: none; }
     .tabla tr:hover { background-color: #f8fafc; }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
 
     .footer-note { margin-top: 24px; font-size: 13px; color: var(--muted); text-align: center; }
 
     @media (max-width: 900px) {
       .kpi-grid, .section-grid { grid-template-columns: 1fr; }
       .topbar { padding: 16px 18px; }
-      .tabla { display: block; overflow-x: auto; }
+      .tabla { display: block; overflow-x: auto; white-space: nowrap; }
     }
   </style>
 </head>
@@ -118,16 +121,21 @@
         </div>
       </div>
 
-      <div class="section-grid">
-        <div class="card card-dev">
-          <h3>Estructura de Costos <span class="pill pill-dev">En desarrollo</span></h3>
-          <p class="muted">Próximamente: Desglose automático de gastos en Mano de Obra, Insumos, Maquinaria y Gastos Generales (CF/CV).</p>
-        </div>
-
-        <div class="card card-dev">
-          <h3>Control Presupuestario <span class="pill pill-dev">En desarrollo</span></h3>
-          <p class="muted">Próximamente: Comparativa de Presupuesto vs. Real (Budget vs Actual) con cálculo de desviaciones automáticas.</p>
-        </div>
+      <div class="card">
+        <h3>Control Presupuestario (Budget vs Actual)</h3>
+        <table class="tabla">
+          <thead>
+            <tr>
+              <th>Centro de Costo</th>
+              <th class="text-right">Presupuesto</th>
+              <th class="text-right">Gasto Real</th>
+              <th class="text-right">Desviación ($)</th>
+              <th class="text-center">Estado (%)</th>
+            </tr>
+          </thead>
+          <tbody id="tablaPptoBody">
+            </tbody>
+        </table>
       </div>
 
       <div class="card">
@@ -136,10 +144,10 @@
           <thead>
             <tr>
               <th>Centro de Costo</th>
-              <th>Hectáreas</th>
-              <th>Costo Total</th>
-              <th>Costo / Ha</th>
-              <th>Costo / Kg</th>
+              <th class="text-right">Hectáreas</th>
+              <th class="text-right">Costo Total</th>
+              <th class="text-right">Costo / Ha</th>
+              <th class="text-right">Costo / Kg</th>
             </tr>
           </thead>
           <tbody id="tablaCostosBody">
@@ -148,15 +156,20 @@
       </div>
 
       <div class="section-grid">
+        <div class="card card-dev">
+          <h3>Estructura de Costos <span class="pill pill-dev">En desarrollo</span></h3>
+          <p class="muted">Próximamente: Desglose automático de gastos en Mano de Obra, Insumos, Maquinaria y Gastos Generales (CF/CV).</p>
+        </div>
+
         <div class="card">
           <h3>🔍 Hallazgos de la Auditoría</h3>
           <ul class="list" id="listaHallazgos"></ul>
         </div>
+      </div>
 
-        <div class="card">
-          <h3>💡 Oportunidades de Ahorro</h3>
-          <ul class="list" id="listaRecomendaciones"></ul>
-        </div>
+      <div class="card">
+        <h3>💡 Oportunidades de Ahorro recomendadas por IA</h3>
+        <ul class="list" id="listaRecomendaciones"></ul>
       </div>
 
     </div>
@@ -229,29 +242,71 @@
                     ulRecomendaciones.innerHTML += `<li>${r}</li>`;
                 });
 
-                // Llenar Tabla (Ordenada de mayor a menor gasto)
-                const tbody = document.getElementById('tablaCostosBody');
-                tbody.innerHTML = '';
+                // Limpiar Tablas
+                const tbodyCostos = document.getElementById('tablaCostosBody');
+                const tbodyPpto = document.getElementById('tablaPptoBody');
+                tbodyCostos.innerHTML = '';
+                tbodyPpto.innerHTML = '';
                 
-                // Ordenamos el array por costo_total de mayor a menor
+                // Ordenamos por costo total de mayor a menor
                 const detalleOrdenado = detalle.sort((a, b) => (b.costo_total || 0) - (a.costo_total || 0));
 
                 detalleOrdenado.forEach(item => {
-                    const tr = document.createElement('tr');
+                    // BUSCADOR DE COLUMNAS A PRUEBA DE BALAS
+                    const nombreCC = item.nombre_cc || item['NOMBRE CC'] || item.cultivo || item.Nombre || 'N/A';
+                    const costoTotal = item.costo_total || 0;
+                    const costoHa = item.costo_ha_calc || item.costo_ha || 0;
                     
-                    // Si el nombre es igual al de la alerta, lo marcamos levemente en rojo
-                    if(item.nombre_cc === ana.cc_alerta_costo) {
-                        tr.style.backgroundColor = '#fef2f2';
+                    // Busca la columna de costo por kilo (Ajusta los nombres según tu excel si hace falta)
+                    const costoKg = item.costo_kg || item['Costo_Kg'] || item['Costo por Kilo'] || item['Costo por kg'] || 0;
+                    
+                    // Busca la columna de presupuesto
+                    const ppto = item.presupuesto || item['Presupuesto'] || item.ppto || 0;
+
+                    // 1. LLENAR TABLA RANKING OPERATIVO
+                    const trCostos = document.createElement('tr');
+                    if(nombreCC === ana.cc_alerta_costo) trCostos.style.backgroundColor = '#fef2f2';
+                    
+                    trCostos.innerHTML = `
+                        <td><strong>${nombreCC}</strong></td>
+                        <td class="text-right">${item.hectareas || 0} ha</td>
+                        <td class="text-right">${formatearPesos(costoTotal)}</td>
+                        <td class="text-right">${formatearPesos(costoHa)}</td>
+                        <td class="text-right">${costoKg > 0 ? formatearPesos(costoKg) : '-'}</td>
+                    `;
+                    tbodyCostos.appendChild(trCostos);
+
+                    // 2. LLENAR TABLA PRESUPUESTO VS REAL
+                    const trPpto = document.createElement('tr');
+                    let desviacion = ppto - costoTotal; // Positivo = Ahorro, Negativo = Sobregiro
+                    let pctDesviacion = 0;
+                    let pillClass = 'pill-dev';
+                    let pctTexto = '-';
+
+                    if (ppto > 0) {
+                        pctDesviacion = ((costoTotal - ppto) / ppto) * 100;
+                        if (pctDesviacion > 0) {
+                            pillClass = 'pill-danger'; // Gastó más de lo presupuestado
+                            pctTexto = '+' + pctDesviacion.toFixed(1) + '% (Sobregiro)';
+                        } else {
+                            pillClass = 'pill-success'; // Gastó menos o igual
+                            pctTexto = pctDesviacion.toFixed(1) + '% (Ahorro)';
+                        }
+                    } else if (costoTotal > 0 && ppto === 0) {
+                        pillClass = 'pill-danger';
+                        pctTexto = 'Sin Ppto asignado';
                     }
 
-                    tr.innerHTML = `
-                        <td><strong>${item.nombre_cc || 'N/A'}</strong></td>
-                        <td>${item.hectareas || 0} ha</td>
-                        <td>${formatearPesos(item.costo_total)}</td>
-                        <td>${formatearPesos(item.costo_ha_calc)}</td>
-                        <td><span class="pill pill-dev">En desarrollo</span></td>
+                    trPpto.innerHTML = `
+                        <td><strong>${nombreCC}</strong></td>
+                        <td class="text-right">${formatearPesos(ppto)}</td>
+                        <td class="text-right">${formatearPesos(costoTotal)}</td>
+                        <td class="text-right" style="color: ${desviacion < 0 ? 'var(--danger)' : 'var(--success)'}; font-weight: bold;">
+                            ${desviacion < 0 ? '' : '+'}${formatearPesos(desviacion)}
+                        </td>
+                        <td class="text-center"><span class="pill ${pillClass}">${pctTexto}</span></td>
                     `;
-                    tbody.appendChild(tr);
+                    tbodyPpto.appendChild(trPpto);
                 });
 
                 document.getElementById('resultados').style.display = 'block';
