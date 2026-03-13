@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BDATA Intelligence | Control de Costos</title>
+  <style>
+    /* Mismo diseño base, pero con un color de marca más "Finanzas/Control" (Azul oscuro) */
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --brand: #1e40af; /* Azul finanzas */
+      --brand-dark: #1e3a8a;
+      --danger: #b91c1c;
+      --warn: #b45309;
+      --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+    .topbar { background: linear-gradient(90deg, var(--brand-dark), var(--brand)); color: white; padding: 18px 28px; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; box-shadow: var(--shadow); }
+    .topbar-left { display: flex; flex-direction: column; gap: 4px; }
+    .topbar-title { font-size: 28px; font-weight: 700; margin: 0; }
+    .topbar-subtitle { font-size: 14px; opacity: 0.9; margin: 0; }
+    .topbar-right { text-align: right; font-size: 14px; opacity: 0.95; }
+
+    .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 40px; }
+
+    #mensajeError { display: none; background: #fee2e2; border-left: 5px solid var(--danger); color: var(--danger); padding: 20px; border-radius: 8px; margin-bottom: 24px; font-weight: bold; text-align: center; }
+    #loader { display: none; text-align: center; padding: 60px 20px; color: var(--brand); }
+    .spinner { border: 4px solid rgba(30, 64, 175, 0.2); border-left-color: var(--brand); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    #resultados { display: none; }
+
+    .hero { background: var(--card); border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow); margin-bottom: 24px; border: 1px solid var(--line); border-left: 5px solid var(--brand); }
+    .hero h2 { margin: 0 0 10px 0; font-size: 32px; line-height: 1.1; }
+    .hero p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.5; max-width: 900px; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 24px; }
+    .kpi { background: var(--card); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); border: 1px solid var(--line); }
+    .kpi-title { font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 10px; }
+    .kpi-value { font-size: 30px; font-weight: 700; line-height: 1.1; color: var(--text); }
+    .kpi-note { margin-top: 10px; font-size: 13px; color: var(--muted); }
+
+    .section-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); border: 1px solid var(--line); }
+    .card h3 { margin: 0 0 16px 0; font-size: 22px; color: var(--brand-dark); }
+    
+    .list { margin: 0; padding-left: 20px; }
+    .list li { margin-bottom: 12px; line-height: 1.5; font-size: 15px; color: var(--text); }
+
+    .footer-note { margin-top: 24px; font-size: 13px; color: var(--muted); text-align: center; }
+
+    @media (max-width: 900px) {
+      .kpi-grid, .section-grid { grid-template-columns: 1fr; }
+      .topbar { padding: 16px 18px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">BDATA Control de Costos</div>
+      <div class="topbar-subtitle">Auditoría inteligente de gastos por centro de costo</div>
+    </div>
+    <div class="topbar-right">
+      <div><strong>Cliente:</strong> <span id="hdrEmpresa">Cargando...</span></div>
+      <div><strong>Temporada:</strong> <span id="hdrTemporada">Cargando...</span></div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div id="mensajeError"></div>
+
+    <div id="loader">
+      <div class="spinner"></div>
+      <h3>Auditando estructura de costos...</h3>
+      <p class="muted">Analizando gastos por cuartel, desviaciones e ineficiencias.</p>
+    </div>
+
+    <div id="resultados">
+      
+      <div class="hero">
+        <h2>Reporte de Costos Operativos - <span id="txtEmpresa"></span></h2>
+        <p id="txtResumen" style="font-size: 18px; margin-top: 15px;"></p>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi" style="border-bottom: 4px solid var(--brand);">
+          <div class="kpi-title">Costo Total Analizado</div>
+          <div class="kpi-value" id="valCostoTotal">---</div>
+          <div class="kpi-note">Suma total de gastos de la temporada</div>
+        </div>
+
+        <div class="kpi" style="border-bottom: 4px solid var(--warn);">
+          <div class="kpi-title">CC Mayor Gasto Absoluto</div>
+          <div class="kpi-value" id="valMayorGasto">---</div>
+          <div class="kpi-note">Centro que consume más recursos</div>
+        </div>
+        
+        <div class="kpi" style="border-bottom: 4px solid var(--danger);">
+          <div class="kpi-title">Alerta de Ineficiencia</div>
+          <div class="kpi-value" id="valAlertaCosto" style="color: var(--danger);">---</div>
+          <div class="kpi-note">Revisar estructura de costo/ha</div>
+        </div>
+      </div>
+
+      <div class="section-grid">
+        <div class="card">
+          <h3>🔍 Hallazgos de la Auditoría</h3>
+          <ul class="list" id="listaHallazgos"></ul>
+        </div>
+
+        <div class="card" style="background: #f8fafc;">
+          <h3>💡 Oportunidades de Ahorro</h3>
+          <ul class="list" id="listaRecomendaciones"></ul>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="footer-note">
+      BDATA Intelligence · Módulo Controller Financiero · <span id="footerYear"></span>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('footerYear').textContent = new Date().getFullYear();
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const clienteDesdeURL = urlParams.get('cliente');
+
+        if (clienteDesdeURL) {
+            cargarReporteCostos(clienteDesdeURL.toUpperCase());
+        } else {
+            mostrarError("Falta la identificación del cliente en la URL.");
+        }
+    });
+
+    // Formateador de moneda estilo chileno
+    const formatearPesos = (valor) => {
+        return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(valor);
+    };
+
+    function cargarReporteCostos(cliente) {
+        document.getElementById('resultados').style.display = 'none';
+        document.getElementById('mensajeError').style.display = 'none';
+        document.getElementById('loader').style.display = 'block';
+
+        // LLAMADA A LA NUEVA RUTA DE COSTOS
+        const urlAPI = `https://cgraniffo.pythonanywhere.com/api/costos-web/${encodeURIComponent(cliente)}`;
+
+        fetch(urlAPI)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('loader').style.display = 'none';
+                
+                if(data.status === 'error') {
+                    mostrarError(data.mensaje);
+                    return;
+                }
+
+                const emp = data.empresa;
+                const temp = data.temporada;
+                const ana = data.analisis;
+
+                document.getElementById('hdrEmpresa').textContent = emp;
+                document.getElementById('txtEmpresa').textContent = emp;
+                document.getElementById('hdrTemporada').textContent = temp;
+
+                // Cargar KPIs
+                document.getElementById('valCostoTotal').textContent = formatearPesos(data.costo_total_operacion);
+                document.getElementById('valMayorGasto').textContent = ana.cc_mayor_gasto || 'N/A';
+                document.getElementById('valAlertaCosto').textContent = ana.cc_alerta_costo || 'N/A';
+                document.getElementById('txtResumen').textContent = ana.resumen_costos;
+
+                // Llenar Listas
+                const ulHallazgos = document.getElementById('listaHallazgos');
+                ulHallazgos.innerHTML = '';
+                ana.hallazgos_costos.forEach(h => {
+                    ulHallazgos.innerHTML += `<li>${h}</li>`;
+                });
+
+                const ulRecomendaciones = document.getElementById('listaRecomendaciones');
+                ulRecomendaciones.innerHTML = '';
+                ana.recomendaciones_ahorro.forEach(r => {
+                    ulRecomendaciones.innerHTML += `<li>${r}</li>`;
+                });
+
+                document.getElementById('resultados').style.display = 'block';
+            })
+            .catch(error => {
+                document.getElementById('loader').style.display = 'none';
+                mostrarError('Error de conexión con el servidor IA. Por favor intente nuevamente.');
+                console.error(error);
+            });
+    }
+
+    function mostrarError(mensaje) {
+        const errorDiv = document.getElementById('mensajeError');
+        errorDiv.textContent = '❌ ' + mensaje;
+        errorDiv.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
