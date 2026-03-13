@@ -47,7 +47,6 @@
     .list { margin: 0; padding-left: 20px; }
     .list li { margin-bottom: 12px; line-height: 1.5; font-size: 15px; color: var(--text); }
 
-    /* Estilos para etiquetas y tablas */
     .pill { display: inline-block; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
     .pill-dev { background: #e2e8f0; color: #475569; border: 1px dashed #94a3b8; }
     .pill-danger { background: #fee2e2; color: #991b1b; }
@@ -56,19 +55,26 @@
     .card-dev h3 { color: #64748b; display: flex; align-items: center; gap: 10px;}
 
     .tabla { width: 100%; border-collapse: collapse; overflow: hidden; border-radius: 14px; border: 1px solid var(--line); background: white; margin-top: 10px;}
-    .tabla th { text-align: left; background: #f1f5f9; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; padding: 14px; border-bottom: 1px solid var(--line); }
-    .tabla td { padding: 14px; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .tabla th { background: #f1f5f9; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; padding: 12px; border-bottom: 1px solid var(--line); }
+    .tabla td { padding: 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
     .tabla tr:last-child td { border-bottom: none; }
     .tabla tr:hover { background-color: #f8fafc; }
+    
+    /* ¡La magia de la alineación obligatoria! */
+    .text-left { text-align: left !important; }
     .text-right { text-align: right !important; }
     .text-center { text-align: center !important; }
+    
+    /* Para sub-columnas */
+    .border-left { border-left: 1px solid var(--line); }
+    .th-sub { font-size: 11px !important; padding-top: 6px !important; padding-bottom: 6px !important;}
 
     .footer-note { margin-top: 24px; font-size: 13px; color: var(--muted); text-align: center; }
 
     @media (max-width: 900px) {
       .kpi-grid, .section-grid { grid-template-columns: 1fr; }
       .topbar { padding: 16px 18px; }
-      .tabla { display: block; overflow-x: auto; white-space: nowrap; }
+      .tabla-container { width: 100%; overflow-x: auto; white-space: nowrap; margin-bottom: 15px;}
     }
   </style>
 </head>
@@ -122,37 +128,63 @@
       </div>
 
       <div class="card">
-        <h3>Control Presupuestario (Budget vs Actual)</h3>
-        <table class="tabla">
-          <thead>
-            <tr>
-              <th>Centro de Costo</th>
-              <th class="text-right">Presupuesto</th>
-              <th class="text-right">Gasto Real</th>
-              <th class="text-right">Desviación ($)</th>
-              <th class="text-center">Estado (%)</th>
-            </tr>
-          </thead>
-          <tbody id="tablaPptoBody">
-            </tbody>
-        </table>
+        <h3>Control Presupuestario Global (Budget vs Actual)</h3>
+        <div class="tabla-container">
+            <table class="tabla">
+            <thead>
+                <tr>
+                <th class="text-left">Centro de Costo</th>
+                <th class="text-right">Presupuesto Gasto</th>
+                <th class="text-right">Gasto Real</th>
+                <th class="text-right">Desviación ($)</th>
+                <th class="text-center">Estado (%)</th>
+                </tr>
+            </thead>
+            <tbody id="tablaPptoBody"></tbody>
+            </table>
+        </div>
       </div>
 
       <div class="card">
-        <h3>Ranking de Costos por Unidad Productiva</h3>
-        <table class="tabla">
-          <thead>
-            <tr>
-              <th>Centro de Costo</th>
-              <th class="text-right">Hectáreas</th>
-              <th class="text-right">Costo Total</th>
-              <th class="text-right">Costo / Ha</th>
-              <th class="text-right">Costo / Kg</th>
-            </tr>
-          </thead>
-          <tbody id="tablaCostosBody">
-            </tbody>
-        </table>
+        <h3>Control de Eficiencia Unitaria (Ppto vs Real)</h3>
+        <div class="tabla-container">
+            <table class="tabla">
+            <thead>
+                <tr>
+                <th rowspan="2" class="text-left" style="vertical-align: middle;">Centro de Costo</th>
+                <th colspan="2" class="text-center border-left">Ingreso / Ha</th>
+                <th colspan="2" class="text-center border-left">Costo / Ha</th>
+                <th colspan="2" class="text-center border-left">Costo / Kg</th>
+                </tr>
+                <tr>
+                <th class="text-right th-sub border-left" style="color:#94a3b8;">Ppto</th>
+                <th class="text-right th-sub" style="color:var(--success);">Real</th>
+                <th class="text-right th-sub border-left" style="color:#94a3b8;">Ppto</th>
+                <th class="text-right th-sub" style="color:var(--danger);">Real</th>
+                <th class="text-right th-sub border-left" style="color:#94a3b8;">Ppto</th>
+                <th class="text-right th-sub" style="color:var(--danger);">Real</th>
+                </tr>
+            </thead>
+            <tbody id="tablaUnitariosBody"></tbody>
+            </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Ranking de Costos y Superficie</h3>
+        <div class="tabla-container">
+            <table class="tabla">
+            <thead>
+                <tr>
+                <th class="text-left">Centro de Costo</th>
+                <th class="text-right">Hectáreas</th>
+                <th class="text-right">Costo Total Absoluto</th>
+                <th class="text-right">Costo / Ha Promedio</th>
+                </tr>
+            </thead>
+            <tbody id="tablaCostosBody"></tbody>
+            </table>
+        </div>
       </div>
 
       <div class="section-grid">
@@ -194,7 +226,7 @@
     });
 
     const formatearPesos = (valor) => {
-        if(!valor || isNaN(valor)) return '$0';
+        if(!valor || isNaN(valor)) return '-';
         return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(valor);
     };
 
@@ -229,41 +261,92 @@
                 document.getElementById('valAlertaCosto').textContent = ana.cc_alerta_costo || 'N/A';
                 document.getElementById('txtResumen').textContent = ana.resumen_costos;
 
-                // Llenar Listas
+                // Llenar Listas IA
                 const ulHallazgos = document.getElementById('listaHallazgos');
                 ulHallazgos.innerHTML = '';
-                ana.hallazgos_costos.forEach(h => {
-                    ulHallazgos.innerHTML += `<li>${h}</li>`;
-                });
+                ana.hallazgos_costos.forEach(h => { ulHallazgos.innerHTML += `<li>${h}</li>`; });
 
                 const ulRecomendaciones = document.getElementById('listaRecomendaciones');
                 ulRecomendaciones.innerHTML = '';
-                ana.recomendaciones_ahorro.forEach(r => {
-                    ulRecomendaciones.innerHTML += `<li>${r}</li>`;
-                });
+                ana.recomendaciones_ahorro.forEach(r => { ulRecomendaciones.innerHTML += `<li>${r}</li>`; });
 
                 // Limpiar Tablas
                 const tbodyCostos = document.getElementById('tablaCostosBody');
                 const tbodyPpto = document.getElementById('tablaPptoBody');
-                tbodyCostos.innerHTML = '';
-                tbodyPpto.innerHTML = '';
+                const tbodyUnit = document.getElementById('tablaUnitariosBody');
                 
-                // Ordenamos por costo total de mayor a menor
+                tbodyCostos.innerHTML = ''; tbodyPpto.innerHTML = ''; tbodyUnit.innerHTML = '';
+                
+                // Ordenamos por costo total (mayor a menor)
                 const detalleOrdenado = detalle.sort((a, b) => (b.costo_total || 0) - (a.costo_total || 0));
 
                 detalleOrdenado.forEach(item => {
-                    // BUSCADOR DE COLUMNAS A PRUEBA DE BALAS
                     const nombreCC = item.nombre_cc || item['NOMBRE CC'] || item.cultivo || item.Nombre || 'N/A';
+                    const has = item.hectareas || item.Hectareas || 1; // 1 para evitar division por 0 si viene vacío
+                    
+                    // Variables Globales Reales
                     const costoTotal = item.costo_total || 0;
-                    const costoHa = item.costo_ha_calc || item.costo_ha || 0;
+                    const ingresoTotal = item.ingreso_total || item['Ingreso Total'] || 0;
                     
-                    // Busca la columna de costo por kilo (Ajusta los nombres según tu excel si hace falta)
-                    const costoKg = item.costo_kg || item['Costo_Kg'] || item['Costo por Kilo'] || item['Costo por kg'] || 0;
+                    // Variables Unitarias Reales
+                    const realCostoHa = item.costo_ha_calc || item.costo_ha || (costoTotal / has) || 0;
+                    const realIngresoHa = item.ingreso_ha_calc || item.ingreso_ha || (ingresoTotal / has) || 0;
+                    const realCostoKg = item.costo_kg || item['Costo_Kg'] || item['Costo por Kilo'] || item['Costo por kg'] || 0;
                     
-                    // Busca la columna de presupuesto
-                    const ppto = item.presupuesto || item['Presupuesto'] || item.ppto || 0;
+                    // Variables Presupuesto Global
+                    const pptoCosto = item.presupuesto || item['Presupuesto'] || item.ppto || 0;
+                    const pptoIngreso = item.ppto_ingreso || item['Presupuesto Ingreso'] || 0;
 
-                    // 1. LLENAR TABLA RANKING OPERATIVO
+                    // Variables Presupuesto Unitario (Si existen en Excel las usa, si no, las calcula dividiendo el Ppto por las Has)
+                    const pptoCostoHa = item.ppto_costo_ha || item['Ppto Costo/Ha'] || (pptoCosto > 0 ? pptoCosto / has : 0);
+                    const pptoIngresoHa = item.ppto_ingreso_ha || item['Ppto Ingreso/Ha'] || (pptoIngreso > 0 ? pptoIngreso / has : 0);
+                    const pptoCostoKg = item.ppto_costo_kg || item['Ppto Costo/Kg'] || item['Presupuesto Costo/Kg'] || 0;
+
+                    // 1. TABLA GLOBAL (Ppto vs Real Gastos)
+                    const trPpto = document.createElement('tr');
+                    let desviacion = pptoCosto - costoTotal; 
+                    let pctDesviacion = 0;
+                    let pillClass = 'pill-dev';
+                    let pctTexto = '-';
+
+                    if (pptoCosto > 0) {
+                        pctDesviacion = ((costoTotal - pptoCosto) / pptoCosto) * 100;
+                        if (pctDesviacion > 0) {
+                            pillClass = 'pill-danger'; pctTexto = '+' + pctDesviacion.toFixed(1) + '% (Sobregiro)';
+                        } else {
+                            pillClass = 'pill-success'; pctTexto = pctDesviacion.toFixed(1) + '% (Ahorro)';
+                        }
+                    } else if (costoTotal > 0 && pptoCosto === 0) {
+                        pillClass = 'pill-danger'; pctTexto = 'Sin Ppto';
+                    }
+
+                    trPpto.innerHTML = `
+                        <td><strong>${nombreCC}</strong></td>
+                        <td class="text-right">${pptoCosto > 0 ? formatearPesos(pptoCosto) : '-'}</td>
+                        <td class="text-right">${formatearPesos(costoTotal)}</td>
+                        <td class="text-right" style="color: ${desviacion < 0 ? 'var(--danger)' : 'var(--success)'}; font-weight: bold;">
+                            ${desviacion < 0 ? '' : '+'}${pptoCosto > 0 ? formatearPesos(desviacion) : '-'}
+                        </td>
+                        <td class="text-center"><span class="pill ${pillClass}">${pctTexto}</span></td>
+                    `;
+                    tbodyPpto.appendChild(trPpto);
+
+                    // 2. NUEVA TABLA UNITARIA (Doble columna Ppto/Real)
+                    const trUnit = document.createElement('tr');
+                    trUnit.innerHTML = `
+                        <td><strong>${nombreCC}</strong></td>
+                        <td class="text-right border-left" style="color:#64748b;">${pptoIngresoHa > 0 ? formatearPesos(pptoIngresoHa) : '-'}</td>
+                        <td class="text-right" style="font-weight:bold;">${realIngresoHa > 0 ? formatearPesos(realIngresoHa) : '-'}</td>
+                        
+                        <td class="text-right border-left" style="color:#64748b;">${pptoCostoHa > 0 ? formatearPesos(pptoCostoHa) : '-'}</td>
+                        <td class="text-right" style="font-weight:bold;">${realCostoHa > 0 ? formatearPesos(realCostoHa) : '-'}</td>
+                        
+                        <td class="text-right border-left" style="color:#64748b;">${pptoCostoKg > 0 ? formatearPesos(pptoCostoKg) : '-'}</td>
+                        <td class="text-right" style="font-weight:bold;">${realCostoKg > 0 ? formatearPesos(realCostoKg) : '-'}</td>
+                    `;
+                    tbodyUnit.appendChild(trUnit);
+
+                    // 3. TABLA RANKING Y SUPERFICIE
                     const trCostos = document.createElement('tr');
                     if(nombreCC === ana.cc_alerta_costo) trCostos.style.backgroundColor = '#fef2f2';
                     
@@ -271,42 +354,9 @@
                         <td><strong>${nombreCC}</strong></td>
                         <td class="text-right">${item.hectareas || 0} ha</td>
                         <td class="text-right">${formatearPesos(costoTotal)}</td>
-                        <td class="text-right">${formatearPesos(costoHa)}</td>
-                        <td class="text-right">${costoKg > 0 ? formatearPesos(costoKg) : '-'}</td>
+                        <td class="text-right">${formatearPesos(realCostoHa)}</td>
                     `;
                     tbodyCostos.appendChild(trCostos);
-
-                    // 2. LLENAR TABLA PRESUPUESTO VS REAL
-                    const trPpto = document.createElement('tr');
-                    let desviacion = ppto - costoTotal; // Positivo = Ahorro, Negativo = Sobregiro
-                    let pctDesviacion = 0;
-                    let pillClass = 'pill-dev';
-                    let pctTexto = '-';
-
-                    if (ppto > 0) {
-                        pctDesviacion = ((costoTotal - ppto) / ppto) * 100;
-                        if (pctDesviacion > 0) {
-                            pillClass = 'pill-danger'; // Gastó más de lo presupuestado
-                            pctTexto = '+' + pctDesviacion.toFixed(1) + '% (Sobregiro)';
-                        } else {
-                            pillClass = 'pill-success'; // Gastó menos o igual
-                            pctTexto = pctDesviacion.toFixed(1) + '% (Ahorro)';
-                        }
-                    } else if (costoTotal > 0 && ppto === 0) {
-                        pillClass = 'pill-danger';
-                        pctTexto = 'Sin Ppto asignado';
-                    }
-
-                    trPpto.innerHTML = `
-                        <td><strong>${nombreCC}</strong></td>
-                        <td class="text-right">${formatearPesos(ppto)}</td>
-                        <td class="text-right">${formatearPesos(costoTotal)}</td>
-                        <td class="text-right" style="color: ${desviacion < 0 ? 'var(--danger)' : 'var(--success)'}; font-weight: bold;">
-                            ${desviacion < 0 ? '' : '+'}${formatearPesos(desviacion)}
-                        </td>
-                        <td class="text-center"><span class="pill ${pillClass}">${pctTexto}</span></td>
-                    `;
-                    tbodyPpto.appendChild(trPpto);
                 });
 
                 document.getElementById('resultados').style.display = 'block';
