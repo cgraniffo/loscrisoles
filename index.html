@@ -47,19 +47,13 @@
 
     .wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 40px; }
 
-    /* Buscador Inicial */
-    #buscadorCaja {
-      background: var(--card); border-radius: var(--radius); padding: 30px;
-      box-shadow: var(--shadow); margin-bottom: 24px; border: 1px solid var(--line);
-      text-align: center;
+    /* Mensajes de error */
+    #mensajeError {
+        display: none;
+        background: #fee2e2; border-left: 5px solid var(--danger);
+        color: var(--danger); padding: 20px; border-radius: 8px;
+        margin-bottom: 24px; font-weight: bold; text-align: center;
     }
-    #buscadorCaja input {
-      padding: 12px; font-size: 16px; border: 1px solid var(--line); border-radius: 8px; width: 60%; max-width: 400px;
-    }
-    #buscadorCaja button {
-      padding: 12px 24px; font-size: 16px; background: var(--brand); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-left: 10px;
-    }
-    #buscadorCaja button:hover { background: var(--brand-dark); }
 
     /* Loader */
     #loader { display: none; text-align: center; padding: 60px 20px; color: var(--brand); }
@@ -109,8 +103,6 @@
     @media (max-width: 700px) {
       .kpi-grid { grid-template-columns: 1fr; }
       .topbar { padding: 16px 18px; }
-      #buscadorCaja input { width: 100%; margin-bottom: 10px;}
-      #buscadorCaja button { width: 100%; margin-left: 0;}
     }
   </style>
 </head>
@@ -122,18 +114,14 @@
       <div class="topbar-subtitle">Control de gestión agrícola y análisis económico de cultivos</div>
     </div>
     <div class="topbar-right">
-      <div><strong>Cliente:</strong> <span id="hdrEmpresa">---</span></div>
-      <div><strong>Temporada:</strong> <span id="hdrTemporada">---</span></div>
+      <div><strong>Cliente:</strong> <span id="hdrEmpresa">Cargando...</span></div>
+      <div><strong>Temporada:</strong> <span id="hdrTemporada">Cargando...</span></div>
     </div>
   </div>
 
   <div class="wrap">
 
-    <div id="buscadorCaja">
-      <h3 style="margin-top:0;">Consulta de Portafolio</h3>
-      <input type="text" id="clienteInput" placeholder="Ingrese ID del Cliente (Ej: LOS CRISOLES)">
-      <button onclick="cargarReporte()">Generar Reporte IA</button>
-    </div>
+    <div id="mensajeError"></div>
 
     <div id="loader">
       <div class="spinner"></div>
@@ -217,24 +205,27 @@
   </div>
 
   <script>
+    // Año automático en el footer
     document.getElementById('footerYear').textContent = new Date().getFullYear();
 
-    // Carga automática por URL
+    // 1. Carga automática apenas se abre la página
     document.addEventListener("DOMContentLoaded", function() {
         const urlParams = new URLSearchParams(window.location.search);
         const clienteDesdeURL = urlParams.get('cliente');
 
         if (clienteDesdeURL) {
-            document.getElementById('buscadorCaja').style.display = 'none';
+            // Si hay cliente en la URL, iniciamos la carga
             cargarReporte(clienteDesdeURL.toUpperCase());
+        } else {
+            // Si entró directo sin ?cliente=, mostramos error
+            mostrarError("Falta la identificación del cliente. Por favor, ingrese desde el enlace oficial de la aplicación.");
         }
     });
 
-    function cargarReporte(clienteAutomatico) {
-        const cliente = clienteAutomatico || document.getElementById('clienteInput').value.trim();
-        if(!cliente) return alert('Por favor ingrese el nombre del cliente');
-
+    // 2. Función que trae los datos de la IA
+    function cargarReporte(cliente) {
         document.getElementById('resultados').style.display = 'none';
+        document.getElementById('mensajeError').style.display = 'none';
         document.getElementById('loader').style.display = 'block';
 
         const urlAPI = `https://cgraniffo.pythonanywhere.com/api/conclusion-web/${encodeURIComponent(cliente)}`;
@@ -245,8 +236,7 @@
                 document.getElementById('loader').style.display = 'none';
                 
                 if(data.status === 'error') {
-                    document.getElementById('buscadorCaja').style.display = 'block';
-                    alert('Error: ' + data.mensaje);
+                    mostrarError(data.mensaje);
                     return;
                 }
 
@@ -281,14 +271,25 @@
                     ulRecomendaciones.innerHTML += `<li>${r}</li>`;
                 });
 
+                // Mostrar todo
                 document.getElementById('resultados').style.display = 'block';
             })
             .catch(error => {
                 document.getElementById('loader').style.display = 'none';
-                document.getElementById('buscadorCaja').style.display = 'block';
-                alert('Error de conexión con el servidor IA.');
+                mostrarError('Error de conexión con el servidor IA. Por favor intente nuevamente más tarde.');
                 console.error(error);
             });
+    }
+
+    // Función auxiliar para errores
+    function mostrarError(mensaje) {
+        const errorDiv = document.getElementById('mensajeError');
+        errorDiv.textContent = '❌ ' + mensaje;
+        errorDiv.style.display = 'block';
+        
+        // Limpiar el header
+        document.getElementById('hdrEmpresa').textContent = 'Error';
+        document.getElementById('hdrTemporada').textContent = '---';
     }
   </script>
 
