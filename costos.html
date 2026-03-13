@@ -86,7 +86,7 @@
       <div class="topbar-subtitle">Auditoría inteligente de gastos por centro de costo</div>
     </div>
     <div class="topbar-right">
-      <div><strong>Cliente:</strong> <span id="hdrEmpresa">Cargando...</span></div>
+      <div><strong>Agrícola:</strong> <span id="hdrEmpresa">Cargando...</span></div>
       <div><strong>Temporada:</strong> <span id="hdrTemporada">Cargando...</span></div>
     </div>
   </div>
@@ -294,8 +294,8 @@
                     const realCostoKg = item.costo_kg || item['Costo_Kg'] || item['Costo por Kilo'] || item['Costo por kg'] || 0;
                     
                     // Variables Presupuesto Global
-                    const pptoCosto = item.presupuesto || item['Presupuesto'] || item.ppto || 0;
-                    const pptoIngreso = item.ppto_ingreso || item['Presupuesto Ingreso'] || 0;
+                    const pptoCosto = item['Ppto_Cto_Total'] || item.presupuesto || item['Presupuesto'] || item.ppto || 0;
+                    const pptoIngreso = item['Ppto_Ingreso_Total'] || item.ppto_ingreso || item['Presupuesto Ingreso'] || 0;
 
                     // Variables Presupuesto Unitario (Si existen en Excel las usa, si no, las calcula dividiendo el Ppto por las Has)
                     const pptoCostoHa = item.ppto_costo_ha || item['Ppto Costo/Ha'] || (pptoCosto > 0 ? pptoCosto / has : 0);
