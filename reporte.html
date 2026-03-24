@@ -133,7 +133,7 @@ const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMag
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {};
 let ACTIVOS = [], TODOS = [];
 let state = { estado:"todas", encargado:"todos", up:"todas", soloVencidas:false };
-let stateCostos = { cc:"todas", fundo:"todos" };
+let stateCostos = { cc:"todas", fundo:"todos", anio:"todos", mes:"todos" };
 let currentTab = "labores";
 
 async function fetchSheet(apiUrl, sheet) {
@@ -365,7 +365,29 @@ function renderCostos() {
   const ccBtns    = ccOpts.map(id => `<button class="fbtn${stateCostos.cc===id?" on":""}" onclick="setCostoFilter('cc','${id}')">${CC_MAP[id]||id}</button>`).join("");
   const fundoBtns = fundoOpts.map(f => `<button class="fbtn${stateCostos.fundo===f?" on":""}" onclick="setCostoFilter('fundo','${f}')">${f}</button>`).join("");
 
+  // Año y mes options
+  const anioOpts = [...new Set(todosConCosto.map(r => {
+    const d = parseDate(r["Fecha"]); return d ? d.getFullYear() : null;
+  }).filter(Boolean))].sort();
+  const mesOpts = [...new Set(todosConCosto.map(r => {
+    const d = parseDate(r["Fecha"]); return d ? String(d.getMonth()+1).padStart(2,"0") : null;
+  }).filter(Boolean))].sort();
+  const MESES = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
+
+  const anioBtns = anioOpts.map(a => `<button class="fbtn${stateCostos.anio===String(a)?" on":""}" onclick="setCostoFilter('anio','${a}')">${a}</button>`).join("");
+  const mesBtns  = mesOpts.map(m  => `<button class="fbtn${stateCostos.mes===m?" on":""}" onclick="setCostoFilter('mes','${m}')">${MESES[m]||m}</button>`).join("");
+
   const filtrosHTML = `<div class="filters-wrap" style="margin-bottom:12px;">
+    <div class="filters-row">
+      <div class="filter-label">Año</div>
+      <button class="fbtn${stateCostos.anio==="todos"?" on":""}" onclick="setCostoFilter('anio','todos')">Todos</button>
+      ${anioBtns}
+    </div>
+    <div class="filters-row">
+      <div class="filter-label">Mes</div>
+      <button class="fbtn${stateCostos.mes==="todos"?" on":""}" onclick="setCostoFilter('mes','todos')">Todos</button>
+      ${mesBtns}
+    </div>
     <div class="filters-row">
       <div class="filter-label">Unidad prod.</div>
       <button class="fbtn${stateCostos.cc==="todas"?" on":""}" onclick="setCostoFilter('cc','todas')">Todas</button>
@@ -381,8 +403,13 @@ function renderCostos() {
   const conCosto = todosConCosto.filter(r => {
     const ccId  = String(r["Centro_Costo"]||"").trim();
     const fundo = FUNDO_MAP[ccId]||"";
-    if (stateCostos.cc !== "todas" && ccId !== stateCostos.cc) return false;
-    if (stateCostos.fundo !== "todos" && fundo !== stateCostos.fundo) return false;
+    const d     = parseDate(r["Fecha"]);
+    const anio  = d ? String(d.getFullYear()) : "";
+    const mes   = d ? String(d.getMonth()+1).padStart(2,"0") : "";
+    if (stateCostos.cc    !== "todas"  && ccId  !== stateCostos.cc)    return false;
+    if (stateCostos.fundo !== "todos"  && fundo !== stateCostos.fundo) return false;
+    if (stateCostos.anio  !== "todos"  && anio  !== stateCostos.anio)  return false;
+    if (stateCostos.mes   !== "todos"  && mes   !== stateCostos.mes)   return false;
     return true;
   });
 
