@@ -140,9 +140,25 @@ async function fetchSheet(sheet) {
 function parseDate(val) {
   if (!val) return null;
   const s = String(val).trim();
-  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d] = s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
-  if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(s)) { const sep=s.includes("-")?"-":"/"; const [d,m,y]=s.split(sep); return new Date(+y,+m-1,+d); }
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y,m,d]=s.split("-"); return new Date(+y,+m-1,+d); }
+  try {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+      const part = s.split("T")[0];
+      const [y,m,d] = part.split("-");
+      const dt = new Date(+y,+m-1,+d);
+      return isNaN(dt) ? null : dt;
+    }
+    if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(s)) {
+      const sep = s.includes("-") ? "-" : "/";
+      const [d,m,y] = s.split(sep);
+      const dt = new Date(+y,+m-1,+d);
+      return isNaN(dt) ? null : dt;
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+      const [y,m,d] = s.split("-");
+      const dt = new Date(+y,+m-1,+d);
+      return isNaN(dt) ? null : dt;
+    }
+  } catch(e) { return null; }
   return null;
 }
 
@@ -173,7 +189,7 @@ function diffDays(val) {
 const COLOR = { venc: { bar:"#fca5a5", date:"#cc2222" }, hoy: { bar:"#fcd34d", date:"#b45309" }, prox: { bar:"#86efac", date:"#166534" } };
 
 // STATE
-let ALL = [], CCS = [], state = { estado: "todas", encargado: "todos", up: "todas", soloVencidas: false };
+let ALL = [], CCS = [], ccNameMap = {}, state = { estado: "todas", encargado: "todos", up: "todas", soloVencidas: false };
 
 function count(arr, key) {
   const m = {};
@@ -201,9 +217,6 @@ function renderStats(activos) {
   // Por UP
   const upMap = count(activos, "Centro_Costo");
   const upMax = upMap[0]?.[1]||1;
-  // Replace CC id with name
-  const ccNameMap = {};
-  CCS.forEach(c => { ccNameMap[String(c["Id_CC"]||"").trim()] = String(c["NOMBRE CC"]||c["Id_CC"]||"").trim(); });
   const upHTML = upMap.slice(0,6).map(([k,v])=>renderBar(ccNameMap[k]||k,v,upMax,"teal")).join("");
 
   // Por tipo labor
@@ -254,8 +267,6 @@ function renderStats(activos) {
 
 function buildFilters(activos) {
   const encargados = [...new Set(activos.map(r=>String(r["Encargado"]||"").trim()).filter(Boolean))].sort();
-  const ccNameMap = {};
-  CCS.forEach(c => { ccNameMap[String(c["Id_CC"]||"").trim()] = String(c["NOMBRE CC"]||c["Id_CC"]||"").trim(); });
   const ups = [...new Set(activos.map(r=>String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
 
   const encBtns = encargados.map(e=>`<button class="fbtn${state.encargado===e?' on':''}" onclick="setFilter('encargado','${e}')">${e}</button>`).join("");
@@ -293,9 +304,6 @@ function applyFilters(activos) {
 }
 
 function renderLabores(filtradas) {
-  const ccNameMap = {};
-  CCS.forEach(c => { ccNameMap[String(c["Id_CC"]||"").trim()] = String(c["NOMBRE CC"]||c["Id_CC"]||"").trim(); });
-
   const enProceso = filtradas.filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
   const pendientes = filtradas.filter(r=>String(r["Estado Operativo"]||"").trim()==="Pendiente");
 
@@ -370,6 +378,8 @@ function renderLabores(filtradas) {
 
 function setFilter(key, val) {
   state[key] = val;
+  // Reset soloVencidas when switching estado filter
+  if (key === "estado") state.soloVencidas = false;
   renderPage();
 }
 
@@ -385,8 +395,8 @@ function renderPage() {
   });
   const filtradas = applyFilters(activos);
   document.getElementById("app").innerHTML =
-    buildFilters(activos) +
     renderStats(activos) +
+    buildFilters(activos) +
     renderLabores(filtradas) +
     `<div class="footer">Reporte automático · Los Crisoles · BData</div>`;
 }
@@ -402,6 +412,14 @@ async function main() {
     ]);
 
     CCS = ccs;
+
+    // Build global CC name map once
+    CCS.forEach(c => {
+      const id = String(c["Id_CC"]||"").trim();
+      const nombre = String(c["NOMBRE CC"]||"").trim();
+      if (id) ccNameMap[id] = nombre;
+    });
+
 
     // Labor name map
     const laborMap = {};
