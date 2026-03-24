@@ -129,6 +129,7 @@ const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMag
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {};
 let ACTIVOS = [], TODOS = [];
 let state = { estado:"todas", encargado:"todos", up:"todas", soloVencidas:false };
+let stateCostos = { cc:"todas", fundo:"todos" };
 let currentTab = "labores";
 
 async function fetchSheet(apiUrl, sheet) {
@@ -350,7 +351,34 @@ function renderPageLabores() {
 
 // ── RENDER COSTOS ──────────────────────────────────────────────────────────
 function renderCostos() {
-  const conCosto = TODOS.filter(r => Number(r["Costo Total"]) > 0);
+  // Build filter options
+  const todosConCosto = TODOS.filter(r => Number(r["Costo Total"]) > 0);
+  const ccOpts   = [...new Set(todosConCosto.map(r => String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
+  const fundoOpts = [...new Set(ccOpts.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
+
+  const ccBtns    = ccOpts.map(id => `<button class="fbtn${stateCostos.cc===id?" on":""}" onclick="setCostoFilter('cc','${id}')">${CC_MAP[id]||id}</button>`).join("");
+  const fundoBtns = fundoOpts.map(f => `<button class="fbtn${stateCostos.fundo===f?" on":""}" onclick="setCostoFilter('fundo','${f}')">${f}</button>`).join("");
+
+  const filtrosHTML = `<div class="filters-wrap" style="margin-bottom:12px;">
+    <div class="filters-row">
+      <div class="filter-label">Unidad prod.</div>
+      <button class="fbtn${stateCostos.cc==="todas"?" on":""}" onclick="setCostoFilter('cc','todas')">Todas</button>
+      ${ccBtns}
+    </div>
+    <div class="filters-row">
+      <div class="filter-label">Centro costo</div>
+      <button class="fbtn${stateCostos.fundo==="todos"?" on":""}" onclick="setCostoFilter('fundo','todos')">Todos</button>
+      ${fundoBtns}
+    </div>
+  </div>`;
+
+  const conCosto = todosConCosto.filter(r => {
+    const ccId  = String(r["Centro_Costo"]||"").trim();
+    const fundo = FUNDO_MAP[ccId]||"";
+    if (stateCostos.cc !== "todas" && ccId !== stateCostos.cc) return false;
+    if (stateCostos.fundo !== "todos" && fundo !== stateCostos.fundo) return false;
+    return true;
+  });
 
   const totalGeneral = conCosto.reduce((s,r) => s + Number(r["Costo Total"]), 0);
   const totalRegistros = conCosto.length;
@@ -432,6 +460,7 @@ function renderCostos() {
       <div class="cm"><div class="cm-val">${fmtPeso(promedio)}</div><div class="cm-label">Costo promedio por labor</div></div>
     </div>
 
+    ${filtrosHTML}
     <div class="stat-card" style="margin-bottom:12px;">
       <div class="stat-title">Costo por unidad productiva</div>
       <table class="up-table">
@@ -446,6 +475,11 @@ function renderCostos() {
     </div>
 
     <div class="footer">Costos basados en campo "Costo Total" · Los Crisoles · BData</div>`;
+}
+
+function setCostoFilter(key, val) {
+  stateCostos[key] = val;
+  renderCostos();
 }
 
 function setFilter(key, val) {
