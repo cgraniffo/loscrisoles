@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -46,9 +45,10 @@
 <script>
 const API_REGISTRO = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
 const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
+const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 
 async function fetchSheet(sheet) {
-  const url = sheet === "BD_CC" ? API_CC : API_REGISTRO;
+  const url = sheet === "BD_CC" ? API_CC : sheet === "BD_Labores" ? API_LABORES : API_REGISTRO;
   const res = await fetch(url + "?sheet=" + sheet, { redirect: "follow" });
   if (!res.ok) throw new Error("Error HTTP " + res.status + " al leer " + sheet);
   return res.json();
@@ -143,12 +143,27 @@ function renderCard(cc, labores, tipo) {
 async function render() {
   const app = document.getElementById("app");
   try {
-    const [registros, ccs] = await Promise.all([
+    const [registros, ccs, labores] = await Promise.all([
       fetchSheet("BD_Registro"),
-      fetchSheet("BD_CC")
+      fetchSheet("BD_CC"),
+      fetchSheet("BD_Labores")
     ]);
 
-    const activos = registros.filter(r => {
+    // Mapa Id_Labor -> Nombre Labor
+    const laborMap = {};
+    labores.forEach(l => {
+      const id = String(l["Id_Labor"] || "").trim();
+      const nombre = String(l["Nombre Labor"] || l["Labor"] || "").trim();
+      if (id) laborMap[id] = nombre;
+    });
+
+    // Resolver nombre en cada registro
+    registros.forEach(r => {
+      const idLabor = String(r["Labor"] || "").trim();
+      if (laborMap[idLabor]) r["Labor"] = laborMap[idLabor];
+    });
+
+        const activos = registros.filter(r => {
       const est = String(r["Estado Operativo"] || "").trim();
       return est === "En Proceso" || est === "Pendiente";
     });
