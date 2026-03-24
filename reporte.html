@@ -133,7 +133,7 @@ const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMag
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {};
 let ACTIVOS = [], TODOS = [];
 let state = { estado:"todas", encargado:"todos", up:"todas", soloVencidas:false };
-let stateCostos = { cc:"todas", fundo:"todos", anio:"todos", mes:"todos" };
+let stateCostos = { cc:"todas", fundo:"todos", anios:[], meses:[] };
 let currentTab = "labores";
 
 async function fetchSheet(apiUrl, sheet) {
@@ -374,18 +374,18 @@ function renderCostos() {
   }).filter(Boolean))].sort();
   const MESES = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
 
-  const anioBtns = anioOpts.map(a => `<button class="fbtn${stateCostos.anio===String(a)?" on":""}" onclick="setCostoFilter('anio','${a}')">${a}</button>`).join("");
-  const mesBtns  = mesOpts.map(m  => `<button class="fbtn${stateCostos.mes===m?" on":""}" onclick="setCostoFilter('mes','${m}')">${MESES[m]||m}</button>`).join("");
+  const anioBtns = anioOpts.map(a => `<button class="fbtn${stateCostos.anios.includes(String(a))?" on":""}" onclick="toggleCostoMulti('anios','${a}')">${a}</button>`).join("");
+  const mesBtns  = mesOpts.map(m  => `<button class="fbtn${stateCostos.meses.includes(m)?" on":""}" onclick="toggleCostoMulti('meses','${m}')">${MESES[m]||m}</button>`).join("");
 
   const filtrosHTML = `<div class="filters-wrap" style="margin-bottom:12px;">
     <div class="filters-row">
       <div class="filter-label">Año</div>
-      <button class="fbtn${stateCostos.anio==="todos"?" on":""}" onclick="setCostoFilter('anio','todos')">Todos</button>
+      <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
       ${anioBtns}
     </div>
     <div class="filters-row">
       <div class="filter-label">Mes</div>
-      <button class="fbtn${stateCostos.mes==="todos"?" on":""}" onclick="setCostoFilter('mes','todos')">Todos</button>
+      <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
       ${mesBtns}
     </div>
     <div class="filters-row">
@@ -406,10 +406,10 @@ function renderCostos() {
     const d     = parseDate(r["Fecha"]);
     const anio  = d ? String(d.getFullYear()) : "";
     const mes   = d ? String(d.getMonth()+1).padStart(2,"0") : "";
-    if (stateCostos.cc    !== "todas"  && ccId  !== stateCostos.cc)    return false;
-    if (stateCostos.fundo !== "todos"  && fundo !== stateCostos.fundo) return false;
-    if (stateCostos.anio  !== "todos"  && anio  !== stateCostos.anio)  return false;
-    if (stateCostos.mes   !== "todos"  && mes   !== stateCostos.mes)   return false;
+    if (stateCostos.cc    !== "todas" && ccId  !== stateCostos.cc)    return false;
+    if (stateCostos.fundo !== "todos" && fundo !== stateCostos.fundo) return false;
+    if (stateCostos.anios.length > 0  && !stateCostos.anios.includes(anio)) return false;
+    if (stateCostos.meses.length > 0  && !stateCostos.meses.includes(mes))  return false;
     return true;
   });
 
@@ -510,6 +510,13 @@ function renderCostos() {
 
 function setCostoFilter(key, val) {
   stateCostos[key] = val;
+  renderCostos();
+}
+function toggleCostoMulti(key, val) {
+  const arr = stateCostos[key];
+  const idx = arr.indexOf(val);
+  if (idx === -1) arr.push(val);
+  else arr.splice(idx, 1);
   renderCostos();
 }
 
