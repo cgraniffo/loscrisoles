@@ -385,8 +385,8 @@ function renderPage() {
   });
   const filtradas = applyFilters(activos);
   document.getElementById("app").innerHTML =
-    renderStats(activos) +
     buildFilters(activos) +
+    renderStats(activos) +
     renderLabores(filtradas) +
     `<div class="footer">Reporte automático · Los Crisoles · BData</div>`;
 }
@@ -394,10 +394,11 @@ function renderPage() {
 async function main() {
   const t0 = Date.now();
   try {
-    const [registros, ccs, labores] = await Promise.all([
+    const [registros, ccs, labores, encargados] = await Promise.all([
       fetchSheet("BD_Registro"),
       fetchSheet("BD_CC"),
-      fetchSheet("BD_Labores")
+      fetchSheet("BD_Labores"),
+      fetchSheet("Encargados")
     ]);
 
     CCS = ccs;
@@ -412,6 +413,19 @@ async function main() {
     registros.forEach(r => {
       const id = String(r["Labor"]||"").trim();
       if (laborMap[id]) r["Labor"] = laborMap[id];
+    });
+
+
+    // Encargado name map
+    const encargadoMap = {};
+    encargados.forEach(e => {
+      const id = String(e["id_Encargado"]||"").trim();
+      const nombre = String(e["Nombre Encargado"]||"").trim();
+      if (id) encargadoMap[id] = nombre;
+    });
+    registros.forEach(r => {
+      const id = String(r["Encargado"]||"").trim();
+      if (encargadoMap[id]) r["Encargado"] = encargadoMap[id];
     });
 
     ALL = registros;
