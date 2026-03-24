@@ -197,7 +197,7 @@ function fmtMes(val) {
   return d.toLocaleDateString("es-CL",{month:"short",year:"numeric"});
 }
 function fmtPeso(n) {
-  return "$" + Math.round(n).toLocaleString("es-CL");
+  return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k";
 }
 
 const C = { venc:{bar:"#fca5a5",date:"#cc2222"}, hoy:{bar:"#fcd34d",date:"#b45309"}, prox:{bar:"#86efac",date:"#166534"} };
