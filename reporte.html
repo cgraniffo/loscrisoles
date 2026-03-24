@@ -128,6 +128,7 @@
     <div class="m"><div class="m-val red" id="m-costo-m">—</div><div class="m-label">Costos totales</div></div>
     <div class="m"><div class="m-val amber" id="m-margen-total">—</div><div class="m-label">Margen total</div></div>
     <div class="m"><div class="m-val" id="m-margen-ton">—</div><div class="m-label">Margen por tonelada</div></div>
+    <div class="m"><div class="m-val" id="m-margen-ha">—</div><div class="m-label">Margen por hectárea</div></div>
   </div>
   <div class="tabs">
     <div class="tab on" id="tab-labores" onclick="switchTab('labores')">📋 Labores</div>
@@ -240,22 +241,23 @@ function renderMargenes() {
   // Build rows
   let totalIng = 0, totalCost = 0, totalKilos = 0;
   const rows = filtradas.map(ccId => {
-    const nombre  = CC_MAP[ccId]  || ccId;
-    const fundo   = FUNDO_MAP[ccId] || "—";
-    const ingreso = ingresosPorUP[ccId] || 0;
-    const costo   = costosPorUP[ccId]   || 0;
-    const margen  = ingreso - costo;
-    const kilos   = kilosPorUP[ccId]    || 0;
+    const nombre    = CC_MAP[ccId]    || ccId;
+    const fundo     = FUNDO_MAP[ccId] || "—";
+    const ingreso   = ingresosPorUP[ccId] || 0;
+    const costo     = costosPorUP[ccId]   || 0;
+    const margen    = ingreso - costo;
+    const kilos     = kilosPorUP[ccId]    || 0;
     const toneladas = kilos / 1000;
+    const ha        = HA_MAP[ccId]        || 0;
     const margenTon = toneladas > 0 ? margen / toneladas : 0;
+    const margenHa  = ha > 0 ? margen / ha : 0;
     const pct = ingreso > 0 ? (margen/ingreso*100).toFixed(1) : "—";
     totalIng   += ingreso;
     totalCost  += costo;
     totalKilos += kilos;
     const cls = margen >= 0 ? "mg-pos" : "mg-neg";
-    const barPct = Math.min(Math.abs(margen) / Math.max(totalIng||1, 1) * 100, 100);
-    return { nombre, fundo, ingreso, costo, margen, toneladas, margenTon, pct, cls };
-  });
+    return { nombre, fundo, ingreso, costo, margen, toneladas, ha, margenTon, margenHa, pct, cls };
+  }).sort((a,b) => b.margen - a.margen);
 
   const margenTotal = totalIng - totalCost;
   const margenTonTotal = totalKilos > 0 ? margenTotal / (totalKilos/1000) : 0;
@@ -274,6 +276,7 @@ function renderMargenes() {
       <td style="text-align:right;" class="${r.cls}">${fmtPeso(r.margen)}</td>
       <td style="text-align:right;color:#555;">${r.toneladas > 0 ? r.toneladas.toFixed(1)+"t" : "—"}</td>
       <td style="text-align:right;" class="${r.cls}">${r.toneladas > 0 ? fmtPeso(r.margenTon)+"/t" : "—"}</td>
+      <td style="text-align:right;" class="${r.cls}">${r.ha > 0 ? fmtPeso(r.margenHa)+"/há" : "—"}</td>
       <td style="text-align:right;color:#888;">${r.pct !== "—" ? r.pct+"%" : "—"}</td>
       <td style="padding-left:8px;">${barHTML}</td>
     </tr>`;
@@ -286,6 +289,7 @@ function renderMargenes() {
     <td style="text-align:right;" class="${margenTotal>=0?"mg-pos":"mg-neg"}">${fmtPeso(margenTotal)}</td>
     <td style="text-align:right;color:#555;">${(totalKilos/1000).toFixed(1)}t</td>
     <td style="text-align:right;" class="${margenTonTotal>=0?"mg-pos":"mg-neg"}">${totalKilos>0?fmtPeso(margenTonTotal)+"/t":"—"}</td>
+    <td style="text-align:right;" class="${margenTotal>=0?"mg-pos":"mg-neg"}">${(()=>{const haTot=filtradas.reduce((s,id)=>s+(HA_MAP[id]||0),0);return haTot>0?fmtPeso(margenTotal/haTot)+"/há":"—"})()}</td>
     <td style="text-align:right;color:#888;">${totalIng>0?(margenTotal/totalIng*100).toFixed(1)+"%":"—"}</td>
     <td></td>
   </tr>`;
@@ -309,6 +313,7 @@ function renderMargenes() {
             <th style="text-align:right;">Margen</th>
             <th style="text-align:right;">Ton.</th>
             <th style="text-align:right;">$/Ton</th>
+            <th style="text-align:right;">$/Há</th>
             <th style="text-align:right;">%</th>
             <th></th>
           </tr></thead>
@@ -733,6 +738,9 @@ async function main() {
     document.getElementById("m-costo-m").textContent       = fmtPeso(totalCosto);
     document.getElementById("m-margen-total").textContent  = fmtPeso(margenTotal);
     document.getElementById("m-margen-ton").textContent    = fmtPeso(margenTon);
+    const totalHaM   = Object.values(HA_MAP).reduce((s,v) => s+v, 0);
+    const margenHaM  = totalHaM > 0 ? margenTotal / totalHaM : 0;
+    document.getElementById("m-margen-ha").textContent = fmtPeso(margenHaM);
 
     const now = new Date();
     document.getElementById("hdr-date").textContent = now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
