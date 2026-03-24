@@ -758,8 +758,7 @@ async function main() {
     const totalKilos   = proyecciones.reduce((s,r) => s + Number(r["Kilos_Estimados"]||0), 0);
     const margenTotal  = totalIngreso - totalCosto;
     const margenTon    = totalKilos > 0 ? margenTotal / (totalKilos/1000) : 0;
-    document.getElementById("m-ingreso-total").textContent = fmtPeso(totalIngreso);
-    document.getElementById("m-costo-m").textContent       = fmtPeso(totalCosto);
+
     document.getElementById("m-margen-total").textContent  = fmtPeso(margenTotal);
     document.getElementById("m-margen-ton").textContent    = fmtPeso(margenTon);
     const totalHaM   = Object.values(HA_MAP).reduce((s,v) => s+v, 0);
