@@ -7,103 +7,69 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
-
-    /* HEADER */
     .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 16px; }
     .hdr-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
     .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
     .hdr-title { font-size: 20px; font-weight: bold; color: #fff; }
     .hdr-date { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
     .hdr-refresh { font-size: 11px; color: #9fe1cb; text-align: right; }
-
-    /* METRIC CARDS TOP */
-    .metrics-top { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 0; }
+    .metrics-top { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
     .m { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; }
     .m-val { font-size: 26px; font-weight: bold; color: #fff; line-height: 1; }
-    .m-val.red { color: #fca5a5; }
-    .m-val.amber { color: #fcd34d; }
-    .m-val.green { color: #86efac; }
+    .m-val.red { color: #fca5a5; } .m-val.amber { color: #fcd34d; } .m-val.green { color: #86efac; }
     .m-label { font-size: 11px; color: #9fe1cb; margin-top: 4px; }
-
-    /* BODY */
     .body { padding: 16px; max-width: 900px; margin: 0 auto; }
-
-    /* STATS SECTION */
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
     .stat-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 14px 16px; }
     .stat-title { font-size: 11px; font-weight: bold; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
-
-    /* BAR CHART */
     .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .bar-row:last-child { margin-bottom: 0; }
     .bar-label { font-size: 12px; color: #444; width: 110px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .bar-wrap { flex: 1; background: #f0ede6; border-radius: 4px; height: 8px; }
-    .bar-fill { height: 8px; border-radius: 4px; background: #2d6a1a; }
-    .bar-fill.amber { background: #b45309; }
-    .bar-fill.teal { background: #0f6e56; }
+    .bar-fill { height: 8px; border-radius: 4px; }
     .bar-num { font-size: 12px; font-weight: bold; color: #444; width: 24px; text-align: right; flex-shrink: 0; }
-
-    /* RANKING */
     .rank-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f5f3ef; }
     .rank-row:last-child { border-bottom: none; }
     .rank-num { font-size: 13px; font-weight: bold; color: #ccc; width: 20px; flex-shrink: 0; }
-    .rank-name { font-size: 13px; color: #1a1a1a; flex: 1; }
-    .rank-val { font-size: 13px; font-weight: bold; color: #1a3a0a; }
-    .rank-badge { font-size: 10px; padding: 2px 7px; border-radius: 99px; background: #fee2e2; color: #991b1b; margin-left: 6px; }
-    .rank-badge.ok { background: #eaf3de; color: #3b6d11; }
-
-    /* ATRASO */
+    .rank-name { font-size: 12px; color: #1a1a1a; flex: 1; line-height: 1.4; }
+    .rank-val { font-size: 13px; font-weight: bold; color: #cc2222; }
     .atraso-big { font-size: 36px; font-weight: bold; color: #cc2222; line-height: 1; }
-    .atraso-sub { font-size: 12px; color: #888; margin-top: 4px; margin-bottom: 16px; }
-    .atraso-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #f5f3ef; font-size: 12px; }
+    .atraso-sub { font-size: 12px; color: #888; margin-top: 4px; margin-bottom: 12px; }
+    .atraso-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f5f3ef; font-size: 12px; }
     .atraso-row:last-child { border-bottom: none; }
-
-    /* FILTERS */
     .filters-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; margin-bottom: 14px; }
     .filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
     .filters-row:last-child { margin-bottom: 0; }
-    .filter-label { font-size: 11px; color: #888; width: 70px; flex-shrink: 0; }
-    .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; transition: all 0.15s; }
-    .fbtn:hover { border-color: #1a3a0a; color: #1a3a0a; }
+    .filter-label { font-size: 11px; color: #888; width: 80px; flex-shrink: 0; }
+    .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
     .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
-
-    /* LABORES LIST */
     .sec-head { display: flex; align-items: center; gap: 8px; margin: 16px 0 10px; }
     .sec-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; flex-shrink: 0; }
-    .sec-icon.proc { background: #fef3c7; color: #92400e; }
-    .sec-icon.pend { background: #e5e2da; color: #555; }
+    .sec-icon.proc { background: #fef3c7; color: #92400e; } .sec-icon.pend { background: #e5e2da; color: #555; }
     .sec-title { font-size: 12px; font-weight: bold; color: #555; letter-spacing: 0.05em; text-transform: uppercase; }
     .sec-count { font-size: 12px; color: #aaa; }
-
     .card { background: #fff; border-radius: 10px; margin-bottom: 10px; overflow: hidden; border: 1px solid #e5e2da; }
     .card-hd { padding: 10px 14px; border-bottom: 1px solid #f0ede6; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-    .card-hd.proc { background: #fefdf7; }
-    .card-hd.pend { background: #fafaf8; }
+    .card-hd.proc { background: #fefdf7; } .card-hd.pend { background: #fafaf8; }
     .card-hd-name { font-size: 14px; font-weight: bold; color: #1a1a1a; }
     .card-hd-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
     .badge { font-size: 10px; padding: 2px 9px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
-    .badge.proc { background: #fef3c7; color: #92400e; }
-    .badge.pend { background: #f0f0ee; color: #666; border: 1px solid #ddd; }
-
-    .labor { display: flex; gap: 0; padding: 0; border-bottom: 1px solid #f5f3ef; }
+    .badge.proc { background: #fef3c7; color: #92400e; } .badge.pend { background: #f0f0ee; color: #666; border: 1px solid #ddd; }
+    .labor { display: flex; border-bottom: 1px solid #f5f3ef; }
     .labor:last-child { border-bottom: none; }
     .labor-bar { width: 3px; flex-shrink: 0; }
     .labor-inner { display: flex; gap: 10px; padding: 9px 14px; flex: 1; align-items: flex-start; }
     .labor-date { font-size: 11px; font-weight: bold; width: 72px; flex-shrink: 0; padding-top: 1px; }
-    .labor-content { flex: 1; }
     .labor-name { font-size: 13px; font-weight: bold; color: #1a1a1a; }
     .labor-obs { font-size: 11px; color: #888; margin-top: 2px; line-height: 1.4; }
     .labor-meta { font-size: 10px; color: #bbb; margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
-
     .empty { text-align: center; color: #aaa; font-size: 14px; padding: 40px 20px; background: #fff; border-radius: 10px; border: 1px solid #e5e2da; }
     .loading { text-align: center; color: #666; font-size: 14px; padding: 60px 20px; }
-    .err { background: #fff8f8; border: 1px solid #fca5a5; border-radius: 10px; padding: 16px; color: #991b1b; font-size: 13px; line-height: 1.6; margin: 16px; }
-
+    .err { background: #fff8f8; border: 1px solid #fca5a5; border-radius: 10px; padding: 16px; color: #991b1b; font-size: 13px; line-height: 1.6; margin-top: 16px; }
     .footer { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 16px; margin-top: 16px; font-size: 12px; color: #888; text-align: center; }
   </style>
 </head>
 <body>
-
 <div class="hdr">
   <div class="hdr-top">
     <div>
@@ -120,198 +86,211 @@
     <div class="m"><div class="m-val green" id="m-prox">—</div><div class="m-label">Próximas</div></div>
   </div>
 </div>
-
-<div class="body">
-  <div id="app"><div class="loading">Cargando reporte...</div></div>
-</div>
+<div class="body"><div id="app"><div class="loading">Cargando reporte...</div></div></div>
 
 <script>
 const API_REGISTRO = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
 const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
 const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 
-async function fetchSheet(sheet) {
-  const url = sheet === "BD_CC" ? API_CC : sheet === "BD_Labores" ? API_LABORES : API_REGISTRO;
-  const res = await fetch(url + "?sheet=" + sheet, { redirect: "follow" });
-  if (!res.ok) throw new Error("Error HTTP " + res.status);
+// ── LOOKUP MAPS (built once, used everywhere) ──────────────────────────────
+const CC_MAP  = {};  // Id_CC      → NOMBRE CC
+const LAB_MAP = {};  // Id_Labor   → Nombre Labor
+const ENC_MAP = {};  // id_Encargado → Nombre Encargado
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let ACTIVOS = [];
+let state = { estado:"todas", encargado:"todos", up:"todas", soloVencidas:false };
+
+// ── FETCH ──────────────────────────────────────────────────────────────────
+async function fetchSheet(apiUrl, sheet) {
+  const res = await fetch(apiUrl + "?sheet=" + sheet, { redirect:"follow" });
+  if (!res.ok) throw new Error("HTTP " + res.status + " — " + sheet);
   return res.json();
 }
 
+// ── DATE UTILS ─────────────────────────────────────────────────────────────
 function parseDate(val) {
   if (!val) return null;
   const s = String(val).trim();
   try {
     if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
-      const part = s.split("T")[0];
-      const [y,m,d] = part.split("-");
-      const dt = new Date(+y,+m-1,+d);
-      return isNaN(dt) ? null : dt;
+      const [y,m,d] = s.split("T")[0].split("-");
+      return new Date(+y, +m-1, +d);
     }
     if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(s)) {
       const sep = s.includes("-") ? "-" : "/";
       const [d,m,y] = s.split(sep);
-      const dt = new Date(+y,+m-1,+d);
-      return isNaN(dt) ? null : dt;
+      return new Date(+y, +m-1, +d);
     }
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
       const [y,m,d] = s.split("-");
-      const dt = new Date(+y,+m-1,+d);
-      return isNaN(dt) ? null : dt;
+      return new Date(+y, +m-1, +d);
     }
-  } catch(e) { return null; }
+  } catch(e) {}
   return null;
 }
 
-function fmtDate(val) {
-  const d = parseDate(val);
-  if (!d||isNaN(d)) return String(val||"");
-  return d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"});
-}
+function today0() { const d = new Date(); d.setHours(0,0,0,0); return d; }
 
 function dateStatus(val) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const d = parseDate(val);
-  if (!d||isNaN(d)) return "prox";
+  const t = today0(), d = parseDate(val);
+  if (!d || isNaN(d)) return "prox";
   d.setHours(0,0,0,0);
-  if (d < today) return "venc";
-  if (d.getTime()===today.getTime()) return "hoy";
+  if (d < t) return "venc";
+  if (d.getTime() === t.getTime()) return "hoy";
   return "prox";
 }
 
 function diffDays(val) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const d = parseDate(val);
-  if (!d||isNaN(d)) return 0;
+  const t = today0(), d = parseDate(val);
+  if (!d || isNaN(d)) return 0;
   d.setHours(0,0,0,0);
-  return Math.round((today - d) / 86400000);
+  return Math.max(0, Math.round((t - d) / 86400000));
 }
 
-const COLOR = { venc: { bar:"#fca5a5", date:"#cc2222" }, hoy: { bar:"#fcd34d", date:"#b45309" }, prox: { bar:"#86efac", date:"#166534" } };
+function fmtDate(val) {
+  const d = parseDate(val);
+  if (!d || isNaN(d)) return String(val||"");
+  return d.toLocaleDateString("es-CL", {day:"2-digit", month:"2-digit", year:"numeric"});
+}
 
-// STATE
-let ALL = [], CCS = [], ccNameMap = {}, state = { estado: "todas", encargado: "todos", up: "todas", soloVencidas: false };
+const C = {
+  venc: { bar:"#fca5a5", date:"#cc2222" },
+  hoy:  { bar:"#fcd34d", date:"#b45309" },
+  prox: { bar:"#86efac", date:"#166534" }
+};
 
-function count(arr, key) {
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function countBy(arr, keyFn) {
   const m = {};
-  arr.forEach(r => { const v = String(r[key]||"—").trim()||"—"; m[v]=(m[v]||0)+1; });
-  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+  arr.forEach(r => { const v = keyFn(r)||"—"; m[v] = (m[v]||0) + 1; });
+  return Object.entries(m).sort((a,b) => b[1]-a[1]);
 }
 
-function renderBar(label, val, max, cls="") {
+function bar(label, val, max, color) {
   const pct = max > 0 ? Math.round(val/max*100) : 0;
   return `<div class="bar-row">
     <div class="bar-label" title="${label}">${label}</div>
-    <div class="bar-wrap"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>
     <div class="bar-num">${val}</div>
   </div>`;
 }
 
-function renderStats(activos) {
-  const today = new Date(); today.setHours(0,0,0,0);
+// ── RENDER STATS ───────────────────────────────────────────────────────────
+function renderStats() {
+  // Encargados
+  const encRows = countBy(ACTIVOS, r => ENC_MAP[String(r["Encargado"]||"").trim()] || String(r["Encargado"]||"—").trim());
+  const encMax  = encRows[0]?.[1] || 1;
+  const encHTML = encRows.slice(0,6).map(([k,v]) => bar(k,v,encMax,"#2d6a1a")).join("");
 
-  // Por encargado
-  const encMap = count(activos, "Encargado");
-  const encMax = encMap[0]?.[1]||1;
-  const encHTML = encMap.slice(0,6).map(([k,v])=>renderBar(k,v,encMax)).join("");
+  // UPs
+  const upRows = countBy(ACTIVOS, r => CC_MAP[String(r["Centro_Costo"]||"").trim()] || String(r["Centro_Costo"]||"—").trim());
+  const upMax  = upRows[0]?.[1] || 1;
+  const upHTML = upRows.slice(0,6).map(([k,v]) => bar(k,v,upMax,"#0f6e56")).join("");
 
-  // Por UP
-  const upMap = count(activos, "Centro_Costo");
-  const upMax = upMap[0]?.[1]||1;
-  const upHTML = upMap.slice(0,6).map(([k,v])=>renderBar(ccNameMap[k]||k,v,upMax,"teal")).join("");
+  // Tipo labor
+  const tipoRows = countBy(ACTIVOS, r => String(r["Tipo_Labor"]||"—").trim());
+  const tipoMax  = tipoRows[0]?.[1] || 1;
+  const tipoHTML = tipoRows.slice(0,6).map(([k,v]) => bar(k,v,tipoMax,"#b45309")).join("");
 
-  // Por tipo labor
-  const tipoMap = count(activos, "Tipo_Labor");
-  const tipoMax = tipoMap[0]?.[1]||1;
-  const tipoHTML = tipoMap.slice(0,6).map(([k,v])=>renderBar(k,v,tipoMax,"amber")).join("");
-
-  // Dias promedio atraso
-  const vencidas = activos.filter(r=>dateStatus(r["Fecha"])==="venc");
-  const totalDias = vencidas.reduce((s,r)=>s+diffDays(r["Fecha"]),0);
-  const promDias = vencidas.length>0 ? Math.round(totalDias/vencidas.length) : 0;
-  const maxDias = vencidas.length>0 ? Math.max(...vencidas.map(r=>diffDays(r["Fecha"]))) : 0;
-
-  // Top 3 más atrasadas
-  const topVenc = [...vencidas].sort((a,b)=>diffDays(b["Fecha"])-diffDays(a["Fecha"])).slice(0,4);
-  const topHTML = topVenc.map((r,i)=>`
+  // Atraso
+  const vencidas  = ACTIVOS.filter(r => dateStatus(r["Fecha"]) === "venc");
+  const totalDias = vencidas.reduce((s,r) => s + diffDays(r["Fecha"]), 0);
+  const promDias  = vencidas.length > 0 ? Math.round(totalDias / vencidas.length) : 0;
+  const maxDias   = vencidas.length > 0 ? Math.max(...vencidas.map(r => diffDays(r["Fecha"]))) : 0;
+  const topVenc   = [...vencidas].sort((a,b) => diffDays(b["Fecha"]) - diffDays(a["Fecha"])).slice(0,4);
+  const topHTML   = topVenc.map((r,i) => `
     <div class="rank-row">
       <div class="rank-num">${i+1}</div>
-      <div class="rank-name">${String(r["Labor"]||"—").trim()}<br><span style="font-size:10px;color:#aaa;">${ccNameMap[String(r["Centro_Costo"]||"").trim()]||r["Centro_Costo"]||""}</span></div>
-      <div class="rank-val">${diffDays(r["Fecha"])}d<span class="rank-badge">${fmtDate(r["Fecha"])}</span></div>
+      <div class="rank-name">
+        ${LAB_MAP[String(r["Labor"]||"").trim()] || String(r["Labor"]||"—").trim()}
+        <br><span style="font-size:10px;color:#aaa;">${CC_MAP[String(r["Centro_Costo"]||"").trim()] || String(r["Centro_Costo"]||"").trim()}</span>
+      </div>
+      <div class="rank-val">${diffDays(r["Fecha"])}d</div>
     </div>`).join("");
 
-  return `
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-title">Labores por encargado</div>
-      ${encHTML||'<div style="font-size:12px;color:#aaa;">Sin datos</div>'}
-    </div>
-    <div class="stat-card">
-      <div class="stat-title">Labores por unidad productiva</div>
-      ${upHTML||'<div style="font-size:12px;color:#aaa;">Sin datos</div>'}
-    </div>
-    <div class="stat-card">
-      <div class="stat-title">Labores por tipo</div>
-      ${tipoHTML||'<div style="font-size:12px;color:#aaa;">Sin datos</div>'}
-    </div>
+  return `<div class="stats-grid">
+    <div class="stat-card"><div class="stat-title">Labores por encargado</div>${encHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}</div>
+    <div class="stat-card"><div class="stat-title">Labores por unidad productiva</div>${upHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}</div>
+    <div class="stat-card"><div class="stat-title">Labores por tipo</div>${tipoHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}</div>
     <div class="stat-card">
       <div class="stat-title">Días de atraso</div>
       <div class="atraso-big">${promDias}</div>
       <div class="atraso-sub">promedio · máximo ${maxDias} días</div>
-      <div class="atraso-row"><span>Labores vencidas</span><span style="font-weight:bold;">${vencidas.length}</span></div>
-      <div class="atraso-row"><span>Total días acumulados</span><span style="font-weight:bold;">${totalDias}</span></div>
-      <div style="margin-top:10px;font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Top más atrasadas</div>
+      <div class="atraso-row"><span>Labores vencidas</span><b>${vencidas.length}</b></div>
+      <div class="atraso-row"><span>Total días acumulados</span><b>${totalDias}</b></div>
+      <div style="margin-top:12px;font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Top más atrasadas</div>
       ${topHTML}
     </div>
   </div>`;
 }
 
-function buildFilters(activos) {
-  const encargados = [...new Set(activos.map(r=>String(r["Encargado"]||"").trim()).filter(Boolean))].sort();
-  const ups = [...new Set(activos.map(r=>String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
+// ── RENDER FILTERS ─────────────────────────────────────────────────────────
+function renderFilters() {
+  const encargados = [...new Set(ACTIVOS.map(r => {
+    const id = String(r["Encargado"]||"").trim();
+    return ENC_MAP[id] || id;
+  }).filter(Boolean))].sort();
 
-  const encBtns = encargados.map(e=>`<button class="fbtn${state.encargado===e?' on':''}" onclick="setFilter('encargado','${e}')">${e}</button>`).join("");
-  const upBtns = ups.map(u=>`<button class="fbtn${state.up===u?' on':''}" onclick="setFilter('up','${u}')">${ccNameMap[u]||u}</button>`).join("");
+  const ups = [...new Set(ACTIVOS.map(r => String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
+
+  const encBtns = encargados.map(e =>
+    `<button class="fbtn${state.encargado===e?" on":""}" onclick="setFilter('encargado','${e}')">${e}</button>`
+  ).join("");
+
+  const upBtns = ups.map(id => {
+    const nombre = CC_MAP[id] || id;
+    return `<button class="fbtn${state.up===id?" on":""}" onclick="setFilter('up','${id}')">${nombre}</button>`;
+  }).join("");
 
   return `<div class="filters-wrap">
     <div class="filters-row">
       <div class="filter-label">Estado</div>
-      <button class="fbtn${state.estado==='todas'?' on':''}" onclick="setFilter('estado','todas')">Todas</button>
-      <button class="fbtn${state.estado==='En Proceso'?' on':''}" onclick="setFilter('estado','En Proceso')">En proceso</button>
-      <button class="fbtn${state.estado==='Pendiente'?' on':''}" onclick="setFilter('estado','Pendiente')">Pendiente</button>
-      <button class="fbtn${state.soloVencidas?' on':''}" onclick="toggleVencidas()">Solo vencidas</button>
+      <button class="fbtn${state.estado==="todas"?" on":""}" onclick="setFilter('estado','todas')">Todas</button>
+      <button class="fbtn${state.estado==="En Proceso"?" on":""}" onclick="setFilter('estado','En Proceso')">En proceso</button>
+      <button class="fbtn${state.estado==="Pendiente"?" on":""}" onclick="setFilter('estado','Pendiente')">Pendiente</button>
+      <button class="fbtn${state.soloVencidas?" on":""}" onclick="toggleVencidas()">Solo vencidas</button>
     </div>
     <div class="filters-row">
       <div class="filter-label">Encargado</div>
-      <button class="fbtn${state.encargado==='todos'?' on':''}" onclick="setFilter('encargado','todos')">Todos</button>
+      <button class="fbtn${state.encargado==="todos"?" on":""}" onclick="setFilter('encargado','todos')">Todos</button>
       ${encBtns}
     </div>
     <div class="filters-row">
       <div class="filter-label">Unidad prod.</div>
-      <button class="fbtn${state.up==='todas'?' on':''}" onclick="setFilter('up','todas')">Todas</button>
+      <button class="fbtn${state.up==="todas"?" on":""}" onclick="setFilter('up','todas')">Todas</button>
       ${upBtns}
     </div>
   </div>`;
 }
 
-function applyFilters(activos) {
-  return activos.filter(r => {
-    if (state.estado !== "todas" && String(r["Estado Operativo"]||"").trim() !== state.estado) return false;
-    if (state.encargado !== "todos" && String(r["Encargado"]||"").trim() !== state.encargado) return false;
-    if (state.up !== "todas" && String(r["Centro_Costo"]||"").trim() !== state.up) return false;
+// ── APPLY FILTERS ──────────────────────────────────────────────────────────
+function applyFilters() {
+  return ACTIVOS.filter(r => {
+    const est = String(r["Estado Operativo"]||"").trim();
+    const enc = ENC_MAP[String(r["Encargado"]||"").trim()] || String(r["Encargado"]||"").trim();
+    const up  = String(r["Centro_Costo"]||"").trim();
+    if (state.estado !== "todas" && est !== state.estado) return false;
+    if (state.encargado !== "todos" && enc !== state.encargado) return false;
+    if (state.up !== "todas" && up !== state.up) return false;
     if (state.soloVencidas && dateStatus(r["Fecha"]) !== "venc") return false;
     return true;
   });
 }
 
-function renderLabores(filtradas) {
-  const enProceso = filtradas.filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
-  const pendientes = filtradas.filter(r=>String(r["Estado Operativo"]||"").trim()==="Pendiente");
+// ── RENDER LABORES ─────────────────────────────────────────────────────────
+function renderLabores() {
+  const filtradas = applyFilters();
+  if (filtradas.length === 0) return '<div class="empty">No hay labores que coincidan con los filtros.</div>';
 
-  const renderSeccion = (lista, tipo) => {
+  const enProceso = filtradas.filter(r => String(r["Estado Operativo"]||"").trim() === "En Proceso");
+  const pendientes = filtradas.filter(r => String(r["Estado Operativo"]||"").trim() === "Pendiente");
+
+  const seccion = (lista, tipo) => {
     if (lista.length === 0) return "";
     const isProc = tipo === "En Proceso";
 
-    // Group by CC
     const grupos = {};
     lista.forEach(r => {
       const cc = String(r["Centro_Costo"]||"").trim();
@@ -319,41 +298,40 @@ function renderLabores(filtradas) {
       grupos[cc].push(r);
     });
 
-    // Sort by most urgent first
     const cards = Object.entries(grupos).map(([ccId, labs]) => {
-      const ccName = ccNameMap[ccId] || ccId;
-      const sorted = [...labs].sort((a,b)=>(parseDate(a["Fecha"])||0)-(parseDate(b["Fecha"])||0));
+      const ccNombre = CC_MAP[ccId] || ccId;
+      const ccObj = Object.values(CC_MAP).length > 0
+        ? (Object.entries(CC_MAP).find(([k]) => k === ccId) || [])
+        : [];
+      const sorted = [...labs].sort((a,b) => (parseDate(a["Fecha"])||0) - (parseDate(b["Fecha"])||0));
+
       const filas = sorted.map(r => {
         const st = dateStatus(r["Fecha"]);
-        const c = COLOR[st];
-        const enc = String(r["Encargado"]||"").trim();
-        const tipoL = String(r["Tipo_Labor"]||"").trim();
-        const obs = String(r["Observaciones"]||"").trim();
+        const c  = C[st];
+        const laborNombre = LAB_MAP[String(r["Labor"]||"").trim()] || String(r["Labor"]||"—").trim();
+        const encNombre   = ENC_MAP[String(r["Encargado"]||"").trim()] || String(r["Encargado"]||"").trim();
+        const obs  = String(r["Observaciones"]||"").trim();
+        const tipo = String(r["Tipo_Labor"]||"").trim();
         return `<div class="labor">
           <div class="labor-bar" style="background:${c.bar};"></div>
           <div class="labor-inner">
             <div class="labor-date" style="color:${c.date};">${fmtDate(r["Fecha"])}</div>
-            <div class="labor-content">
-              <div class="labor-name">${String(r["Labor"]||"—").trim()}</div>
-              ${obs?`<div class="labor-obs">${obs}</div>`:""}
+            <div style="flex:1;">
+              <div class="labor-name">${laborNombre}</div>
+              ${obs ? `<div class="labor-obs">${obs}</div>` : ""}
               <div class="labor-meta">
-                ${enc?`<span>👤 ${enc}</span>`:""}
-                ${tipoL?`<span>🏷 ${tipoL}</span>`:""}
+                ${encNombre ? `<span>👤 ${encNombre}</span>` : ""}
+                ${tipo ? `<span>🏷 ${tipo}</span>` : ""}
               </div>
             </div>
           </div>
         </div>`;
       }).join("");
 
-      // Get cc especie/sector from CCS
-      const ccObj = CCS.find(c=>String(c["Id_CC"]||"").trim()===ccId)||{};
-      const sub = [String(ccObj["Especie"]||"").trim(), ccObj["Sector"]?"Sector "+String(ccObj["Sector"]).trim():""].filter(Boolean).join(" · ");
-
       return `<div class="card">
         <div class="card-hd ${isProc?"proc":"pend"}">
           <div>
-            <div class="card-hd-name">${ccName}</div>
-            <div class="card-hd-sub">${sub||ccId}</div>
+            <div class="card-hd-name">${ccNombre}</div>
           </div>
           <span class="badge ${isProc?"proc":"pend"}">${isProc?"En proceso":"Pendiente"}</span>
         </div>
@@ -361,24 +339,27 @@ function renderLabores(filtradas) {
       </div>`;
     }).join("");
 
-    const icon = isProc ? "↻" : "○";
-    const iconCls = isProc ? "proc" : "pend";
     return `<div class="sec-head">
-      <div class="sec-icon ${iconCls}">${icon}</div>
+      <div class="sec-icon ${isProc?"proc":"pend"}">${isProc?"↻":"○"}</div>
       <div class="sec-title">${tipo}</div>
       <div class="sec-count">${lista.length} labores</div>
-    </div>
-    ${cards}`;
+    </div>${cards}`;
   };
 
-  if (filtradas.length === 0) return '<div class="empty">No hay labores que coincidan con los filtros seleccionados.</div>';
+  return seccion(enProceso,"En Proceso") + seccion(pendientes,"Pendiente");
+}
 
-  return renderSeccion(enProceso,"En Proceso") + renderSeccion(pendientes,"Pendiente");
+// ── RENDER PAGE ────────────────────────────────────────────────────────────
+function renderPage() {
+  document.getElementById("app").innerHTML =
+    renderStats() +
+    renderFilters() +
+    renderLabores() +
+    `<div class="footer">Reporte automático · Los Crisoles · BData</div>`;
 }
 
 function setFilter(key, val) {
   state[key] = val;
-  // Reset soloVencidas when switching estado filter
   if (key === "estado") state.soloVencidas = false;
   renderPage();
 }
@@ -388,73 +369,58 @@ function toggleVencidas() {
   renderPage();
 }
 
-function renderPage() {
-  const activos = ALL.filter(r => {
-    const est = String(r["Estado Operativo"]||"").trim();
-    return est === "En Proceso" || est === "Pendiente";
-  });
-  const filtradas = applyFilters(activos);
-  document.getElementById("app").innerHTML =
-    renderStats(activos) +
-    buildFilters(activos) +
-    renderLabores(filtradas) +
-    `<div class="footer">Reporte automático · Los Crisoles · BData</div>`;
-}
-
+// ── MAIN ───────────────────────────────────────────────────────────────────
 async function main() {
-  const t0 = Date.now();
   try {
+    // Fetch all data sequentially to guarantee maps are built before render
     const [registros, ccs, labores, encargados] = await Promise.all([
-      fetchSheet("BD_Registro"),
-      fetchSheet("BD_CC"),
-      fetchSheet("BD_Labores"),
-      fetchSheet("Encargados")
+      fetchSheet(API_REGISTRO, "BD_Registro"),
+      fetchSheet(API_CC,       "BD_CC"),
+      fetchSheet(API_LABORES,  "BD_Labores"),
+      fetchSheet(API_REGISTRO, "Encargados")
     ]);
 
-    CCS = ccs;
-
-    // Build global CC name map once
-    CCS.forEach(c => {
+    // ── Build CC map ──────────────────────────────────────────────────────
+    ccs.forEach(c => {
       const id = String(c["Id_CC"]||"").trim();
-      const nombre = String(c["NOMBRE CC"]||"").trim();
-      if (id) ccNameMap[id] = nombre;
+      if (id) CC_MAP[id] = String(c["NOMBRE CC"]||id).trim();
     });
 
-
-    // Labor name map
-    const laborMap = {};
+    // ── Build Labor map ───────────────────────────────────────────────────
     labores.forEach(l => {
       const id = String(l["Id_Labor"]||"").trim();
-      const nombre = String(l["Nombre Labor"]||l["Labor"]||"").trim();
-      if (id) laborMap[id] = nombre;
-    });
-    registros.forEach(r => {
-      const id = String(r["Labor"]||"").trim();
-      if (laborMap[id]) r["Labor"] = laborMap[id];
+      if (id) LAB_MAP[id] = String(l["Nombre Labor"]||l["Labor"]||id).trim();
     });
 
-
-    // Encargado name map
-    const encargadoMap = {};
+    // ── Build Encargado map ───────────────────────────────────────────────
     encargados.forEach(e => {
       const id = String(e["id_Encargado"]||"").trim();
-      const nombre = String(e["Nombre Encargado"]||"").trim();
-      if (id) encargadoMap[id] = nombre;
+      if (id) ENC_MAP[id] = String(e["Nombre Encargado"]||id).trim();
     });
+
+    // ── Resolve all IDs in registros BEFORE storing ───────────────────────
     registros.forEach(r => {
-      const id = String(r["Encargado"]||"").trim();
-      if (encargadoMap[id]) r["Encargado"] = encargadoMap[id];
+      const laborId = String(r["Labor"]||"").trim();
+      if (LAB_MAP[laborId]) r["_LaborNombre"] = LAB_MAP[laborId];
+      const encId = String(r["Encargado"]||"").trim();
+      if (ENC_MAP[encId]) r["_EncNombre"] = ENC_MAP[encId];
+      const ccId = String(r["Centro_Costo"]||"").trim();
+      if (CC_MAP[ccId]) r["_CCNombre"] = CC_MAP[ccId];
     });
 
-    ALL = registros;
+    // ── Filter active only ────────────────────────────────────────────────
+    ACTIVOS = registros.filter(r => {
+      const est = String(r["Estado Operativo"]||"").trim();
+      return est === "En Proceso" || est === "Pendiente";
+    });
 
-    // Header metrics
-    const activos = ALL.filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
-    const venc = activos.filter(r=>dateStatus(r["Fecha"])==="venc").length;
-    const hoy  = activos.filter(r=>dateStatus(r["Fecha"])==="hoy").length;
-    const prox = activos.filter(r=>dateStatus(r["Fecha"])==="prox").length;
+    // ── Header metrics ────────────────────────────────────────────────────
+    const total = ACTIVOS.length;
+    const venc  = ACTIVOS.filter(r => dateStatus(r["Fecha"]) === "venc").length;
+    const hoy   = ACTIVOS.filter(r => dateStatus(r["Fecha"]) === "hoy").length;
+    const prox  = ACTIVOS.filter(r => dateStatus(r["Fecha"]) === "prox").length;
 
-    document.getElementById("m-total").textContent = activos.length;
+    document.getElementById("m-total").textContent = total;
     document.getElementById("m-venc").textContent  = venc;
     document.getElementById("m-hoy").textContent   = hoy;
     document.getElementById("m-prox").textContent  = prox;
@@ -466,7 +432,8 @@ async function main() {
     renderPage();
 
   } catch(e) {
-    document.getElementById("app").innerHTML = `<div class="err"><strong>No se pudieron cargar los datos</strong><br><br>${e.message}<br><br><small>Abrí la consola (F12) y revisá el error para más detalle.</small></div>`;
+    document.getElementById("app").innerHTML =
+      `<div class="err"><strong>No se pudieron cargar los datos</strong><br><br>${e.message}<br><br><small>Abrí la consola (F12) para más detalle.</small></div>`;
   }
 }
 
