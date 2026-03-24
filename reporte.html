@@ -263,36 +263,73 @@ function renderMargenes() {
   const margenTonTotal = totalKilos > 0 ? margenTotal / (totalKilos/1000) : 0;
   const maxAbsMargen = Math.max(...rows.map(r => Math.abs(r.margen)), 1);
 
-  const tbody = rows.map(r => {
-    const barW = Math.round(Math.abs(r.margen)/maxAbsMargen*100);
-    const barHTML = r.margen >= 0
-      ? `<div class="mg-bar-pos" style="width:${barW}px;max-width:80px;"></div>`
-      : `<div class="mg-bar-neg" style="width:${barW}px;max-width:80px;"></div>`;
-    return `<tr>
-      <td style="font-weight:bold;">${r.nombre}</td>
-      <td style="color:#888;">${r.fundo}</td>
-      <td style="text-align:right;color:#1a3a0a;">${fmtPeso(r.ingreso)}</td>
-      <td style="text-align:right;color:#cc2222;">${fmtPeso(r.costo)}</td>
-      <td style="text-align:right;" class="${r.cls}">${fmtPeso(r.margen)}</td>
-      <td style="text-align:right;color:#555;">${r.toneladas > 0 ? r.toneladas.toFixed(1)+"t" : "—"}</td>
-      <td style="text-align:right;" class="${r.cls}">${r.toneladas > 0 ? fmtPeso(r.margenTon)+"/t" : "—"}</td>
-      <td style="text-align:right;" class="${r.cls}">${r.ha > 0 ? fmtPeso(r.margenHa)+"/há" : "—"}</td>
-      <td style="text-align:right;color:#888;">${r.pct !== "—" ? r.pct+"%" : "—"}</td>
-      <td style="padding-left:8px;">${barHTML}</td>
-    </tr>`;
-  }).join("");
+  // Split rows: con kilos y con hectáreas (excluir los que no tienen ninguno)
+  const rowsConKilos = rows.filter(r => r.toneladas > 0);
+  const rowsConHa    = rows.filter(r => r.ha > 0);
 
-  const totRow = `<tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
-    <td colspan="2">Total</td>
-    <td style="text-align:right;color:#1a3a0a;">${fmtPeso(totalIng)}</td>
-    <td style="text-align:right;color:#cc2222;">${fmtPeso(totalCost)}</td>
-    <td style="text-align:right;" class="${margenTotal>=0?"mg-pos":"mg-neg"}">${fmtPeso(margenTotal)}</td>
-    <td style="text-align:right;color:#555;">${(totalKilos/1000).toFixed(1)}t</td>
-    <td style="text-align:right;" class="${margenTonTotal>=0?"mg-pos":"mg-neg"}">${totalKilos>0?fmtPeso(margenTonTotal)+"/t":"—"}</td>
-    <td style="text-align:right;" class="${margenTotal>=0?"mg-pos":"mg-neg"}">${(()=>{const haTot=filtradas.reduce((s,id)=>s+(HA_MAP[id]||0),0);return haTot>0?fmtPeso(margenTotal/haTot)+"/há":"—"})()}</td>
-    <td style="text-align:right;color:#888;">${totalIng>0?(margenTotal/totalIng*100).toFixed(1)+"%":"—"}</td>
-    <td></td>
-  </tr>`;
+  const buildTable = (filas, tipo) => {
+    if (filas.length === 0) return `<div style="font-size:12px;color:#aaa;padding:12px 0;">Sin datos</div>`;
+    const esTon = tipo === "ton";
+    let tIng=0, tCost=0, tMed=0;
+    filas.forEach(r => { tIng+=r.ingreso; tCost+=r.costo; tMed += esTon ? r.toneladas : r.ha; });
+    const tMargen = tIng - tCost;
+    const tMedVal = tMed > 0 ? tMargen/tMed : 0;
+    const tCls    = tMargen >= 0 ? "mg-pos" : "mg-neg";
+    const maxAbs  = Math.max(...filas.map(r=>Math.abs(r.margen)),1);
+
+    const tbody = filas.map(r => {
+      const medVal  = esTon ? r.toneladas : r.ha;
+      const mgnMed  = esTon ? r.margenTon : r.margenHa;
+      const medLbl  = esTon ? r.toneladas.toFixed(1)+"t" : r.ha+"há";
+      const mgnLbl  = esTon ? fmtPeso(mgnMed)+"/t" : fmtPeso(mgnMed)+"/há";
+      const barW    = Math.round(Math.abs(r.margen)/maxAbs*80);
+      const barHTML = r.margen >= 0
+        ? `<div class="mg-bar-pos" style="width:${barW}px;"></div>`
+        : `<div class="mg-bar-neg" style="width:${barW}px;"></div>`;
+      return `<tr>
+        <td style="font-weight:bold;">${r.nombre}</td>
+        <td style="color:#888;">${r.fundo}</td>
+        <td style="text-align:right;color:#1a3a0a;">${fmtPeso(r.ingreso)}</td>
+        <td style="text-align:right;color:#cc2222;">${fmtPeso(r.costo)}</td>
+        <td style="text-align:right;" class="${r.cls}">${fmtPeso(r.margen)}</td>
+        <td style="text-align:right;color:#555;">${medLbl}</td>
+        <td style="text-align:right;" class="${r.cls}">${mgnLbl}</td>
+        <td style="text-align:right;color:#888;">${r.pct !== "—" ? r.pct+"%" : "—"}</td>
+        <td style="padding-left:8px;">${barHTML}</td>
+      </tr>`;
+    }).join("");
+
+    const medTotLbl = esTon ? tMed.toFixed(1)+"t" : tMed+"há";
+    const mgnTotLbl = tMed > 0 ? fmtPeso(tMedVal)+(esTon?"/t":"/há") : "—";
+    const totRow = `<tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
+      <td colspan="2">Total</td>
+      <td style="text-align:right;color:#1a3a0a;">${fmtPeso(tIng)}</td>
+      <td style="text-align:right;color:#cc2222;">${fmtPeso(tCost)}</td>
+      <td style="text-align:right;" class="${tCls}">${fmtPeso(tMargen)}</td>
+      <td style="text-align:right;color:#555;">${medTotLbl}</td>
+      <td style="text-align:right;" class="${tCls}">${mgnTotLbl}</td>
+      <td style="text-align:right;color:#888;">${tIng>0?(tMargen/tIng*100).toFixed(1)+"%":"—"}</td>
+      <td></td>
+    </tr>`;
+
+    const unidadLbl = esTon ? "Ton." : "Hás";
+    const mgnLblHdr = esTon ? "$/Ton" : "$/Há";
+    return `<div style="overflow-x:auto;">
+      <table class="mg-table">
+        <thead><tr>
+          <th>Unidad Productiva</th><th>Centro Costos</th>
+          <th style="text-align:right;">Ingresos</th>
+          <th style="text-align:right;">Costos</th>
+          <th style="text-align:right;">Margen</th>
+          <th style="text-align:right;">${unidadLbl}</th>
+          <th style="text-align:right;">${mgnLblHdr}</th>
+          <th style="text-align:right;">%</th>
+          <th></th>
+        </tr></thead>
+        <tbody>${tbody}${totRow}</tbody>
+      </table>
+    </div>`;
+  };
 
   document.getElementById("app-margenes").innerHTML = `
     <div class="filters-wrap" style="margin-bottom:12px;">
@@ -302,24 +339,13 @@ function renderMargenes() {
         ${upBtns}
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-title">Margen por unidad productiva</div>
-      <div style="overflow-x:auto;">
-        <table class="mg-table">
-          <thead><tr>
-            <th>Unidad Productiva</th><th>Centro Costos</th>
-            <th style="text-align:right;">Ingresos</th>
-            <th style="text-align:right;">Costos</th>
-            <th style="text-align:right;">Margen</th>
-            <th style="text-align:right;">Ton.</th>
-            <th style="text-align:right;">$/Ton</th>
-            <th style="text-align:right;">$/Há</th>
-            <th style="text-align:right;">%</th>
-            <th></th>
-          </tr></thead>
-          <tbody>${tbody}${totRow}</tbody>
-        </table>
-      </div>
+    <div class="stat-card" style="margin-bottom:12px;">
+      <div class="stat-title">Margen por tonelada</div>
+      ${buildTable(rowsConKilos, "ton")}
+    </div>
+    <div class="stat-card" style="margin-bottom:12px;">
+      <div class="stat-title">Margen por hectárea</div>
+      ${buildTable(rowsConHa, "ha")}
     </div>
     <div class="footer">Ingresos desde Proyecciones_Manuales · Costos desde BD_Registro · Los Crisoles · BData</div>`;
 }
