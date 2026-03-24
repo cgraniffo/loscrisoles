@@ -356,10 +356,14 @@ function renderCostos() {
   const totalRegistros = conCosto.length;
 
   // Por UP
-  const upCostos = sumBy(conCosto,
-    r => CC_MAP[String(r["Centro_Costo"]||"").trim()] || String(r["Centro_Costo"]||"—").trim(),
-    r => Number(r["Costo Total"])
-  );
+  const upCostosMap = {};
+  conCosto.forEach(r => {
+    const ccId   = String(r["Centro_Costo"]||"").trim();
+    const nombre = CC_MAP[ccId] || ccId;
+    if (!upCostosMap[ccId]) upCostosMap[ccId] = { nombre, fundo: FUNDO_MAP[ccId]||"", total: 0 };
+    upCostosMap[ccId].total += Number(r["Costo Total"]);
+  });
+  const upCostos = Object.values(upCostosMap).sort((a,b) => b.total - a.total);
 
   // Por tipo labor
   const tipoCostos = sumBy(conCosto,
@@ -392,12 +396,13 @@ function renderCostos() {
   }).join("");
 
   // Tabla por UP
-  const upTabla = upCostos.map(([nombre, total], i) => {
-    const pct = totalGeneral > 0 ? (total/totalGeneral*100).toFixed(1) : 0;
+  const upTabla = upCostos.map((item, i) => {
+    const pct = totalGeneral > 0 ? (item.total/totalGeneral*100).toFixed(1) : 0;
     return `<tr>
       <td style="font-weight:bold;">${i+1}</td>
-      <td>${nombre}</td>
-      <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(total)}</td>
+      <td>${item.nombre}</td>
+      <td style="color:#888;">${item.fundo}</td>
+      <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(item.total)}</td>
       <td style="text-align:right;color:#888;">${pct}%</td>
     </tr>`;
   }).join("");
@@ -411,25 +416,17 @@ function renderCostos() {
       <div class="cm"><div class="cm-val">${fmtPeso(promedio)}</div><div class="cm-label">Costo promedio por labor</div></div>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-card" style="grid-column: span 2;">
-        <div class="stat-title">Evolución mensual de costos</div>
-        ${mesHTML || "<div style='font-size:12px;color:#aaa;'>Sin datos suficientes</div>"}
-      </div>
+    <div class="stat-card" style="margin-bottom:12px;">
+      <div class="stat-title">Costo por unidad productiva</div>
+      <table class="up-table">
+        <thead><tr><th>#</th><th>Unidad</th><th>Fundo</th><th style="text-align:right;">Total</th><th style="text-align:right;">%</th></tr></thead>
+        <tbody>${upTabla || "<tr><td colspan='5' style='color:#aaa;text-align:center;'>Sin datos</td></tr>"}</tbody>
+      </table>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-title">Costo por tipo de labor</div>
-        ${tipoHTML || "<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}
-      </div>
-      <div class="stat-card">
-        <div class="stat-title">Costo por unidad productiva</div>
-        <table class="up-table">
-          <thead><tr><th>#</th><th>Unidad</th><th style="text-align:right;">Total</th><th style="text-align:right;">%</th></tr></thead>
-          <tbody>${upTabla || "<tr><td colspan='4' style='color:#aaa;text-align:center;'>Sin datos</td></tr>"}</tbody>
-        </table>
-      </div>
+    <div class="stat-card">
+      <div class="stat-title">Evolución mensual de costos</div>
+      ${mesHTML || "<div style='font-size:12px;color:#aaa;'>Sin datos suficientes</div>"}
     </div>
 
     <div class="footer">Costos basados en campo "Costo Total" · Los Crisoles · BData</div>`;
