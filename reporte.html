@@ -92,6 +92,15 @@
     .up-table tr:last-child td { border-bottom: none; }
     .up-table tr:hover td { background: #fafaf8; }
     .tipo-pill { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; margin: 2px; }
+    .mg-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .mg-table th { text-align:left; font-size:11px; color:#888; font-weight:bold; letter-spacing:0.05em; text-transform:uppercase; padding:6px 8px; border-bottom:2px solid #f0ede6; }
+    .mg-table td { padding:8px; border-bottom:1px solid #f5f3ef; vertical-align:middle; }
+    .mg-table tr:last-child td { border-bottom: none; }
+    .mg-table tr:hover td { background:#fafaf8; }
+    .mg-pos { color:#1a3a0a; font-weight:bold; }
+    .mg-neg { color:#cc2222; font-weight:bold; }
+    .mg-bar-pos { height:8px; border-radius:4px; background:#1a3a0a; display:inline-block; }
+    .mg-bar-neg { height:8px; border-radius:4px; background:#fca5a5; display:inline-block; }
   </style>
 </head>
 <body>
@@ -114,15 +123,23 @@
     <div class="m"><div class="m-val green" id="m-costo-total">—</div><div class="m-label">Costo total acumulado</div></div>
     <div class="m"><div class="m-val" id="m-costo-ha">—</div><div class="m-label">Costo por hectárea</div></div>
   </div>
+  <div class="metrics-top" id="metrics-margenes" style="display:none;">
+    <div class="m"><div class="m-val green" id="m-ingreso-total">—</div><div class="m-label">Ingresos totales</div></div>
+    <div class="m"><div class="m-val red" id="m-costo-m">—</div><div class="m-label">Costos totales</div></div>
+    <div class="m"><div class="m-val amber" id="m-margen-total">—</div><div class="m-label">Margen total</div></div>
+    <div class="m"><div class="m-val" id="m-margen-ton">—</div><div class="m-label">Margen por tonelada</div></div>
+  </div>
   <div class="tabs">
     <div class="tab on" id="tab-labores" onclick="switchTab('labores')">📋 Labores</div>
     <div class="tab" id="tab-costos" onclick="switchTab('costos')">💰 Costos</div>
+    <div class="tab" id="tab-margenes" onclick="switchTab('margenes')">📊 Márgenes</div>
   </div>
 </div>
 
 <div class="body">
   <div id="app-labores"><div class="loading">Cargando reporte...</div></div>
   <div id="app-costos" style="display:none;"><div class="loading">Cargando costos...</div></div>
+  <div id="app-margenes" style="display:none;"><div class="loading">Cargando márgenes...</div></div>
 </div>
 
 <script>
@@ -131,9 +148,10 @@ const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVM
 const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {};
-let ACTIVOS = [], TODOS = [];
+let ACTIVOS = [], TODOS = [], PROYECCIONES = [];
 let state = { estados:[], encargados:[], ups:[], soloVencidas:false };
 let stateCostos = { ccs:[], fundos:[], anios:[], meses:[] };
+let stateMargenes = { ups:[] };
 let currentTab = "labores";
 
 async function fetchSheet(apiUrl, sheet) {
@@ -183,14 +201,131 @@ function fmtPeso(n) {
 
 const C = { venc:{bar:"#fca5a5",date:"#cc2222"}, hoy:{bar:"#fcd34d",date:"#b45309"}, prox:{bar:"#86efac",date:"#166534"} };
 
+function toggleMargenMulti(key, val) {
+  const arr = stateMargenes[key];
+  const idx = arr.indexOf(val);
+  if (idx === -1) arr.push(val); else arr.splice(idx, 1);
+  renderMargenes();
+}
+
+function renderMargenes() {
+  // Build costos por UP
+  const costosPorUP = {};
+  TODOS.forEach(r => {
+    const cc = String(r["Centro_Costo"]||"").trim();
+    costosPorUP[cc] = (costosPorUP[cc]||0) + Number(r["Costo Total"]||0);
+  });
+
+  // Build ingresos + kilos por UP
+  const ingresosPorUP = {};
+  const kilosPorUP   = {};
+  PROYECCIONES.forEach(r => {
+    const up = String(r["Unidad_Productiva"]||"").trim();
+    ingresosPorUP[up] = (ingresosPorUP[up]||0) + Number(r["Monto_Total"]||0);
+    kilosPorUP[up]    = (kilosPorUP[up]||0)    + Number(r["Kilos_Estimados"]||0);
+  });
+
+  // Get all UPs
+  const allUPs = [...new Set([...Object.keys(costosPorUP), ...Object.keys(ingresosPorUP)])].sort();
+
+  // Filter
+  const filtradas = stateMargenes.ups.length > 0
+    ? allUPs.filter(id => stateMargenes.ups.includes(id))
+    : allUPs;
+
+  const upBtns = allUPs.map(id =>
+    `<button class="fbtn${stateMargenes.ups.includes(id)?" on":""}" onclick="toggleMargenMulti('ups','${id}')">${CC_MAP[id]||id}</button>`
+  ).join("");
+
+  // Build rows
+  let totalIng = 0, totalCost = 0, totalKilos = 0;
+  const rows = filtradas.map(ccId => {
+    const nombre  = CC_MAP[ccId]  || ccId;
+    const fundo   = FUNDO_MAP[ccId] || "—";
+    const ingreso = ingresosPorUP[ccId] || 0;
+    const costo   = costosPorUP[ccId]   || 0;
+    const margen  = ingreso - costo;
+    const kilos   = kilosPorUP[ccId]    || 0;
+    const toneladas = kilos / 1000;
+    const margenTon = toneladas > 0 ? margen / toneladas : 0;
+    const pct = ingreso > 0 ? (margen/ingreso*100).toFixed(1) : "—";
+    totalIng   += ingreso;
+    totalCost  += costo;
+    totalKilos += kilos;
+    const cls = margen >= 0 ? "mg-pos" : "mg-neg";
+    const barPct = Math.min(Math.abs(margen) / Math.max(totalIng||1, 1) * 100, 100);
+    return { nombre, fundo, ingreso, costo, margen, toneladas, margenTon, pct, cls };
+  });
+
+  const margenTotal = totalIng - totalCost;
+  const margenTonTotal = totalKilos > 0 ? margenTotal / (totalKilos/1000) : 0;
+  const maxAbsMargen = Math.max(...rows.map(r => Math.abs(r.margen)), 1);
+
+  const tbody = rows.map(r => {
+    const barW = Math.round(Math.abs(r.margen)/maxAbsMargen*100);
+    const barHTML = r.margen >= 0
+      ? `<div class="mg-bar-pos" style="width:${barW}px;max-width:80px;"></div>`
+      : `<div class="mg-bar-neg" style="width:${barW}px;max-width:80px;"></div>`;
+    return `<tr>
+      <td style="font-weight:bold;">${r.nombre}</td>
+      <td style="color:#888;">${r.fundo}</td>
+      <td style="text-align:right;color:#1a3a0a;">${fmtPeso(r.ingreso)}</td>
+      <td style="text-align:right;color:#cc2222;">${fmtPeso(r.costo)}</td>
+      <td style="text-align:right;" class="${r.cls}">${fmtPeso(r.margen)}</td>
+      <td style="text-align:right;color:#555;">${r.toneladas > 0 ? r.toneladas.toFixed(1)+"t" : "—"}</td>
+      <td style="text-align:right;" class="${r.cls}">${r.toneladas > 0 ? fmtPeso(r.margenTon)+"/t" : "—"}</td>
+      <td style="text-align:right;color:#888;">${r.pct !== "—" ? r.pct+"%" : "—"}</td>
+      <td style="padding-left:8px;">${barHTML}</td>
+    </tr>`;
+  }).join("");
+
+  const totRow = `<tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
+    <td colspan="2">Total</td>
+    <td style="text-align:right;color:#1a3a0a;">${fmtPeso(totalIng)}</td>
+    <td style="text-align:right;color:#cc2222;">${fmtPeso(totalCost)}</td>
+    <td style="text-align:right;" class="${margenTotal>=0?"mg-pos":"mg-neg"}">${fmtPeso(margenTotal)}</td>
+    <td style="text-align:right;color:#555;">${(totalKilos/1000).toFixed(1)}t</td>
+    <td style="text-align:right;" class="${margenTonTotal>=0?"mg-pos":"mg-neg"}">${totalKilos>0?fmtPeso(margenTonTotal)+"/t":"—"}</td>
+    <td style="text-align:right;color:#888;">${totalIng>0?(margenTotal/totalIng*100).toFixed(1)+"%":"—"}</td>
+    <td></td>
+  </tr>`;
+
+  document.getElementById("app-margenes").innerHTML = `
+    <div class="filters-wrap" style="margin-bottom:12px;">
+      <div class="filters-row">
+        <div class="filter-label">Unidad prod.</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+        ${upBtns}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-title">Margen por unidad productiva</div>
+      <div style="overflow-x:auto;">
+        <table class="mg-table">
+          <thead><tr>
+            <th>Unidad Productiva</th><th>Centro Costos</th>
+            <th style="text-align:right;">Ingresos</th>
+            <th style="text-align:right;">Costos</th>
+            <th style="text-align:right;">Margen</th>
+            <th style="text-align:right;">Ton.</th>
+            <th style="text-align:right;">$/Ton</th>
+            <th style="text-align:right;">%</th>
+            <th></th>
+          </tr></thead>
+          <tbody>${tbody}${totRow}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="footer">Ingresos desde Proyecciones_Manuales · Costos desde BD_Registro · Los Crisoles · BData</div>`;
+}
+
 function switchTab(tab) {
   currentTab = tab;
-  document.getElementById("tab-labores").className = "tab" + (tab==="labores"?" on":"");
-  document.getElementById("tab-costos").className  = "tab" + (tab==="costos"?" on":"");
-  document.getElementById("app-labores").style.display    = tab==="labores" ? "" : "none";
-  document.getElementById("app-costos").style.display     = tab==="costos"  ? "" : "none";
-  document.getElementById("metrics-labores").style.display = tab==="labores" ? "" : "none";
-  document.getElementById("metrics-costos").style.display  = tab==="costos"  ? "" : "none";
+  ["labores","costos","margenes"].forEach(t => {
+    document.getElementById("tab-"+t).className = "tab" + (tab===t?" on":"");
+    document.getElementById("app-"+t).style.display      = tab===t ? "" : "none";
+    document.getElementById("metrics-"+t).style.display  = tab===t ? "" : "none";
+  });
 }
 
 function countBy(arr, keyFn) {
@@ -541,11 +676,12 @@ function toggleCostoMulti(key, val) {
 // ── MAIN ───────────────────────────────────────────────────────────────────
 async function main() {
   try {
-    const [registros, ccs, labores, encargados] = await Promise.all([
+    const [registros, ccs, labores, encargados, proyecciones] = await Promise.all([
       fetchSheet(API_REGISTRO, "BD_Registro"),
       fetchSheet(API_CC,       "BD_CC"),
       fetchSheet(API_LABORES,  "BD_Labores"),
-      fetchSheet(API_REGISTRO, "Encargados")
+      fetchSheet(API_REGISTRO, "Encargados"),
+      fetchSheet(API_REGISTRO, "Proyecciones_Manuales")
     ]);
 
     ccs.forEach(c => {
@@ -566,6 +702,7 @@ async function main() {
     });
 
     TODOS   = registros;
+    PROYECCIONES = proyecciones;
     ACTIVOS = registros.filter(r => {
       const est = String(r["Estado Operativo"]||"").trim();
       return est==="En Proceso" || est==="Pendiente";
@@ -587,12 +724,23 @@ async function main() {
     document.getElementById("m-costo-total").textContent = fmtPeso(totalCosto);
     document.getElementById("m-costo-ha").textContent    = fmtPeso(costoHa);
 
+    // Margenes header metrics
+    const totalIngreso = proyecciones.reduce((s,r) => s + Number(r["Monto_Total"]||0), 0);
+    const totalKilos   = proyecciones.reduce((s,r) => s + Number(r["Kilos_Estimados"]||0), 0);
+    const margenTotal  = totalIngreso - totalCosto;
+    const margenTon    = totalKilos > 0 ? margenTotal / (totalKilos/1000) : 0;
+    document.getElementById("m-ingreso-total").textContent = fmtPeso(totalIngreso);
+    document.getElementById("m-costo-m").textContent       = fmtPeso(totalCosto);
+    document.getElementById("m-margen-total").textContent  = fmtPeso(margenTotal);
+    document.getElementById("m-margen-ton").textContent    = fmtPeso(margenTon);
+
     const now = new Date();
     document.getElementById("hdr-date").textContent = now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
     document.getElementById("hdr-refresh").innerHTML = `Actualizado<br>${now.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}`;
 
     renderPageLabores();
     renderCostos();
+    renderMargenes();
 
   } catch(e) {
     document.getElementById("app-labores").innerHTML =
