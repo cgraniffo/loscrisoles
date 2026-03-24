@@ -101,6 +101,8 @@
     .mg-neg { color:#cc2222; font-weight:bold; }
     .mg-bar-pos { height:8px; border-radius:4px; background:#1a3a0a; display:inline-block; }
     .mg-bar-neg { height:8px; border-radius:4px; background:#fca5a5; display:inline-block; }
+    .ing-real { color:#1a3a0a; font-weight:bold; }
+    .ing-est  { color:#b45309; }
   </style>
 </head>
 <body>
@@ -123,6 +125,13 @@
     <div class="m"><div class="m-val green" id="m-costo-total">—</div><div class="m-label">Costo total acumulado</div></div>
     <div class="m"><div class="m-val" id="m-costo-ha">—</div><div class="m-label">Costo por hectárea</div></div>
   </div>
+  <div class="metrics-top" id="metrics-ingresos" style="display:none;">
+    <div class="m"><div class="m-val green" id="m-ing-total">—</div><div class="m-label">Ingreso total</div></div>
+    <div class="m"><div class="m-val" id="m-ing-real">—</div><div class="m-label">Real</div></div>
+    <div class="m"><div class="m-val amber" id="m-ing-estimado">—</div><div class="m-label">Estimado</div></div>
+    <div class="m"><div class="m-val" id="m-ing-kilos">—</div><div class="m-label">Kilos totales</div></div>
+    <div class="m"><div class="m-val" id="m-ing-precio">—</div><div class="m-label">Precio promedio</div></div>
+  </div>
   <div class="metrics-top" id="metrics-margenes" style="display:none;">
     <div class="m"><div class="m-val amber" id="m-margen-total">—</div><div class="m-label">Margen total</div></div>
     <div class="m"><div class="m-val" id="m-margen-ton">—</div><div class="m-label">Margen por tonelada</div></div>
@@ -132,6 +141,7 @@
     <div class="tab on" id="tab-labores" onclick="switchTab('labores')">📋 Labores</div>
     <div class="tab" id="tab-costos" onclick="switchTab('costos')">💰 Costos</div>
     <div class="tab" id="tab-margenes" onclick="switchTab('margenes')">📊 Márgenes</div>
+    <div class="tab" id="tab-ingresos" onclick="switchTab('ingresos')">🌾 Ingresos</div>
   </div>
 </div>
 
@@ -139,6 +149,7 @@
   <div id="app-labores"><div class="loading">Cargando reporte...</div></div>
   <div id="app-costos" style="display:none;"><div class="loading">Cargando costos...</div></div>
   <div id="app-margenes" style="display:none;"><div class="loading">Cargando márgenes...</div></div>
+  <div id="app-ingresos" style="display:none;"><div class="loading">Cargando ingresos...</div></div>
 </div>
 
 <script>
@@ -151,6 +162,7 @@ let ACTIVOS = [], TODOS = [], PROYECCIONES = [];
 let state = { estados:[], encargados:[], ups:[], soloVencidas:false };
 let stateCostos = { ccs:[], fundos:[], anios:[], meses:[] };
 let stateMargenes = { ups:[] };
+let stateIngresos = { ups:[], estados:[], anios:[], meses:[] };
 let currentTab = "labores";
 
 async function fetchSheet(apiUrl, sheet) {
@@ -348,9 +360,191 @@ function renderMargenes() {
     <div class="footer">Ingresos desde Proyecciones_Manuales · Costos desde BD_Registro · Los Crisoles · BData</div>`;
 }
 
+function toggleIngresosMulti(key, val) {
+  const arr = stateIngresos[key];
+  const idx = arr.indexOf(val);
+  if (idx === -1) arr.push(val); else arr.splice(idx, 1);
+  renderIngresos();
+}
+
+function renderIngresos() {
+  const MESES = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
+
+  // Filter options
+  const upOpts    = [...new Set(PROYECCIONES.map(r=>String(r["Unidad_Productiva"]||"").trim()).filter(Boolean))].sort();
+  const estadoOpts = [...new Set(PROYECCIONES.map(r=>String(r["Estado"]||"").trim()).filter(Boolean))].sort();
+  const anioOpts  = [...new Set(PROYECCIONES.map(r=>{const d=parseDate(r["Fecha_Estimada"]);return d?String(d.getFullYear()):null;}).filter(Boolean))].sort();
+  const mesOpts   = [...new Set(PROYECCIONES.map(r=>{const d=parseDate(r["Fecha_Estimada"]);return d?String(d.getMonth()+1).padStart(2,"0"):null;}).filter(Boolean))].sort();
+
+  const upBtns     = upOpts.map(id=>`<button class="fbtn${stateIngresos.ups.includes(id)?" on":""}" onclick="toggleIngresosMulti('ups','${id}')">${CC_MAP[id]||id}</button>`).join("");
+  const estadoBtns = estadoOpts.map(e=>`<button class="fbtn${stateIngresos.estados.includes(e)?" on":""}" onclick="toggleIngresosMulti('estados','${e}')">${e}</button>`).join("");
+  const anioBtns   = anioOpts.map(a=>`<button class="fbtn${stateIngresos.anios.includes(a)?" on":""}" onclick="toggleIngresosMulti('anios','${a}')">${a}</button>`).join("");
+  const mesBtns    = mesOpts.map(m=>`<button class="fbtn${stateIngresos.meses.includes(m)?" on":""}" onclick="toggleIngresosMulti('meses','${m}')">${MESES[m]||m}</button>`).join("");
+
+  // Apply filters
+  const filtrados = PROYECCIONES.filter(r => {
+    const up    = String(r["Unidad_Productiva"]||"").trim();
+    const est   = String(r["Estado"]||"").trim();
+    const d     = parseDate(r["Fecha_Estimada"]);
+    const anio  = d ? String(d.getFullYear()) : "";
+    const mes   = d ? String(d.getMonth()+1).padStart(2,"0") : "";
+    if (stateIngresos.ups.length    > 0 && !stateIngresos.ups.includes(up))       return false;
+    if (stateIngresos.estados.length> 0 && !stateIngresos.estados.includes(est))  return false;
+    if (stateIngresos.anios.length  > 0 && !stateIngresos.anios.includes(anio))   return false;
+    if (stateIngresos.meses.length  > 0 && !stateIngresos.meses.includes(mes))    return false;
+    return true;
+  });
+
+  // Group by UP
+  const porUP = {};
+  filtrados.forEach(r => {
+    const id = String(r["Unidad_Productiva"]||"").trim();
+    if (!porUP[id]) porUP[id] = { real:[], estimado:[] };
+    const est = String(r["Estado"]||"").trim();
+    if (est === "Real") porUP[id].real.push(r);
+    else porUP[id].estimado.push(r);
+  });
+
+  const sum = arr => arr.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
+  const kg  = arr => arr.reduce((s,r)=>s+Number(r["Kilos_Estimados"]||0),0);
+
+  // Build UP rows sorted by total ingreso desc
+  const upRows = Object.entries(porUP).map(([id, g]) => {
+    const nombre   = CC_MAP[id] || id;
+    const fundo    = FUNDO_MAP[id] || "—";
+    const ha       = HA_MAP[id] || 0;
+    const ingReal  = sum(g.real);
+    const ingEst   = sum(g.estimado);
+    const ingTot   = ingReal + ingEst;
+    const kilosR   = kg(g.real);
+    const kilosE   = kg(g.estimado);
+    const kilosTot = kilosR + kilosE;
+    const rend     = ha > 0 ? kilosTot / ha : 0;
+    const precioP  = kilosTot > 0 ? ingTot / kilosTot : 0;
+    return { id, nombre, fundo, ha, ingReal, ingEst, ingTot, kilosR, kilosE, kilosTot, rend, precioP };
+  }).sort((a,b) => b.ingTot - a.ingTot);
+
+  const maxIng = upRows[0]?.ingTot || 1;
+  let tIngR=0,tIngE=0,tKgR=0,tKgE=0,tHa=0;
+  upRows.forEach(r=>{tIngR+=r.ingReal;tIngE+=r.ingEst;tKgR+=r.kilosR;tKgE+=r.kilosE;tHa+=r.ha;});
+  const tIngTot=tIngR+tIngE, tKgTot=tKgR+tKgE;
+  const tRend = tHa>0 ? tKgTot/tHa : 0;
+  const tPrecio = tKgTot>0 ? tIngTot/tKgTot : 0;
+
+  const tbody = upRows.map(r => {
+    const barW = Math.round(r.ingTot/maxIng*80);
+    return `<tr>
+      <td style="font-weight:bold;">${r.nombre}</td>
+      <td style="color:#888;">${r.fundo}</td>
+      <td style="text-align:right;" class="ing-real">${r.ingReal>0?fmtPeso(r.ingReal):"—"}</td>
+      <td style="text-align:right;" class="ing-est">${r.ingEst>0?fmtPeso(r.ingEst):"—"}</td>
+      <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(r.ingTot)}</td>
+      <td style="text-align:right;color:#555;">${r.kilosR>0?(r.kilosR/1000).toFixed(1)+"t":"—"}</td>
+      <td style="text-align:right;color:#888;">${r.kilosE>0?(r.kilosE/1000).toFixed(1)+"t":"—"}</td>
+      <td style="text-align:right;color:#555;">${r.rend>0?Math.round(r.rend).toLocaleString("es-CL")+" kg/há":"—"}</td>
+      <td style="text-align:right;color:#888;">${r.precioP>0?"$"+Math.round(r.precioP).toLocaleString("es-CL")+"/kg":"—"}</td>
+      <td><div style="height:8px;border-radius:4px;background:#1a3a0a;width:${barW}px;display:inline-block;"></div></td>
+    </tr>`;
+  }).join("");
+
+  const totRow = `<tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
+    <td colspan="2">Total</td>
+    <td style="text-align:right;" class="ing-real">${fmtPeso(tIngR)}</td>
+    <td style="text-align:right;" class="ing-est">${fmtPeso(tIngE)}</td>
+    <td style="text-align:right;color:#1a3a0a;">${fmtPeso(tIngTot)}</td>
+    <td style="text-align:right;color:#555;">${(tKgR/1000).toFixed(1)}t</td>
+    <td style="text-align:right;color:#888;">${(tKgE/1000).toFixed(1)}t</td>
+    <td style="text-align:right;color:#555;">${tRend>0?Math.round(tRend).toLocaleString("es-CL")+" kg/há":"—"}</td>
+    <td style="text-align:right;color:#888;">${tPrecio>0?"$"+Math.round(tPrecio).toLocaleString("es-CL")+"/kg":"—"}</td>
+    <td></td>
+  </tr>`;
+
+  // Evolución mensual
+  const porMes = {};
+  filtrados.forEach(r => {
+    const d = parseDate(r["Fecha_Estimada"]);
+    if (!d) return;
+    const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+    if (!porMes[key]) porMes[key] = 0;
+    porMes[key] += Number(r["Monto_Total"]||0);
+  });
+  const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
+  const mesMax  = Math.max(...mesRows.map(([,v])=>v),1);
+  let acumMes = 0;
+  const mesHTML = mesRows.map(([k,v]) => {
+    acumMes += v;
+    const pctM = Math.round(v/mesMax*100);
+    const pctA = Math.round(acumMes/mesRows.reduce((s,[,v])=>s+v,0)*100);
+    const label = new Date(k+"-15").toLocaleDateString("es-CL",{month:"short",year:"numeric"});
+    return `<div class="mes-row">
+      <div class="mes-label">${label}</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <div style="font-size:10px;color:#888;width:60px;flex-shrink:0;">Mensual</div>
+          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctM}%;background:#1a3a0a;"></div></div>
+          <div class="mes-val">${fmtPeso(v)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:10px;color:#888;width:60px;flex-shrink:0;">Acumulado</div>
+          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:#0f6e56;"></div></div>
+          <div class="mes-val" style="color:#0f6e56;">${fmtPeso(acumMes)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("app-ingresos").innerHTML = `
+    <div class="filters-wrap" style="margin-bottom:12px;">
+      <div class="filters-row">
+        <div class="filter-label">Estado</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+        ${estadoBtns}
+      </div>
+      <div class="filters-row">
+        <div class="filter-label">Unidad prod.</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+        ${upBtns}
+      </div>
+      <div class="filters-row">
+        <div class="filter-label">Año</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+        ${anioBtns}
+      </div>
+      <div class="filters-row">
+        <div class="filter-label">Mes</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+        ${mesBtns}
+      </div>
+    </div>
+    <div class="stat-card" style="margin-bottom:12px;">
+      <div class="stat-title">Ingresos por unidad productiva</div>
+      <div style="overflow-x:auto;">
+        <table class="mg-table">
+          <thead><tr>
+            <th>Unidad Productiva</th><th>Centro Costos</th>
+            <th style="text-align:right;">Real</th>
+            <th style="text-align:right;">Estimado</th>
+            <th style="text-align:right;">Total</th>
+            <th style="text-align:right;">Kg Real</th>
+            <th style="text-align:right;">Kg Est.</th>
+            <th style="text-align:right;">Rend. kg/há</th>
+            <th style="text-align:right;">$/kg</th>
+            <th></th>
+          </tr></thead>
+          <tbody>${tbody}${totRow}</tbody>
+        </table>
+      </div>
+    </div>
+    <div class="stat-card" style="margin-bottom:12px;">
+      <div class="stat-title">Evolución mensual de ingresos</div>
+      ${mesHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}
+    </div>
+    <div class="footer">Ingresos desde Proyecciones_Manuales · Los Crisoles · BData</div>`;
+}
+
 function switchTab(tab) {
   currentTab = tab;
-  ["labores","costos","margenes"].forEach(t => {
+  ["labores","costos","margenes","ingresos"].forEach(t => {
     document.getElementById("tab-"+t).className = "tab" + (tab===t?" on":"");
     document.getElementById("app-"+t).style.display      = tab===t ? "" : "none";
     document.getElementById("metrics-"+t).style.display  = tab===t ? "" : "none";
@@ -772,6 +966,19 @@ async function main() {
     renderPageLabores();
     renderCostos();
     renderMargenes();
+    renderIngresos();
+
+    // Ingresos header metrics
+    const ingReal  = proyecciones.filter(r=>String(r["Estado"]||"").trim()==="Real").reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
+    const ingEst   = proyecciones.filter(r=>String(r["Estado"]||"").trim()==="Estimado").reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
+    const ingTot   = ingReal + ingEst;
+    const kilosTot = proyecciones.reduce((s,r)=>s+Number(r["Kilos_Estimados"]||0),0);
+    const precioP  = kilosTot > 0 ? ingTot/kilosTot : 0;
+    document.getElementById("m-ing-total").textContent    = fmtPeso(ingTot);
+    document.getElementById("m-ing-real").textContent     = fmtPeso(ingReal);
+    document.getElementById("m-ing-estimado").textContent = fmtPeso(ingEst);
+    document.getElementById("m-ing-kilos").textContent    = Math.round(kilosTot/1000).toLocaleString("es-CL")+"t";
+    document.getElementById("m-ing-precio").textContent   = "$"+Math.round(precioP).toLocaleString("es-CL")+"/kg";
 
   } catch(e) {
     document.getElementById("app-labores").innerHTML =
