@@ -383,15 +383,31 @@ function renderCostos() {
     r => Number(r["Costo Total"])
   ).sort((a,b) => a[0].localeCompare(b[0]));
   const mesMax = mesCostos.reduce((m,[,v]) => Math.max(m,v), 0);
-  const mesHTML = mesCostos.map(([k,v]) => {
-    const pct = mesMax > 0 ? Math.round(v/mesMax*100) : 0;
+  // Acumulado por mes
+  let acum = 0;
+  const mesConAcum = mesCostos.map(([k,v]) => { acum += v; return [k, v, acum]; });
+  const acumMax = acum;
+
+  const mesHTML = mesConAcum.map(([k, v, a]) => {
+    const pctMes  = mesMax  > 0 ? Math.round(v/mesMax*100)  : 0;
+    const pctAcum = acumMax > 0 ? Math.round(a/acumMax*100) : 0;
     const label = k.length === 7
       ? new Date(k+"-15").toLocaleDateString("es-CL",{month:"short",year:"numeric"})
       : k;
     return `<div class="mes-row">
       <div class="mes-label">${label}</div>
-      <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pct}%;"></div></div>
-      <div class="mes-val">${fmtPeso(v)}</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <div style="font-size:10px;color:#888;width:60px;flex-shrink:0;">Mensual</div>
+          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctMes}%;background:#1a3a0a;"></div></div>
+          <div class="mes-val">${fmtPeso(v)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:10px;color:#888;width:60px;flex-shrink:0;">Acumulado</div>
+          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctAcum}%;background:#0f6e56;"></div></div>
+          <div class="mes-val" style="color:#0f6e56;">${fmtPeso(a)}</div>
+        </div>
+      </div>
     </div>`;
   }).join("");
 
