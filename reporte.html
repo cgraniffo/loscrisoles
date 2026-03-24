@@ -132,8 +132,8 @@ const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMag
 
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {};
 let ACTIVOS = [], TODOS = [];
-let state = { estado:"todas", encargado:"todos", up:"todas", soloVencidas:false };
-let stateCostos = { cc:"todas", fundo:"todos", anios:[], meses:[] };
+let state = { estados:[], encargados:[], ups:[], soloVencidas:false };
+let stateCostos = { ccs:[], fundos:[], anios:[], meses:[] };
 let currentTab = "labores";
 
 async function fetchSheet(apiUrl, sheet) {
@@ -262,24 +262,32 @@ function renderFilters() {
     const id=String(r["Encargado"]||"").trim(); return ENC_MAP[id]||id;
   }).filter(Boolean))].sort();
   const ups = [...new Set(ACTIVOS.map(r=>String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
-  const encBtns = encargados.map(e=>`<button class="fbtn${state.encargado===e?" on":""}" onclick="setFilter('encargado','${e}')">${e}</button>`).join("");
-  const upBtns  = ups.map(id=>`<button class="fbtn${state.up===id?" on":""}" onclick="setFilter('up','${id}')">${CC_MAP[id]||id}</button>`).join("");
+
+  const estadoBtns = ["En Proceso","Pendiente"].map(e=>
+    `<button class="fbtn${state.estados.includes(e)?" on":""}" onclick="toggleMulti('estados','${e}')">${e}</button>`
+  ).join("");
+  const encBtns = encargados.map(e=>
+    `<button class="fbtn${state.encargados.includes(e)?" on":""}" onclick="toggleMulti('encargados','${e}')">${e}</button>`
+  ).join("");
+  const upBtns = ups.map(id=>
+    `<button class="fbtn${state.ups.includes(id)?" on":""}" onclick="toggleMulti('ups','${id}')">${CC_MAP[id]||id}</button>`
+  ).join("");
+
   return `<div class="filters-wrap">
     <div class="filters-row">
       <div class="filter-label">Estado</div>
-      <button class="fbtn${state.estado==="todas"?" on":""}" onclick="setFilter('estado','todas')">Todas</button>
-      <button class="fbtn${state.estado==="En Proceso"?" on":""}" onclick="setFilter('estado','En Proceso')">En proceso</button>
-      <button class="fbtn${state.estado==="Pendiente"?" on":""}" onclick="setFilter('estado','Pendiente')">Pendiente</button>
+      <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+      ${estadoBtns}
       <button class="fbtn${state.soloVencidas?" on":""}" onclick="toggleVencidas()">Solo vencidas</button>
     </div>
     <div class="filters-row">
       <div class="filter-label">Encargado</div>
-      <button class="fbtn${state.encargado==="todos"?" on":""}" onclick="setFilter('encargado','todos')">Todos</button>
+      <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
       ${encBtns}
     </div>
     <div class="filters-row">
       <div class="filter-label">Unidad prod.</div>
-      <button class="fbtn${state.up==="todas"?" on":""}" onclick="setFilter('up','todas')">Todas</button>
+      <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
       ${upBtns}
     </div>
   </div>`;
@@ -290,10 +298,10 @@ function applyFilters() {
     const est = String(r["Estado Operativo"]||"").trim();
     const enc = ENC_MAP[String(r["Encargado"]||"").trim()]||String(r["Encargado"]||"").trim();
     const up  = String(r["Centro_Costo"]||"").trim();
-    if (state.estado!=="todas" && est!==state.estado) return false;
-    if (state.encargado!=="todos" && enc!==state.encargado) return false;
-    if (state.up!=="todas" && up!==state.up) return false;
-    if (state.soloVencidas && dateStatus(r["Fecha"])!=="venc") return false;
+    if (state.estados.length > 0    && !state.estados.includes(est))    return false;
+    if (state.encargados.length > 0 && !state.encargados.includes(enc)) return false;
+    if (state.ups.length > 0        && !state.ups.includes(up))         return false;
+    if (state.soloVencidas && dateStatus(r["Fecha"])!=="venc")           return false;
     return true;
   });
 }
@@ -362,8 +370,8 @@ function renderCostos() {
   const ccOpts   = [...new Set(todosConCosto.map(r => String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
   const fundoOpts = [...new Set(ccOpts.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
 
-  const ccBtns    = ccOpts.map(id => `<button class="fbtn${stateCostos.cc===id?" on":""}" onclick="setCostoFilter('cc','${id}')">${CC_MAP[id]||id}</button>`).join("");
-  const fundoBtns = fundoOpts.map(f => `<button class="fbtn${stateCostos.fundo===f?" on":""}" onclick="setCostoFilter('fundo','${f}')">${f}</button>`).join("");
+  const ccBtns    = ccOpts.map(id => `<button class="fbtn${stateCostos.ccs.includes(id)?" on":""}" onclick="toggleCostoMulti('ccs','${id}')">${CC_MAP[id]||id}</button>`).join("");
+  const fundoBtns = fundoOpts.map(f  => `<button class="fbtn${stateCostos.fundos.includes(f)?" on":""}" onclick="toggleCostoMulti('fundos','${f}')">${f}</button>`).join("");
 
   // Año y mes options
   const anioOpts = [...new Set(todosConCosto.map(r => {
@@ -390,12 +398,12 @@ function renderCostos() {
     </div>
     <div class="filters-row">
       <div class="filter-label">Unidad prod.</div>
-      <button class="fbtn${stateCostos.cc==="todas"?" on":""}" onclick="setCostoFilter('cc','todas')">Todas</button>
+      <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
       ${ccBtns}
     </div>
     <div class="filters-row">
       <div class="filter-label">Centro costo</div>
-      <button class="fbtn${stateCostos.fundo==="todos"?" on":""}" onclick="setCostoFilter('fundo','todos')">Todos</button>
+      <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
       ${fundoBtns}
     </div>
   </div>`;
@@ -406,8 +414,8 @@ function renderCostos() {
     const d     = parseDate(r["Fecha"]);
     const anio  = d ? String(d.getFullYear()) : "";
     const mes   = d ? String(d.getMonth()+1).padStart(2,"0") : "";
-    if (stateCostos.cc    !== "todas" && ccId  !== stateCostos.cc)    return false;
-    if (stateCostos.fundo !== "todos" && fundo !== stateCostos.fundo) return false;
+    if (stateCostos.ccs.length > 0    && !stateCostos.ccs.includes(ccId))    return false;
+    if (stateCostos.fundos.length > 0 && !stateCostos.fundos.includes(fundo)) return false;
     if (stateCostos.anios.length > 0  && !stateCostos.anios.includes(anio)) return false;
     if (stateCostos.meses.length > 0  && !stateCostos.meses.includes(mes))  return false;
     return true;
@@ -508,6 +516,17 @@ function renderCostos() {
     <div class="footer">Costos basados en campo "Costo Total" · Los Crisoles · BData</div>`;
 }
 
+function toggleMulti(key, val) {
+  const arr = state[key];
+  const idx = arr.indexOf(val);
+  if (idx === -1) arr.push(val); else arr.splice(idx, 1);
+  if (key === "estados") state.soloVencidas = false;
+  renderPageLabores();
+}
+function toggleVencidas() {
+  state.soloVencidas = !state.soloVencidas;
+  renderPageLabores();
+}
 function setCostoFilter(key, val) {
   stateCostos[key] = val;
   renderCostos();
@@ -515,19 +534,8 @@ function setCostoFilter(key, val) {
 function toggleCostoMulti(key, val) {
   const arr = stateCostos[key];
   const idx = arr.indexOf(val);
-  if (idx === -1) arr.push(val);
-  else arr.splice(idx, 1);
+  if (idx === -1) arr.push(val); else arr.splice(idx, 1);
   renderCostos();
-}
-
-function setFilter(key, val) {
-  state[key] = val;
-  if (key==="estado") state.soloVencidas = false;
-  renderPageLabores();
-}
-function toggleVencidas() {
-  state.soloVencidas = !state.soloVencidas;
-  renderPageLabores();
 }
 
 // ── MAIN ───────────────────────────────────────────────────────────────────
