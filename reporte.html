@@ -104,11 +104,15 @@
     </div>
     <div class="hdr-refresh" id="hdr-refresh"></div>
   </div>
-  <div class="metrics-top">
+  <div class="metrics-top" id="metrics-labores">
     <div class="m"><div class="m-val" id="m-total">—</div><div class="m-label">Total activas</div></div>
     <div class="m"><div class="m-val red" id="m-venc">—</div><div class="m-label">Vencidas</div></div>
     <div class="m"><div class="m-val amber" id="m-hoy">—</div><div class="m-label">Vencen hoy</div></div>
     <div class="m"><div class="m-val green" id="m-prox">—</div><div class="m-label">Próximas</div></div>
+  </div>
+  <div class="metrics-top" id="metrics-costos" style="display:none;">
+    <div class="m"><div class="m-val green" id="m-costo-total">—</div><div class="m-label">Costo total acumulado</div></div>
+    <div class="m"><div class="m-val" id="m-costo-ha">—</div><div class="m-label">Costo por hectárea</div></div>
   </div>
   <div class="tabs">
     <div class="tab on" id="tab-labores" onclick="switchTab('labores')">📋 Labores</div>
@@ -126,7 +130,7 @@ const API_REGISTRO = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFq
 const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
 const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 
-const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {};
+const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {};
 let ACTIVOS = [], TODOS = [];
 let state = { estado:"todas", encargado:"todos", up:"todas", soloVencidas:false };
 let stateCostos = { cc:"todas", fundo:"todos" };
@@ -183,8 +187,10 @@ function switchTab(tab) {
   currentTab = tab;
   document.getElementById("tab-labores").className = "tab" + (tab==="labores"?" on":"");
   document.getElementById("tab-costos").className  = "tab" + (tab==="costos"?" on":"");
-  document.getElementById("app-labores").style.display = tab==="labores" ? "" : "none";
-  document.getElementById("app-costos").style.display  = tab==="costos"  ? "" : "none";
+  document.getElementById("app-labores").style.display    = tab==="labores" ? "" : "none";
+  document.getElementById("app-costos").style.display     = tab==="costos"  ? "" : "none";
+  document.getElementById("metrics-labores").style.display = tab==="labores" ? "" : "none";
+  document.getElementById("metrics-costos").style.display  = tab==="costos"  ? "" : "none";
 }
 
 function countBy(arr, keyFn) {
@@ -388,7 +394,7 @@ function renderCostos() {
   conCosto.forEach(r => {
     const ccId   = String(r["Centro_Costo"]||"").trim();
     const nombre = CC_MAP[ccId] || ccId;
-    if (!upCostosMap[ccId]) upCostosMap[ccId] = { nombre, fundo: FUNDO_MAP[ccId]||"", total: 0 };
+    if (!upCostosMap[ccId]) upCostosMap[ccId] = { nombre, fundo: FUNDO_MAP[ccId]||"", ha: HA_MAP[ccId]||0, total: 0 };
     upCostosMap[ccId].total += Number(r["Costo Total"]);
   });
   const upCostos = Object.values(upCostosMap).sort((a,b) => b.total - a.total);
@@ -441,12 +447,15 @@ function renderCostos() {
 
   // Tabla por UP
   const upTabla = upCostos.map((item, i) => {
-    const pct = totalGeneral > 0 ? (item.total/totalGeneral*100).toFixed(1) : 0;
+    const pct    = totalGeneral > 0 ? (item.total/totalGeneral*100).toFixed(1) : 0;
+    const costoHa = item.ha > 0 ? item.total / item.ha : 0;
     return `<tr>
       <td style="font-weight:bold;">${i+1}</td>
       <td>${item.nombre}</td>
       <td style="color:#888;">${item.fundo}</td>
+      <td style="text-align:right;color:#888;">${item.ha > 0 ? item.ha : "—"}</td>
       <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(item.total)}</td>
+      <td style="text-align:right;color:#0f6e56;">${item.ha > 0 ? fmtPeso(costoHa) : "—"}</td>
       <td style="text-align:right;color:#888;">${pct}%</td>
     </tr>`;
   }).join("");
@@ -454,18 +463,13 @@ function renderCostos() {
   const promedio = totalRegistros > 0 ? totalGeneral / totalRegistros : 0;
 
   document.getElementById("app-costos").innerHTML = `
-    <div class="costo-metrics">
-      <div class="cm"><div class="cm-val">${fmtPeso(totalGeneral)}</div><div class="cm-label">Costo total acumulado</div></div>
-      <div class="cm"><div class="cm-val">${totalRegistros}</div><div class="cm-label">Registros con costo</div></div>
-      <div class="cm"><div class="cm-val">${fmtPeso(promedio)}</div><div class="cm-label">Costo promedio por labor</div></div>
-    </div>
 
     ${filtrosHTML}
     <div class="stat-card" style="margin-bottom:12px;">
       <div class="stat-title">Costo por unidad productiva</div>
       <table class="up-table">
-        <thead><tr><th>#</th><th>Unidad Productiva</th><th>Centro de Costos</th><th style="text-align:right;">Total</th><th style="text-align:right;">%</th></tr></thead>
-        <tbody>${upTabla || "<tr><td colspan='5' style='color:#aaa;text-align:center;'>Sin datos</td></tr>"}</tbody>
+        <thead><tr><th>#</th><th>Unidad Productiva</th><th>Centro de Costos</th><th style="text-align:right;">Hás</th><th style="text-align:right;">Total</th><th style="text-align:right;">$/Há</th><th style="text-align:right;">%</th></tr></thead>
+        <tbody>${upTabla || "<tr><td colspan='7' style='color:#aaa;text-align:center;'>Sin datos</td></tr>"}</tbody>
       </table>
     </div>
 
@@ -507,6 +511,7 @@ async function main() {
       if (id) {
         CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
         FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
+        HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0) || 0;
       }
     });
     labores.forEach(l => {
@@ -532,6 +537,13 @@ async function main() {
     document.getElementById("m-venc").textContent  = venc;
     document.getElementById("m-hoy").textContent   = hoy;
     document.getElementById("m-prox").textContent  = prox;
+
+    // Costos header metrics
+    const totalCosto = TODOS.reduce((s,r) => s + Number(r["Costo Total"]||0), 0);
+    const totalHa    = Object.values(HA_MAP).reduce((s,v) => s + v, 0);
+    const costoHa    = totalHa > 0 ? totalCosto / totalHa : 0;
+    document.getElementById("m-costo-total").textContent = fmtPeso(totalCosto);
+    document.getElementById("m-costo-ha").textContent    = fmtPeso(costoHa);
 
     const now = new Date();
     document.getElementById("hdr-date").textContent = now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
