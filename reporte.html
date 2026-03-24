@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -43,10 +44,12 @@
   <div id="app"><div class="loading">Cargando reporte...</div></div>
 </div>
 <script>
-const API = "https://script.google.com/macros/s/AKfycbwEnVGpUERyMcs-Jo8isAuOJcqAccaPqKaknxapt_Gri68mJz0BAl8U8CVQui23uQaL/exec";
+const API_REGISTRO = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
 
 async function fetchSheet(sheet) {
-  const res = await fetch(API + "?sheet=" + sheet);
+  const url = sheet === "BD_CC" ? API_CC : API_REGISTRO;
+  const res = await fetch(url + "?sheet=" + sheet, { redirect: "follow" });
   if (!res.ok) throw new Error("Error HTTP " + res.status + " al leer " + sheet);
   return res.json();
 }
