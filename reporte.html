@@ -95,6 +95,7 @@ const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMag
 
 // ── LOOKUP MAPS (built once, used everywhere) ──────────────────────────────
 const CC_MAP  = {};  // Id_CC      → NOMBRE CC
+const FUNDO_MAP = {};  // Id_CC → FUNDO
 const LAB_MAP = {};  // Id_Labor   → Nombre Labor
 const ENC_MAP = {};  // id_Encargado → Nombre Encargado
 
@@ -329,6 +330,7 @@ function renderLabores() {
         <div class="card-hd ${isProc?"proc":"pend"}">
           <div>
             <div class="card-hd-name">${ccNombre}</div>
+            <div class="card-hd-sub">${FUNDO_MAP[ccId]||""}</div>
           </div>
           <span class="badge ${isProc?"proc":"pend"}">${isProc?"En proceso":"Pendiente"}</span>
         </div>
@@ -381,9 +383,10 @@ async function main() {
     ccs.forEach(c => {
       const id = String(c["Id_CC"]||"").trim();
       const nombre = String(c["NOMBRE CC"]||"").trim();
-      if (id) CC_MAP[id] = nombre || id;
+      const fundo  = String(c["FUNDO"]||"").trim();
+      if (id) CC_MAP[id]    = nombre || id;
+      if (id) FUNDO_MAP[id] = fundo;
     });
-    console.log("CC_MAP built:", JSON.stringify(CC_MAP));
 
     // ── Build Labor map ───────────────────────────────────────────────────
     labores.forEach(l => {
