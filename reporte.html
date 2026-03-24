@@ -300,9 +300,6 @@ function renderLabores() {
 
     const cards = Object.entries(grupos).map(([ccId, labs]) => {
       const ccNombre = CC_MAP[ccId] || ccId;
-      const ccObj = Object.values(CC_MAP).length > 0
-        ? (Object.entries(CC_MAP).find(([k]) => k === ccId) || [])
-        : [];
       const sorted = [...labs].sort((a,b) => (parseDate(a["Fecha"])||0) - (parseDate(b["Fecha"])||0));
 
       const filas = sorted.map(r => {
@@ -383,8 +380,10 @@ async function main() {
     // ── Build CC map ──────────────────────────────────────────────────────
     ccs.forEach(c => {
       const id = String(c["Id_CC"]||"").trim();
-      if (id) CC_MAP[id] = String(c["NOMBRE CC"]||id).trim();
+      const nombre = String(c["NOMBRE CC"]||"").trim();
+      if (id) CC_MAP[id] = nombre || id;
     });
+    console.log("CC_MAP built:", JSON.stringify(CC_MAP));
 
     // ── Build Labor map ───────────────────────────────────────────────────
     labores.forEach(l => {
