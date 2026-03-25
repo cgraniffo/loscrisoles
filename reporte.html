@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Reporte Diario — Los Crisoles</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
@@ -92,6 +94,12 @@
     .up-table tr:last-child td { border-bottom: none; }
     .up-table tr:hover td { background: #fafaf8; }
     .tipo-pill { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; margin: 2px; }
+    #mapa-campo { height: 420px; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 12px; z-index: 0; }
+    .leaflet-popup-content { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6; min-width: 160px; }
+    .popup-title { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+    .popup-row { display: flex; justify-content: space-between; gap: 12px; }
+    .popup-label { color: #888; }
+    .popup-val { font-weight: bold; }
     .mg-table { width:100%; border-collapse:collapse; font-size:13px; }
     .mg-table th { text-align:left; font-size:11px; color:#888; font-weight:bold; letter-spacing:0.05em; text-transform:uppercase; padding:6px 8px; border-bottom:2px solid #f0ede6; }
     .mg-table td { padding:8px; border-bottom:1px solid #f5f3ef; vertical-align:middle; }
@@ -157,7 +165,7 @@ const API_REGISTRO = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFq
 const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
 const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 
-const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {};
+const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {}, COORD_MAP = {};
 let ACTIVOS = [], TODOS = [], PROYECCIONES = [];
 let state = { estados:[], encargados:[], ups:[], soloVencidas:false };
 let stateCostos = { ccs:[], fundos:[], anios:[], meses:[] };
@@ -357,7 +365,7 @@ function renderMargenes() {
       <div class="stat-title">Margen por hectárea</div>
       ${buildTable(rowsConHa, "ha")}
     </div>
-    <div class="footer">Reporte automático · Los Crisoles · BData</div>`;
+    <div class="footer">Ingresos desde Proyecciones_Manuales · Costos desde BD_Registro · Los Crisoles · BData</div>`;
 }
 
 function toggleIngresosMulti(key, val) {
@@ -539,7 +547,7 @@ function renderIngresos() {
       <div class="stat-title">Evolución mensual de ingresos</div>
       ${mesHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}
     </div>
-    <div class="footer">Reporte automático · Los Crisoles · BData</div>`;
+    <div class="footer">Ingresos desde Proyecciones_Manuales · Los Crisoles · BData</div>`;
 }
 
 function switchTab(tab) {
@@ -717,8 +725,95 @@ function renderLabores() {
 
 function renderPageLabores() {
   document.getElementById("app-labores").innerHTML =
-    renderStats() + renderFilters() + renderLabores() +
+    renderStats() +
+    `<div id="mapa-campo"></div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:#555;">
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#cc2222;margin-right:4px;"></span>Con labores vencidas</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#b45309;margin-right:4px;"></span>Vence hoy</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a3a0a;margin-right:4px;"></span>Al día</span>
+      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#aaa;margin-right:4px;"></span>Sin labores activas</span>
+    </div>` +
+    renderFilters() + renderLabores() +
     `<div class="footer">Reporte automático · Los Crisoles · BData</div>`;
+  initMap();
+}
+
+function initMap() {
+  const el = document.getElementById("mapa-campo");
+  if (!el) return;
+
+  // Destroy previous map instance if exists
+  if (window._mapaLeaflet) {
+    window._mapaLeaflet.remove();
+    window._mapaLeaflet = null;
+  }
+
+  // Gather points with coords
+  const puntos = Object.entries(COORD_MAP).map(([id, coord]) => {
+    const nombre = CC_MAP[id] || id;
+    const fundo  = FUNDO_MAP[id] || "";
+    const ha     = HA_MAP[id] || 0;
+
+    // Count active labors for this CC
+    const laboresCC = ACTIVOS.filter(r => String(r["Centro_Costo"]||"").trim() === id);
+    const vencidas  = laboresCC.filter(r => dateStatus(r["Fecha"]) === "venc").length;
+    const hoy       = laboresCC.filter(r => dateStatus(r["Fecha"]) === "hoy").length;
+    const total     = laboresCC.length;
+
+    // Determine color
+    let color = "#aaa";
+    if (total > 0) {
+      if (vencidas > 0) color = "#cc2222";
+      else if (hoy > 0) color = "#b45309";
+      else color = "#1a3a0a";
+    }
+
+    return { id, nombre, fundo, ha, total, vencidas, hoy, color, lat: coord.lat, lng: coord.lng };
+  });
+
+  if (puntos.length === 0) return;
+
+  // Center map on average coords
+  const avgLat = puntos.reduce((s,p) => s+p.lat, 0) / puntos.length;
+  const avgLng = puntos.reduce((s,p) => s+p.lng, 0) / puntos.length;
+
+  const mapa = L.map("mapa-campo").setView([avgLat, avgLng], 14);
+  window._mapaLeaflet = mapa;
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19
+  }).addTo(mapa);
+
+  puntos.forEach(p => {
+    const marker = L.circleMarker([p.lat, p.lng], {
+      radius: 14,
+      fillColor: p.color,
+      color: "#fff",
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.85
+    }).addTo(mapa);
+
+    const popupHTML = `
+      <div class="popup-title">${p.nombre}</div>
+      <div class="popup-row"><span class="popup-label">Fundo</span><span class="popup-val">${p.fundo||"—"}</span></div>
+      <div class="popup-row"><span class="popup-label">Hectáreas</span><span class="popup-val">${p.ha||"—"}</span></div>
+      <div class="popup-row"><span class="popup-label">Labores activas</span><span class="popup-val">${p.total}</span></div>
+      ${p.vencidas>0?`<div class="popup-row"><span class="popup-label" style="color:#cc2222;">Vencidas</span><span class="popup-val" style="color:#cc2222;">${p.vencidas}</span></div>`:""}
+      ${p.hoy>0?`<div class="popup-row"><span class="popup-label" style="color:#b45309;">Vencen hoy</span><span class="popup-val" style="color:#b45309;">${p.hoy}</span></div>`:""}`;
+
+    marker.bindPopup(popupHTML);
+
+    // Add label
+    const icon = L.divIcon({
+      className: "",
+      html: `<div style="font-size:10px;font-weight:bold;color:#fff;text-align:center;line-height:1.2;margin-top:-6px;text-shadow:0 1px 2px rgba(0,0,0,0.6);">${p.nombre.replace("Pivote","Piv").replace("Potrero","Pot")}</div>`,
+      iconSize: [60, 20],
+      iconAnchor: [30, -8]
+    });
+    L.marker([p.lat, p.lng], { icon, interactive: false }).addTo(mapa);
+  });
 }
 
 // ── RENDER COSTOS ──────────────────────────────────────────────────────────
@@ -871,7 +966,7 @@ function renderCostos() {
       ${mesHTML || "<div style='font-size:12px;color:#aaa;'>Sin datos suficientes</div>"}
     </div>
 
-    <div class="footer">Reporte automático · Los Crisoles · BData</div>`;
+    <div class="footer">Costos basados en campo "Costo Total" · Los Crisoles · BData</div>`;
 }
 
 function toggleMulti(key, val) {
@@ -913,6 +1008,11 @@ async function main() {
         CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
         FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
         HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0) || 0;
+        const coords  = String(c["Coordenadas"]||"").trim();
+        if (coords) {
+          const [lat, lng] = coords.split(",").map(s => parseFloat(s.trim()));
+          if (!isNaN(lat) && !isNaN(lng)) COORD_MAP[id] = { lat, lng };
+        }
       }
     });
     labores.forEach(l => {
