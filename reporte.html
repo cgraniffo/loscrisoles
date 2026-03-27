@@ -996,7 +996,7 @@ function renderCostos() {
     const pctAcum = acumMax > 0 ? Math.round(a/acumMax*100) : 0;
     const label = k.length === 7
       ? new Date(k+"-15").toLocaleDateString("es-CL",{month:"short",year:"numeric"})
-      : k;
+      : k === "Contra Liquidación" ? "Contra Liquidación" : k;
     return `<div class="mes-row">
       <div class="mes-label">${label}</div>
       <div style="flex:1;">
