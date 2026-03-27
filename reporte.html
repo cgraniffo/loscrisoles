@@ -605,13 +605,13 @@ function renderStats() {
   const encMax  = encRows[0]?.[1]||1;
   const encHTML = encRows.slice(0,6).map(([k,v])=>bar(k,v,encMax,"#2d6a1a",null)).join("");
 
-  const upRows = countBy(ACTIVOS, r=>CC_MAP[String(r["Centro_Costo"]||"").trim()]||String(r["Centro_Costo"]||"—").trim());
-  const upMax  = upRows[0]?.[1]||1;
-  const upHTML = upRows.slice(0,6).map(([k,v])=>bar(k,v,upMax,"#0f6e56",null)).join("");
+  const fundoRows = countBy(ACTIVOS, r=>FUNDO_MAP[String(r["Centro_Costo"]||"").trim()]||String(r["Centro_Costo"]||"—").trim());
+  const fundoMax  = fundoRows[0]?.[1]||1;
+  const upHTML = fundoRows.slice(0,8).map(([k,v])=>bar(k,v,fundoMax,"#0f6e56",null)).join("");
 
-  const tipoRows = countBy(ACTIVOS, r=>String(r["Tipo_Labor"]||"—").trim());
-  const tipoMax  = tipoRows[0]?.[1]||1;
-  const tipoHTML = tipoRows.slice(0,6).map(([k,v])=>bar(k,v,tipoMax,"#b45309",null)).join("");
+  const ccRows = countBy(ACTIVOS, r=>CC_MAP[String(r["Centro_Costo"]||"").trim()]||String(r["Centro_Costo"]||"—").trim());
+  const ccMax  = ccRows[0]?.[1]||1;
+  const tipoHTML = ccRows.slice(0,8).map(([k,v])=>bar(k,v,ccMax,"#b45309",null)).join("");
 
   const vencidas  = ACTIVOS.filter(r=>dateStatus(r["Fecha"])==="venc");
   const totalDias = vencidas.reduce((s,r)=>s+diffDays(r["Fecha"]),0);
@@ -629,8 +629,8 @@ function renderStats() {
 
   return `<div class="stats-grid">
     <div class="stat-card"><div class="stat-title">Labores por encargado</div>${encHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}</div>
-    <div class="stat-card"><div class="stat-title">Labores por unidad productiva</div>${upHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}</div>
-    <div class="stat-card"><div class="stat-title">Labores por tipo</div>${tipoHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}</div>
+    <div class="stat-card"><div class="stat-title">Labores por centro de costo</div>${upHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}</div>
+    <div class="stat-card"><div class="stat-title">Labores por unidad productiva</div>${tipoHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}</div>
     <div class="stat-card">
       <div class="stat-title">Días de atraso</div>
       <div class="atraso-big">${promDias}</div>
