@@ -658,10 +658,11 @@ function renderCaja() {
 
   // Resumen cascada
   const neto_venc  = tCobrarV  - tPagarV;
-  const neto_15    = tCobrar15 - tPagar15 + ing15;
+  const neto_15    = tCobrar15 - tPagar15  + ing15;
+  const neto_30    = tCobrar30 - tPagar30  + ing30;
+  const neto_60    = tCobrar60 - tPagar60  + ing60;
+  const neto_m60   = tCobrarM60 - tPagarM60 + ingM60;
   const neto_30    = tCobrar30 - tPagar30;
-  const neto_60    = tCobrar60  - tPagar60;
-  const neto_m60   = tCobrarM60 - tPagarM60;
   const acum_venc  = neto_venc;
   const acum_15    = acum_venc + neto_15;
   const acum_30    = acum_15   + neto_30;
@@ -711,9 +712,9 @@ function renderCaja() {
           <tbody>
             ${cascRow("🔴 Vencido", tCobrarV, tPagarV, 0, acum_venc, true)}
             ${cascRow("📅 0 — 15 días",  tCobrar15,  tPagar15,  ing15, acum_15, false)}
-            ${cascRow("📅 15 — 30 días", tCobrar30,  tPagar30,  0,    acum_30, false)}
-            ${cascRow("📅 30 — 60 días", tCobrar60,  tPagar60,  0,    acum_60, false)}
-            ${cascRow("📅 + 60 días",    tCobrarM60, tPagarM60, 0,    acum_m60, false)}
+            ${cascRow("📅 15 — 30 días", tCobrar30,  tPagar30,  ing30,  acum_30, false)}
+            ${cascRow("📅 30 — 60 días", tCobrar60,  tPagar60,  ing60,  acum_60, false)}
+            ${cascRow("📅 + 60 días",    tCobrarM60, tPagarM60, ingM60, acum_m60, false)}
           </tbody>
         </table>
       </div>
@@ -754,50 +755,47 @@ function renderCaja() {
       ${buildRows(lista, esVenc)}
     </div>`;
 
-  // Producción 15d
-  const prod15Rows = PROYECCIONES.filter(r => {
-    const d = parseDate(r["Fecha_Estimada"]);
-    if (!d) return false; d.setHours(0,0,0,0);
-    return d >= hoy && d <= en15;
-  }).sort((a,b) => (parseDate(a["Fecha_Estimada"])||0) - (parseDate(b["Fecha_Estimada"])||0));
+  // Produccion rows builder
+  const buildProdRows = rows => {
+    if (rows.length === 0) return `<div style="font-size:12px;color:#aaa;padding:10px 14px;">Sin producción estimada</div>`;
+    return rows.sort((a,b) => (parseDate(a["Fecha_Estimada"])||0) - (parseDate(b["Fecha_Estimada"])||0)).map(r => {
+      const d     = parseDate(r["Fecha_Estimada"]);
+      const up    = CC_MAP[String(r["Unidad_Productiva"]||"").trim()] || String(r["Unidad_Productiva"]||"").trim();
+      const fundo = FUNDO_MAP[String(r["Unidad_Productiva"]||"").trim()] || "";
+      const kg    = Number(r["Kilos_Estimados"]||0);
+      const precio = Number(r["Precio_Esperado"]||0);
+      const monto  = Number(r["Monto_Total"]||0);
+      return `<div class="caja-row">
+        <div class="caja-date">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—"}</div>
+        <div class="caja-name"><b>${up}</b> ${fundo?`<span class="caja-folio">${fundo}</span>`:""}<br>
+          <span style="font-size:11px;color:#888;">${kg>0?kg.toLocaleString("es-CL")+" kg":""} ${precio>0?"@ $"+precio.toLocaleString("es-CL"):""}</span>
+        </div>
+        <div class="caja-monto" style="color:#0f6e56;">${fmtPesoFull(monto)}</div>
+      </div>`;
+    }).join("");
+  };
 
-  const prod15HTML = prod15Rows.length === 0
-    ? `<div style="font-size:12px;color:#aaa;padding:10px 14px;">Sin producción estimada</div>`
-    : prod15Rows.map(r => {
-        const d     = parseDate(r["Fecha_Estimada"]);
-        const up    = CC_MAP[String(r["Unidad_Productiva"]||"").trim()] || String(r["Unidad_Productiva"]||"").trim();
-        const fundo = FUNDO_MAP[String(r["Unidad_Productiva"]||"").trim()] || "";
-        const kg    = Number(r["Kilos_Estimados"]||0);
-        const precio = Number(r["Precio_Esperado"]||0);
-        const monto  = Number(r["Monto_Total"]||0);
-        return `<div class="caja-row">
-          <div class="caja-date">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—"}</div>
-          <div class="caja-name"><b>${up}</b> ${fundo?`<span class="caja-folio">${fundo}</span>`:""}<br>
-            <span style="font-size:11px;color:#888;">${kg.toLocaleString("es-CL")} kg @ $${precio.toLocaleString("es-CL")}</span>
-          </div>
-          <div class="caja-monto" style="color:#0f6e56;">${fmtPesoFull(monto)}</div>
-        </div>`;
-      }).join("");
+  const prod15HTML  = buildProdRows(ing15Rows);
+  const prod30HTML  = buildProdRows(ing30Rows);
+  const prod60HTML  = buildProdRows(ing60Rows);
+  const prodM60HTML = buildProdRows(ingM60Rows);
 
   document.getElementById("app-caja").innerHTML =
     cascHTML + chartHTML +
-    `<div class="caja-section">
-      <div class="caja-section-head">
-        <div class="caja-section-title">🚜 Producción estimada — próximos 15 días</div>
-        <div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ing15)}</div>
-      </div>
-      ${prod15HTML}
-    </div>` +
     seccion("🔴 Por cobrar — vencidos",      cobrarVenc,  tCobrarV,   "#1a3a0a", true)  +
     seccion("🔴 Por pagar — vencidos",       pagarVenc,   tPagarV,    "#cc2222", true)  +
     seccion("⬇️ Por cobrar — 0 a 15 días",   cobrar15,    tCobrar15,  "#1a3a0a", false) +
     seccion("⬆️ Por pagar — 0 a 15 días",    pagar15,     tPagar15,   "#cc2222", false) +
+    `<div class="caja-section"><div class="caja-section-head"><div class="caja-section-title">🚜 Producción estimada 0-15 días</div><div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ing15)}</div></div>${prod15HTML}</div>` +
     seccion("⬇️ Por cobrar — 15 a 30 días",  cobrar30,    tCobrar30,  "#1a3a0a", false) +
     seccion("⬆️ Por pagar — 15 a 30 días",   pagar30,     tPagar30,   "#cc2222", false) +
+    `<div class="caja-section"><div class="caja-section-head"><div class="caja-section-title">🚜 Producción estimada 15-30 días</div><div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ing30)}</div></div>${prod30HTML}</div>` +
     seccion("⬇️ Por cobrar — 30 a 60 días",  cobrar60,    tCobrar60,  "#1a3a0a", false) +
     seccion("⬆️ Por pagar — 30 a 60 días",   pagar60,     tPagar60,   "#cc2222", false) +
+    `<div class="caja-section"><div class="caja-section-head"><div class="caja-section-title">🚜 Producción estimada 30-60 días</div><div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ing60)}</div></div>${prod60HTML}</div>` +
     seccion("⬇️ Por cobrar — más de 60 días", cobrarMas60, tCobrarM60, "#1a3a0a", false) +
     seccion("⬆️ Por pagar — más de 60 días",  pagarMas60,  tPagarM60,  "#cc2222", false) +
+    `<div class="caja-section"><div class="caja-section-head"><div class="caja-section-title">🚜 Producción estimada +60 días</div><div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ingM60)}</div></div>${prodM60HTML}</div>` +
     `<div class="footer">Caja calculada en tiempo real · Los Crisoles · BData</div>`;
 
   // Draw chart after DOM update
