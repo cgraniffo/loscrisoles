@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Producción e Insumos — Los Crisoles</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
+    .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 0; }
+    .hdr-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+    .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
+    .hdr-title { font-size: 20px; font-weight: bold; color: #fff; }
+    .hdr-date { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
+    .metrics-top { display: grid; gap: 10px; margin-bottom: 0; }
+    .m { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; }
+    .m-val { font-size: 22px; font-weight: bold; color: #fff; line-height: 1; }
+    .m-val.green { color: #86efac; } .m-val.amber { color: #fcd34d; } .m-val.red { color: #fca5a5; }
+    .m-label { font-size: 11px; color: #9fe1cb; margin-top: 4px; }
+    .tabs { display: flex; gap: 0; margin-top: 16px; }
+    .tab { padding: 10px 22px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 8px 8px 0 0; color: #9fe1cb; background: rgba(255,255,255,0.08); margin-right: 4px; }
+    .tab.on { background: #f0ede6; color: #1a3a0a; }
+    .body { padding: 16px; max-width: 960px; margin: 0 auto; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .stat-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 14px 16px; }
+    .stat-title { font-size: 11px; font-weight: bold; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
+    .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .bar-row:last-child { margin-bottom: 0; }
+    .bar-label { font-size: 12px; color: #444; width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-wrap { flex: 1; background: #f0ede6; border-radius: 4px; height: 8px; }
+    .bar-fill { height: 8px; border-radius: 4px; }
+    .bar-num { font-size: 11px; font-weight: bold; color: #444; width: 80px; text-align: right; flex-shrink: 0; }
+    .filters-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; margin-bottom: 14px; }
+    .filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+    .filters-row:last-child { margin-bottom: 0; }
+    .filter-label { font-size: 11px; color: #888; width: 90px; flex-shrink: 0; }
+    .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
+    .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
+    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .tbl th { text-align: left; font-size: 11px; color: #888; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; padding: 6px 10px; border-bottom: 2px solid #f0ede6; }
+    .tbl td { padding: 8px 10px; border-bottom: 1px solid #f5f3ef; vertical-align: top; }
+    .tbl tr:last-child td { border-bottom: none; }
+    .tbl tr:hover td { background: #fafaf8; }
+    .mes-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f3ef; }
+    .mes-row:last-child { border-bottom: none; }
+    .mes-label { font-size: 12px; color: #1a1a1a; width: 100px; flex-shrink: 0; }
+    .mes-bar-wrap { flex: 1; background: #f0ede6; border-radius: 4px; height: 9px; }
+    .mes-bar-fill { height: 9px; border-radius: 4px; }
+    .mes-val { font-size: 12px; font-weight: bold; width: 90px; text-align: right; flex-shrink: 0; }
+    .badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+    .badge-prod { background: #eaf3de; color: #3b6d11; }
+    .badge-comp { background: #faece7; color: #993c1d; }
+    .loading { text-align: center; color: #666; font-size: 14px; padding: 60px 20px; }
+    .err { background: #fff8f8; border: 1px solid #fca5a5; border-radius: 10px; padding: 16px; color: #991b1b; font-size: 13px; line-height: 1.6; }
+    .footer { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 16px; margin-top: 16px; font-size: 12px; color: #888; text-align: center; }
+    .empty { text-align: center; color: #aaa; font-size: 14px; padding: 30px; }
+  </style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-top">
+    <div>
+      <div class="hdr-logo">Los Crisoles · BData</div>
+      <div class="hdr-title">Producción e Insumos</div>
+      <div class="hdr-date" id="hdr-date">—</div>
+    </div>
+    <div style="font-size:11px;color:#9fe1cb;text-align:right;" id="hdr-refresh"></div>
+  </div>
+  <div class="metrics-top" id="metrics-prod" style="grid-template-columns:repeat(4,1fr);">
+    <div class="m"><div class="m-val green" id="m-guias-prod">—</div><div class="m-label">Guías emitidas</div></div>
+    <div class="m"><div class="m-val green" id="m-monto-prod">—</div><div class="m-label">Monto producción</div></div>
+    <div class="m"><div class="m-val amber" id="m-guias-comp">—</div><div class="m-label">Guías recibidas</div></div>
+    <div class="m"><div class="m-val amber" id="m-monto-comp">—</div><div class="m-label">Monto insumos</div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab on" id="tab-prod" onclick="switchTab('prod')">🌱 Producción</div>
+    <div class="tab" id="tab-insumos" onclick="switchTab('insumos')">📦 Insumos</div>
+  </div>
+</div>
+
+<div class="body">
+  <div id="app-prod"><div class="loading">Cargando datos...</div></div>
+  <div id="app-insumos" style="display:none;"><div class="loading">Cargando datos...</div></div>
+</div>
+
+<script>
+const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
+const RUT_LC  = "76099766-8";
+const MESES   = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
+
+let GUIAS = [], DETALLES = [];
+let stateP = { fundos:[], anios:[], meses:[] };
+let stateI = { provs:[], anios:[], meses:[] };
+let currentTab = "prod";
+
+async function fetchSheet(sheet) {
+  const res = await fetch(API_FIN + "?sheet=" + sheet, { redirect:"follow" });
+  if (!res.ok) throw new Error("HTTP " + res.status + " — " + sheet);
+  return res.json();
+}
+
+function parseDate(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  try {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
+    if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(s)) { const sep=s.includes("-")?"-":"/"; const [d,m,y]=s.split(sep); return new Date(+y,+m-1,+d); }
+  } catch(e) {}
+  return null;
+}
+
+function fmtMes(d) {
+  if (!d) return "—";
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  return (MESES[m]||m) + " " + d.getFullYear();
+}
+
+function mesKey(d) {
+  if (!d) return null;
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
+}
+
+function fmtPeso(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
+function fmtPesoFull(n) { return "$" + Math.round(n).toLocaleString("es-CL"); }
+
+function switchTab(tab) {
+  currentTab = tab;
+  ["prod","insumos"].forEach(t => {
+    document.getElementById("tab-"+t).className   = "tab" + (tab===t?" on":"");
+    document.getElementById("app-"+t).style.display = tab===t ? "" : "none";
+  });
+}
+
+function toggleMultiP(key, val) {
+  const arr = stateP[key], idx = arr.indexOf(val);
+  if (idx===-1) arr.push(val); else arr.splice(idx,1);
+  renderProd();
+}
+
+function toggleMultiI(key, val) {
+  const arr = stateI[key], idx = arr.indexOf(val);
+  if (idx===-1) arr.push(val); else arr.splice(idx,1);
+  renderInsumos();
+}
+
+function barRow(label, val, max, color) {
+  const pct = max>0 ? Math.round(val/max*100) : 0;
+  return `<div class="bar-row">
+    <div class="bar-label" title="${label}">${label}</div>
+    <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>
+    <div class="bar-num">${fmtPeso(val)}</div>
+  </div>`;
+}
+
+function mesChart(data, color) {
+  if (data.length===0) return `<div class="empty">Sin datos</div>`;
+  const max = Math.max(...data.map(([,v])=>v),1);
+  let acum=0;
+  return data.map(([k,v]) => {
+    acum+=v;
+    const pct = Math.round(v/max*100);
+    const pctA = Math.round(acum/data.reduce((s,[,v2])=>s+v2,0)*100);
+    const label = k.length===7 ? fmtMes(new Date(k+"-15")) : k;
+    return `<div class="mes-row">
+      <div class="mes-label">${label}</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Mensual</div>
+          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pct}%;background:${color};"></div></div>
+          <div class="mes-val" style="color:${color};">${fmtPeso(v)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Acumulado</div>
+          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:${color}55;"></div></div>
+          <div class="mes-val" style="color:${color}88;">${fmtPeso(acum)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── PRODUCCION ─────────────────────────────────────────────────────────────
+function renderProd() {
+  const prod = GUIAS.filter(r => String(r["RUT Emisor"]||"").trim() === RUT_LC);
+
+  // Filter options
+  const fundoOpts = [...new Set(prod.map(r => String(r["Fundo"]||"").trim()).filter(f => f && f !== "FUNDO_NO_ENCONTRADO"))].sort();
+  const anioOpts  = [...new Set(prod.map(r => { const d=parseDate(r["Fecha Emisión"]); return d?String(d.getFullYear()):null; }).filter(Boolean))].sort();
+  const mesOpts   = [...new Set(prod.map(r => { const d=parseDate(r["Fecha Emisión"]); return d?String(d.getMonth()+1).padStart(2,"0"):null; }).filter(Boolean))].sort();
+
+  // Apply filters
+  const filtradas = prod.filter(r => {
+    const fundo = String(r["Fundo"]||"").trim();
+    const d     = parseDate(r["Fecha Emisión"]);
+    const anio  = d ? String(d.getFullYear()) : "";
+    const mes   = d ? String(d.getMonth()+1).padStart(2,"0") : "";
+    if (stateP.fundos.length>0 && !stateP.fundos.includes(fundo)) return false;
+    if (stateP.anios.length>0  && !stateP.anios.includes(anio))   return false;
+    if (stateP.meses.length>0  && !stateP.meses.includes(mes))    return false;
+    return true;
+  });
+
+  const totalMonto = filtradas.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+
+  // Por fundo
+  const porFundo = {};
+  filtradas.forEach(r => {
+    const f = String(r["Fundo"]||"Sin asignar").trim().replace("FUNDO_NO_ENCONTRADO","Sin asignar");
+    porFundo[f] = (porFundo[f]||0) + Number(r["Monto Total"]||0);
+  });
+  const fundoRows = Object.entries(porFundo).sort((a,b)=>b[1]-a[1]);
+  const fundoMax  = fundoRows[0]?.[1]||1;
+
+  // Por cliente (receptor)
+  const porCliente = {};
+  filtradas.forEach(r => {
+    const c = String(r["RznSocRecep"]||r["Razón Social"]||"—").trim();
+    porCliente[c] = (porCliente[c]||0) + Number(r["Monto Total"]||0);
+  });
+  const clienteRows = Object.entries(porCliente).sort((a,b)=>b[1]-a[1]);
+  const clienteMax  = clienteRows[0]?.[1]||1;
+
+  // Por mes
+  const porMes = {};
+  filtradas.forEach(r => {
+    const d = parseDate(r["Fecha Emisión"]);
+    const k = d ? mesKey(d) : "Sin fecha";
+    porMes[k] = (porMes[k]||0) + Number(r["Monto Total"]||0);
+  });
+  const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
+
+  // Detalle guías
+  const detalleHTML = filtradas.length === 0 ? `<div class="empty">Sin guías con los filtros seleccionados</div>` :
+    `<div style="overflow-x:auto;"><table class="tbl">
+      <thead><tr>
+        <th>Fecha</th><th>Folio</th><th>Cliente</th><th>Fundo</th>
+        <th style="text-align:right;">Monto</th>
+      </tr></thead>
+      <tbody>
+      ${filtradas.sort((a,b)=>(parseDate(b["Fecha Emisión"])||0)-(parseDate(a["Fecha Emisión"])||0)).map(r=>{
+        const d = parseDate(r["Fecha Emisión"]);
+        const fundo = String(r["Fundo"]||"").trim().replace("FUNDO_NO_ENCONTRADO","—");
+        return `<tr>
+          <td style="color:#888;font-size:12px;">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}):"—"}</td>
+          <td style="font-size:12px;">F:${r["Folio"]||"—"}</td>
+          <td><div style="font-size:13px;">${String(r["RznSocRecep"]||"—").trim()}</div></td>
+          <td style="font-size:12px;color:#888;">${fundo}</td>
+          <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(Number(r["Monto Total"]||0))}</td>
+        </tr>`;
+      }).join("")}
+      <tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
+        <td colspan="4">Total</td>
+        <td style="text-align:right;color:#1a3a0a;">${fmtPeso(totalMonto)}</td>
+      </tr>
+      </tbody>
+    </table></div>`;
+
+  const fundoBtns   = fundoOpts.map(f=>`<button class="fbtn${stateP.fundos.includes(f)?" on":""}" onclick="toggleMultiP('fundos','${f}')">${f}</button>`).join("");
+  const anioBtns    = anioOpts.map(a=>`<button class="fbtn${stateP.anios.includes(a)?" on":""}" onclick="toggleMultiP('anios','${a}')">${a}</button>`).join("");
+  const mesBtns     = mesOpts.map(m=>`<button class="fbtn${stateP.meses.includes(m)?" on":""}" onclick="toggleMultiP('meses','${m}')">${MESES[m]||m}</button>`).join("");
+
+  document.getElementById("app-prod").innerHTML = `
+    <div class="filters-wrap" style="margin-bottom:14px;">
+      <div class="filters-row"><div class="filter-label">Centro Costo</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${fundoBtns}</div>
+      <div class="filters-row"><div class="filter-label">Año</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${anioBtns}</div>
+      <div class="filters-row"><div class="filter-label">Mes</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${mesBtns}</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-title">Monto por centro de costo</div>
+        ${fundoRows.slice(0,8).map(([k,v])=>barRow(k,v,fundoMax,"#1a3a0a")).join("")||`<div class="empty">Sin datos</div>`}
+      </div>
+      <div class="stat-card"><div class="stat-title">Monto por cliente</div>
+        ${clienteRows.slice(0,8).map(([k,v])=>barRow(k,v,clienteMax,"#0f6e56")).join("")||`<div class="empty">Sin datos</div>`}
+      </div>
+    </div>
+    <div class="stat-card" style="margin-bottom:14px;"><div class="stat-title">Evolución mensual</div>${mesChart(mesRows,"#1a3a0a")}</div>
+    <div class="stat-card"><div class="stat-title">Detalle guías emitidas — ${filtradas.length} guías · ${fmtPeso(totalMonto)}</div>${detalleHTML}</div>
+    <div class="footer">Guías de despacho emitidas · Los Crisoles · BData</div>`;
+}
+
+// ── INSUMOS ────────────────────────────────────────────────────────────────
+function renderInsumos() {
+  const comp = GUIAS.filter(r => String(r["RUT Emisor"]||"").trim() !== RUT_LC);
+
+  const provOpts = [...new Set(comp.map(r=>String(r["Razón Social"]||"").trim()).filter(Boolean))].sort();
+  const anioOpts = [...new Set(comp.map(r=>{const d=parseDate(r["Fecha Emisión"]);return d?String(d.getFullYear()):null;}).filter(Boolean))].sort();
+  const mesOpts  = [...new Set(comp.map(r=>{const d=parseDate(r["Fecha Emisión"]);return d?String(d.getMonth()+1).padStart(2,"0"):null;}).filter(Boolean))].sort();
+
+  const filtradas = comp.filter(r => {
+    const prov = String(r["Razón Social"]||"").trim();
+    const d    = parseDate(r["Fecha Emisión"]);
+    const anio = d ? String(d.getFullYear()) : "";
+    const mes  = d ? String(d.getMonth()+1).padStart(2,"0") : "";
+    if (stateI.provs.length>0 && !stateI.provs.includes(prov)) return false;
+    if (stateI.anios.length>0 && !stateI.anios.includes(anio)) return false;
+    if (stateI.meses.length>0 && !stateI.meses.includes(mes))  return false;
+    return true;
+  });
+
+  const totalMonto = filtradas.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+
+  // Por proveedor
+  const porProv = {};
+  filtradas.forEach(r => {
+    const p = String(r["Razón Social"]||"—").trim();
+    porProv[p] = (porProv[p]||0) + Number(r["Monto Total"]||0);
+  });
+  const provRows = Object.entries(porProv).sort((a,b)=>b[1]-a[1]);
+  const provMax  = provRows[0]?.[1]||1;
+
+  // Top productos desde DetallesGuias
+  const keysGuias = new Set(filtradas.map(r=>r["KEY"]));
+  const detsFiltrados = DETALLES.filter(r => keysGuias.has(r["ID_Guia_Padre"]?.split("-").slice(1).join("-")||r["ID_Guia_Padre"]));
+  const porProducto = {};
+  detsFiltrados.forEach(r => {
+    const p = String(r["Nombre Item"]||"—").trim();
+    porProducto[p] = (porProducto[p]||0) + Number(r["Monto Item"]||0);
+  });
+  const prodRows = Object.entries(porProducto).sort((a,b)=>b[1]-a[1]);
+  const prodMax  = prodRows[0]?.[1]||1;
+
+  // Por mes
+  const porMes = {};
+  filtradas.forEach(r => {
+    const d = parseDate(r["Fecha Emisión"]);
+    const k = d ? mesKey(d) : "Sin fecha";
+    porMes[k] = (porMes[k]||0) + Number(r["Monto Total"]||0);
+  });
+  const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
+
+  const detalleHTML = filtradas.length===0 ? `<div class="empty">Sin guías con los filtros seleccionados</div>` :
+    `<div style="overflow-x:auto;"><table class="tbl">
+      <thead><tr><th>Fecha</th><th>Folio</th><th>Proveedor</th><th style="text-align:right;">Monto</th></tr></thead>
+      <tbody>
+      ${filtradas.sort((a,b)=>(parseDate(b["Fecha Emisión"])||0)-(parseDate(a["Fecha Emisión"])||0)).map(r=>{
+        const d=parseDate(r["Fecha Emisión"]);
+        return `<tr>
+          <td style="color:#888;font-size:12px;">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}):"—"}</td>
+          <td style="font-size:12px;">F:${r["Folio"]||"—"}</td>
+          <td style="font-size:13px;">${String(r["Razón Social"]||"—").trim()}</td>
+          <td style="text-align:right;font-weight:bold;color:#b45309;">${fmtPeso(Number(r["Monto Total"]||0))}</td>
+        </tr>`;
+      }).join("")}
+      <tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
+        <td colspan="3">Total</td>
+        <td style="text-align:right;color:#b45309;">${fmtPeso(totalMonto)}</td>
+      </tr>
+      </tbody>
+    </table></div>`;
+
+  const provBtns = provOpts.map(p=>`<button class="fbtn${stateI.provs.includes(p)?" on":""}" onclick="toggleMultiI('provs','${p.replace(/'/g,"\\'")}')">
+    ${p.length>20?p.slice(0,20)+"…":p}</button>`).join("");
+  const anioBtns = anioOpts.map(a=>`<button class="fbtn${stateI.anios.includes(a)?" on":""}" onclick="toggleMultiI('anios','${a}')">${a}</button>`).join("");
+  const mesBtns  = mesOpts.map(m=>`<button class="fbtn${stateI.meses.includes(m)?" on":""}" onclick="toggleMultiI('meses','${m}')">${MESES[m]||m}</button>`).join("");
+
+  document.getElementById("app-insumos").innerHTML = `
+    <div class="filters-wrap" style="margin-bottom:14px;">
+      <div class="filters-row"><div class="filter-label">Proveedor</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${provBtns}</div>
+      <div class="filters-row"><div class="filter-label">Año</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${anioBtns}</div>
+      <div class="filters-row"><div class="filter-label">Mes</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${mesBtns}</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-title">Gasto por proveedor</div>
+        ${provRows.slice(0,8).map(([k,v])=>barRow(k,v,provMax,"#b45309")).join("")||`<div class="empty">Sin datos</div>`}
+      </div>
+      <div class="stat-card"><div class="stat-title">Top productos / insumos</div>
+        ${prodRows.slice(0,8).map(([k,v])=>barRow(k,v,prodMax,"#854F0B")).join("")||`<div class="empty">Sin datos de detalle</div>`}
+      </div>
+    </div>
+    <div class="stat-card" style="margin-bottom:14px;"><div class="stat-title">Evolución mensual</div>${mesChart(mesRows,"#b45309")}</div>
+    <div class="stat-card"><div class="stat-title">Detalle guías recibidas — ${filtradas.length} guías · ${fmtPeso(totalMonto)}</div>${detalleHTML}</div>
+    <div class="footer">Guías de despacho recibidas · Los Crisoles · BData</div>`;
+}
+
+async function main() {
+  try {
+    const [guias, detalles] = await Promise.all([
+      fetchSheet("GuiasDespacho"),
+      fetchSheet("DetallesGuias")
+    ]);
+
+    GUIAS    = guias;
+    DETALLES = detalles;
+
+    const prod = guias.filter(r => String(r["RUT Emisor"]||"").trim() === RUT_LC);
+    const comp = guias.filter(r => String(r["RUT Emisor"]||"").trim() !== RUT_LC);
+
+    const sumMonto = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+
+    document.getElementById("m-guias-prod").textContent  = prod.length;
+    document.getElementById("m-monto-prod").textContent  = fmtPeso(sumMonto(prod));
+    document.getElementById("m-guias-comp").textContent  = comp.length;
+    document.getElementById("m-monto-comp").textContent  = fmtPeso(sumMonto(comp));
+
+    const now = new Date();
+    document.getElementById("hdr-date").textContent = now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+    document.getElementById("hdr-refresh").innerHTML = `Actualizado<br>${now.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}`;
+
+    renderProd();
+    renderInsumos();
+
+  } catch(e) {
+    document.getElementById("app-prod").innerHTML = `<div class="err"><strong>No se pudieron cargar los datos</strong><br><br>${e.message}</div>`;
+  }
+}
+
+main();
+</script>
+</body>
+</html>
