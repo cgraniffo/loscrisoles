@@ -1701,8 +1701,7 @@ async function chatSend() {
     if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
 
     document.getElementById(loadId).className = "chat-msg ai";
-    document.getElementById(loadId).innerHTML = respuesta.replace(/
-/g,"<br>");
+    document.getElementById(loadId).innerHTML = respuesta.replace(/\n/g,"<br>");
 
   } catch(e) {
     document.getElementById(loadId).innerHTML = "Error al conectar con la IA. Verificá tu conexión.";
