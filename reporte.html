@@ -217,7 +217,8 @@ const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVM
 const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {}, COORD_MAP = {};
-let ACTIVOS = [], TODOS = [], PROYECCIONES = [], DOCUMENTOS = [];
+window.ACTIVOS = []; window.TODOS = []; window.PROYECCIONES = []; window.DOCUMENTOS = [];
+var ACTIVOS = window.ACTIVOS, TODOS = window.TODOS, PROYECCIONES = window.PROYECCIONES, DOCUMENTOS = window.DOCUMENTOS;
 let state = { estados:[], encargados:[], ups:[], fundos:[], soloVencidas:false };
 let stateCostos = { ccs:[], fundos:[], anios:[], meses:[] };
 let stateMargenes = { ups:[], fundos:[] };
@@ -1486,10 +1487,10 @@ async function main() {
       if (id) ENC_MAP[id] = String(e["Nombre Encargado"]||id).trim();
     });
 
-    TODOS   = registros;
-    PROYECCIONES = proyecciones;
-    DOCUMENTOS   = documentos;
-    ACTIVOS = registros.filter(r => {
+    TODOS = window.TODOS = registros;
+    PROYECCIONES = window.PROYECCIONES = proyecciones;
+    DOCUMENTOS = window.DOCUMENTOS = documentos;
+    ACTIVOS = window.ACTIVOS = registros.filter(r => {
       const est = String(r["Estado Operativo"]||"").trim();
       return est==="En Proceso" || est==="Pendiente";
     });
@@ -1587,7 +1588,7 @@ function buildContexto() {
   };
 
   // ── LABORES ──────────────────────────────────────────────────────────────
-  var activos = window.ACTIVOS || [];
+  var activos = ACTIVOS || [];
   var laborResumen = function(r) {
     return "[" + String(r["Estado Operativo"]||"").trim() + "] " +
       resolveLab(r["Labor"]) + " | UP: " + resolveCC(r["Centro_Costo"]) +
@@ -1601,7 +1602,7 @@ function buildContexto() {
   var proximas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>hoy; });
 
   // ── COSTOS ───────────────────────────────────────────────────────────────
-  var todos = window.TODOS || [];
+  var todos = TODOS || [];
   var costoTotal = todos.reduce(function(s,r){ return s+Number(r["Costo Total"]||0); },0);
   var costoPorCC = {};
   var costoPorEnc = {};
@@ -1629,7 +1630,7 @@ function buildContexto() {
     }).join("\n");
 
   // ── CAJA ─────────────────────────────────────────────────────────────────
-  var docs = window.DOCUMENTOS || [];
+  var docs = DOCUMENTOS || [];
   var isPend = function(r){ return !["pagado","anulado"].includes(String(r["EstadoPago"]||"").trim().toLowerCase()); };
   var cobrar = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r); });
   var pagar  = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r); });
@@ -1649,7 +1650,7 @@ function buildContexto() {
   var cobrarDetalle = cobrar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,20).map(docLine).join("\n");
 
   // ── INGRESOS / PROYECCIONES ───────────────────────────────────────────────
-  var proy = window.PROYECCIONES || [];
+  var proy = PROYECCIONES || [];
   var ingTotal = proy.reduce(function(s,r){ return s+Number(r["Monto_Total"]||0); },0);
   var proyDetalle = proy.map(function(r){
     var up = resolveCC(r["Unidad_Productiva"]);
