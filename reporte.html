@@ -170,10 +170,10 @@
   </div>
   <div class="tabs">
     <div class="tab on" id="tab-labores" onclick="switchTab('labores')">📋 Labores</div>
+    <div class="tab" id="tab-caja" onclick="switchTab('caja')">🏦 Caja</div>
     <div class="tab" id="tab-costos" onclick="switchTab('costos')">💰 Costos</div>
     <div class="tab" id="tab-ingresos" onclick="switchTab('ingresos')">🌾 Ingresos</div>
     <div class="tab" id="tab-margenes" onclick="switchTab('margenes')">📊 Márgenes</div>
-    <div class="tab" id="tab-caja" onclick="switchTab('caja')">🏦 Caja</div>
   </div>
 </div>
 
@@ -634,6 +634,8 @@ function renderCaja() {
   const pagar30    = bucket(porPagar,  new Date(en15.getTime()+86400000), en30);
   const cobrar60   = bucket(porCobrar, new Date(en30.getTime()+86400000), en60);
   const pagar60    = bucket(porPagar,  new Date(en30.getTime()+86400000), en60);
+  const cobrarMas60 = porCobrar.filter(r => { const d=getFecha(r); if(!d) return false; d.setHours(0,0,0,0); return d > en60; });
+  const pagarMas60  = porPagar.filter(r  => { const d=getFecha(r); if(!d) return false; d.setHours(0,0,0,0); return d > en60; });
 
   const sum = arr => arr.reduce((s,r) => s + getMonto(r), 0);
 
@@ -643,8 +645,10 @@ function renderCaja() {
   const tPagar15  = sum(pagar15);
   const tCobrar30 = sum(cobrar30);
   const tPagar30  = sum(pagar30);
-  const tCobrar60 = sum(cobrar60);
-  const tPagar60  = sum(pagar60);
+  const tCobrar60   = sum(cobrar60);
+  const tPagar60    = sum(pagar60);
+  const tCobrarM60  = sum(cobrarMas60);
+  const tPagarM60   = sum(pagarMas60);
 
   const ing15 = PROYECCIONES.filter(r => {
     const d = parseDate(r["Fecha_Estimada"]);
@@ -656,11 +660,13 @@ function renderCaja() {
   const neto_venc  = tCobrarV  - tPagarV;
   const neto_15    = tCobrar15 - tPagar15 + ing15;
   const neto_30    = tCobrar30 - tPagar30;
-  const neto_60    = tCobrar60 - tPagar60;
+  const neto_60    = tCobrar60  - tPagar60;
+  const neto_m60   = tCobrarM60 - tPagarM60;
   const acum_venc  = neto_venc;
   const acum_15    = acum_venc + neto_15;
-  const acum_30    = acum_15  + neto_30;
-  const acum_60    = acum_30  + neto_60;
+  const acum_30    = acum_15   + neto_30;
+  const acum_60    = acum_30   + neto_60;
+  const acum_m60   = acum_60   + neto_m60;
 
   // Update header metrics
   document.getElementById("m-caja-saldo").textContent   = fmtPeso(acum_15);
@@ -704,9 +710,10 @@ function renderCaja() {
           </thead>
           <tbody>
             ${cascRow("🔴 Vencido", tCobrarV, tPagarV, 0, acum_venc, true)}
-            ${cascRow("📅 0 — 15 días", tCobrar15, tPagar15, ing15, acum_15, false)}
-            ${cascRow("📅 15 — 30 días", tCobrar30, tPagar30, 0, acum_30, false)}
-            ${cascRow("📅 30 — 60 días", tCobrar60, tPagar60, 0, acum_60, false)}
+            ${cascRow("📅 0 — 15 días",  tCobrar15,  tPagar15,  ing15, acum_15, false)}
+            ${cascRow("📅 15 — 30 días", tCobrar30,  tPagar30,  0,    acum_30, false)}
+            ${cascRow("📅 30 — 60 días", tCobrar60,  tPagar60,  0,    acum_60, false)}
+            ${cascRow("📅 + 60 días",    tCobrarM60, tPagarM60, 0,    acum_m60, false)}
           </tbody>
         </table>
       </div>
@@ -774,30 +781,32 @@ function renderCaja() {
 
   document.getElementById("app-caja").innerHTML =
     cascHTML + chartHTML +
-    seccion("🔴 Por cobrar — vencidos", cobrarVenc, tCobrarV, "#1a3a0a", true) +
-    seccion("🔴 Por pagar — vencidos",  pagarVenc,  tPagarV,  "#cc2222", true) +
-    seccion("⬇️ Por cobrar — 0 a 15 días", cobrar15, tCobrar15, "#1a3a0a", false) +
-    seccion("⬆️ Por pagar — 0 a 15 días",  pagar15,  tPagar15,  "#cc2222", false) +
-    seccion("⬇️ Por cobrar — 15 a 30 días", cobrar30, tCobrar30, "#1a3a0a", false) +
-    seccion("⬆️ Por pagar — 15 a 30 días",  pagar30,  tPagar30,  "#cc2222", false) +
-    seccion("⬇️ Por cobrar — 30 a 60 días", cobrar60, tCobrar60, "#1a3a0a", false) +
-    seccion("⬆️ Por pagar — 30 a 60 días",  pagar60,  tPagar60,  "#cc2222", false) +
     `<div class="caja-section">
       <div class="caja-section-head">
         <div class="caja-section-title">🚜 Producción estimada — próximos 15 días</div>
         <div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ing15)}</div>
       </div>
       ${prod15HTML}
-    </div>
-    <div class="footer">Caja calculada en tiempo real · Los Crisoles · BData</div>`;
+    </div>` +
+    seccion("🔴 Por cobrar — vencidos",      cobrarVenc,  tCobrarV,   "#1a3a0a", true)  +
+    seccion("🔴 Por pagar — vencidos",       pagarVenc,   tPagarV,    "#cc2222", true)  +
+    seccion("⬇️ Por cobrar — 0 a 15 días",   cobrar15,    tCobrar15,  "#1a3a0a", false) +
+    seccion("⬆️ Por pagar — 0 a 15 días",    pagar15,     tPagar15,   "#cc2222", false) +
+    seccion("⬇️ Por cobrar — 15 a 30 días",  cobrar30,    tCobrar30,  "#1a3a0a", false) +
+    seccion("⬆️ Por pagar — 15 a 30 días",   pagar30,     tPagar30,   "#cc2222", false) +
+    seccion("⬇️ Por cobrar — 30 a 60 días",  cobrar60,    tCobrar60,  "#1a3a0a", false) +
+    seccion("⬆️ Por pagar — 30 a 60 días",   pagar60,     tPagar60,   "#cc2222", false) +
+    seccion("⬇️ Por cobrar — más de 60 días", cobrarMas60, tCobrarM60, "#1a3a0a", false) +
+    seccion("⬆️ Por pagar — más de 60 días",  pagarMas60,  tPagarM60,  "#cc2222", false) +
+    `<div class="footer">Caja calculada en tiempo real · Los Crisoles · BData</div>`;
 
   // Draw chart after DOM update
   setTimeout(() => {
     const canvas = document.getElementById("caja-chart");
     if (!canvas || !window.Chart) return;
     if (canvas._chart) canvas._chart.destroy();
-    const labels = ["Vencido", "0-15d", "15-30d", "30-60d"];
-    const acums  = [acum_venc, acum_15, acum_30, acum_60];
+    const labels = ["Vencido", "0-15d", "15-30d", "30-60d", "+60d"];
+    const acums  = [acum_venc, acum_15, acum_30, acum_60, acum_m60];
     const colors = acums.map(v => v >= 0 ? "#1a3a0a" : "#cc2222");
     canvas._chart = new Chart(canvas, {
       type: "bar",
