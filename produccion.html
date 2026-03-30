@@ -92,6 +92,7 @@
 
 <script>
 const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
 const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
 const RUT_LC  = "76099766-8";
 const MESES   = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
@@ -483,14 +484,15 @@ function renderInsumos() {
 // ── MAIN ───────────────────────────────────────────────────────────────────
 async function main() {
   try {
-    const [guias, detalles, ccs] = await Promise.all([
+    const [guias, detalles, ccsRaw] = await Promise.all([
       fetchSheet(API_FIN, "GuiasDespacho"),
       fetchSheet(API_FIN, "DetallesGuias"),
-      fetchSheet(API_REG, "BD_CC")
+      fetchSheet(API_CC, "BD_CC")
     ]);
 
-    GUIAS    = guias;
-    DETALLES = detalles;
+    GUIAS    = Array.isArray(guias)    ? guias    : [];
+    DETALLES = Array.isArray(detalles) ? detalles : [];
+    const ccs = Array.isArray(ccsRaw)  ? ccsRaw   : [];
 
     ccs.forEach(c => {
       const id = String(c["Id_CC"]||"").trim();
