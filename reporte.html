@@ -1712,5 +1712,31 @@ async function chatSend() {
 }
 </script>
 
+
+<button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
+
+<div id="chat-panel">
+  <div id="chat-head">
+    <div>
+      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
+      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
+    </div>
+    <button id="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div id="chat-msgs">
+    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
+  </div>
+  <div class="chat-suggestions">
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
+  </div>
+  <div id="chat-input-wrap">
+    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
+    <button id="chat-send" onclick="chatSend()">Enviar</button>
+  </div>
+</div>
+
 </body>
 </html>
