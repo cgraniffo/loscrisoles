@@ -157,12 +157,12 @@
     <div class="m"><div class="m-val" id="m-ing-kilos">—</div><div class="m-label">Kilos totales</div></div>
     <div class="m"><div class="m-val" id="m-ing-precio">—</div><div class="m-label">Precio promedio</div></div>
   </div>
-  <div class="metrics-top" id="metrics-caja" style="display:none;">
+  <div class="metrics-top" id="metrics-caja" style="display:none;grid-template-columns:repeat(5,1fr);">
     <div class="m"><div class="m-val" id="m-caja-actual">—</div><div class="m-label">Caja actual</div></div>
-    <div class="m"><div class="m-val green" id="m-caja-saldo">—</div><div class="m-label">Saldo proyectado 15d</div></div>
-    <div class="m"><div class="m-val" id="m-caja-cobrar">—</div><div class="m-label">Por cobrar 15d</div></div>
-    <div class="m"><div class="m-val red" id="m-caja-pagar">—</div><div class="m-label">Por pagar 15d</div></div>
-    <div class="m"><div class="m-val amber" id="m-caja-vencido">—</div><div class="m-label">Vencido neto</div></div>
+    <div class="m"><div class="m-val green" id="m-caja-saldo">—</div><div class="m-label">Proyectado 15d</div></div>
+    <div class="m"><div class="m-val" id="m-caja-p30">—</div><div class="m-label">Proyectado 30d</div></div>
+    <div class="m"><div class="m-val" id="m-caja-p60">—</div><div class="m-label">Proyectado 60d</div></div>
+    <div class="m"><div class="m-val" id="m-caja-pm60">—</div><div class="m-label">Proyectado +60d</div></div>
   </div>
   <div class="metrics-top" id="metrics-margenes" style="display:none;">
     <div class="m"><div class="m-val amber" id="m-margen-total">—</div><div class="m-label">Margen total</div></div>
@@ -692,12 +692,14 @@ function renderCaja() {
 
   // Update header metrics
   document.getElementById("m-caja-actual").textContent  = fmtPeso(CAJA_ACTUAL);
-  document.getElementById("m-caja-saldo").textContent   = fmtPeso(CAJA_ACTUAL + acum_15);
-  document.getElementById("m-caja-saldo").style.color   = acum_15 >= 0 ? "#86efac" : "#fca5a5";
-  document.getElementById("m-caja-cobrar").textContent  = fmtPeso(tCobrar15 + tCobrarV);
-  document.getElementById("m-caja-pagar").textContent   = fmtPeso(tPagar15  + tPagarV);
-  document.getElementById("m-caja-vencido").textContent = fmtPeso(neto_venc);
-  document.getElementById("m-caja-vencido").style.color = neto_venc >= 0 ? "#86efac" : "#fca5a5";
+  document.getElementById("m-caja-saldo").textContent   = fmtPeso(acum_15);
+  document.getElementById("m-caja-saldo").style.color   = acum_15  >= 0 ? "#86efac" : "#fca5a5";
+  document.getElementById("m-caja-p30").textContent     = fmtPeso(acum_30);
+  document.getElementById("m-caja-p30").style.color     = acum_30  >= 0 ? "#86efac" : "#fca5a5";
+  document.getElementById("m-caja-p60").textContent     = fmtPeso(acum_60);
+  document.getElementById("m-caja-p60").style.color     = acum_60  >= 0 ? "#86efac" : "#fca5a5";
+  document.getElementById("m-caja-pm60").textContent    = fmtPeso(acum_m60);
+  document.getElementById("m-caja-pm60").style.color    = acum_m60 >= 0 ? "#86efac" : "#fca5a5";
 
   // Cascada summary rows
   const cascRow = (label, cobrar, pagar, ingEst, acum, isVenc) => {
