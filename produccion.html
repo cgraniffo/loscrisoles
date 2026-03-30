@@ -212,43 +212,12 @@ function mesEvol(data, color, suffix) {
 }
 
 // ── MAPA ───────────────────────────────────────────────────────────────────
-function initMapaProd(filtradas, detallesFilt) {
+function initMapaProd(filtradas, detallesFilt, kgPorCC, labelPorCC, prodPorCC) {
   const el = document.getElementById("mapa-prod");
   if (!el) return;
   if (window._mapaProd) { window._mapaProd.remove(); window._mapaProd = null; }
 
-  // Cantidades por CC para mapa
-  const kgPorCC = {};
-  const labelPorCC = {};
-  filtradas.forEach(g => {
-    const ccId = String(g["Centro de Costo"]||"").trim();
-    if (!ccId || ccId==="CC_NO_ENCONTRADO") return;
-    const dets = detallesFilt.filter(d => d["ID_Guia_Padre"] === g["KEY"]);
-    dets.forEach(d => {
-      const {factor} = normalizarProducto(d["Nombre Item"]);
-      kgPorCC[ccId] = (kgPorCC[ccId]||0) + Number(d["Cantidad"]||0)*factor;
-    });
-    // Build display label
-    const byUnit = {};
-    dets.forEach(d=>{
-      const {unidad,factor} = normalizarProducto(d["Nombre Item"]);
-      byUnit[unidad] = (byUnit[unidad]||0) + Number(d["Cantidad"]||0)*factor;
-    });
-    labelPorCC[ccId] = Object.entries(byUnit).map(([u,v])=>fmtCant(v,u,1)).join(" · ");
-  });
-
-  // Productos por CC
-  const prodPorCC = {};
-  filtradas.forEach(g => {
-    const ccId = String(g["Centro de Costo"]||"").trim();
-    if (!ccId || ccId==="CC_NO_ENCONTRADO") return;
-    const dets = detallesFilt.filter(d => d["ID_Guia_Padre"] === g["KEY"]);
-    dets.forEach(d => {
-      const {nombre,factor} = normalizarProducto(d["Nombre Item"]);
-      if (!prodPorCC[ccId]) prodPorCC[ccId] = {};
-      prodPorCC[ccId][nombre] = (prodPorCC[ccId][nombre]||0) + Number(d["Cantidad"]||0)*factor;
-    });
-  });
+  // kgPorCC, labelPorCC, prodPorCC passed as params from renderProd
 
   const puntos = Object.entries(COORD_MAP).map(([id, coord]) => {
     const nombre = CC_MAP[id]||id;
@@ -257,7 +226,7 @@ function initMapaProd(filtradas, detallesFilt) {
     const kg     = kgPorCC[id]||0;
     const label  = labelPorCC[id]||"";
     const prods  = prodPorCC[id]||{};
-    const top3   = Object.entries(prods).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([item,qty])=>{const {nombre,unidad,factor}=normalizarProducto(item);return [nombre,qty*factor,unidad];});
+    const top3   = Object.entries(prods).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([nombre,val])=>{const {unidad}=normalizarProducto(nombre);return [nombre,val,unidad];});
     return { id, nombre, fundo, ha, kg, label, top3, lat:coord.lat, lng:coord.lng };
   });
 
@@ -330,90 +299,163 @@ function renderProd() {
     return true;
   });
 
-  const keys = new Set(filtradas.map(r=>r["KEY"]));
+  const keys     = new Set(filtradas.map(r=>r["KEY"]));
   const detsFilt = DETALLES.filter(d=>keys.has(d["ID_Guia_Padre"]));
 
-  // Cantidades por CC (agrupadas por unidad)
-  const cantPorCC = {}; // ccNombre -> { label, val, unidad }
-  filtradas.forEach(g=>{
+  // ── Build UP tree: UP -> products -> guias ──────────────────────────────
+  // upData[ccId] = { nombre, fundo, productos: { nombreProd: { unidad, guias: [...] } } }
+  const upData = {};
+  filtradas.forEach(g => {
     const ccId = String(g["Centro de Costo"]||"").trim();
     if (ccId==="CC_NO_ENCONTRADO") return;
-    const ccNombre = CC_MAP[ccId]||ccId;
+    if (!upData[ccId]) upData[ccId] = {
+      nombre: CC_MAP[ccId]||ccId,
+      fundo:  FUNDO_MAP[ccId]||"",
+      productos: {}
+    };
     const dets = detsFilt.filter(d=>d["ID_Guia_Padre"]===g["KEY"]);
     dets.forEach(d=>{
       const {nombre, unidad, factor} = normalizarProducto(d["Nombre Item"]);
-      const qty = Number(d["Cantidad"]||0) * factor;
-      if (!cantPorCC[ccNombre]) cantPorCC[ccNombre] = {};
-      if (!cantPorCC[ccNombre][unidad]) cantPorCC[ccNombre][unidad] = 0;
-      cantPorCC[ccNombre][unidad] += qty;
+      if (!upData[ccId].productos[nombre]) upData[ccId].productos[nombre] = {unidad, factor, guias:[]};
+      upData[ccId].productos[nombre].guias.push({
+        fecha:  parseDate(g["Fecha Emisión"]),
+        folio:  g["Folio"],
+        cliente:String(g["RznSocRecep"]||"—").trim(),
+        cant:   Number(d["Cantidad"]||0) * factor
+      });
     });
   });
-  // For sorting use kg-equivalent
-  const ccRows = Object.entries(cantPorCC).map(([nombre, units]) => {
-    const kgEq = (units["kg"]||0) + (units["ton"]||0)*1000 + (units["Bins"]||0)*500;
-    const label = Object.entries(units).map(([u,v])=>fmtCant(v,u,1)).join(" · ");
-    return [nombre, kgEq, label];
-  }).sort((a,b)=>b[1]-a[1]);
-  const ccMax = ccRows[0]?.[1]||1;
 
-  // Cantidades por producto normalizado
-  const cantPorProd = {};
-  detsFilt.forEach(d=>{
-    const {nombre, unidad, factor} = normalizarProducto(d["Nombre Item"]);
-    const qty = Number(d["Cantidad"]||0) * factor;
-    if (!cantPorProd[nombre]) cantPorProd[nombre] = {unidad, total:0};
-    cantPorProd[nombre].total += qty;
+  // Sort UPs by total volume descending
+  const upEntries = Object.entries(upData).sort((a,b)=>{
+    const sumA = Object.values(a[1].productos).reduce((s,p)=>s+p.guias.reduce((ss,g)=>ss+g.cant,0),0);
+    const sumB = Object.values(b[1].productos).reduce((s,p)=>s+p.guias.reduce((ss,g)=>ss+g.cant,0),0);
+    return sumB - sumA;
   });
-  const prodRows = Object.entries(cantPorProd).map(([n,{unidad,total}])=>[n,total,unidad]).sort((a,b)=>b[1]-a[1]);
-  const prodMax  = prodRows[0]?.[1]||1;
 
-  // Kg equivalente por mes para evolución
-  const kgPorMes = {};
-  filtradas.forEach(g=>{
-    const d = parseDate(g["Fecha Emisión"]);
-    if (!d) return;
-    const k = mesKey(d);
-    const dets = detsFilt.filter(dd=>dd["ID_Guia_Padre"]===g["KEY"]);
-    dets.forEach(dd=>{
-      const {factor} = normalizarProducto(dd["Nombre Item"]);
-      kgPorMes[k] = (kgPorMes[k]||0) + Number(dd["Cantidad"]||0)*factor;
+  // ── Summary cards ───────────────────────────────────────────────────────
+  const summaryCards = upEntries.map(([ccId, up])=>{
+    const prodSummary = Object.entries(up.productos).map(([prod,{unidad,guias}])=>{
+      const total = guias.reduce((s,g)=>s+g.cant,0);
+      return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f5f3ef;font-size:12px;">
+        <span style="color:#444;">${prod}</span>
+        <span style="font-weight:bold;color:#1a3a0a;">${fmtCant(total,unidad,1)}</span>
+      </div>`;
+    }).join("");
+    return `<div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:12px 14px;">
+      <div style="font-size:13px;font-weight:bold;margin-bottom:2px;">${up.nombre}</div>
+      <div style="font-size:11px;color:#888;margin-bottom:8px;">${up.fundo}</div>
+      ${prodSummary}
+    </div>`;
+  }).join("");
+
+  // ── Expandable UP blocks ────────────────────────────────────────────────
+  const upBlocks = upEntries.map(([ccId, up])=>{
+    const prodBlocks = Object.entries(up.productos).map(([prod,{unidad,factor,guias}])=>{
+      const total = guias.reduce((s,g)=>s+g.cant,0);
+
+      // Evolucion mensual
+      const porMes = {};
+      guias.forEach(g=>{
+        if(!g.fecha) return;
+        const k = mesKey(g.fecha);
+        porMes[k] = (porMes[k]||0)+g.cant;
+      });
+      const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
+      const mesMax  = Math.max(...mesRows.map(([,v])=>v),1);
+      let acum=0;
+      const mesHTML = mesRows.map(([k,v])=>{
+        acum+=v;
+        const pct  = Math.round(v/mesMax*100);
+        const pctA = Math.round(acum/total*100);
+        return `<div class="mes-row">
+          <div class="mes-label">${fmtMesLabel(k)}</div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+              <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Mensual</div>
+              <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pct}%;background:#1a3a0a;"></div></div>
+              <div class="mes-val" style="color:#1a3a0a;">${fmtCant(v,unidad,1)}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Acumulado</div>
+              <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:#1a3a0a66;"></div></div>
+              <div class="mes-val" style="color:#1a3a0a99;">${fmtCant(acum,unidad,1)}</div>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+
+      // Detalle guias
+      const detalleRows = [...guias].sort((a,b)=>(b.fecha||0)-(a.fecha||0)).map(g=>`
+        <tr>
+          <td style="color:#888;font-size:12px;">${g.fecha?g.fecha.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}):"—"}</td>
+          <td style="font-size:12px;">F:${g.folio||"—"}</td>
+          <td style="font-size:13px;">${g.cliente}</td>
+          <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtCant(g.cant,unidad,1)}</td>
+        </tr>`).join("");
+
+      return `<div style="border:1px solid #e5e2da;border-radius:8px;margin-bottom:8px;overflow:hidden;">
+        <div onclick="toggleBloqueProd('${ccId}-${prod.replace(/\s+/g,'_')}')"
+          style="background:#f8fff8;padding:9px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:13px;font-weight:bold;color:#1a3a0a;">${prod}</div>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span style="font-size:13px;font-weight:bold;color:#1a3a0a;">${fmtCant(total,unidad,1)}</span>
+            <span id="arr-${ccId}-${prod.replace(/\s+/g,'_')}" style="font-size:11px;color:#888;">▼</span>
+          </div>
+        </div>
+        <div id="body-${ccId}-${prod.replace(/\s+/g,'_')}" style="display:none;padding:12px 14px;border-top:1px solid #f0ede6;">
+          <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Evolución mensual</div>
+          ${mesHTML||'<div class="empty">Sin datos</div>'}
+          <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin:12px 0 8px;">Detalle guías</div>
+          <div style="overflow-x:auto;">
+            <table class="tbl">
+              <thead><tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th style="text-align:right;">Cantidad</th></tr></thead>
+              <tbody>${detalleRows}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+
+    const upTotal = Object.entries(up.productos).map(([,{unidad,guias}])=>
+      `${fmtCant(guias.reduce((s,g)=>s+g.cant,0),unidad,1)}`
+    ).join(" · ");
+
+    return `<div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;margin-bottom:10px;overflow:hidden;">
+      <div onclick="toggleBloqueUP('${ccId}')"
+        style="background:#f8f8f6;padding:11px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:14px;font-weight:bold;">${up.nombre}</div>
+          <div style="font-size:11px;color:#888;margin-top:1px;">${up.fundo}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:12px;color:#1a3a0a;font-weight:bold;">${upTotal}</span>
+          <span id="arr-up-${ccId}" style="font-size:11px;color:#888;">▼</span>
+        </div>
+      </div>
+      <div id="body-up-${ccId}" style="display:none;padding:12px 14px;border-top:1px solid #f0ede6;">
+        ${prodBlocks}
+      </div>
+    </div>`;
+  }).join("");
+
+  // ── Mapa CC totals ──────────────────────────────────────────────────────
+  const kgPorCC = {}, labelPorCC = {};
+  Object.entries(upData).forEach(([ccId, up])=>{
+    const byUnit = {};
+    Object.entries(up.produtos||up.productos).forEach(([,{unidad,guias}])=>{
+      byUnit[unidad]=(byUnit[unidad]||0)+guias.reduce((s,g)=>s+g.cant,0);
+    });
+    kgPorCC[ccId]    = (byUnit["kg"]||0)+(byUnit["ton"]||0)*1000+(byUnit["Bins"]||0)*500;
+    labelPorCC[ccId] = Object.entries(byUnit).map(([u,v])=>fmtCant(v,u,1)).join(" · ");
+  });
+  const prodPorCC = {};
+  Object.entries(upData).forEach(([ccId,up])=>{
+    prodPorCC[ccId]={};
+    Object.entries(up.productos).forEach(([prod,{unidad,guias}])=>{
+      prodPorCC[ccId][prod]=guias.reduce((s,g)=>s+g.cant,0);
     });
   });
-  const mesRows = Object.entries(kgPorMes).sort((a,b)=>a[0].localeCompare(b[0]));
-
-  const totalKg = detsFilt.reduce((s,d)=>{
-    const {factor} = normalizarProducto(d["Nombre Item"]);
-    return s + Number(d["Cantidad"]||0)*factor;
-  },0);
-
-  // Detalle tabla
-  const detalleHTML = filtradas.length===0 ? `<div class="empty">Sin guías con los filtros seleccionados</div>` :
-    `<div style="overflow-x:auto;"><table class="tbl">
-      <thead><tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th>Centro de Costo</th><th style="text-align:right;">Kg</th></tr></thead>
-      <tbody>
-      ${filtradas.sort((a,b)=>(parseDate(b["Fecha Emisión"])||0)-(parseDate(a["Fecha Emisión"])||0)).map(g=>{
-        const d    = parseDate(g["Fecha Emisión"]);
-        const ccId = String(g["Centro de Costo"]||"").trim();
-        const ccN  = ccId==="CC_NO_ENCONTRADO"?"—":CC_MAP[ccId]||ccId;
-        const fundo= ccId==="CC_NO_ENCONTRADO"?"":FUNDO_MAP[ccId]||"";
-        const dets = detsFilt.filter(dd=>dd["ID_Guia_Padre"]===g["KEY"]);
-        const byUnit2 = {};
-        dets.forEach(dd=>{const {unidad,factor}=normalizarProducto(dd["Nombre Item"]);byUnit2[unidad]=(byUnit2[unidad]||0)+Number(dd["Cantidad"]||0)*factor;});
-        const cantLabel = Object.entries(byUnit2).map(([u,v])=>fmtCant(v,u,1)).join(" · ")||"—";
-        return `<tr>
-          <td style="color:#888;font-size:12px;">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}):"—"}</td>
-          <td style="font-size:12px;">F:${g["Folio"]||"—"}</td>
-          <td style="font-size:13px;">${String(g["RznSocRecep"]||"—").trim()}</td>
-          <td style="font-size:12px;color:#888;">${ccN}${fundo?` · ${fundo}`:""}</td>
-          <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${cantLabel}</td>
-        </tr>`;
-      }).join("")}
-      <tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
-        <td colspan="4">Total</td>
-        <td style="text-align:right;color:#1a3a0a;">${fmtNum(totalKg)} kg equiv.</td>
-      </tr>
-      </tbody>
-    </table></div>`;
 
   const ccBtns   = ccOpts.map(id=>`<button class="fbtn${stateP.ccs.includes(id)?" on":""}" onclick="toggleP('ccs','${id}')">${CC_MAP[id]||id}</button>`).join("");
   const anioBtns = anioOpts.map(a=>`<button class="fbtn${stateP.anios.includes(a)?" on":""}" onclick="toggleP('anios','${a}')">${a}</button>`).join("");
@@ -427,22 +469,16 @@ function renderProd() {
     </div>
     <div id="mapa-prod"></div>
     <div class="legend-row">
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a3a0a;"></span>Con producción — tamaño proporcional a kg</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a3a0a;"></span>Con producción — tamaño proporcional al volumen</span>
       <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#aaa;"></span>Sin producción en período</span>
     </div>
-    <div class="stats-grid">
-      <div class="stat-card"><div class="stat-title">Kg por unidad productiva</div>
-        ${ccRows.slice(0,8).map(([nombre,kgEq,label])=>`<div class="bar-row"><div class="bar-label" title="${nombre}">${nombre}</div><div class="bar-wrap"><div class="bar-fill" style="width:${ccMax>0?Math.round(kgEq/ccMax*100):0}%;background:#1a3a0a;"></div></div><div class="bar-num">${label}</div></div>`).join("")||`<div class="empty">Sin datos</div>`}
-      </div>
-      <div class="stat-card"><div class="stat-title">Kg por producto</div>
-        ${prodRows.slice(0,8).map(([nombre,total,unidad])=>barRow(nombre,total,prodMax,"#0f6e56"," "+unidad)).join("")||`<div class="empty">Sin datos</div>`}
-      </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
+      ${summaryCards}
     </div>
-    <div class="stat-card"><div class="stat-title">Evolución mensual (kg)</div>${mesEvol(mesRows,"#1a3a0a"," kg")}</div>
-    <div class="stat-card"><div class="stat-title">Detalle guías emitidas — ${filtradas.length} guías · ${fmtNum(totalKg)} kg</div>${detalleHTML}</div>
+    ${upBlocks||'<div class="empty">Sin guías con los filtros seleccionados</div>'}
     <div class="footer">Guías de despacho emitidas · Los Crisoles · BData</div>`;
 
-  setTimeout(()=>initMapaProd(filtradas, detsFilt), 50);
+  setTimeout(()=>initMapaProd(filtradas, detsFilt, kgPorCC, labelPorCC, prodPorCC), 50);
 }
 
 // ── INSUMOS ────────────────────────────────────────────────────────────────
