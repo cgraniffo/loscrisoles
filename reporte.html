@@ -1681,12 +1681,11 @@ async function chatSend() {
 
   try {
     const contexto = buildContexto();
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await fetch("https://round-night-574d.christian-19c.workers.dev", {
+      method:"POST",
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
-        max_tokens:1000,
         system: contexto,
         messages: chatHistory
       })
