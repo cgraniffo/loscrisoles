@@ -597,6 +597,15 @@ function renderIngresos() {
     <div class="footer">Ingresos desde Proyecciones_Manuales · Los Crisoles · BData</div>`;
 }
 
+function toggleBloque(id) {
+  const body  = document.getElementById("body-"  + id);
+  const arrow = document.getElementById("arrow-" + id);
+  if (!body) return;
+  const open = body.style.display === "none";
+  body.style.display  = open ? "block" : "none";
+  arrow.style.transform = open ? "rotate(180deg)" : "";
+}
+
 function fmtPesoFull(n) {
   return "$" + Math.round(n).toLocaleString("es-CL");
 }
@@ -790,22 +799,76 @@ function renderCaja() {
   const prod60HTML  = buildProdRows(ing60Rows);
   const prodM60HTML = buildProdRows(ingM60Rows);
 
+  // Build a collapsible period block
+  const periodoBlock = (id, titulo, isVenc, cobrarLista, tCob, pagarLista, tPag, ingRows, ingTotal) => {
+    const neto     = tCob + ingTotal - tPag;
+    const netoColor = neto >= 0 ? "#1a3a0a" : "#cc2222";
+    const bgHead   = isVenc ? "#fff0f0" : "#f8f8f6";
+    const cobHTML  = cobrarLista.length === 0
+      ? `<div style="font-size:12px;color:#aaa;padding:8px 0;">Sin documentos</div>`
+      : cobrarLista.sort((a,b)=>(getFecha(a)||0)-(getFecha(b)||0)).map(r => {
+          const d = getFecha(r);
+          return `<div class="caja-row">
+            <div class="caja-date">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—"}</div>
+            <div class="caja-name">${String(r["Razón Social"]||"—").trim()} <span class="caja-folio">${r["Folio"]?"F:"+r["Folio"]:""}</span></div>
+            <div class="caja-monto" style="color:#1a3a0a;">${fmtPesoFull(Number(r["Monto Total"]||r["Monto_Total"]||0))}</div>
+          </div>`;
+        }).join("");
+    const pagHTML  = pagarLista.length === 0
+      ? `<div style="font-size:12px;color:#aaa;padding:8px 0;">Sin documentos</div>`
+      : pagarLista.sort((a,b)=>(getFecha(a)||0)-(getFecha(b)||0)).map(r => {
+          const d = getFecha(r);
+          return `<div class="caja-row">
+            <div class="caja-date">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—"}</div>
+            <div class="caja-name">${String(r["Razón Social"]||"—").trim()} <span class="caja-folio">${r["Folio"]?"F:"+r["Folio"]:""}</span></div>
+            <div class="caja-monto" style="color:#cc2222;">${fmtPesoFull(Number(r["Monto Total"]||r["Monto_Total"]||0))}</div>
+          </div>`;
+        }).join("");
+    const prodHTML = ingRows.length === 0 ? "" : `
+      <div style="margin-top:12px;">
+        <div style="font-size:11px;font-weight:bold;color:#0f6e56;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;padding:0 14px;">🚜 Producción estimada — ${fmtPesoFull(ingTotal)}</div>
+        ${buildProdRows(ingRows)}
+      </div>`;
+    return `
+      <div class="caja-bloque" style="background:#fff;border:1px solid #e5e2da;border-radius:10px;margin-bottom:10px;overflow:hidden;">
+        <div class="caja-bloque-head" onclick="toggleBloque('${id}')"
+          style="background:${bgHead};padding:12px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:13px;font-weight:bold;color:${isVenc?"#cc2222":"#1a1a1a"};">${titulo}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="display:flex;gap:12px;font-size:12px;">
+              ${tCob>0?`<span style="color:#1a3a0a;">⬇ ${fmtPesoFull(tCob)}</span>`:""}
+              ${ingTotal>0?`<span style="color:#0f6e56;">🚜 ${fmtPesoFull(ingTotal)}</span>`:""}
+              ${tPag>0?`<span style="color:#cc2222;">⬆ ${fmtPesoFull(tPag)}</span>`:""}
+              <span style="font-weight:bold;color:${netoColor};">= ${fmtPesoFull(neto)}</span>
+            </div>
+            <div id="arrow-${id}" style="font-size:12px;color:#888;transition:transform 0.2s;">▼</div>
+          </div>
+        </div>
+        <div id="body-${id}" style="display:none;border-top:1px solid #f0ede6;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+            <div style="border-right:1px solid #f0ede6;">
+              <div style="font-size:11px;font-weight:bold;color:#1a3a0a;letter-spacing:0.05em;text-transform:uppercase;padding:8px 14px;background:#f8fff8;border-bottom:1px solid #f0ede6;">⬇ Por cobrar</div>
+              ${cobHTML}
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:bold;color:#cc2222;letter-spacing:0.05em;text-transform:uppercase;padding:8px 14px;background:#fff8f8;border-bottom:1px solid #f0ede6;">⬆ Por pagar</div>
+              ${pagHTML}
+            </div>
+          </div>
+          ${prodHTML}
+        </div>
+      </div>`;
+  };
+
   document.getElementById("app-caja").innerHTML =
     cascHTML + chartHTML +
-    seccion("🔴 Por cobrar — vencidos",      cobrarVenc,  tCobrarV,   "#1a3a0a", true)  +
-    seccion("🔴 Por pagar — vencidos",       pagarVenc,   tPagarV,    "#cc2222", true)  +
-    seccion("⬇️ Por cobrar — 0 a 15 días",   cobrar15,    tCobrar15,  "#1a3a0a", false) +
-    seccion("⬆️ Por pagar — 0 a 15 días",    pagar15,     tPagar15,   "#cc2222", false) +
-    `<div class="caja-section"><div class="caja-section-head"><div class="caja-section-title">🚜 Producción estimada 0-15 días</div><div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ing15)}</div></div>${prod15HTML}</div>` +
-    seccion("⬇️ Por cobrar — 15 a 30 días",  cobrar30,    tCobrar30,  "#1a3a0a", false) +
-    seccion("⬆️ Por pagar — 15 a 30 días",   pagar30,     tPagar30,   "#cc2222", false) +
-    `<div class="caja-section"><div class="caja-section-head"><div class="caja-section-title">🚜 Producción estimada 15-30 días</div><div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ing30)}</div></div>${prod30HTML}</div>` +
-    seccion("⬇️ Por cobrar — 30 a 60 días",  cobrar60,    tCobrar60,  "#1a3a0a", false) +
-    seccion("⬆️ Por pagar — 30 a 60 días",   pagar60,     tPagar60,   "#cc2222", false) +
-    `<div class="caja-section"><div class="caja-section-head"><div class="caja-section-title">🚜 Producción estimada 30-60 días</div><div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ing60)}</div></div>${prod60HTML}</div>` +
-    seccion("⬇️ Por cobrar — más de 60 días", cobrarMas60, tCobrarM60, "#1a3a0a", false) +
-    seccion("⬆️ Por pagar — más de 60 días",  pagarMas60,  tPagarM60,  "#cc2222", false) +
-    `<div class="caja-section"><div class="caja-section-head"><div class="caja-section-title">🚜 Producción estimada +60 días</div><div class="caja-section-total" style="color:#0f6e56;">${fmtPesoFull(ingM60)}</div></div>${prodM60HTML}</div>` +
+    periodoBlock("venc",  "🔴 Vencido",        true,  cobrarVenc,  tCobrarV,  pagarVenc,   tPagarV,  [],          0)      +
+    periodoBlock("p15",   "📅 0 — 15 días",     false, cobrar15,    tCobrar15, pagar15,     tPagar15,  ing15Rows,  ing15)  +
+    periodoBlock("p30",   "📅 15 — 30 días",    false, cobrar30,    tCobrar30, pagar30,     tPagar30,  ing30Rows,  ing30)  +
+    periodoBlock("p60",   "📅 30 — 60 días",    false, cobrar60,    tCobrar60, pagar60,     tPagar60,  ing60Rows,  ing60)  +
+    periodoBlock("pm60",  "📅 Más de 60 días",  false, cobrarMas60, tCobrarM60, pagarMas60, tPagarM60, ingM60Rows, ingM60) +
     `<div class="footer">Caja calculada en tiempo real · Los Crisoles · BData</div>`;
 
   // Draw chart after DOM update
