@@ -158,6 +158,7 @@
     <div class="m"><div class="m-val" id="m-ing-precio">—</div><div class="m-label">Precio promedio</div></div>
   </div>
   <div class="metrics-top" id="metrics-caja" style="display:none;">
+    <div class="m"><div class="m-val" id="m-caja-actual">—</div><div class="m-label">Caja actual</div></div>
     <div class="m"><div class="m-val green" id="m-caja-saldo">—</div><div class="m-label">Saldo proyectado 15d</div></div>
     <div class="m"><div class="m-val" id="m-caja-cobrar">—</div><div class="m-label">Por cobrar 15d</div></div>
     <div class="m"><div class="m-val red" id="m-caja-pagar">—</div><div class="m-label">Por pagar 15d</div></div>
@@ -612,6 +613,7 @@ function fmtPesoFull(n) {
 
 function renderCaja() {
   const RUT_LC = "76099766-8";
+  const CAJA_ACTUAL = 61805719;
   const hoy    = new Date(); hoy.setHours(0,0,0,0);
   const en15   = new Date(hoy); en15.setDate(en15.getDate() + 15);
   const en30   = new Date(hoy); en30.setDate(en30.getDate() + 30);
@@ -682,14 +684,15 @@ function renderCaja() {
   const neto_30    = tCobrar30 - tPagar30  + ing30;
   const neto_60    = tCobrar60 - tPagar60  + ing60;
   const neto_m60   = tCobrarM60 - tPagarM60 + ingM60;
-  const acum_venc  = neto_venc;
-  const acum_15    = acum_venc + neto_15;
-  const acum_30    = acum_15   + neto_30;
-  const acum_60    = acum_30   + neto_60;
-  const acum_m60   = acum_60   + neto_m60;
+  const acum_venc  = CAJA_ACTUAL + neto_venc;
+  const acum_15    = acum_venc  + neto_15;
+  const acum_30    = acum_15    + neto_30;
+  const acum_60    = acum_30    + neto_60;
+  const acum_m60   = acum_60    + neto_m60;
 
   // Update header metrics
-  document.getElementById("m-caja-saldo").textContent   = fmtPeso(acum_15);
+  document.getElementById("m-caja-actual").textContent  = fmtPeso(CAJA_ACTUAL);
+  document.getElementById("m-caja-saldo").textContent   = fmtPeso(CAJA_ACTUAL + acum_15);
   document.getElementById("m-caja-saldo").style.color   = acum_15 >= 0 ? "#86efac" : "#fca5a5";
   document.getElementById("m-caja-cobrar").textContent  = fmtPeso(tCobrar15 + tCobrarV);
   document.getElementById("m-caja-pagar").textContent   = fmtPeso(tPagar15  + tPagarV);
@@ -719,13 +722,17 @@ function renderCaja() {
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;">
           <thead>
+            <tr style="background:#1a3a0a;">
+              <td colspan="5" style="padding:8px 12px;font-size:12px;color:#9fe1cb;">Caja actual</td>
+              <td style="padding:8px 12px;text-align:right;font-size:15px;font-weight:bold;color:#fff;">${fmtPesoFull(CAJA_ACTUAL)}</td>
+            </tr>
             <tr style="background:#f8f8f6;">
               <th style="padding:8px 12px;text-align:left;font-size:11px;color:#888;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">Período</th>
-              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#1a3a0a;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">⬇ Por Cobrar</th>
-              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#0f6e56;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">🚜 Ing. Estimados</th>
-              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#cc2222;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">⬆ Por Pagar</th>
-              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#555;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">Flujo Período</th>
-              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#1a3a0a;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">Flujo Acum.</th>
+              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#1a3a0a;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">⬇ Cobrar</th>
+              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#0f6e56;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">🚜 Ing. Est.</th>
+              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#cc2222;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">⬆ Pagar</th>
+              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#555;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">Neto</th>
+              <th style="padding:8px 12px;text-align:right;font-size:11px;color:#1a3a0a;font-weight:bold;letter-spacing:0.05em;text-transform:uppercase;border-bottom:2px solid #e5e2da;">Acumulado</th>
             </tr>
           </thead>
           <tbody>
