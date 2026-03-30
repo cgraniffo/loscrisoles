@@ -153,6 +153,24 @@ function fmtCant(qty, unidad, factor) {
   return Math.round(val).toLocaleString("es-CL") + " kg";
 }
 
+function toggleBloqueUP(id) {
+  const body  = document.getElementById("body-up-" + id);
+  const arrow = document.getElementById("arr-up-" + id);
+  if (!body) return;
+  const open = body.style.display === "none";
+  body.style.display    = open ? "block" : "none";
+  arrow.style.transform = open ? "rotate(180deg)" : "";
+}
+
+function toggleBloqueProd(id) {
+  const body  = document.getElementById("body-" + id);
+  const arrow = document.getElementById("arr-" + id);
+  if (!body) return;
+  const open = body.style.display === "none";
+  body.style.display    = open ? "block" : "none";
+  arrow.style.transform = open ? "rotate(180deg)" : "";
+}
+
 function switchTab(tab) {
   ["prod","insumos"].forEach(t => {
     document.getElementById("tab-"+t).className   = "tab"+(tab===t?" on":"");
