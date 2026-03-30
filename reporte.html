@@ -1575,86 +1575,120 @@ function chatKeyDown(e) {
 
 function buildContexto() {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
-
-  // Labores activas
-  const activos = (window.ACTIVOS||[]);
-  const vencidas = activos.filter(r => {
-    const d = parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d < hoy;
-  });
-  const hoyL = activos.filter(r => {
-    const d = parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d.getTime()===hoy.getTime();
-  });
-
-  const resolveCC  = id => CC_MAP[String(id||"").trim()]  || String(id||"").trim();
-  const resolveEnc = id => ENC_MAP[String(id||"").trim()] || String(id||"").trim();
-  const resolveLab = id => LAB_MAP[String(id||"").trim()] || String(id||"").trim();
-
-  const laborResumen = (r) =>
-    `[${String(r["Estado Operativo"]||"").trim()}] ${resolveLab(r["Labor"])} | UP: ${resolveCC(r["Centro_Costo"])} | Fundo: ${FUNDO_MAP[String(r["Centro_Costo"]||"").trim()]||""} | Encargado: ${resolveEnc(r["Encargado"])} | Fecha: ${r["Fecha"]?.split("T")[0]||""} | Obs: ${r["Observaciones"]||""}`;
-
-  // Costos
-  const todos = (window.TODOS||[]);
-  const costoTotal = todos.reduce((s,r)=>s+Number(r["Costo Total"]||0),0);
-  const costoPorCC = {};
-  todos.forEach(r=>{
-    const cc = resolveCC(r["Centro_Costo"]);
-    costoPorCC[cc] = (costoPorCC[cc]||0)+Number(r["Costo Total"]||0);
-  });
-  const topCostos = Object.entries(costoPorCC).sort((a,b)=>b[1]-a[1]).slice(0,8)
-    .map(([k,v])=>`${k}: $${Math.round(v/1000)}k`).join(", ");
-
-  // Caja
-  const docs = (window.DOCUMENTOS||[]);
   const RUT_LC = "76099766-8";
   const CAJA_ACTUAL = 61805719;
-  const isPend = r => !["pagado","anulado"].includes(String(r["EstadoPago"]||"").toLowerCase());
-  const en15 = new Date(hoy); en15.setDate(en15.getDate()+15);
-  const cobrar = docs.filter(r=>String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r));
-  const pagar  = docs.filter(r=>String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r));
-  const sumDoc = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||r["Monto_Total"]||0),0);
-  const cobrar15 = cobrar.filter(r=>{ const d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
-  const pagar15  = pagar.filter(r=>{  const d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
-  const saldoProy = CAJA_ACTUAL + sumDoc(cobrar15) - sumDoc(pagar15);
 
-  // Proyecciones
-  const proy = (window.PROYECCIONES||[]);
-  const ingTotal = proy.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
-  const ingPorUP = {};
-  proy.forEach(r=>{
-    const up = resolveCC(r["Unidad_Productiva"]);
-    ingPorUP[up]=(ingPorUP[up]||0)+Number(r["Monto_Total"]||0);
+  const resolveCC  = function(id) { return CC_MAP[String(id||"").trim()]  || String(id||"").trim(); };
+  const resolveEnc = function(id) { return ENC_MAP[String(id||"").trim()] || String(id||"").trim(); };
+  const resolveLab = function(id) { return LAB_MAP[String(id||"").trim()] || String(id||"").trim(); };
+  const fmtD = function(val) {
+    var d = parseDate(val);
+    return d ? d.toLocaleDateString("es-CL") : "sin fecha";
+  };
+
+  // ── LABORES ──────────────────────────────────────────────────────────────
+  var activos = window.ACTIVOS || [];
+  var laborResumen = function(r) {
+    return "[" + String(r["Estado Operativo"]||"").trim() + "] " +
+      resolveLab(r["Labor"]) + " | UP: " + resolveCC(r["Centro_Costo"]) +
+      " | Fundo: " + (FUNDO_MAP[String(r["Centro_Costo"]||"").trim()]||"") +
+      " | Encargado: " + resolveEnc(r["Encargado"]) +
+      " | Fecha: " + fmtD(r["Fecha"]) +
+      " | Obs: " + (r["Observaciones"]||"");
+  };
+  var vencidas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; });
+  var hoyL     = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d.getTime()===hoy.getTime(); });
+  var proximas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>hoy; });
+
+  // ── COSTOS ───────────────────────────────────────────────────────────────
+  var todos = window.TODOS || [];
+  var costoTotal = todos.reduce(function(s,r){ return s+Number(r["Costo Total"]||0); },0);
+  var costoPorCC = {};
+  var costoPorEnc = {};
+  var costoPorTipo = {};
+  todos.forEach(function(r){
+    var cc   = resolveCC(r["Centro_Costo"]);
+    var enc  = resolveEnc(r["Encargado"]);
+    var tipo = String(r["Tipo_Labor"]||"—").trim();
+    var c    = Number(r["Costo Total"]||0);
+    costoPorCC[cc]   = (costoPorCC[cc]||0)   + c;
+    costoPorEnc[enc] = (costoPorEnc[enc]||0) + c;
+    costoPorTipo[tipo]=(costoPorTipo[tipo]||0)+ c;
   });
-  const topIngresos = Object.entries(ingPorUP).sort((a,b)=>b[1]-a[1]).slice(0,6)
-    .map(([k,v])=>`${k}: $${Math.round(v/1000)}k`).join(", ");
+  var topCC  = Object.entries(costoPorCC).sort(function(a,b){return b[1]-a[1];}).slice(0,8).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
+  var topEnc = Object.entries(costoPorEnc).sort(function(a,b){return b[1]-a[1];}).slice(0,6).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
+  var topTipo= Object.entries(costoPorTipo).sort(function(a,b){return b[1]-a[1];}).slice(0,5).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
 
-  const lineas = [
-    "Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, de forma concisa y directa.",
-    "",
+  // Top registros de costo recientes
+  var topCostoReg = todos.filter(function(r){ return Number(r["Costo Total"]||0)>0; })
+    .sort(function(a,b){ return Number(b["Costo Total"]||0)-Number(a["Costo Total"]||0); })
+    .slice(0,20).map(function(r){
+      return fmtD(r["Fecha"]) + " | " + resolveLab(r["Labor"]) + " | " + resolveCC(r["Centro_Costo"]) +
+        " | Enc: " + resolveEnc(r["Encargado"]) + " | Tipo: " + String(r["Tipo_Labor"]||"").trim() +
+        " | $" + Math.round(Number(r["Costo Total"]||0)/1000) + "k";
+    }).join("\n");
+
+  // ── CAJA ─────────────────────────────────────────────────────────────────
+  var docs = window.DOCUMENTOS || [];
+  var isPend = function(r){ return !["pagado","anulado"].includes(String(r["EstadoPago"]||"").trim().toLowerCase()); };
+  var cobrar = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r); });
+  var pagar  = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r); });
+  var sumDoc = function(arr){ return arr.reduce(function(s,r){ return s+Number(r["Monto Total"]||r["Monto_Total"]||0); },0); };
+  var en15 = new Date(hoy); en15.setDate(en15.getDate()+15);
+  var cobrar15 = cobrar.filter(function(r){ var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
+  var pagar15  = pagar.filter(function(r){  var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
+  var saldoProy = CAJA_ACTUAL + sumDoc(cobrar15) - sumDoc(pagar15);
+
+  var docLine = function(r){
+    var d=parseDate(r["Fecha_Real"]);
+    var venc = d && d<hoy ? "[VENCIDO]" : "";
+    return fmtD(r["Fecha_Real"]) + " | " + String(r["Razón Social"]||"").trim() +
+      " | F:" + (r["Folio"]||"") + " | $" + Math.round(Number(r["Monto Total"]||0)/1000) + "k " + venc;
+  };
+  var pagarDetalle  = pagar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,40).map(docLine).join("\n");
+  var cobrarDetalle = cobrar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,20).map(docLine).join("\n");
+
+  // ── INGRESOS / PROYECCIONES ───────────────────────────────────────────────
+  var proy = window.PROYECCIONES || [];
+  var ingTotal = proy.reduce(function(s,r){ return s+Number(r["Monto_Total"]||0); },0);
+  var proyDetalle = proy.map(function(r){
+    var up = resolveCC(r["Unidad_Productiva"]);
+    return fmtD(r["Fecha_Estimada"]) + " | " + up + " | " +
+      Number(r["Kilos_Estimados"]||0).toLocaleString("es-CL") + " kg | $" +
+      Math.round(Number(r["Monto_Total"]||0)/1000) + "k | " + String(r["Estado"]||"");
+  }).join("\n");
+
+  var lineas = [
+    "Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, de forma concisa y directa usando los datos reales.",
     "FECHA HOY: " + hoy.toLocaleDateString("es-CL"),
     "",
-    "== LABORES ACTIVAS (" + activos.length + " total) ==",
+    "=== LABORES ACTIVAS (" + activos.length + " total) ===",
     "VENCIDAS (" + vencidas.length + "):",
-    vencidas.slice(0,15).map(laborResumen).join("\n"),
-    "",
+    vencidas.slice(0,20).map(laborResumen).join("\n"),
     "VENCEN HOY (" + hoyL.length + "):",
     hoyL.map(laborResumen).join("\n"),
+    "PROXIMAS (" + proximas.length + "):",
+    proximas.slice(0,15).map(laborResumen).join("\n"),
     "",
-    "PENDIENTES PROXIMAS:",
-    activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>hoy; }).slice(0,10).map(laborResumen).join("\n"),
+    "=== COSTOS ===",
+    "Total acumulado: $" + Math.round(costoTotal/1000) + "k",
+    "Por UP: " + topCC,
+    "Por encargado: " + topEnc,
+    "Por tipo: " + topTipo,
+    "Top registros por monto:",
+    topCostoReg,
     "",
-    "== COSTOS ==",
-    "Costo total acumulado: $" + Math.round(costoTotal/1000) + "k",
-    "Por unidad productiva: " + topCostos,
-    "",
-    "== CAJA ==",
+    "=== CAJA ===",
     "Saldo actual: $" + Math.round(CAJA_ACTUAL/1000) + "k",
     "Saldo proyectado 15d: $" + Math.round(saldoProy/1000) + "k",
-    "Por cobrar vencido: $" + Math.round(sumDoc(cobrar.filter(function(r){ var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; }))/1000) + "k",
-    "Por pagar vencido: $"  + Math.round(sumDoc(pagar.filter(function(r){  var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; }))/1000) + "k",
+    "POR PAGAR (" + pagar.length + " docs):",
+    pagarDetalle,
+    "POR COBRAR (" + cobrar.length + " docs):",
+    cobrarDetalle,
     "",
-    "== INGRESOS ESTIMADOS ==",
-    "Total proyectado: $" + Math.round(ingTotal/1000) + "k",
-    "Por unidad productiva: " + topIngresos
+    "=== INGRESOS ESTIMADOS ===",
+    "Total: $" + Math.round(ingTotal/1000) + "k",
+    proyDetalle
   ];
   return lineas.join("\n");
 }
