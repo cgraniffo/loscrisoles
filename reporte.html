@@ -1627,36 +1627,36 @@ function buildContexto() {
   const topIngresos = Object.entries(ingPorUP).sort((a,b)=>b[1]-a[1]).slice(0,6)
     .map(([k,v])=>`${k}: $${Math.round(v/1000)}k`).join(", ");
 
-  return `Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, de forma concisa y directa. Usá los datos reales a continuación.
-
-FECHA HOY: ${hoy.toLocaleDateString("es-CL")}
-
-== LABORES ACTIVAS (${activos.length} total) ==
-VENCIDAS (${vencidas.length}):
-${vencidas.slice(0,15).map(laborResumen).join("
-")}
-
-VENCEN HOY (${hoyL.length}):
-${hoyL.map(laborResumen).join("
-")}
-
-PENDIENTES PRÓXIMAS:
-${activos.filter(r=>{ const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>hoy; }).slice(0,10).map(laborResumen).join("
-")}
-
-== COSTOS ==
-Costo total acumulado: $${Math.round(costoTotal/1000)}k
-Por unidad productiva: ${topCostos}
-
-== CAJA ==
-Saldo actual: $${Math.round(CAJA_ACTUAL/1000)}k
-Saldo proyectado 15d: $${Math.round(saldoProy/1000)}k
-Por cobrar vencido: $${Math.round(sumDoc(cobrar.filter(r=>{ const d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; }))/1000)}k
-Por pagar vencido: $${Math.round(sumDoc(pagar.filter(r=>{ const d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; }))/1000)}k
-
-== INGRESOS ESTIMADOS ==
-Total proyectado: $${Math.round(ingTotal/1000)}k
-Por unidad productiva: ${topIngresos}`;
+  const lineas = [
+    "Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, de forma concisa y directa.",
+    "",
+    "FECHA HOY: " + hoy.toLocaleDateString("es-CL"),
+    "",
+    "== LABORES ACTIVAS (" + activos.length + " total) ==",
+    "VENCIDAS (" + vencidas.length + "):",
+    vencidas.slice(0,15).map(laborResumen).join("\n"),
+    "",
+    "VENCEN HOY (" + hoyL.length + "):",
+    hoyL.map(laborResumen).join("\n"),
+    "",
+    "PENDIENTES PROXIMAS:",
+    activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>hoy; }).slice(0,10).map(laborResumen).join("\n"),
+    "",
+    "== COSTOS ==",
+    "Costo total acumulado: $" + Math.round(costoTotal/1000) + "k",
+    "Por unidad productiva: " + topCostos,
+    "",
+    "== CAJA ==",
+    "Saldo actual: $" + Math.round(CAJA_ACTUAL/1000) + "k",
+    "Saldo proyectado 15d: $" + Math.round(saldoProy/1000) + "k",
+    "Por cobrar vencido: $" + Math.round(sumDoc(cobrar.filter(function(r){ var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; }))/1000) + "k",
+    "Por pagar vencido: $"  + Math.round(sumDoc(pagar.filter(function(r){  var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; }))/1000) + "k",
+    "",
+    "== INGRESOS ESTIMADOS ==",
+    "Total proyectado: $" + Math.round(ingTotal/1000) + "k",
+    "Por unidad productiva: " + topIngresos
+  ];
+  return lineas.join("\n");
 }
 
 async function chatSend() {
