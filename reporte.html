@@ -650,11 +650,22 @@ function renderCaja() {
   const tCobrarM60  = sum(cobrarMas60);
   const tPagarM60   = sum(pagarMas60);
 
-  const ing15 = PROYECCIONES.filter(r => {
+  const ingPorPeriodo = (desde, hasta) => PROYECCIONES.filter(r => {
     const d = parseDate(r["Fecha_Estimada"]);
     if (!d) return false; d.setHours(0,0,0,0);
-    return d >= hoy && d <= en15;
-  }).reduce((s,r) => s + Number(r["Monto_Total"]||0), 0);
+    if (hasta === null) return d >= desde;
+    return d >= desde && d <= hasta;
+  });
+
+  const ing15Rows  = ingPorPeriodo(hoy, en15);
+  const ing30Rows  = ingPorPeriodo(new Date(en15.getTime()+86400000), en30);
+  const ing60Rows  = ingPorPeriodo(new Date(en30.getTime()+86400000), en60);
+  const ingM60Rows = ingPorPeriodo(new Date(en60.getTime()+86400000), null);
+
+  const ing15  = ing15Rows.reduce((s,r)  => s + Number(r["Monto_Total"]||0), 0);
+  const ing30  = ing30Rows.reduce((s,r)  => s + Number(r["Monto_Total"]||0), 0);
+  const ing60  = ing60Rows.reduce((s,r)  => s + Number(r["Monto_Total"]||0), 0);
+  const ingM60 = ingM60Rows.reduce((s,r) => s + Number(r["Monto_Total"]||0), 0);
 
   // Resumen cascada
   const neto_venc  = tCobrarV  - tPagarV;
