@@ -217,6 +217,13 @@ const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVM
 const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {}, COORD_MAP = {};
+// ── CONFIGURACIÓN ────────────────────────────────────────────────────────
+// Fecha de corte: BD_Registro aporta costos ANTES de esta fecha
+// Asignaciones_U aporta costos DESDE esta fecha
+// Para mover el corte hacia atrás, cambiar esta fecha
+const FECHA_CORTE_COSTOS = "2026-03-30";
+// ─────────────────────────────────────────────────────────────────────────
+
 window.ACTIVOS = []; window.TODOS = []; window.PROYECCIONES = []; window.DOCUMENTOS = []; window.ASIGNACIONES = [];
 var ACTIVOS = window.ACTIVOS, TODOS = window.TODOS, PROYECCIONES = window.PROYECCIONES, DOCUMENTOS = window.DOCUMENTOS, ASIGNACIONES = window.ASIGNACIONES;
 let state = { estados:[], encargados:[], ups:[], fundos:[], soloVencidas:false };
@@ -1280,7 +1287,7 @@ function filtrarPorUP(id) {
 
 // ── RENDER COSTOS ──────────────────────────────────────────────────────────
 function renderCostos() {
-  const FECHA_CORTE = "2026-03-30";
+  const FECHA_CORTE = FECHA_CORTE_COSTOS;
 
   // Costos históricos BD_Registro (antes del corte)
   const costosHistoricos = (window.TODOS||[]).filter(r => {
