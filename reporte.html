@@ -1284,8 +1284,9 @@ function renderCostos() {
 
   // Costos históricos BD_Registro (antes del corte)
   const costosHistoricos = (window.TODOS||[]).filter(r => {
-    const fecha = String(r["Fecha"]||"").split("T")[0];
-    return r.monto||0 > 0 && fecha < FECHA_CORTE;
+    const raw   = String(r["Fecha"]||"");
+    const fecha = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
+    return Number(r["Costo Total"]||0) > 0 && (fecha === "" || fecha < FECHA_CORTE);
   }).map(r => ({
     _fuente:      "BD_Registro",
     Centro_Costo: String(r["Centro_Costo"]||"").trim(),
