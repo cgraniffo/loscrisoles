@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Los Crisoles — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --verde:    #1a3a0a;
+      --verde2:   #2d6a1a;
+      --verde3:   #86efac;
+      --tierra:   #c8b89a;
+      --crema:    #f5f0e8;
+      --blanco:   #fdfcf9;
+      --gris:     #6b6555;
+      --rojo:     #c0392b;
+      --amber:    #d97706;
+      --azul:     #1d4ed8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--crema); color: #1a1a0f; min-height: 100vh; }
+
+    /* ── HEADER ─────────────────────────────────────────────── */
+    .header {
+      background: var(--verde);
+      padding: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .header-bg {
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 80% 50%, #2d6a1a44 0%, transparent 60%),
+                  radial-gradient(ellipse at 20% 80%, #0f2a0444 0%, transparent 50%);
+    }
+    .header-grid {
+      position: absolute; inset: 0; opacity: 0.04;
+      background-image: linear-gradient(#86efac 1px, transparent 1px), linear-gradient(90deg, #86efac 1px, transparent 1px);
+      background-size: 40px 40px;
+    }
+    .header-inner {
+      position: relative; z-index: 1;
+      max-width: 1200px; margin: 0 auto;
+      padding: 28px 32px 0;
+    }
+    .header-top {
+      display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px;
+    }
+    .logo-wrap { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 44px; height: 44px; background: var(--verde3); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+      box-shadow: 0 4px 16px rgba(134,239,172,0.3);
+    }
+    .logo-text { font-family: 'Playfair Display', serif; }
+    .logo-name { font-size: 22px; font-weight: 700; color: #fff; line-height: 1; }
+    .logo-sub { font-size: 11px; color: var(--verde3); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 3px; }
+    .bdata-badge {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--verde3); background: rgba(134,239,172,0.12); border: 1px solid rgba(134,239,172,0.25);
+      padding: 5px 12px; border-radius: 99px;
+    }
+    .header-date { font-size: 12px; color: #9fe1cb; margin-top: 2px; text-align: right; }
+
+    /* ── HEADLINE ─────────────────────────────────────────────── */
+    .headline {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: end; margin-bottom: 28px;
+    }
+    .headline-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 900; color: #fff; line-height: 1.05;
+    }
+    .headline-title span { color: var(--verde3); }
+    .headline-sub { font-size: 13px; color: #9fe1cb; margin-top: 10px; line-height: 1.6; max-width: 360px; }
+    .headline-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .hkpi {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; padding: 14px 16px; backdrop-filter: blur(8px);
+      transition: background 0.2s;
+    }
+    .hkpi:hover { background: rgba(255,255,255,0.11); }
+    .hkpi-val { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; color: #fff; line-height: 1; }
+    .hkpi-val.green { color: var(--verde3); }
+    .hkpi-val.red   { color: #fca5a5; }
+    .hkpi-val.amber { color: #fcd34d; }
+    .hkpi-label { font-size: 11px; color: #9fe1cb; margin-top: 5px; }
+
+    /* ── NAV TABS ─────────────────────────────────────────────── */
+    .nav-tabs {
+      display: flex; gap: 4px; padding: 0 32px;
+      position: relative; z-index: 1; max-width: 1200px; margin: 0 auto;
+    }
+    .ntab {
+      font-size: 12px; font-weight: 600; padding: 10px 20px;
+      border-radius: 10px 10px 0 0; cursor: pointer;
+      color: #9fe1cb; background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08); border-bottom: none;
+      transition: all 0.2s; letter-spacing: 0.02em;
+    }
+    .ntab:hover { background: rgba(255,255,255,0.1); }
+    .ntab.on { background: var(--crema); color: var(--verde); border-color: var(--crema); }
+
+    /* ── BODY ─────────────────────────────────────────────── */
+    .body { max-width: 1200px; margin: 0 auto; padding: 24px 32px 48px; }
+
+    /* ── SECTION ─────────────────────────────────────────────── */
+    .section { display: none; }
+    .section.on { display: block; }
+
+    /* ── GRID LAYOUTS ─────────────────────────────────────────────── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 16px; }
+    .span2 { grid-column: span 2; }
+
+    /* ── CARDS ─────────────────────────────────────────────── */
+    .card {
+      background: var(--blanco); border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.07);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 16px 20px 12px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #f0ede6;
+    }
+    .card-title { font-size: 11px; font-weight: 600; color: var(--gris); letter-spacing: 0.08em; text-transform: uppercase; }
+    .card-body { padding: 16px 20px; }
+    .card-link {
+      font-size: 11px; color: var(--verde2); font-weight: 600;
+      text-decoration: none; display: flex; align-items: center; gap: 4px;
+    }
+    .card-link:hover { color: var(--verde); }
+
+    /* ── KPI METRIC ─────────────────────────────────────────────── */
+    .metric-big { font-family: 'Playfair Display', serif; font-size: 36px; font-weight: 700; line-height: 1; }
+    .metric-label { font-size: 12px; color: var(--gris); margin-top: 6px; }
+    .metric-delta { font-size: 12px; font-weight: 600; margin-top: 4px; }
+    .up   { color: #16a34a; }
+    .down { color: var(--rojo); }
+
+    /* ── NAV BUTTONS ─────────────────────────────────────────────── */
+    .nav-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 16px; }
+    .nav-card {
+      background: var(--blanco); border-radius: 16px; border: 1px solid rgba(0,0,0,0.07);
+      padding: 20px; text-decoration: none; color: inherit;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      transition: all 0.25s; display: flex; flex-direction: column; gap: 10px;
+      position: relative; overflow: hidden;
+    }
+    .nav-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .nav-card.verde::before  { background: linear-gradient(90deg, var(--verde), var(--verde2)); }
+    .nav-card.azul::before   { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
+    .nav-card.amber::before  { background: linear-gradient(90deg, #d97706, #f59e0b); }
+    .nav-card.rojo::before   { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+    .nav-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.1); }
+    .nav-icon { font-size: 28px; }
+    .nav-title { font-size: 16px; font-weight: 700; }
+    .nav-desc { font-size: 12px; color: var(--gris); line-height: 1.5; }
+    .nav-badge {
+      font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
+      align-self: flex-start; margin-top: 4px;
+    }
+    .badge-verde { background: #eaf3de; color: var(--verde); }
+    .badge-rojo  { background: #fee2e2; color: var(--rojo); }
+    .badge-amber { background: #fef3c7; color: var(--amber); }
+
+    /* ── BAR ─────────────────────────────────────────────── */
+    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .bar-label { font-size: 12px; color: #444; width: 110px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bar-track { flex: 1; background: #f0ede6; border-radius: 4px; height: 7px; }
+    .bar-fill  { height: 7px; border-radius: 4px; transition: width 0.8s ease; }
+    .bar-val   { font-size: 11px; font-weight: 700; width: 70px; text-align: right; flex-shrink: 0; }
+
+    /* ── LABOR ROW ─────────────────────────────────────────────── */
+    .labor-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f3ef; }
+    .labor-row:last-child { border-bottom: none; }
+    .labor-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .labor-name { font-size: 13px; flex: 1; }
+    .labor-up   { font-size: 11px; color: var(--gris); }
+    .labor-date { font-size: 11px; color: var(--gris); flex-shrink: 0; }
+    .labor-badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; flex-shrink: 0; }
+
+    /* ── MAP ─────────────────────────────────────────────── */
+    #mapa-home { height: 320px; border-radius: 12px; z-index: 0; }
+    .leaflet-popup-content { font-family: 'DM Sans', sans-serif; font-size: 12px; }
+
+    /* ── CAJA FLOW ─────────────────────────────────────────────── */
+    .caja-flow { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .caja-item { text-align: center; padding: 14px 8px; background: #f8f6f2; border-radius: 12px; }
+    .caja-val  { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; }
+    .caja-lbl  { font-size: 10px; color: var(--gris); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .caja-arrow { display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; padding-top: 20px; }
+
+    /* ── TABLE ─────────────────────────────────────────────── */
+    .mini-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .mini-tbl th { text-align: left; font-size: 10px; color: var(--gris); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border-bottom: 2px solid #f0ede6; }
+    .mini-tbl td { padding: 7px 8px; border-bottom: 1px solid #f8f5f0; }
+    .mini-tbl tr:last-child td { border-bottom: none; }
+    .mini-tbl tr:hover td { background: #fafaf7; }
+
+    /* ── LOADING ─────────────────────────────────────────────── */
+    .loading { text-align: center; padding: 40px; color: var(--gris); font-size: 14px; }
+    .pulse { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── ANIMATIONS ─────────────────────────────────────────────── */
+    .fade-in { animation: fadeIn 0.5s ease forwards; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .card { animation: fadeIn 0.4s ease forwards; }
+
+    /* ── RESPONSIVE ─────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .header-inner { padding: 20px 16px 0; }
+      .body { padding: 16px; }
+      .nav-tabs { padding: 0 16px; }
+      .headline { grid-template-columns: 1fr; }
+      .grid-2, .grid-3, .grid-4, .nav-grid, .caja-flow { grid-template-columns: 1fr; }
+      .headline-kpis { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-bg"></div>
+  <div class="header-grid"></div>
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="logo-wrap">
+        <div class="logo-icon">🌱</div>
+        <div class="logo-text">
+          <div class="logo-name">Los Crisoles</div>
+          <div class="logo-sub">Dashboard de gestión</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div class="bdata-badge">BData.cl</div>
+        <div class="header-date" id="hdr-date">—</div>
+      </div>
+    </div>
+
+    <div class="headline">
+      <div>
+        <div class="headline-title">Gestión<br><span>Agrícola</span><br></div>
+        <div class="headline-sub">Panel de Control</div>
+      </div>
+      <div class="headline-kpis">
+        <div class="hkpi">
+          <div class="hkpi-val green" id="h-caja">—</div>
+          <div class="hkpi-label">Caja actual</div>
+        </div>
+        <div class="hkpi">
+          <div class="hkpi-val" id="h-costos">—</div>
+          <div class="hkpi-label">Costos acumulados</div>
+        </div>
+        <div class="hkpi">
+          <div class="hkpi-val amber" id="h-vencidas">—</div>
+          <div class="hkpi-label">Labores vencidas</div>
+        </div>
+        <div class="hkpi">
+          <div class="hkpi-val red" id="h-sin-asignar">—</div>
+          <div class="hkpi-label">Docs sin asignar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="ntab on" onclick="switchTab('resumen')">🏠 Resumen</div>
+    <div class="ntab" onclick="switchTab('campo')">🗺 Campo</div>
+    <div class="ntab" onclick="switchTab('finanzas')">💰 Finanzas</div>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- ── RESUMEN ───────────────────────────────────────────── -->
+  <div class="section on" id="sec-resumen">
+    <!-- Nav cards -->
+    <div class="nav-grid" style="margin-bottom:20px;margin-top:4px;">
+      <a class="nav-card verde" href="/reporte">
+        <div class="nav-icon">📋</div>
+        <div class="nav-title">Reporte diario</div>
+        <div class="nav-desc">Labores, caja, costos, ingresos y márgenes del campo</div>
+        <div class="nav-badge badge-verde" id="nav-labores-badge">Cargando...</div>
+      </a>
+      <a class="nav-card azul" href="/produccion">
+        <div class="nav-icon">🌱</div>
+        <div class="nav-title">Producción</div>
+        <div class="nav-desc">Guías de despacho emitidas e insumos recibidos por UP</div>
+        <div class="nav-badge badge-verde" id="nav-prod-badge">Cargando...</div>
+      </a>
+      <a class="nav-card amber" href="/asignar">
+        <div class="nav-icon">📎</div>
+        <div class="nav-title">Asignar docs</div>
+        <div class="nav-desc">Asignar facturas y guías a unidades productivas</div>
+        <div class="nav-badge badge-rojo" id="nav-asignar-badge">Cargando...</div>
+      </a>
+    </div>
+
+    <!-- Labores + Caja -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">⚠️ Labores urgentes</div>
+          <a href="/reporte" class="card-link">Ver todas →</a>
+        </div>
+        <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">🏦 Flujo de caja</div>
+          <a href="/reporte" class="card-link">Ver detalle →</a>
+        </div>
+        <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
+      </div>
+    </div>
+
+    <!-- Costos + Produccion estimada -->
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">💰 Costos por UP</div>
+          <a href="/reporte" class="card-link">Ver detalle →</a>
+        </div>
+        <div class="card-body" id="card-costos"><div class="loading pulse">Cargando...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">📈 Producción estimada</div>
+          <a href="/reporte" class="card-link">Ver ingresos →</a>
+        </div>
+        <div class="card-body" id="card-prod"><div class="loading pulse">Cargando...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CAMPO ───────────────────────────────────────────── -->
+  <div class="section" id="sec-campo">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-head">
+        <div class="card-title">🗺 Mapa de unidades productivas</div>
+        <div style="font-size:11px;color:var(--gris);">Click en marcador para ver detalles</div>
+      </div>
+      <div class="card-body" style="padding:12px;">
+        <div id="mapa-home"></div>
+      </div>
+    </div>
+    <div class="grid-3" id="up-cards"></div>
+  </div>
+
+  <!-- ── FINANZAS ───────────────────────────────────────────── -->
+  <div class="section" id="sec-finanzas">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
+          <a href="/reporte" class="card-link">Ver caja →</a>
+        </div>
+        <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">⬇️ Por cobrar — próximos 30 días</div>
+          <a href="/reporte" class="card-link">Ver caja →</a>
+        </div>
+        <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">📎 Documentos sin asignar</div>
+        <a href="/asignar" class="card-link">Asignar →</a>
+      </div>
+      <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
+const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
+const RUT_LC  = "76099766-8";
+const CAJA_ACTUAL = 61805719;
+const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {}, COORD_MAP = {};
+
+async function fetchSheet(api, sheet) {
+  const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
+  const text = await res.text();
+  try { return JSON.parse(text); } catch(e) { return []; }
+}
+
+function parseDate(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  try {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s))  { const [y,m,d]=s.split("-"); return new Date(+y,+m-1,+d); }
+  } catch(e) {}
+  return null;
+}
+
+function fmtPeso(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
+function fmtPesoFull(n) { return "$" + Math.round(n).toLocaleString("es-CL"); }
+
+function switchTab(tab) {
+  document.querySelectorAll('.ntab').forEach((el,i) => {
+    el.classList.toggle('on', ['resumen','campo','finanzas'][i] === tab);
+  });
+  document.querySelectorAll('.section').forEach(el => el.classList.remove('on'));
+  document.getElementById('sec-'+tab).classList.add('on');
+  if (tab === 'campo' && window._mapa) setTimeout(()=>window._mapa.invalidateSize(),100);
+}
+
+function buildMapa(registros) {
+  const el = document.getElementById('mapa-home');
+  if (!el || window._mapa) return;
+  const puntos = Object.entries(COORD_MAP).map(([id,c]) => ({
+    id, nombre: CC_MAP[id]||id, fundo: FUNDO_MAP[id]||"", ha: HA_MAP[id]||0,
+    lat: c.lat, lng: c.lng
+  }));
+  if (!puntos.length) return;
+  const avgLat = puntos.reduce((s,p)=>s+p.lat,0)/puntos.length;
+  const avgLng = puntos.reduce((s,p)=>s+p.lng,0)/puntos.length;
+  const mapa = L.map('mapa-home').setView([avgLat,avgLng],14);
+  window._mapa = mapa;
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {attribution:"© Esri", maxZoom:19}).addTo(mapa);
+  puntos.forEach(p => {
+    const marker = L.circleMarker([p.lat,p.lng],{
+      radius:10, fillColor:"#1a3a0a", color:"#fff", weight:2, opacity:1, fillOpacity:0.9
+    }).addTo(mapa);
+    marker.bindPopup(`<b>${p.nombre}</b><br>${p.fundo}<br>${p.ha?p.ha+' há':''}`);
+    L.marker([p.lat,p.lng],{
+      icon:L.divIcon({className:"",
+        html:`<div style="font-size:10px;font-weight:bold;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.9);white-space:nowrap;">${p.nombre}</div>`,
+        iconSize:[60,16], iconAnchor:[30,-6]}), interactive:false
+    }).addTo(mapa);
+  });
+  // UP cards
+  const upHTML = puntos.map(p => `
+    <div class="card fade-in">
+      <div class="card-body">
+        <div style="font-size:16px;font-weight:700;margin-bottom:2px;">${p.nombre}</div>
+        <div style="font-size:12px;color:var(--gris);margin-bottom:10px;">${p.fundo}</div>
+        ${p.ha?`<div style="font-size:12px;"><b>${p.ha}</b> hectáreas</div>`:''}
+      </div>
+    </div>`).join('');
+  document.getElementById('up-cards').innerHTML = upHTML;
+}
+
+async function main() {
+  const now = new Date();
+  document.getElementById('hdr-date').textContent =
+    now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const en15 = new Date(hoy); en15.setDate(hoy.getDate()+15);
+  const en30 = new Date(hoy); en30.setDate(hoy.getDate()+30);
+
+  try {
+    const [registros, ccs, docs, proyecciones, asignaciones] = await Promise.all([
+      fetchSheet(API_REG, "BD_Registro"),
+      fetchSheet(API_CC,  "BD_CC"),
+      fetchSheet(API_FIN, "CargaHTML_Demo"),
+      fetchSheet(API_REG, "Proyecciones_Manuales"),
+      fetchSheet(API_FIN, "Asignaciones_U")
+    ]);
+
+    // Build maps
+    (Array.isArray(ccs)?ccs:[]).forEach(c => {
+      const id = String(c["Id_CC"]||"").trim();
+      if (!id) return;
+      CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
+      FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
+      HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0)||0;
+      const coords  = String(c["Coordenadas"]||"").trim();
+      if (coords) { const [lat,lng]=coords.split(",").map(s=>parseFloat(s.trim())); if(!isNaN(lat)&&!isNaN(lng)) COORD_MAP[id]={lat,lng}; }
+    });
+
+    // ── LABORES ──────────────────────────────────────────────────
+    const activos = (Array.isArray(registros)?registros:[]).filter(r =>
+      !["Completado","Anulado"].includes(String(r["Estado Operativo"]||"").trim())
+    );
+    const vencidas = activos.filter(r => { const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; });
+    const urgentes = [...vencidas, ...activos.filter(r => { const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; })].slice(0,6);
+
+    document.getElementById('h-vencidas').textContent = vencidas.length;
+    document.getElementById('nav-labores-badge').textContent = vencidas.length + " vencidas · " + activos.length + " activas";
+    document.getElementById('nav-labores-badge').className = "nav-badge " + (vencidas.length>0?"badge-rojo":"badge-verde");
+
+    const colorEstado = e => e==="Vencido"||parseDate(e)<hoy ? "#ef4444" : "#f59e0b";
+    document.getElementById('card-labores').innerHTML = urgentes.length === 0
+      ? `<div style="text-align:center;padding:20px;color:var(--gris);">✅ Sin labores urgentes</div>`
+      : urgentes.map(r => {
+          const d = parseDate(r["Fecha"]);
+          const venc = d && d<hoy;
+          const cc = CC_MAP[String(r["Centro_Costo"]||"").trim()]||"—";
+          return `<div class="labor-row">
+            <div class="labor-dot" style="background:${venc?"#ef4444":"#f59e0b"};"></div>
+            <div style="flex:1;">
+              <div class="labor-name">${String(r["Labor"]||"").trim()}</div>
+              <div class="labor-up">${cc}</div>
+            </div>
+            <div class="labor-badge" style="background:${venc?"#fee2e2":"#fef3c7"};color:${venc?"#c0392b":"#d97706"};">
+              ${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"}):"—"}
+            </div>
+          </div>`;
+        }).join('');
+
+    // ── CAJA ──────────────────────────────────────────────────
+    const isPend = r => !["pagado","anulado"].includes(String(r["EstadoPago"]||"").toLowerCase());
+    const cobrar = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r));
+    const pagar  = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r));
+    const sumD   = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+    const pagar30  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
+    const cobrar30 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
+    const pagarVenc  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
+    const cobrarVenc = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
+    const saldo30 = CAJA_ACTUAL + sumD(cobrar30) + sumD(cobrarVenc) - sumD(pagar30) - sumD(pagarVenc);
+
+    document.getElementById('h-caja').textContent = fmtPeso(CAJA_ACTUAL);
+    document.getElementById('card-caja').innerHTML = `
+      <div class="caja-flow">
+        <div class="caja-item">
+          <div class="caja-val" style="color:var(--verde);">${fmtPeso(CAJA_ACTUAL)}</div>
+          <div class="caja-lbl">Hoy</div>
+        </div>
+        <div class="caja-item">
+          <div class="caja-val" style="color:#ef4444;">-${fmtPeso(sumD(pagarVenc)+sumD(pagar30))}</div>
+          <div class="caja-lbl">Por pagar</div>
+        </div>
+        <div class="caja-item">
+          <div class="caja-val" style="color:var(--verde2);">+${fmtPeso(sumD(cobrarVenc)+sumD(cobrar30))}</div>
+          <div class="caja-lbl">Por cobrar</div>
+        </div>
+        <div class="caja-item" style="background:#eaf3de;">
+          <div class="caja-val" style="color:${saldo30>=0?"var(--verde)":"#ef4444"};">${fmtPeso(saldo30)}</div>
+          <div class="caja-lbl">Proyectado 30d</div>
+        </div>
+      </div>`;
+
+    // ── COSTOS ──────────────────────────────────────────────────
+    const FECHA_CORTE = "2026-03-30";
+    const costosHist = (Array.isArray(registros)?registros:[]).filter(r => {
+      const raw = String(r["Fecha"]||""); const f = raw.includes("T")?raw.split("T")[0]:raw.slice(0,10);
+      return Number(r["Costo Total"]||0)>0 && (f===""||f<FECHA_CORTE);
+    });
+    const costosNuevos = (Array.isArray(asignaciones)?asignaciones:[]).filter(r => Number(r["Monto_Asignado"]||0)>0);
+    const costoPorCC = {};
+    costosHist.forEach(r => {
+      const id = String(r["Centro_Costo"]||"").trim();
+      costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Costo Total"]||0);
+    });
+    costosNuevos.forEach(r => {
+      const id = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+      costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Monto_Asignado"]||0);
+    });
+    const costoTotal = Object.values(costoPorCC).reduce((s,v)=>s+v,0);
+    const costoRows = Object.entries(costoPorCC).map(([id,v])=>([CC_MAP[id]||id,v])).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    const costoMax = costoRows[0]?.[1]||1;
+
+    document.getElementById('h-costos').textContent = fmtPeso(costoTotal);
+    document.getElementById('card-costos').innerHTML = costoRows.map(([nombre,val]) =>
+      `<div class="bar-row">
+        <div class="bar-label" title="${nombre}">${nombre}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/costoMax*100)}%;background:var(--verde2);"></div></div>
+        <div class="bar-val">${fmtPeso(val)}</div>
+      </div>`).join('');
+
+    // ── PRODUCCION ESTIMADA ──────────────────────────────────────────────────
+    const proy = (Array.isArray(proyecciones)?proyecciones:[]);
+    const ingTotal = proy.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
+    const ingPorUP = {};
+    proy.forEach(r => {
+      const up = CC_MAP[String(r["Unidad_Productiva"]||"").trim()]||String(r["Unidad_Productiva"]||"").trim();
+      ingPorUP[up] = (ingPorUP[up]||0) + Number(r["Monto_Total"]||0);
+    });
+    const ingRows = Object.entries(ingPorUP).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const ingMax  = ingRows[0]?.[1]||1;
+    document.getElementById('card-prod').innerHTML = `
+      <div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:700;color:var(--verde);margin-bottom:14px;">${fmtPeso(ingTotal)}</div>
+      ${ingRows.map(([nombre,val]) => `<div class="bar-row">
+        <div class="bar-label" title="${nombre}">${nombre}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/ingMax*100)}%;background:#0f6e56;"></div></div>
+        <div class="bar-val">${fmtPeso(val)}</div>
+      </div>`).join('')}`;
+    document.getElementById('nav-prod-badge').textContent = ingRows.length + " UPs con proyección";
+
+    // ── DOCS SIN ASIGNAR ──────────────────────────────────────────────────
+    const sinAsignar = (Array.isArray(docs)?docs:[]).filter(d => {
+      const fundo = String(d["Fundo"]||"").trim();
+      const rut   = String(d["RUT Emisor"]||"").trim();
+      return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && rut!==RUT_LC;
+    });
+    document.getElementById('h-sin-asignar').textContent = sinAsignar.length;
+    document.getElementById('nav-asignar-badge').textContent = sinAsignar.length + " pendientes";
+    document.getElementById('nav-asignar-badge').className = "nav-badge " + (sinAsignar.length>0?"badge-rojo":"badge-verde");
+
+    // Finanzas tab content
+    const pagar30HTML = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
+      .sort((a,b)=>(parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0)).slice(0,8)
+      .map(r => {
+        const d = parseDate(r["Fecha_Real"]);
+        return `<tr><td style="color:var(--gris);">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"}):"—"}</td>
+          <td>${String(r["Razón Social"]||"").trim().slice(0,25)}</td>
+          <td style="text-align:right;font-weight:600;color:#ef4444;">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
+      }).join('');
+    document.getElementById('card-pagar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Proveedor</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${pagar30HTML}</tbody></table>`;
+
+    const cobrar30HTML = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
+      .sort((a,b)=>(parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0)).slice(0,8)
+      .map(r => {
+        const d = parseDate(r["Fecha_Real"]);
+        return `<tr><td style="color:var(--gris);">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"}):"—"}</td>
+          <td>${String(r["RznSocRecep"]||r["Razón Social"]||"").trim().slice(0,25)}</td>
+          <td style="text-align:right;font-weight:600;color:var(--verde2);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
+      }).join('');
+    document.getElementById('card-cobrar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${cobrar30HTML}</tbody></table>`;
+
+    document.getElementById('card-sin-asignar').innerHTML = sinAsignar.slice(0,8).map(r => `
+      <tr><td>${String(r["Razón Social"]||"").trim().slice(0,30)}</td>
+      <td style="color:var(--gris);">F:${r["Folio"]||"—"}</td>
+      <td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`)
+      .join('');
+    document.getElementById('card-sin-asignar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Proveedor</th><th>Folio</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsignar.slice(0,8).map(r=>`<tr><td>${String(r["Razón Social"]||"").trim().slice(0,28)}</td><td style="color:var(--gris);">F:${r["Folio"]||"—"}</td><td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`).join('')}</tbody></table>`;
+
+    buildMapa(registros);
+
+  } catch(e) {
+    console.error(e);
+    document.getElementById('card-labores').innerHTML = `<div style="color:#ef4444;font-size:13px;">Error: ${e.message}</div>`;
+  }
+}
+
+main();
+</script>
+</body>
+</html>
