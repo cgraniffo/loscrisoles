@@ -1295,11 +1295,12 @@ function renderCostos() {
   }));
 
   // Costos nuevos Asignaciones_U (desde el corte)
+  // Nota: UP_Nombre contiene el UP_ID real, CC_ID contiene el nombre del CC
   const costosNuevos = (window.ASIGNACIONES||[]).filter(r =>
     Number(r["Monto_Asignado"]||0) > 0
   ).map(r => ({
     _fuente:      "Asignaciones_U",
-    Centro_Costo: String(r["UP_ID"]||"").trim(),
+    Centro_Costo: String(r["UP_Nombre"]||r["UP_ID"]||"").trim(),
     Fecha:        r["Fecha_Asignacion"],
     Tipo_Labor:   String(r["Tipo_Doc"]||"").trim(),
     monto:        Number(r["Monto_Asignado"]||0)
