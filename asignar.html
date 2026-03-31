@@ -76,6 +76,9 @@
     <button class="fbtn"    id="f-guia"      onclick="setFiltro('guia')">Solo guías</button>
     <button class="fbtn"    id="f-factura"   onclick="setFiltro('factura')">Solo facturas</button>
     <div style="width:1px;background:#eee;align-self:stretch;"></div>
+    <div style="width:1px;background:#eee;align-self:stretch;"></div>
+    <div class="filter-label">Desde:</div>
+    <input type="date" id="fecha-desde" style="width:140px;" onchange="render()">
     <div class="filter-label">Usuario:</div>
     <input type="text" id="usuario-input" placeholder="Tu nombre" style="width:140px;" value="">
   </div>
@@ -268,9 +271,14 @@ async function guardar(key, tipo, proveedor, folio, montoTotal) {
 
 function render() {
   const sinAsignar = DOCS.filter(d => !ASIGNADOS.has(d.KEY));
+  const fechaDesde = document.getElementById("fecha-desde")?.value;
   const filtrados  = sinAsignar.filter(d => {
-    if (filtro === "guia")    return d._tipo === "guia";
-    if (filtro === "factura") return d._tipo === "factura";
+    if (filtro === "guia"    && d._tipo !== "guia")    return false;
+    if (filtro === "factura" && d._tipo !== "factura") return false;
+    if (fechaDesde) {
+      const fe = String(d["Fecha Emisión"]||"").split("T")[0];
+      if (fe < fechaDesde) return false;
+    }
     return true;
   });
 
@@ -416,6 +424,13 @@ async function main() {
       </div>`;
   }
 }
+
+// Set default date to yesterday
+const ayer = new Date(); ayer.setDate(ayer.getDate()-1);
+document.addEventListener("DOMContentLoaded", () => {
+  const el = document.getElementById("fecha-desde");
+  if (el) el.value = ayer.toISOString().split("T")[0];
+});
 
 main();
 </script>
