@@ -96,6 +96,12 @@ let filtro = "todos";
 const docState = {};
 
 async function fetchSheet(api, sheet) {
+  // Use worker proxy for FIN api to avoid CORS/redirect issues
+  if (api === API_FIN) {
+    const url = api + "?sheet=" + encodeURIComponent(sheet);
+    const res = await fetch(WORKER + "?url=" + encodeURIComponent(url), { redirect:"follow" });
+    return res.json();
+  }
   const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
   return res.json();
 }
