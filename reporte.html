@@ -1311,17 +1311,17 @@ function renderCostos() {
 
   // Build filter options
   // replaced by TODOS_COSTOS above
-  const ccOpts   = [...new Set(todosConCosto.map(r => String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
+  const ccOpts   = [...new Set(TODOS_COSTOS.map(r => String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
   const fundoOpts = [...new Set(ccOpts.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
 
   const ccBtns    = ccOpts.map(id => `<button class="fbtn${stateCostos.ccs.includes(id)?" on":""}" onclick="toggleCostoMulti('ccs','${id}')">${CC_MAP[id]||id}</button>`).join("");
   const fundoBtns = fundoOpts.map(f  => `<button class="fbtn${stateCostos.fundos.includes(f)?" on":""}" onclick="toggleCostoMulti('fundos','${f}')">${f}</button>`).join("");
 
   // Año y mes options
-  const anioOpts = [...new Set(todosConCosto.map(r => {
+  const anioOpts = [...new Set(TODOS_COSTOS.map(r => {
     const d = parseDate(r["Fecha"]); return d ? d.getFullYear() : null;
   }).filter(Boolean))].sort();
-  const mesOpts = [...new Set(todosConCosto.map(r => {
+  const mesOpts = [...new Set(TODOS_COSTOS.map(r => {
     const d = parseDate(r["Fecha"]); return d ? String(d.getMonth()+1).padStart(2,"0") : null;
   }).filter(Boolean))].sort();
   const MESES = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
