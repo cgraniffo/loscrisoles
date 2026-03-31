@@ -217,12 +217,39 @@
 
     /* ── RESPONSIVE ─────────────────────────────────────────────── */
     @media (max-width: 768px) {
-      .header-inner { padding: 20px 16px 0; }
-      .body { padding: 16px; }
-      .nav-tabs { padding: 0 16px; }
-      .headline { grid-template-columns: 1fr; }
-      .grid-2, .grid-3, .grid-4, .nav-grid, .caja-flow { grid-template-columns: 1fr; }
+      .header-inner { padding: 16px 14px 0; }
+      .logo-name { font-size: 18px; }
+      .bdata-badge { font-size: 9px; padding: 4px 9px; }
+      .body { padding: 12px 14px 32px; }
+      .nav-tabs { padding: 0 14px; overflow-x: auto; white-space: nowrap; }
+      .ntab { font-size: 11px; padding: 8px 14px; }
+      .headline { grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; }
+      .headline-title { font-size: 28px; }
+      .headline-sub { display: none; }
+      .headline-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .hkpi { padding: 10px 12px; }
+      .hkpi-val { font-size: 20px; }
+      .hkpi-label { font-size: 10px; }
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+      .nav-grid { grid-template-columns: 1fr; gap: 10px; }
+      .nav-card { flex-direction: row; align-items: center; gap: 12px; padding: 14px; }
+      .nav-icon { font-size: 24px; flex-shrink: 0; }
+      .nav-desc { display: none; }
+      .caja-flow { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .caja-val { font-size: 16px; }
+      .caja-lbl { font-size: 9px; }
+      .span2 { grid-column: span 1; }
+      #mapa-home { height: 250px; }
+      .mini-tbl { font-size: 11px; }
+      .mini-tbl td, .mini-tbl th { padding: 5px 6px; }
+      .bar-label { width: 80px; font-size: 11px; }
+      .bar-val { width: 55px; font-size: 11px; }
+      .metric-big { font-size: 26px; }
+    }
+    @media (max-width: 480px) {
       .headline-kpis { grid-template-columns: 1fr 1fr; }
+      .hkpi-val { font-size: 17px; }
+      .caja-flow { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -248,8 +275,8 @@
 
     <div class="headline">
       <div>
-        <div class="headline-title">Gestión<br><span>de campo</span><br></div>
-        <div class="headline-sub">Panel de Control</div>
+        <div class="headline-title">Gestión de campo<br><span></span><br></div>
+        <div class="headline-sub">Todos los datos de Los Crisoles en un solo lugar</div>
       </div>
       <div class="headline-kpis">
         <div class="hkpi">
