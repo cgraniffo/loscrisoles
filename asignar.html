@@ -50,6 +50,38 @@
     .badge-guia { background: #eaf3de; color: #3b6d11; }
     .badge-fact { background: #faece7; color: #993c1d; }
     .badge-asig { background: #e6f1fb; color: #0c447c; }
+
+    /* ── RESPONSIVE ────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .hdr { padding: 14px 14px 14px; }
+      .hdr-title { font-size: 18px; }
+      .metrics { grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+      .m-val { font-size: 18px; }
+      .m-label { font-size: 10px; }
+      .body { padding: 12px; }
+      .filters-wrap { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; }
+      .filters-wrap > * { width: 100%; }
+      #fecha-desde, #usuario-input { width: 100% !important; }
+      .doc-head { flex-direction: column; gap: 6px; }
+      .doc-monto { font-size: 18px; }
+      .metodo-tabs { flex-wrap: wrap; }
+      .mtab { font-size: 11px; padding: 5px 10px; }
+      .asig-row { grid-template-columns: 1fr 36px; gap: 6px; }
+      .asig-row > div:nth-child(2),
+      .asig-row > div:nth-child(3),
+      .asig-row > div:nth-child(4) { display: none; }
+      .asig-row-label { display: none; }
+      /* Mobile: show UP selector full width + monto below */
+      .asig-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;
+                  background: #fafaf8; border-radius: 8px; padding: 10px; }
+      .asig-row select { width: 100%; font-size: 14px; }
+      .asig-row input[type=number] { width: 100%; font-size: 14px; padding: 8px 10px; }
+      .asig-row .btn-del { align-self: flex-end; }
+      .resumen { flex-direction: column; gap: 4px; font-size: 13px; }
+      .btn-guardar { width: 100%; padding: 12px; font-size: 15px; }
+      .btn-add { width: 100%; text-align: center; padding: 10px; }
+      .obs-row input { font-size: 14px; padding: 10px; }
+    }
     .loading { text-align: center; color: #888; padding: 40px; font-size: 14px; }
     .empty { text-align: center; color: #aaa; padding: 40px; font-size: 14px; background: #fff; border-radius: 10px; border: 1px solid #e5e2da; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a3a0a; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
@@ -329,8 +361,9 @@ function render() {
             <option value="">— Seleccionar UP —</option>${ccOpts.replace(`value="${f.up_id}"`,`value="${f.up_id}" selected`)}
           </select>
           ${haInfo}
+          ${f.up_id ? `<div style="font-size:11px;color:#0f6e56;margin-top:2px;">${FUNDO_MAP[f.up_id]||""}</div>` : ""}
         </div>
-        <div style="font-size:12px;color:#888;padding-top:6px;">${FUNDO_MAP[f.up_id]||""}</div>
+        <div class="hide-mobile" style="font-size:12px;color:#888;padding-top:6px;">${FUNDO_MAP[f.up_id]||""}</div>
         ${cantInput}
         <div style="font-size:12px;font-weight:bold;color:#1a3a0a;padding-top:6px;">${fmtPeso(f.monto)}</div>
         <button class="btn-del" onclick="delFila('${key}',${i},${monto})" ${s.filas.length<=1?"disabled style='opacity:0.3'":""}>✕</button>
