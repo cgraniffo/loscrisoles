@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asignar Documentos — Los Crisoles</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
+    .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 16px; }
+    .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
+    .hdr-title { font-size: 20px; font-weight: bold; }
+    .hdr-sub { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
+    .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 14px; }
+    .m { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; }
+    .m-val { font-size: 24px; font-weight: bold; color: #fff; }
+    .m-val.red { color: #fca5a5; }
+    .m-label { font-size: 11px; color: #9fe1cb; margin-top: 3px; }
+    .body { padding: 16px; max-width: 900px; margin: 0 auto; }
+    .filters-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; margin-bottom: 14px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .filter-label { font-size: 11px; color: #888; }
+    .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
+    .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
+    select, input[type=text], textarea { border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: Arial, sans-serif; width: 100%; outline: none; }
+    select:focus, input:focus, textarea:focus { border-color: #1a3a0a; }
+    .doc-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 12px; overflow: hidden; }
+    .doc-head { padding: 12px 16px; background: #fef9ec; border-bottom: 1px solid #f0ede6; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .doc-head.factura { background: #faece7; }
+    .doc-nombre { font-size: 14px; font-weight: bold; }
+    .doc-meta { font-size: 12px; color: #888; margin-top: 3px; }
+    .doc-monto { font-size: 16px; font-weight: bold; color: #b45309; white-space: nowrap; }
+    .doc-body { padding: 14px 16px; }
+    .asig-row { display: grid; grid-template-columns: 1fr 1fr 100px 90px 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .asig-row-label { font-size: 11px; color: #888; font-weight: bold; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; display: grid; grid-template-columns: 1fr 1fr 100px 90px 32px; gap: 8px; }
+    .btn-add { font-size: 12px; padding: 6px 14px; border-radius: 6px; border: 1px dashed #1a3a0a; background: transparent; color: #1a3a0a; cursor: pointer; margin-top: 4px; }
+    .btn-add:hover { background: #eaf3de; }
+    .btn-del { background: none; border: none; color: #cc2222; font-size: 16px; cursor: pointer; padding: 0; line-height: 1; }
+    .metodo-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+    .mtab { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
+    .mtab.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
+    .resumen { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid #f0ede6; margin-top: 8px; font-size: 12px; }
+    .resumen-total { font-weight: bold; }
+    .resumen-ok { color: #1a3a0a; }
+    .resumen-err { color: #cc2222; }
+    .btn-guardar { background: #1a3a0a; color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .btn-guardar:hover { background: #2d6a1a; }
+    .btn-guardar:disabled { background: #ccc; cursor: not-allowed; }
+    .obs-row { margin-top: 8px; }
+    .badge-tipo { font-size: 10px; padding: 2px 8px; border-radius: 99px; }
+    .badge-guia { background: #eaf3de; color: #3b6d11; }
+    .badge-fact { background: #faece7; color: #993c1d; }
+    .badge-asig { background: #e6f1fb; color: #0c447c; }
+    .loading { text-align: center; color: #888; padding: 40px; font-size: 14px; }
+    .empty { text-align: center; color: #aaa; padding: 40px; font-size: 14px; background: #fff; border-radius: 10px; border: 1px solid #e5e2da; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a3a0a; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .ha-info { font-size: 10px; color: #0f6e56; margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">Los Crisoles · BData</div>
+  <div class="hdr-title">Asignación de Documentos</div>
+  <div class="hdr-sub">Asigná guías y facturas a sus unidades productivas</div>
+  <div class="metrics">
+    <div class="m"><div class="m-val red" id="m-sin">—</div><div class="m-label">Sin asignar</div></div>
+    <div class="m"><div class="m-val" id="m-parcial">—</div><div class="m-label">Parcialmente asignados</div></div>
+    <div class="m"><div class="m-val" id="m-total-monto">—</div><div class="m-label">Monto sin asignar</div></div>
+  </div>
+</div>
+
+<div class="body">
+  <div class="filters-wrap">
+    <div class="filter-label">Mostrar:</div>
+    <button class="fbtn on" id="f-todos"     onclick="setFiltro('todos')">Todos</button>
+    <button class="fbtn"    id="f-guia"      onclick="setFiltro('guia')">Solo guías</button>
+    <button class="fbtn"    id="f-factura"   onclick="setFiltro('factura')">Solo facturas</button>
+    <div style="width:1px;background:#eee;align-self:stretch;"></div>
+    <div class="filter-label">Usuario:</div>
+    <input type="text" id="usuario-input" placeholder="Tu nombre" style="width:140px;" value="">
+  </div>
+  <div id="app"><div class="loading">Cargando documentos sin asignar...</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
+const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
+const WORKER  = "https://round-night-574d.christian-19c.workers.dev";
+
+const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {};
+let DOCS = [], ASIGNADOS = new Set();
+let filtro = "todos";
+// docState[key] = { metodo, filas: [{up_id, monto, pct}], obs }
+const docState = {};
+
+async function fetchSheet(api, sheet) {
+  const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
+  return res.json();
+}
+
+function fmtPeso(n) { return "$" + Math.round(n).toLocaleString("es-CL"); }
+function fmtPesoK(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
+
+function setFiltro(f) {
+  filtro = f;
+  ["todos","guia","factura"].forEach(x => {
+    document.getElementById("f-"+x).className = "fbtn" + (x===f?" on":"");
+  });
+  render();
+}
+
+function showToast(msg, ok) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = ok ? "#1a3a0a" : "#cc2222";
+  t.style.display = "block";
+  setTimeout(()=>{ t.style.display = "none"; }, 3000);
+}
+
+function getDocState(key, montoTotal) {
+  if (!docState[key]) {
+    docState[key] = {
+      metodo: "porcentaje",
+      filas: [{ up_id:"", monto: montoTotal, pct: 100 }],
+      obs: ""
+    };
+  }
+  return docState[key];
+}
+
+function setMetodo(key, metodo, montoTotal) {
+  const s = docState[key];
+  s.metodo = metodo;
+  if (metodo === "iguales") {
+    const n = s.filas.length || 1;
+    s.filas.forEach(f => { f.monto = Math.round(montoTotal/n); f.pct = Math.round(100/n); });
+  }
+  if (metodo === "hectareas") {
+    distribuirPorHa(key, montoTotal);
+  }
+  render();
+}
+
+function distribuirPorHa(key, montoTotal) {
+  const s = docState[key];
+  const totalHa = s.filas.reduce((sum,f) => sum + (HA_MAP[f.up_id]||0), 0);
+  if (totalHa === 0) return;
+  s.filas.forEach(f => {
+    const ha = HA_MAP[f.up_id]||0;
+    f.pct   = Math.round(ha/totalHa*100);
+    f.monto = Math.round(montoTotal * ha/totalHa);
+  });
+}
+
+function addFila(key, montoTotal) {
+  docState[key].filas.push({ up_id:"", monto:0, pct:0 });
+  recalcMetodo(key, montoTotal);
+  render();
+}
+
+function delFila(key, idx, montoTotal) {
+  docState[key].filas.splice(idx, 1);
+  recalcMetodo(key, montoTotal);
+  render();
+}
+
+function recalcMetodo(key, montoTotal) {
+  const s = docState[key];
+  if (s.metodo === "iguales") {
+    const n = s.filas.length||1;
+    s.filas.forEach(f => { f.monto = Math.round(montoTotal/n); f.pct = Math.round(100/n); });
+  }
+  if (s.metodo === "hectareas") distribuirPorHa(key, montoTotal);
+}
+
+function updateFila(key, idx, campo, valor, montoTotal) {
+  const s = docState[key];
+  const f = s.filas[idx];
+  if (campo === "up_id") {
+    f.up_id = valor;
+    if (s.metodo === "hectareas") distribuirPorHa(key, montoTotal);
+  }
+  if (campo === "monto") {
+    f.monto = Number(valor)||0;
+    f.pct   = montoTotal>0 ? Math.round(f.monto/montoTotal*100) : 0;
+  }
+  if (campo === "pct") {
+    f.pct   = Number(valor)||0;
+    f.monto = Math.round(montoTotal * f.pct/100);
+  }
+  // Re-render just the resumen
+  const resEl = document.getElementById("resumen-"+key.replace(/[^a-z0-9]/gi,"_"));
+  if (resEl) {
+    const totalAsig = s.filas.reduce((sum,ff)=>sum+ff.monto,0);
+    const diff = montoTotal - totalAsig;
+    resEl.innerHTML = buildResumen(totalAsig, diff, montoTotal);
+  }
+}
+
+function buildResumen(totalAsig, diff, montoTotal) {
+  const cls = Math.abs(diff) < 10 ? "resumen-ok" : "resumen-err";
+  return `<span>Asignado: <b>${fmtPeso(totalAsig)}</b></span>
+    <span class="${cls}">Diferencia: <b>${diff >= 0 ? "+" : ""}${fmtPeso(diff)}</b></span>
+    <span>Total doc: <b>${fmtPeso(montoTotal)}</b></span>`;
+}
+
+async function guardar(key, tipo, proveedor, folio, montoTotal) {
+  const s    = docState[key];
+  const user = document.getElementById("usuario-input").value.trim() || "sin usuario";
+
+  if (!s.filas.every(f => f.up_id)) {
+    showToast("Debés seleccionar una UP en cada fila", false);
+    return;
+  }
+  const totalAsig = s.filas.reduce((sum,f)=>sum+f.monto,0);
+  if (Math.abs(totalAsig - montoTotal) > 100) {
+    showToast("El monto asignado no coincide con el total del documento", false);
+    return;
+  }
+
+  const btn = document.getElementById("btn-"+key.replace(/[^a-z0-9]/gi,"_"));
+  if (btn) btn.disabled = true;
+
+  const asignaciones = s.filas.map(f => ({
+    tipo_doc:        tipo,
+    key_documento:   key,
+    proveedor,
+    folio,
+    monto_total_doc: montoTotal,
+    up_id:           f.up_id,
+    up_nombre:       CC_MAP[f.up_id]||f.up_id,
+    fundo:           FUNDO_MAP[f.up_id]||"",
+    metodo:          s.metodo,
+    monto_asignado:  f.monto,
+    porcentaje:      f.pct,
+    observacion:     s.obs,
+    usuario:         user
+  }));
+
+  try {
+    const res = await fetch(WORKER, {
+      method:  "POST",
+      headers: {"Content-Type":"application/json"},
+      body:    JSON.stringify({ asignaciones })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      ASIGNADOS.add(key);
+      showToast("✓ Guardado correctamente — " + asignaciones.length + " asignación(es)", true);
+      render();
+    } else {
+      showToast("Error al guardar: " + (data.error||"desconocido"), false);
+      if (btn) btn.disabled = false;
+    }
+  } catch(e) {
+    showToast("Error de conexión", false);
+    if (btn) btn.disabled = false;
+  }
+}
+
+function render() {
+  const sinAsignar = DOCS.filter(d => !ASIGNADOS.has(d.KEY));
+  const filtrados  = sinAsignar.filter(d => {
+    if (filtro === "guia")    return d._tipo === "guia";
+    if (filtro === "factura") return d._tipo === "factura";
+    return true;
+  });
+
+  // Metrics
+  const montoSin = sinAsignar.reduce((s,d)=>s+Number(d["Monto Total"]||0),0);
+  document.getElementById("m-sin").textContent     = sinAsignar.length;
+  document.getElementById("m-parcial").textContent = Object.keys(docState).filter(k=>!ASIGNADOS.has(k)&&docState[k].filas.some(f=>f.up_id)).length;
+  document.getElementById("m-total-monto").textContent = fmtPesoK(montoSin);
+
+  if (filtrados.length === 0) {
+    document.getElementById("app").innerHTML = `<div class="empty">🎉 No hay documentos sin asignar${filtro!=="todos"?" en esta categoría":""}.</div>`;
+    return;
+  }
+
+  // Build CC options
+  const ccOpts = Object.entries(CC_MAP).map(([id,nombre])=>{
+    const fundo = FUNDO_MAP[id]||"";
+    const ha    = HA_MAP[id]||0;
+    return `<option value="${id}">${nombre}${fundo?" — "+fundo:""}${ha?" ("+ha+"há)":""}</option>`;
+  }).join("");
+
+  const cards = filtrados.map(doc => {
+    const key      = doc.KEY;
+    const safeKey  = key.replace(/[^a-z0-9]/gi,"_");
+    const monto    = Number(doc["Monto Total"]||0);
+    const proveedor= String(doc["Razón Social"]||"").trim();
+    const folio    = doc["Folio"]||"";
+    const fecha    = doc["Fecha Emisión"] ? new Date(doc["Fecha Emisión"]).toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}) : "—";
+    const tipo     = doc._tipo;
+    const s        = getDocState(key, monto);
+
+    const metodoTabs = ["porcentaje","monto","iguales","hectareas"].map(m => {
+      const labels = {porcentaje:"% Porcentaje", monto:"$ Monto fijo", iguales:"÷ Iguales", hectareas:"🌱 Por há"};
+      return `<button class="mtab${s.metodo===m?" on":""}" onclick="setMetodo('${key}','${m}',${monto})">${labels[m]}</button>`;
+    }).join("");
+
+    const filas = s.filas.map((f,i) => {
+      const haInfo = f.up_id && HA_MAP[f.up_id] ? `<div class="ha-info">${HA_MAP[f.up_id]} há</div>` : "";
+      const cantInput = s.metodo === "porcentaje"
+        ? `<input type="number" min="0" max="100" value="${f.pct}" onchange="updateFila('${key}',${i},'pct',this.value,${monto})" placeholder="%">`
+        : s.metodo === "monto"
+        ? `<input type="number" min="0" value="${f.monto}" onchange="updateFila('${key}',${i},'monto',this.value,${monto})" placeholder="$">`
+        : `<input type="number" value="${s.metodo==='iguales'?f.pct:f.pct}" readonly style="background:#f8f8f6;color:#888;">`;
+
+      return `<div class="asig-row">
+        <div>
+          <select onchange="updateFila('${key}',${i},'up_id',this.value,${monto})">
+            <option value="">— Seleccionar UP —</option>${ccOpts.replace(`value="${f.up_id}"`,`value="${f.up_id}" selected`)}
+          </select>
+          ${haInfo}
+        </div>
+        <div style="font-size:12px;color:#888;padding-top:6px;">${FUNDO_MAP[f.up_id]||""}</div>
+        ${cantInput}
+        <div style="font-size:12px;font-weight:bold;color:#1a3a0a;padding-top:6px;">${fmtPeso(f.monto)}</div>
+        <button class="btn-del" onclick="delFila('${key}',${i},${monto})" ${s.filas.length<=1?"disabled style='opacity:0.3'":""}>✕</button>
+      </div>`;
+    }).join("");
+
+    const totalAsig = s.filas.reduce((sum,f)=>sum+f.monto,0);
+    const diff      = monto - totalAsig;
+
+    return `<div class="doc-card">
+      <div class="doc-head ${tipo==="factura"?"factura":""}">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span class="badge-tipo ${tipo==="guia"?"badge-guia":"badge-fact"}">${tipo==="guia"?"Guía despacho":"Factura"}</span>
+            <span style="font-size:11px;color:#888;">F:${folio} · ${fecha}</span>
+          </div>
+          <div class="doc-nombre">${proveedor}</div>
+          <div class="doc-meta">${doc["TermPagoGlosa"]||""}</div>
+        </div>
+        <div class="doc-monto">${fmtPeso(monto)}</div>
+      </div>
+      <div class="doc-body">
+        <div class="metodo-tabs">${metodoTabs}</div>
+        <div class="asig-row-label">
+          <div>Unidad Productiva</div><div>Centro de Costo</div>
+          <div>${s.metodo==="porcentaje"?"%":"Monto $"}</div>
+          <div>Total</div><div></div>
+        </div>
+        ${filas}
+        <button class="btn-add" onclick="addFila('${key}',${monto})">+ Agregar otra UP</button>
+        <div class="obs-row">
+          <input type="text" placeholder="Observación (opcional)" value="${s.obs}"
+            onchange="docState['${key}'].obs=this.value" style="margin-top:8px;">
+        </div>
+        <div class="resumen" id="resumen-${safeKey}">
+          ${buildResumen(totalAsig, diff, monto)}
+        </div>
+        <div style="text-align:right;margin-top:10px;">
+          <button class="btn-guardar" id="btn-${safeKey}"
+            onclick="guardar('${key}','${tipo}','${proveedor.replace(/'/g,"\\'")}','${folio}',${monto})">
+            Guardar asignación
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("app").innerHTML = cards;
+}
+
+async function main() {
+  try {
+    const [docs, ccs, asignaciones] = await Promise.all([
+      fetchSheet(API_FIN, "CargaHTML_Demo"),
+      fetchSheet(API_CC,  "BD_CC"),
+      fetchSheet(API_FIN, "Asignaciones_U")
+    ]);
+
+    // Build CC maps
+    (Array.isArray(ccs)?ccs:[]).forEach(c => {
+      const id = String(c["Id_CC"]||"").trim();
+      if (id) {
+        CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
+        FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
+        HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0)||0;
+      }
+    });
+
+    // Mark already assigned docs
+    (Array.isArray(asignaciones)?asignaciones:[]).forEach(a => {
+      if (a["KEY_Documento"]) ASIGNADOS.add(String(a["KEY_Documento"]).trim());
+    });
+
+    // Filter docs without UP + classify type
+    const RUT_LC = "76099766-8";
+    DOCS = (Array.isArray(docs)?docs:[]).filter(d => {
+      const fundo = String(d["Fundo"]||"").trim();
+      const rut   = String(d["RUT Emisor"]||"").trim();
+      return fundo === "FUNDO_NO_ENCONTRADO" && rut !== RUT_LC;
+    }).map(d => ({
+      ...d,
+      _tipo: Number(d["TipoDTE"]||0) === 52 ? "guia" : "factura"
+    }));
+
+    render();
+  } catch(e) {
+    document.getElementById("app").innerHTML =
+      `<div style="background:#fff8f8;border:1px solid #fca5a5;border-radius:10px;padding:16px;color:#991b1b;font-size:13px;">
+        Error cargando datos: ${e.message}
+      </div>`;
+  }
+}
+
+main();
+</script>
+</body>
+</html>
