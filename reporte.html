@@ -1368,8 +1368,6 @@ function renderCostos() {
   const totalGeneral = conCosto.reduce((s,r) => s + Number(r["Costo Total"]), 0);
   const totalRegistros = conCosto.length;
   // Badge showing data sources
-  const nHistorico = costosHistoricos.length;
-  const nNuevo     = costosNuevos.length;
 
   // Por UP
   const upCostosMap = {};
