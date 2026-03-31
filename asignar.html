@@ -293,7 +293,7 @@ function render() {
   }).join("");
 
   const cards = filtrados.map(doc => {
-    const key      = doc.KEY;
+    const key      = String(doc.KEY||doc["Folio"]||Math.random()).trim();
     const safeKey  = key.replace(/[^a-z0-9]/gi,"_");
     const monto    = Number(doc["Monto Total"]||0);
     const proveedor= String(doc["Razón Social"]||"").trim();
@@ -402,7 +402,7 @@ async function main() {
       const fundo = String(d["Fundo"]||"").trim();
       const rut   = String(d["RUT Emisor"]||"").trim();
       const sinAsig = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO" || fundo === "CC_NO_ENCONTRADO";
-      return sinAsig && rut !== RUT_LC;
+      return sinAsig && rut !== RUT_LC && d["KEY"];
     }).map(d => ({
       ...d,
       _tipo: Number(d["TipoDTE"]||0) === 52 ? "guia" : "factura"
