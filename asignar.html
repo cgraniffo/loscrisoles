@@ -401,7 +401,8 @@ async function main() {
     DOCS = (Array.isArray(docs)?docs:[]).filter(d => {
       const fundo = String(d["Fundo"]||"").trim();
       const rut   = String(d["RUT Emisor"]||"").trim();
-      return fundo === "FUNDO_NO_ENCONTRADO" && rut !== RUT_LC;
+      const sinAsig = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO" || fundo === "CC_NO_ENCONTRADO";
+      return sinAsig && rut !== RUT_LC;
     }).map(d => ({
       ...d,
       _tipo: Number(d["TipoDTE"]||0) === 52 ? "guia" : "factura"
