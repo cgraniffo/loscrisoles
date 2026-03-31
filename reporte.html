@@ -217,8 +217,8 @@ const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVM
 const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {}, COORD_MAP = {};
-window.ACTIVOS = []; window.TODOS = []; window.PROYECCIONES = []; window.DOCUMENTOS = [];
-var ACTIVOS = window.ACTIVOS, TODOS = window.TODOS, PROYECCIONES = window.PROYECCIONES, DOCUMENTOS = window.DOCUMENTOS;
+window.ACTIVOS = []; window.TODOS = []; window.PROYECCIONES = []; window.DOCUMENTOS = []; window.ASIGNACIONES = [];
+var ACTIVOS = window.ACTIVOS, TODOS = window.TODOS, PROYECCIONES = window.PROYECCIONES, DOCUMENTOS = window.DOCUMENTOS, ASIGNACIONES = window.ASIGNACIONES;
 let state = { estados:[], encargados:[], ups:[], fundos:[], soloVencidas:false };
 let stateCostos = { ccs:[], fundos:[], anios:[], meses:[] };
 let stateMargenes = { ups:[], fundos:[] };
@@ -1280,8 +1280,37 @@ function filtrarPorUP(id) {
 
 // ── RENDER COSTOS ──────────────────────────────────────────────────────────
 function renderCostos() {
+  const FECHA_CORTE = "2026-03-30";
+
+  // Costos históricos BD_Registro (antes del corte)
+  const costosHistoricos = (window.TODOS||[]).filter(r => {
+    const fecha = String(r["Fecha"]||"").split("T")[0];
+    return r.monto||0 > 0 && fecha < FECHA_CORTE;
+  }).map(r => ({
+    _fuente:      "BD_Registro",
+    Centro_Costo: String(r["Centro_Costo"]||"").trim(),
+    Fecha:        r["Fecha"],
+    Tipo_Labor:   String(r["Tipo_Labor"]||"").trim(),
+    monto:        r.monto||0
+  }));
+
+  // Costos nuevos Asignaciones_U (desde el corte)
+  const costosNuevos = (window.ASIGNACIONES||[]).filter(r =>
+    Number(r["Monto_Asignado"]||0) > 0
+  ).map(r => ({
+    _fuente:      "Asignaciones_U",
+    Centro_Costo: String(r["UP_ID"]||"").trim(),
+    Fecha:        r["Fecha_Asignacion"],
+    Tipo_Labor:   String(r["Tipo_Doc"]||"").trim(),
+    monto:        Number(r["Monto_Asignado"]||0)
+  }));
+
+  const TODOS_COSTOS = [...costosHistoricos, ...costosNuevos];
+  const nHistorico = costosHistoricos.length;
+  const nNuevo     = costosNuevos.length;
+
   // Build filter options
-  const todosConCosto = TODOS.filter(r => Number(r["Costo Total"]) > 0);
+  // replaced by TODOS_COSTOS above
   const ccOpts   = [...new Set(todosConCosto.map(r => String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
   const fundoOpts = [...new Set(ccOpts.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
 
@@ -1323,7 +1352,7 @@ function renderCostos() {
     </div>
   </div>`;
 
-  const conCosto = todosConCosto.filter(r => {
+  const conCosto = TODOS_COSTOS.filter(r => {
     const ccId  = String(r["Centro_Costo"]||"").trim();
     const fundo = FUNDO_MAP[ccId]||"";
     const d     = parseDate(r["Fecha"]);
@@ -1338,6 +1367,9 @@ function renderCostos() {
 
   const totalGeneral = conCosto.reduce((s,r) => s + Number(r["Costo Total"]), 0);
   const totalRegistros = conCosto.length;
+  // Badge showing data sources
+  const nHistorico = costosHistoricos.length;
+  const nNuevo     = costosNuevos.length;
 
   // Por UP
   const upCostosMap = {};
@@ -1345,7 +1377,7 @@ function renderCostos() {
     const ccId   = String(r["Centro_Costo"]||"").trim();
     const nombre = CC_MAP[ccId] || ccId;
     if (!upCostosMap[ccId]) upCostosMap[ccId] = { nombre, fundo: FUNDO_MAP[ccId]||"", ha: HA_MAP[ccId]||0, total: 0 };
-    upCostosMap[ccId].total += Number(r["Costo Total"]);
+    upCostosMap[ccId].total += r.monto||0;
   });
   const upCostos = Object.values(upCostosMap).sort((a,b) => b.total - a.total);
 
@@ -1456,13 +1488,14 @@ function toggleCostoMulti(key, val) {
 // ── MAIN ───────────────────────────────────────────────────────────────────
 async function main() {
   try {
-    const [registros, ccs, labores, encargados, proyecciones, documentos] = await Promise.all([
+    const [registros, ccs, labores, encargados, proyecciones, documentos, asignaciones] = await Promise.all([
       fetchSheet(API_REGISTRO, "BD_Registro"),
       fetchSheet(API_CC,       "BD_CC"),
       fetchSheet(API_LABORES,  "BD_Labores"),
       fetchSheet(API_REGISTRO, "Encargados"),
       fetchSheet(API_REGISTRO, "Proyecciones_Manuales"),
-      fetchSheet(API_FINANZAS, "CargaHTML_Demo")
+      fetchSheet(API_FINANZAS, "CargaHTML_Demo"),
+      fetchSheet(API_FINANZAS, "Asignaciones_U")
     ]);
 
     ccs.forEach(c => {
@@ -1489,7 +1522,8 @@ async function main() {
 
     TODOS = window.TODOS = registros;
     PROYECCIONES = window.PROYECCIONES = proyecciones;
-    DOCUMENTOS = window.DOCUMENTOS = documentos;
+    DOCUMENTOS   = window.DOCUMENTOS   = documentos;
+    ASIGNACIONES = window.ASIGNACIONES = Array.isArray(asignaciones) ? asignaciones : [];
     ACTIVOS = window.ACTIVOS = registros.filter(r => {
       const est = String(r["Estado Operativo"]||"").trim();
       return est==="En Proceso" || est==="Pendiente";
