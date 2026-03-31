@@ -144,6 +144,18 @@ async function fetchSheet(api, sheet) {
 function fmtPeso(n) { return "$" + Math.round(n).toLocaleString("es-CL"); }
 function fmtPesoK(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
 
+function toggleDocCard(safeKey) {
+  const body  = document.getElementById("doc-body-"  + safeKey);
+  const arrow = document.getElementById("doc-arrow-" + safeKey);
+  if (!body) return;
+  const open = body.style.display === "none";
+  body.style.display    = open ? "block" : "none";
+  arrow.style.transform = open ? "rotate(180deg)" : "";
+  // Store open state
+  const key = Object.keys(docState).find(k => k.replace(/[^a-z0-9]/gi,"_") === safeKey);
+  if (key) docState[key]._open = open;
+}
+
 function setFiltro(f) {
   filtro = f;
   ["todos","guia","factura"].forEach(x => {
@@ -165,7 +177,8 @@ function getDocState(key, montoTotal) {
     docState[key] = {
       metodo: "porcentaje",
       filas: [{ up_id:"", monto: montoTotal, pct: 100 }],
-      obs: ""
+      obs: "",
+      _open: false
     };
   }
   return docState[key];
