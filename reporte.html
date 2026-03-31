@@ -1292,7 +1292,7 @@ function renderCostos() {
     Centro_Costo: String(r["Centro_Costo"]||"").trim(),
     Fecha:        r["Fecha"],
     Tipo_Labor:   String(r["Tipo_Labor"]||"").trim(),
-    monto:        r.monto||0
+    monto:        Number(r["Costo Total"]||0)
   }));
 
   // Costos nuevos Asignaciones_U (desde el corte)
