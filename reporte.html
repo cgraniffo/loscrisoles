@@ -1367,7 +1367,7 @@ function renderCostos() {
     return true;
   });
 
-  const totalGeneral = conCosto.reduce((s,r) => s + Number(r["Costo Total"]), 0);
+  const totalGeneral = conCosto.reduce((s,r) => s + (r.monto||0), 0);
   const totalRegistros = conCosto.length;
   // Badge showing data sources
 
@@ -1384,7 +1384,7 @@ function renderCostos() {
   // Por tipo labor
   const tipoCostos = sumBy(conCosto,
     r => String(r["Tipo_Labor"]||"—").trim(),
-    r => Number(r["Costo Total"])
+    r => r.monto||0
   );
   const tipoMax = tipoCostos[0]?.[1] || 1;
   const tipoHTML = tipoCostos.map(([k,v]) => bar(k, v, tipoMax, "#0f6e56", fmtPeso)).join("");
@@ -1396,7 +1396,7 @@ function renderCostos() {
       if (!d) return "Sin fecha";
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
     },
-    r => Number(r["Costo Total"])
+    r => r.monto||0
   ).sort((a,b) => a[0].localeCompare(b[0]));
   const mesMax = mesCostos.reduce((m,[,v]) => Math.max(m,v), 0);
   // Acumulado por mes
