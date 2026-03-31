@@ -387,38 +387,45 @@ function render() {
     const diff      = monto - totalAsig;
 
     return `<div class="doc-card">
-      <div class="doc-head ${tipo==="factura"?"factura":""}">
-        <div>
+      <div class="doc-head ${tipo==="factura"?"factura":""}"
+        onclick="toggleDocCard('${safeKey}')"
+        style="cursor:pointer;user-select:none;">
+        <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span class="badge-tipo ${tipo==="guia"?"badge-guia":"badge-fact"}">${tipo==="guia"?"Guía despacho":"Factura"}</span>
+            <span class="badge-tipo ${tipo==="guia"?"badge-guia":"badge-fact"}">${tipo==="guia"?"Guía":"Factura"}</span>
             <span style="font-size:11px;color:#888;">F:${folio} · ${fecha}</span>
           </div>
           <div class="doc-nombre">${proveedor}</div>
-          <div class="doc-meta">${doc["TermPagoGlosa"]||""}</div>
+          ${doc["TermPagoGlosa"] ? `<div class="doc-meta">${doc["TermPagoGlosa"]}</div>` : ""}
         </div>
-        <div class="doc-monto">${fmtPeso(monto)}</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+          <div class="doc-monto">${fmtPeso(monto)}</div>
+          <div id="doc-arrow-${safeKey}" style="font-size:13px;color:#aaa;transition:transform 0.2s;">▼</div>
+        </div>
       </div>
-      <div class="doc-body">
-        <div class="metodo-tabs">${metodoTabs}</div>
-        <div class="asig-row-label">
-          <div>Unidad Productiva</div><div>Centro de Costo</div>
-          <div>${s.metodo==="porcentaje"?"%":"Monto $"}</div>
-          <div>Total</div><div></div>
-        </div>
-        ${filas}
-        <button class="btn-add" onclick="addFila('${key}',${monto})">+ Agregar otra UP</button>
-        <div class="obs-row">
-          <input type="text" placeholder="Observación (opcional)" value="${s.obs}"
-            onchange="docState['${key}'].obs=this.value" style="margin-top:8px;">
-        </div>
-        <div class="resumen" id="resumen-${safeKey}">
-          ${buildResumen(totalAsig, diff, monto)}
-        </div>
-        <div style="text-align:right;margin-top:10px;">
-          <button class="btn-guardar" id="btn-${safeKey}"
-            onclick="guardar('${key}','${tipo}','${proveedor.replace(/'/g,"\\'")}','${folio}',${monto})">
-            Guardar asignación
-          </button>
+      <div id="doc-body-${safeKey}" style="display:none;">
+        <div class="doc-body">
+          <div class="metodo-tabs">${metodoTabs}</div>
+          <div class="asig-row-label">
+            <div>Unidad Productiva</div><div>Centro de Costo</div>
+            <div>${s.metodo==="porcentaje"?"%":"Monto $"}</div>
+            <div>Total</div><div></div>
+          </div>
+          ${filas}
+          <button class="btn-add" onclick="addFila('${key}',${monto})">+ Agregar otra UP</button>
+          <div class="obs-row">
+            <input type="text" placeholder="Observación (opcional)" value="${s.obs}"
+              onchange="docState['${key}'].obs=this.value" style="margin-top:8px;">
+          </div>
+          <div class="resumen" id="resumen-${safeKey}">
+            ${buildResumen(totalAsig, diff, monto)}
+          </div>
+          <div style="text-align:right;margin-top:10px;">
+            <button class="btn-guardar" id="btn-${safeKey}"
+              onclick="guardar('${key}','${tipo}','${proveedor.replace(/'/g,"\'")}','${folio}',${monto})">
+              Guardar asignación
+            </button>
+          </div>
         </div>
       </div>
     </div>`;
