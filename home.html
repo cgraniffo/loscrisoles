@@ -388,7 +388,8 @@
 <script>
 const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
 const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
-const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
+const API_FIN     = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
+const API_LABORES = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 const RUT_LC  = "76099766-8";
 const CAJA_ACTUAL = 61805719;
 const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -476,7 +477,7 @@ async function main() {
       fetchSheet(API_FIN, "CargaHTML_Demo"),
       fetchSheet(API_REG, "Proyecciones_Manuales"),
       fetchSheet(API_FIN, "Asignaciones_U"),
-      fetchSheet(API_REG, "BD_Labores"),
+      fetchSheet(API_LABORES, "BD_Labores"),
       fetchSheet(API_REG, "Encargados")
     ]);
 
@@ -493,8 +494,8 @@ async function main() {
 
     // Build LAB_MAP and ENC_MAP
     (Array.isArray(labores)?labores:[]).forEach(r => {
-      const id   = String(r["Id_Labor"]||r["id"]||"").trim();
-      const nombre = String(r["Nombre Labor"]||r["Nombre"]||"").trim();
+      const id     = String(r["Id_Labor"]||"").trim();
+      const nombre = String(r["Nombre Labor"]||"").trim();
       if (id && nombre) LAB_MAP[id] = nombre;
     });
     (Array.isArray(encargados)?encargados:[]).forEach(r => {
