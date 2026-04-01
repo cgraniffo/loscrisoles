@@ -303,7 +303,23 @@ async function guardar(key, tipo, proveedor, folio, montoTotal) {
     if (data.ok) {
       ASIGNADOS.add(key);
       showToast("✓ Guardado correctamente — " + asignaciones.length + " asignación(es)", true);
-      render();
+      // Build detalles lookup: KEY_padre -> [lineas]
+    window.DET_FACTURAS = {};
+    (Array.isArray(detFacturas)?detFacturas:[]).forEach(d => {
+      const key = String(d["ID_Factura_Padre"]||"").trim();
+      if (!key) return;
+      if (!window.DET_FACTURAS[key]) window.DET_FACTURAS[key] = [];
+      window.DET_FACTURAS[key].push(d);
+    });
+    window.DET_GUIAS = {};
+    (Array.isArray(detGuias)?detGuias:[]).forEach(d => {
+      const key = String(d["ID_Guia_Padre"]||"").trim();
+      if (!key) return;
+      if (!window.DET_GUIAS[key]) window.DET_GUIAS[key] = [];
+      window.DET_GUIAS[key].push(d);
+    });
+
+    render();
     } else {
       showToast("Error al guardar: " + (data.error||"desconocido"), false);
       if (btn) btn.disabled = false;
@@ -397,6 +413,24 @@ function render() {
           </div>
           <div class="doc-nombre">${proveedor}</div>
           ${doc["TermPagoGlosa"] ? `<div class="doc-meta">${doc["TermPagoGlosa"]}</div>` : ""}
+          ${(()=>{
+            const dets = tipo==="factura"
+              ? (window.DET_FACTURAS?.[key]||[])
+              : (window.DET_GUIAS?.[key]||[]);
+            if (!dets.length) return "";
+            const rows = dets.slice(0,5).map(d=>
+              `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:11px;">
+                <span style="color:#555;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${String(d["Nombre Item"]||"").trim()}">${String(d["Nombre Item"]||"").trim()}</span>
+                <span style="color:#888;flex-shrink:0;">${Number(d["Cantidad"]||0).toLocaleString("es-CL")} ${d["um"]||""}</span>
+                <span style="font-weight:600;color:#444;flex-shrink:0;">${fmtPeso(Number(d["Monto Item"]||0))}</span>
+              </div>`
+            ).join("");
+            const extra = dets.length>5 ? `<div style="font-size:10px;color:#aaa;margin-top:4px;">+${dets.length-5} líneas más</div>` : "";
+            return `<div style="margin-top:8px;background:#f8f6f2;border-radius:6px;padding:8px 10px;">
+              <div style="font-size:10px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Detalle ${dets.length} línea${dets.length!==1?"s":""}</div>
+              ${rows}${extra}
+            </div>`;
+          })()}
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
           <div class="doc-monto">${fmtPeso(monto)}</div>
@@ -436,11 +470,13 @@ function render() {
 
 async function main() {
   try {
-    const [docs, guias, ccs, asignaciones] = await Promise.all([
+    const [docs, guias, ccs, asignaciones, detFacturas, detGuias] = await Promise.all([
       fetchSheet(API_FIN, "CargaHTML_Demo"),
       fetchSheet(API_FIN, "GuiasDespacho"),
       fetchSheet(API_CC,  "BD_CC"),
-      fetchSheet(API_FIN, "Asignaciones_U")
+      fetchSheet(API_FIN, "Asignaciones_U"),
+      fetchSheet(API_FIN, "DetallesFacturas"),
+      fetchSheet(API_FIN, "DetallesGuias")
     ]);
 
     // Build CC maps
@@ -483,6 +519,22 @@ async function main() {
 
     DOCS = [...facturasSin, ...guiasRecibidas, ...guiasEmitidas]
       .sort((a,b) => new Date(b["Fecha Emisión"]||0) - new Date(a["Fecha Emisión"]||0));
+
+    // Build detalles lookup: KEY_padre -> [lineas]
+    window.DET_FACTURAS = {};
+    (Array.isArray(detFacturas)?detFacturas:[]).forEach(d => {
+      const key = String(d["ID_Factura_Padre"]||"").trim();
+      if (!key) return;
+      if (!window.DET_FACTURAS[key]) window.DET_FACTURAS[key] = [];
+      window.DET_FACTURAS[key].push(d);
+    });
+    window.DET_GUIAS = {};
+    (Array.isArray(detGuias)?detGuias:[]).forEach(d => {
+      const key = String(d["ID_Guia_Padre"]||"").trim();
+      if (!key) return;
+      if (!window.DET_GUIAS[key]) window.DET_GUIAS[key] = [];
+      window.DET_GUIAS[key].push(d);
+    });
 
     render();
   } catch(e) {
