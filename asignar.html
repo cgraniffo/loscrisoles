@@ -339,32 +339,7 @@ async function guardar(key, tipo, proveedor, folio, montoTotal, rutEmisor) {
     if (data.ok) {
       ASIGNADOS.add(key);
       showToast("✓ Guardado correctamente — " + asignaciones.length + " asignación(es)", true);
-      // Build detalles lookup: KEY_padre -> [lineas]
-    window.DET_FACTURAS = {};
-    (Array.isArray(detFacturas)?detFacturas:[]).forEach(d => {
-      const key = String(d["ID_Factura_Padre"]||"").trim();
-      if (!key) return;
-      if (!window.DET_FACTURAS[key]) window.DET_FACTURAS[key] = [];
-      window.DET_FACTURAS[key].push(d);
-    });
-    window.DET_GUIAS = {};
-    window.DET_GUIAS_BY_FOLIO = {};
-    (Array.isArray(detGuias)?detGuias:[]).forEach(d => {
-      const key = String(d["ID_Guia_Padre"]||"").trim();
-      if (key) {
-        if (!window.DET_GUIAS[key]) window.DET_GUIAS[key] = [];
-        window.DET_GUIAS[key].push(d);
-      }
-      const rut   = String(d["RUT Emisor"]||"").trim();
-      const folio = String(d["Folio"]||"").trim();
-      if (rut && folio) {
-        const fk = rut + "-" + folio;
-        if (!window.DET_GUIAS_BY_FOLIO[fk]) window.DET_GUIAS_BY_FOLIO[fk] = [];
-        window.DET_GUIAS_BY_FOLIO[fk].push(d);
-      }
-    });
-
-    render();
+      render();
     } else {
       showToast("Error al guardar: " + (data.error||"desconocido"), false);
       if (btn) btn.disabled = false;
@@ -587,6 +562,21 @@ async function main() {
       window.DET_FACTURAS[key].push(d);
     });
     window.DET_GUIAS = {};
+    window.DET_GUIAS_BY_FOLIO = {};
+    (Array.isArray(detGuias)?detGuias:[]).forEach(d => {
+      const key = String(d["ID_Guia_Padre"]||"").trim();
+      if (key) {
+        if (!window.DET_GUIAS[key]) window.DET_GUIAS[key] = [];
+        window.DET_GUIAS[key].push(d);
+      }
+      const rut   = String(d["RUT Emisor"]||"").trim();
+      const folio = String(d["Folio"]||"").trim();
+      if (rut && folio) {
+        const fk = rut + "-" + folio;
+        if (!window.DET_GUIAS_BY_FOLIO[fk]) window.DET_GUIAS_BY_FOLIO[fk] = [];
+        window.DET_GUIAS_BY_FOLIO[fk].push(d);
+      }
+    });
 
     render();
   } catch(e) {
