@@ -392,7 +392,7 @@ function render() {
         style="cursor:pointer;user-select:none;">
         <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span class="badge-tipo ${tipo==="guia"?"badge-guia":"badge-fact"}">${tipo==="guia"?"Guía":"Factura"}</span>
+            <span class="badge-tipo ${tipo==="guia"?"badge-guia":tipo==="guia-emitida"?"badge-asig":"badge-fact"}">${tipo==="guia"?"Guía recibida":tipo==="guia-emitida"?"Guía emitida":"Factura"}</span>
             <span style="font-size:11px;color:#888;">F:${folio} · ${fecha}</span>
           </div>
           <div class="doc-nombre">${proveedor}</div>
@@ -460,17 +460,29 @@ async function main() {
 
     // Filter docs without UP + classify type
     const RUT_LC = "76099766-8";
-    const sinAsignar = (arr, tipo) => (Array.isArray(arr)?arr:[]).filter(d => {
+    const sinAsignarFiltro = (arr) => (Array.isArray(arr)?arr:[]).filter(d => {
       const fundo = String(d["Fundo"]||"").trim();
-      const rut   = String(d["RUT Emisor"]||"").trim();
       const sinAsig = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO" || fundo === "CC_NO_ENCONTRADO";
-      return sinAsig && rut !== RUT_LC && d["KEY"];
-    }).map(d => ({ ...d, _tipo: tipo }));
+      return sinAsig && d["KEY"];
+    });
 
-    DOCS = [
-      ...sinAsignar(docs,  "factura"),
-      ...sinAsignar(guias, "guia")
-    ].sort((a,b) => new Date(b["Fecha Emisión"]||0) - new Date(a["Fecha Emisión"]||0));
+    // Facturas: solo recibidas (proveedores externos)
+    const facturasSin = sinAsignarFiltro(docs)
+      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
+      .map(d => ({ ...d, _tipo: "factura" }));
+
+    // Guías recibidas (insumos de proveedores)
+    const guiasRecibidas = sinAsignarFiltro(guias)
+      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
+      .map(d => ({ ...d, _tipo: "guia" }));
+
+    // Guías emitidas (producción propia sin UP asignada)
+    const guiasEmitidas = sinAsignarFiltro(guias)
+      .filter(d => String(d["RUT Emisor"]||"").trim() === RUT_LC)
+      .map(d => ({ ...d, _tipo: "guia-emitida" }));
+
+    DOCS = [...facturasSin, ...guiasRecibidas, ...guiasEmitidas]
+      .sort((a,b) => new Date(b["Fecha Emisión"]||0) - new Date(a["Fecha Emisión"]||0));
 
     render();
   } catch(e) {
