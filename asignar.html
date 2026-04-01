@@ -547,9 +547,9 @@ async function main() {
       return sinAsig && d["KEY"];
     });
 
-    // Facturas: solo recibidas (proveedores externos), excluir guías (TipoDTE 52)
+    // Facturas: solo de proveedores externos (excluir TODO lo de Los Crisoles)
     const facturasSin = sinAsignarFiltro(docs)
-      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC && Number(d["TipoDTE"]||0) !== 52)
+      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
       .map(d => ({ ...d, _tipo: "factura" }));
 
     // Guías recibidas (insumos de proveedores)
