@@ -286,7 +286,7 @@ async function guardar(key, tipo, proveedor, folio, montoTotal, rutEmisor) {
     monto_total_doc: montoTotal,
     up_id:           f.up_id,
     up_nombre:       CC_MAP[f.up_id]||f.up_id,
-    cc_id:           f.up_id,
+    cc_id:           FUNDO_MAP[f.up_id]||"",
     cc_nombre:       FUNDO_MAP[f.up_id]||"",
     metodo:          s.metodo,
     monto_asignado:  f.monto,
