@@ -277,7 +277,8 @@ async function guardar(key, tipo, proveedor, folio, montoTotal) {
   const btn = document.getElementById("btn-"+key.replace(/[^a-z0-9]/gi,"_"));
   if (btn) btn.disabled = true;
 
-  const asignaciones = s.filas.map(f => ({
+  // Base row builder
+  const baseRow = (f) => ({
     tipo_doc:        tipo,
     key_documento:   key,
     proveedor,
@@ -292,7 +293,37 @@ async function guardar(key, tipo, proveedor, folio, montoTotal) {
     porcentaje:      f.pct,
     observacion:     s.obs,
     usuario:         user
-  }));
+  });
+
+  let asignaciones = [];
+
+  if (tipo === "guia" || tipo === "guia-emitida") {
+    // One row per detail line per UP
+    const dets = tipo === "guia-emitida"
+      ? (window.DET_GUIAS?.[key] || [])
+      : (window.DET_GUIAS?.[key] || window.DET_FACTURAS?.[key] || []);
+
+    if (dets.length > 0) {
+      s.filas.forEach(f => {
+        dets.forEach(d => {
+          const cant = Number(d["Cantidad"]||0);
+          const pctFactor = f.pct / 100;
+          asignaciones.push({
+            ...baseRow(f),
+            nombre_item: String(d["Nombre Item"]||"").trim(),
+            cantidad:    Math.round(cant * pctFactor * 1000) / 1000,
+            unidad:      String(d["um"]||"").trim()
+          });
+        });
+      });
+    } else {
+      // No detail lines — one row per UP without quantity
+      s.filas.forEach(f => asignaciones.push({ ...baseRow(f), nombre_item:"", cantidad:0, unidad:"" }));
+    }
+  } else {
+    // Facturas — one row per UP, no quantity detail
+    s.filas.forEach(f => asignaciones.push({ ...baseRow(f), nombre_item:"", cantidad:0, unidad:"" }));
+  }
 
   try {
     const res = await fetch(WORKER, {
