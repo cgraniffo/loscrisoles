@@ -414,10 +414,24 @@ function render() {
           <div class="doc-nombre">${proveedor}</div>
           ${doc["TermPagoGlosa"] ? `<div class="doc-meta">${doc["TermPagoGlosa"]}</div>` : ""}
           ${(()=>{
-            const dets = tipo==="factura"
-              ? (window.DET_FACTURAS?.[key]||[])
-              : (window.DET_GUIAS?.[key]||[]);
-            if (!dets.length) return "";
+            // For facturas: key matches ID_Factura_Padre
+            // For guias: key from CargaHTML_Demo, try DET_GUIAS with GuiasDespacho KEY format
+            let dets = [];
+            if (tipo==="factura") {
+              dets = window.DET_FACTURAS?.[key] || [];
+            } else {
+              // Try direct key match first
+              dets = window.DET_GUIAS?.[key] || [];
+              // If not found, try matching by folio+rut pattern from GuiasDespacho
+              if (!dets.length) {
+                const guiaKey = Object.keys(window.DET_GUIAS||{}).find(k => {
+                  const parts = k.split("-");
+                  return parts.length>=2 && key.includes(parts[1]) && key.includes(parts[parts.length-1]);
+                });
+                if (guiaKey) dets = window.DET_GUIAS[guiaKey];
+              }
+            }
+            if (!dets.length) return tipo==="guia" ? '<div style="font-size:11px;color:#bbb;margin-top:6px;padding:6px 8px;">Sin detalle de líneas disponible</div>' : "";
             const rows = dets.slice(0,5).map(d=>
               `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:11px;">
                 <span style="color:#555;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${String(d["Nombre Item"]||"").trim()}">${String(d["Nombre Item"]||"").trim()}</span>
