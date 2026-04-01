@@ -3,1032 +3,596 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Producción e Insumos — Los Crisoles</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <title>Asignar Documentos — Los Crisoles</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
-    .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 0; }
-    .hdr-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+    .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 16px; }
     .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
-    .hdr-title { font-size: 20px; font-weight: bold; color: #fff; }
-    .hdr-date { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
-    .metrics-top { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 0; }
+    .hdr-title { font-size: 20px; font-weight: bold; }
+    .hdr-sub { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
+    .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 14px; }
     .m { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; }
-    .m-val { font-size: 22px; font-weight: bold; color: #fff; line-height: 1; }
-    .m-val.green { color: #86efac; } .m-val.amber { color: #fcd34d; }
-    .m-label { font-size: 11px; color: #9fe1cb; margin-top: 4px; }
-    .tabs { display: flex; gap: 0; margin-top: 16px; }
-    .tab { padding: 10px 22px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 8px 8px 0 0; color: #9fe1cb; background: rgba(255,255,255,0.08); margin-right: 4px; }
-    .tab.on { background: #f0ede6; color: #1a3a0a; }
-    .body { padding: 16px; max-width: 960px; margin: 0 auto; }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-    .stat-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 14px 16px; margin-bottom: 14px; }
-    .stat-title { font-size: 11px; font-weight: bold; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
-    .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .bar-row:last-child { margin-bottom: 0; }
-    .bar-label { font-size: 12px; color: #444; width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bar-wrap { flex: 1; background: #f0ede6; border-radius: 4px; height: 8px; }
-    .bar-fill { height: 8px; border-radius: 4px; }
-    .bar-num { font-size: 11px; font-weight: bold; color: #444; width: 80px; text-align: right; flex-shrink: 0; }
-    .filters-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; margin-bottom: 14px; }
-    .filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
-    .filters-row:last-child { margin-bottom: 0; }
-    .filter-label { font-size: 11px; color: #888; width: 90px; flex-shrink: 0; }
+    .m-val { font-size: 24px; font-weight: bold; color: #fff; }
+    .m-val.red { color: #fca5a5; }
+    .m-label { font-size: 11px; color: #9fe1cb; margin-top: 3px; }
+    .body { padding: 16px; max-width: 900px; margin: 0 auto; }
+    .filters-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; margin-bottom: 14px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .filter-label { font-size: 11px; color: #888; }
     .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
     .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
-    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .tbl th { text-align: left; font-size: 11px; color: #888; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; padding: 6px 10px; border-bottom: 2px solid #f0ede6; }
-    .tbl td { padding: 8px 10px; border-bottom: 1px solid #f5f3ef; vertical-align: top; }
-    .tbl tr:last-child td { border-bottom: none; }
-    .tbl tr:hover td { background: #fafaf8; }
-    .mes-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f5f3ef; }
-    .mes-row:last-child { border-bottom: none; }
-    .mes-label { font-size: 12px; color: #1a1a1a; width: 90px; flex-shrink: 0; }
-    .mes-bar-wrap { flex: 1; background: #f0ede6; border-radius: 4px; height: 8px; }
-    .mes-bar-fill { height: 8px; border-radius: 4px; }
-    .mes-val { font-size: 11px; font-weight: bold; width: 80px; text-align: right; flex-shrink: 0; }
-    #mapa-prod { height: 400px; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 14px; z-index: 0; }
-    .leaflet-popup-content { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6; min-width: 160px; }
-    .popup-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; color: #1a3a0a; }
-    .popup-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
-    .popup-label { color: #888; }
-    .popup-val { font-weight: bold; }
-    .legend-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #555; margin-bottom: 14px; }
-    .loading { text-align: center; color: #666; font-size: 14px; padding: 60px 20px; }
-    .err { background: #fff8f8; border: 1px solid #fca5a5; border-radius: 10px; padding: 16px; color: #991b1b; font-size: 13px; line-height: 1.6; }
-    .footer { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 16px; margin-top: 16px; font-size: 12px; color: #888; text-align: center; }
-    .empty { text-align: center; color: #aaa; font-size: 13px; padding: 24px; }
+    select, input[type=text], textarea { border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: Arial, sans-serif; width: 100%; outline: none; }
+    select:focus, input:focus, textarea:focus { border-color: #1a3a0a; }
+    .doc-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 12px; overflow: hidden; }
+    .doc-head { padding: 12px 16px; background: #fef9ec; border-bottom: 1px solid #f0ede6; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .doc-head.factura { background: #faece7; }
+    .doc-nombre { font-size: 14px; font-weight: bold; }
+    .doc-meta { font-size: 12px; color: #888; margin-top: 3px; }
+    .doc-monto { font-size: 16px; font-weight: bold; color: #b45309; white-space: nowrap; }
+    .doc-body { padding: 14px 16px; }
+    .asig-row { display: grid; grid-template-columns: 1fr 1fr 100px 90px 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .asig-row-label { font-size: 11px; color: #888; font-weight: bold; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; display: grid; grid-template-columns: 1fr 1fr 100px 90px 32px; gap: 8px; }
+    .btn-add { font-size: 12px; padding: 6px 14px; border-radius: 6px; border: 1px dashed #1a3a0a; background: transparent; color: #1a3a0a; cursor: pointer; margin-top: 4px; }
+    .btn-add:hover { background: #eaf3de; }
+    .btn-del { background: none; border: none; color: #cc2222; font-size: 16px; cursor: pointer; padding: 0; line-height: 1; }
+    .metodo-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+    .mtab { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
+    .mtab.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
+    .resumen { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid #f0ede6; margin-top: 8px; font-size: 12px; }
+    .resumen-total { font-weight: bold; }
+    .resumen-ok { color: #1a3a0a; }
+    .resumen-err { color: #cc2222; }
+    .btn-guardar { background: #1a3a0a; color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .btn-guardar:hover { background: #2d6a1a; }
+    .btn-guardar:disabled { background: #ccc; cursor: not-allowed; }
+    .obs-row { margin-top: 8px; }
+    .badge-tipo { font-size: 10px; padding: 2px 8px; border-radius: 99px; }
+    .badge-guia { background: #eaf3de; color: #3b6d11; }
+    .badge-fact { background: #faece7; color: #993c1d; }
+    .badge-asig { background: #e6f1fb; color: #0c447c; }
+
+    /* ── RESPONSIVE ────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .hdr { padding: 14px 14px 14px; }
+      .hdr-title { font-size: 18px; }
+      .metrics { grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+      .m-val { font-size: 18px; }
+      .m-label { font-size: 10px; }
+      .body { padding: 12px; }
+      .filters-wrap { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; }
+      .filters-wrap > * { width: 100%; }
+      #fecha-desde, #usuario-input { width: 100% !important; }
+      .doc-head { flex-direction: column; gap: 6px; }
+      .doc-monto { font-size: 18px; }
+      .metodo-tabs { flex-wrap: wrap; }
+      .mtab { font-size: 11px; padding: 5px 10px; }
+      .asig-row { grid-template-columns: 1fr 36px; gap: 6px; }
+      .asig-row > div:nth-child(2),
+      .asig-row > div:nth-child(3),
+      .asig-row > div:nth-child(4) { display: none; }
+      .asig-row-label { display: none; }
+      /* Mobile: show UP selector full width + monto below */
+      .asig-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;
+                  background: #fafaf8; border-radius: 8px; padding: 10px; }
+      .asig-row select { width: 100%; font-size: 14px; }
+      .asig-row input[type=number] { width: 100%; font-size: 14px; padding: 8px 10px; }
+      .asig-row .btn-del { align-self: flex-end; }
+      .resumen { flex-direction: column; gap: 4px; font-size: 13px; }
+      .btn-guardar { width: 100%; padding: 12px; font-size: 15px; }
+      .btn-add { width: 100%; text-align: center; padding: 10px; }
+      .obs-row input { font-size: 14px; padding: 10px; }
+    }
+    .loading { text-align: center; color: #888; padding: 40px; font-size: 14px; }
+    .empty { text-align: center; color: #aaa; padding: 40px; font-size: 14px; background: #fff; border-radius: 10px; border: 1px solid #e5e2da; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a3a0a; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .ha-info { font-size: 10px; color: #0f6e56; margin-top: 2px; }
   </style>
 </head>
 <body>
+
 <div class="hdr">
-  <div class="hdr-top">
-    <div>
-      <div class="hdr-logo">Los Crisoles · BData</div>
-      <div class="hdr-title">Producción e Insumos</div>
-      <div class="hdr-date" id="hdr-date">—</div>
-    </div>
-    <div style="font-size:11px;color:#9fe1cb;text-align:right;" id="hdr-refresh"></div>
-  </div>
-  <div class="metrics-top" id="metrics-hdr">
-    <div class="m"><div class="m-val green" id="m-guias-prod">—</div><div class="m-label">Guías emitidas</div></div>
-    <div class="m"><div class="m-val green" id="m-kg-prod">—</div><div class="m-label">Kg despachados</div></div>
-    <div class="m"><div class="m-val amber" id="m-guias-comp">—</div><div class="m-label">Guías recibidas</div></div>
-    <div class="m"><div class="m-val amber" id="m-monto-comp">—</div><div class="m-label">Monto insumos</div></div>
-  </div>
-  <div class="tabs">
-    <div class="tab on" id="tab-prod"    onclick="switchTab('prod')">🌱 Producción</div>
-    <div class="tab"    id="tab-insumos" onclick="switchTab('insumos')">📦 Insumos</div>
+  <div class="hdr-logo">Los Crisoles · BData</div>
+  <div class="hdr-title">Asignación de Documentos</div>
+  <div class="hdr-sub">Asigná guías y facturas a sus unidades productivas</div>
+  <div class="metrics">
+    <div class="m"><div class="m-val red" id="m-sin">—</div><div class="m-label">Sin asignar</div></div>
+    <div class="m"><div class="m-val" id="m-parcial">—</div><div class="m-label">Parcialmente asignados</div></div>
+    <div class="m"><div class="m-val" id="m-total-monto">—</div><div class="m-label">Monto sin asignar</div></div>
   </div>
 </div>
 
 <div class="body">
-  <div id="app-prod"><div class="loading">Cargando datos...</div></div>
-  <div id="app-insumos" style="display:none;"><div class="loading">Cargando datos...</div></div>
+  <div class="filters-wrap">
+    <div class="filter-label">Mostrar:</div>
+    <button class="fbtn on" id="f-todos"     onclick="setFiltro('todos')">Todos</button>
+    <button class="fbtn"    id="f-guia"      onclick="setFiltro('guia')">Solo guías</button>
+    <button class="fbtn"    id="f-factura"   onclick="setFiltro('factura')">Solo facturas</button>
+    <div style="width:1px;background:#eee;align-self:stretch;"></div>
+    <div style="width:1px;background:#eee;align-self:stretch;"></div>
+    <div class="filter-label">Desde:</div>
+    <input type="date" id="fecha-desde" style="width:140px;" onchange="render()">
+    <div class="filter-label">Usuario:</div>
+    <input type="text" id="usuario-input" placeholder="Tu nombre" style="width:140px;" value="">
+  </div>
+  <div id="app"><div class="loading">Cargando documentos sin asignar...</div></div>
 </div>
 
-<script>
-const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
-const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
-const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
-const RUT_LC  = "76099766-8";
-const MESES   = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
+<div class="toast" id="toast"></div>
 
-// Global maps
-const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {}, COORD_MAP = {};
-let GUIAS = [], DETALLES = [];
-let stateP = { ccs:[], anios:[], meses:[] };
-let stateI = { provs:[], anios:[], meses:[] };
+<script>
+const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
+const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
+const WORKER  = "https://round-night-574d.christian-19c.workers.dev";
+
+const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {};
+let DOCS = [], ASIGNADOS = new Set();
+let filtro = "todos";
+// docState[key] = { metodo, filas: [{up_id, monto, pct}], obs }
+const docState = {};
 
 async function fetchSheet(api, sheet) {
+  // Use worker proxy for FIN api to avoid CORS/redirect issues
+  if (api === API_FIN) {
+    const url = api + "?sheet=" + encodeURIComponent(sheet);
+    const res = await fetch(WORKER + "?url=" + encodeURIComponent(url), { redirect:"follow" });
+    return res.json();
+  }
   const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
-  if (!res.ok) throw new Error("HTTP " + res.status + " — " + sheet);
   return res.json();
 }
 
-function parseDate(val) {
-  if (!val) return null;
-  const s = String(val).trim();
-  try {
-    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
-    if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(s)) { const sep=s.includes("-")?"-":"/"; const [d,m,y]=s.split(sep); return new Date(+y,+m-1,+d); }
-  } catch(e) {}
-  return null;
-}
+function fmtPeso(n) { return "$" + Math.round(n).toLocaleString("es-CL"); }
+function fmtPesoK(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
 
-function mesKey(d) { return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
-function fmtMesLabel(k) {
-  if (k.length!==7) return k;
-  const [y,m] = k.split("-");
-  return (MESES[m]||m)+" "+y;
-}
-function fmtNum(n) { return Math.round(n).toLocaleString("es-CL"); }
-function fmtPeso(n) { return "$"+Math.round(n/1000).toLocaleString("es-CL")+"k"; }
-
-
-// Normaliza nombre de producto y retorna {nombre, unidad}
-function normalizarProducto(raw) {
-  const s = String(raw||"").trim().toLowerCase();
-  if (s.includes("achicoria"))
-    return { nombre:"Achicoria Industrial", unidad:"ton",  factor:1/1000 };
-  if (s.includes("pepino"))
-    return { nombre:"Semilla Pepino",       unidad:"Bins", factor:1 };
-  if (s.includes("jumbo") || s.includes("repollo"))
-    return { nombre:"Semilla Repollo (Jumbo)", unidad:"Bins", factor:1 };
-  if (s.includes("trigo"))
-    return { nombre:"Trigo Candeal",        unidad:"kg",   factor:1 };
-  if (s.includes("wallace"))
-    return { nombre:"Wallace 1",            unidad:"kg",   factor:1 };
-  return { nombre: String(raw).trim(),      unidad:"kg",   factor:1 };
-}
-
-// Formatea cantidad con su unidad
-function fmtCant(qty, unidad, factor) {
-  const val = qty * (factor||1);
-  if (unidad==="ton")  return (Math.round(val*100)/100).toLocaleString("es-CL",{minimumFractionDigits:2,maximumFractionDigits:2}) + " ton";
-  if (unidad==="Bins") return Math.round(val).toLocaleString("es-CL") + " Bins";
-  return Math.round(val).toLocaleString("es-CL") + " kg";
-}
-
-function toggleBloqueUP(id) {
-  const body  = document.getElementById("body-up-" + id);
-  const arrow = document.getElementById("arr-up-" + id);
+function toggleDocCard(safeKey) {
+  const body  = document.getElementById("doc-body-"  + safeKey);
+  const arrow = document.getElementById("doc-arrow-" + safeKey);
   if (!body) return;
   const open = body.style.display === "none";
   body.style.display    = open ? "block" : "none";
   arrow.style.transform = open ? "rotate(180deg)" : "";
+  // Store open state
+  const key = Object.keys(docState).find(k => k.replace(/[^a-z0-9]/gi,"_") === safeKey);
+  if (key) docState[key]._open = open;
 }
 
-function toggleBloqueProd(id) {
-  const body  = document.getElementById("body-" + id);
-  const arrow = document.getElementById("arr-" + id);
-  if (!body) return;
-  const open = body.style.display === "none";
-  body.style.display    = open ? "block" : "none";
-  arrow.style.transform = open ? "rotate(180deg)" : "";
-}
-
-function switchTab(tab) {
-  ["prod","insumos"].forEach(t => {
-    document.getElementById("tab-"+t).className   = "tab"+(tab===t?" on":"");
-    document.getElementById("app-"+t).style.display = tab===t?"":"none";
+function setFiltro(f) {
+  filtro = f;
+  ["todos","guia","factura"].forEach(x => {
+    document.getElementById("f-"+x).className = "fbtn" + (x===f?" on":"");
   });
-  if (tab==="prod" && window._mapaProd) setTimeout(()=>window._mapaProd.invalidateSize(),100);
+  render();
 }
 
-function toggleP(key, val) {
-  const arr=stateP[key], idx=arr.indexOf(val);
-  if(idx===-1) arr.push(val); else arr.splice(idx,1);
-  renderProd();
-}
-function toggleI(key, val) {
-  const arr=stateI[key], idx=arr.indexOf(val);
-  if(idx===-1) arr.push(val); else arr.splice(idx,1);
-  renderInsumos();
+function showToast(msg, ok) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = ok ? "#1a3a0a" : "#cc2222";
+  t.style.display = "block";
+  setTimeout(()=>{ t.style.display = "none"; }, 3000);
 }
 
-function barRow(label, val, max, color, suffix) {
-  const pct = max>0 ? Math.round(val/max*100) : 0;
-  const disp = suffix ? fmtNum(val)+suffix : fmtPeso(val);
-  return `<div class="bar-row">
-    <div class="bar-label" title="${label}">${label}</div>
-    <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${color};"></div></div>
-    <div class="bar-num">${disp}</div>
-  </div>`;
-}
-
-function mesEvol(data, color, suffix) {
-  if (!data.length) return `<div class="empty">Sin datos</div>`;
-  const total = data.reduce((s,[,v])=>s+v,0);
-  const max = Math.max(...data.map(([,v])=>v),1);
-  let acum = 0;
-  return data.map(([k,v])=>{
-    acum+=v;
-    const pct  = Math.round(v/max*100);
-    const pctA = Math.round(acum/total*100);
-    const disp  = suffix ? fmtNum(v)+suffix  : fmtPeso(v);
-    const dispA = suffix ? fmtNum(acum)+suffix : fmtPeso(acum);
-    return `<div class="mes-row">
-      <div class="mes-label">${fmtMesLabel(k)}</div>
-      <div style="flex:1;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-          <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Mensual</div>
-          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pct}%;background:${color};"></div></div>
-          <div class="mes-val" style="color:${color};">${disp}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Acumulado</div>
-          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:${color}66;"></div></div>
-          <div class="mes-val" style="color:${color}99;">${dispA}</div>
-        </div>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-// ── MAPA ───────────────────────────────────────────────────────────────────
-function initMapaProd(filtradas, detallesFilt, kgPorCC, labelPorCC, prodPorCC) {
-  const el = document.getElementById("mapa-prod");
-  if (!el) return;
-  if (window._mapaProd) { window._mapaProd.remove(); window._mapaProd = null; }
-
-  // kgPorCC, labelPorCC, prodPorCC passed as params from renderProd
-
-  const puntos = Object.entries(COORD_MAP).map(([id, coord]) => {
-    const nombre = CC_MAP[id]||id;
-    const fundo  = FUNDO_MAP[id]||"";
-    const ha     = HA_MAP[id]||0;
-    const kg     = kgPorCC[id]||0;
-    const label  = labelPorCC[id]||"";
-    const prods  = prodPorCC[id]||{};
-    const top3   = Object.entries(prods).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([nombre,val])=>{const {unidad}=normalizarProducto(nombre);return [nombre,val,unidad];});
-    return { id, nombre, fundo, ha, kg, label, top3, lat:coord.lat, lng:coord.lng };
-  });
-
-  if (!puntos.length) return;
-
-  const maxKg = Math.max(...puntos.map(p=>p.kg),1);
-  const avgLat = puntos.reduce((s,p)=>s+p.lat,0)/puntos.length;
-  const avgLng = puntos.reduce((s,p)=>s+p.lng,0)/puntos.length;
-
-  const mapa = L.map("mapa-prod").setView([avgLat, avgLng], 14);
-  window._mapaProd = mapa;
-
-  const satelite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{attribution:"© Esri",maxZoom:19});
-  const osm      = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19});
-  satelite.addTo(mapa);
-  L.control.layers({"🛰 Satélite":satelite,"🗺 Mapa":osm},{},{position:"topright"}).addTo(mapa);
-
-  puntos.forEach(p => {
-    const r = p.kg>0 ? Math.max(10, Math.min(28, Math.round(p.kg/maxKg*24)+8)) : 9;
-    const color = p.kg>0 ? "#1a3a0a" : "#aaa";
-
-    if (p.kg>0) {
-      L.circleMarker([p.lat,p.lng],{radius:r+8,fillColor:color,color:color,weight:1,opacity:0.2,fillOpacity:0.1,interactive:false}).addTo(mapa);
-    }
-
-    const marker = L.circleMarker([p.lat,p.lng],{
-      radius:r, fillColor:color, color:"#fff", weight:2, opacity:1, fillOpacity:0.9
-    }).addTo(mapa);
-
-    const topHTML = p.top3.map(([nombre,val,unidad])=>
-      `<div class="popup-row"><span class="popup-label">${nombre}</span><span class="popup-val">${fmtCant(val,unidad,1)}</span></div>`
-    ).join("");
-
-    marker.bindPopup(`
-      <div class="popup-title">${p.nombre}</div>
-      <div class="popup-row"><span class="popup-label">Centro de Costo</span><span class="popup-val">${p.fundo||"—"}</span></div>
-      <div class="popup-row"><span class="popup-label">Hectáreas</span><span class="popup-val">${p.ha||"—"}</span></div>
-      <div class="popup-row"><span class="popup-label">Despachado</span><span class="popup-val" style="color:#1a3a0a;">${p.label||fmtNum(p.kg)+" kg"}</span></div>
-      ${p.top3.length ? `<div style="margin-top:6px;border-top:1px solid #eee;padding-top:6px;font-size:11px;color:#888;margin-bottom:4px;">Productos</div>${topHTML}` : ""}
-    `);
-
-    L.marker([p.lat,p.lng],{
-      icon: L.divIcon({
-        className:"",
-        html:`<div style="font-size:10px;font-weight:bold;color:#fff;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,0.8);white-space:nowrap;">${p.nombre.replace("Pivote","Piv").replace("Potrero","Pot")}</div>`,
-        iconSize:[60,18], iconAnchor:[30,-8]
-      }),
-      interactive:false
-    }).addTo(mapa);
-  });
-}
-
-// ── PRODUCCION ─────────────────────────────────────────────────────────────
-function renderProd() {
-  const prod = GUIAS.filter(r=>String(r["RUT Emisor"]||"").trim()===RUT_LC);
-
-  // Filter options
-  const ccOpts   = [...new Set(prod.map(r=>String(r["Centro de Costo"]||"").trim()).filter(id=>id&&id!=="CC_NO_ENCONTRADO"))].sort();
-  const anioOpts = [...new Set(prod.map(r=>{const d=parseDate(r["Fecha Emisión"]);return d?String(d.getFullYear()):null;}).filter(Boolean))].sort();
-  const mesOpts  = [...new Set(prod.map(r=>{const d=parseDate(r["Fecha Emisión"]);return d?String(d.getMonth()+1).padStart(2,"0"):null;}).filter(Boolean))].sort();
-
-  const filtradas = prod.filter(r=>{
-    const cc   = String(r["Centro de Costo"]||"").trim();
-    const d    = parseDate(r["Fecha Emisión"]);
-    const anio = d?String(d.getFullYear()):"";
-    const mes  = d?String(d.getMonth()+1).padStart(2,"0"):"";
-    if (stateP.ccs.length>0   && !stateP.ccs.includes(cc))     return false;
-    if (stateP.anios.length>0 && !stateP.anios.includes(anio)) return false;
-    if (stateP.meses.length>0 && !stateP.meses.includes(mes))  return false;
-    return true;
-  });
-
-  const keys     = new Set(filtradas.map(r=>r["KEY"]));
-  const detsFilt = DETALLES.filter(d=>keys.has(d["ID_Guia_Padre"]));
-
-  // ── Build UP tree: UP -> products -> guias ──────────────────────────────
-  // upData[ccId] = { nombre, fundo, productos: { nombreProd: { unidad, guias: [...] } } }
-  const upData = {};
-  filtradas.forEach(g => {
-    const ccId = String(g["Centro de Costo"]||"").trim();
-    if (ccId==="CC_NO_ENCONTRADO") return;
-    if (!upData[ccId]) upData[ccId] = {
-      nombre: CC_MAP[ccId]||ccId,
-      fundo:  FUNDO_MAP[ccId]||"",
-      productos: {}
+function getDocState(key, montoTotal) {
+  if (!docState[key]) {
+    docState[key] = {
+      metodo: "porcentaje",
+      filas: [{ up_id:"", monto: montoTotal, pct: 100 }],
+      obs: "",
+      _open: false
     };
-    const dets = detsFilt.filter(d=>d["ID_Guia_Padre"]===g["KEY"]);
-    dets.forEach(d=>{
-      const {nombre, unidad, factor} = normalizarProducto(d["Nombre Item"]);
-      if (!upData[ccId].productos[nombre]) upData[ccId].productos[nombre] = {unidad, factor, guias:[]};
-      upData[ccId].productos[nombre].guias.push({
-        fecha:  parseDate(g["Fecha Emisión"]),
-        folio:  g["Folio"],
-        cliente:String(g["RznSocRecep"]||"—").trim(),
-        cant:   Number(d["Cantidad"]||0) * factor
-      });
-    });
-  });
-
-  // Sort UPs by total volume descending
-  const upEntries = Object.entries(upData).sort((a,b)=>{
-    const sumA = Object.values(a[1].productos).reduce((s,p)=>s+p.guias.reduce((ss,g)=>ss+g.cant,0),0);
-    const sumB = Object.values(b[1].productos).reduce((s,p)=>s+p.guias.reduce((ss,g)=>ss+g.cant,0),0);
-    return sumB - sumA;
-  });
-
-  // ── Summary cards ───────────────────────────────────────────────────────
-  const summaryCards = upEntries.map(([ccId, up])=>{
-    const prodSummary = Object.entries(up.productos).map(([prod,{unidad,guias}])=>{
-      const total = guias.reduce((s,g)=>s+g.cant,0);
-      return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f5f3ef;font-size:12px;">
-        <span style="color:#444;">${prod}</span>
-        <span style="font-weight:bold;color:#1a3a0a;">${fmtCant(total,unidad,1)}</span>
-      </div>`;
-    }).join("");
-    return `<div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:12px 14px;">
-      <div style="font-size:13px;font-weight:bold;margin-bottom:2px;">${up.nombre}</div>
-      <div style="font-size:11px;color:#888;margin-bottom:8px;">${up.fundo}</div>
-      ${prodSummary}
-    </div>`;
-  }).join("");
-
-  // ── Expandable UP blocks ────────────────────────────────────────────────
-  const upBlocks = upEntries.map(([ccId, up])=>{
-    const prodBlocks = Object.entries(up.productos).map(([prod,{unidad,factor,guias}])=>{
-      const total = guias.reduce((s,g)=>s+g.cant,0);
-
-      // Evolucion mensual
-      const porMes = {};
-      guias.forEach(g=>{
-        if(!g.fecha) return;
-        const k = mesKey(g.fecha);
-        porMes[k] = (porMes[k]||0)+g.cant;
-      });
-      const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
-      const mesMax  = Math.max(...mesRows.map(([,v])=>v),1);
-      let acum=0;
-      const mesHTML = mesRows.map(([k,v])=>{
-        acum+=v;
-        const pct  = Math.round(v/mesMax*100);
-        const pctA = Math.round(acum/total*100);
-        return `<div class="mes-row">
-          <div class="mes-label">${fmtMesLabel(k)}</div>
-          <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-              <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Mensual</div>
-              <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pct}%;background:#1a3a0a;"></div></div>
-              <div class="mes-val" style="color:#1a3a0a;">${fmtCant(v,unidad,1)}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Acumulado</div>
-              <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:#1a3a0a66;"></div></div>
-              <div class="mes-val" style="color:#1a3a0a99;">${fmtCant(acum,unidad,1)}</div>
-            </div>
-          </div>
-        </div>`;
-      }).join("");
-
-      // Detalle guias
-      const detalleRows = [...guias].sort((a,b)=>(b.fecha||0)-(a.fecha||0)).map(g=>`
-        <tr>
-          <td style="color:#888;font-size:12px;">${g.fecha?g.fecha.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}):"—"}</td>
-          <td style="font-size:12px;">F:${g.folio||"—"}</td>
-          <td style="font-size:13px;">${g.cliente}</td>
-          <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtCant(g.cant,unidad,1)}</td>
-        </tr>`).join("");
-
-      return `<div style="border:1px solid #e5e2da;border-radius:8px;margin-bottom:8px;overflow:hidden;">
-        <div onclick="toggleBloqueProd('${ccId}-${prod.replace(/\s+/g,'_')}')"
-          style="background:#f8fff8;padding:9px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:13px;font-weight:bold;color:#1a3a0a;">${prod}</div>
-          <div style="display:flex;align-items:center;gap:12px;">
-            <span style="font-size:13px;font-weight:bold;color:#1a3a0a;">${fmtCant(total,unidad,1)}</span>
-            <span id="arr-${ccId}-${prod.replace(/\s+/g,'_')}" style="font-size:11px;color:#888;">▼</span>
-          </div>
-        </div>
-        <div id="body-${ccId}-${prod.replace(/\s+/g,'_')}" style="display:none;padding:12px 14px;border-top:1px solid #f0ede6;">
-          <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Evolución mensual</div>
-          ${mesHTML||'<div class="empty">Sin datos</div>'}
-          <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin:12px 0 8px;">Detalle guías</div>
-          <div style="overflow-x:auto;">
-            <table class="tbl">
-              <thead><tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th style="text-align:right;">Cantidad</th></tr></thead>
-              <tbody>${detalleRows}</tbody>
-            </table>
-          </div>
-        </div>
-      </div>`;
-    }).join("");
-
-    const upTotal = Object.entries(up.productos).map(([,{unidad,guias}])=>
-      `${fmtCant(guias.reduce((s,g)=>s+g.cant,0),unidad,1)}`
-    ).join(" · ");
-
-    return `<div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;margin-bottom:10px;overflow:hidden;">
-      <div onclick="toggleBloqueUP('${ccId}')"
-        style="background:#f8f8f6;padding:11px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-size:14px;font-weight:bold;">${up.nombre}</div>
-          <div style="font-size:11px;color:#888;margin-top:1px;">${up.fundo}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span style="font-size:12px;color:#1a3a0a;font-weight:bold;">${upTotal}</span>
-          <span id="arr-up-${ccId}" style="font-size:11px;color:#888;">▼</span>
-        </div>
-      </div>
-      <div id="body-up-${ccId}" style="display:none;padding:12px 14px;border-top:1px solid #f0ede6;">
-        ${prodBlocks}
-      </div>
-    </div>`;
-  }).join("");
-
-  // ── Mapa CC totals ──────────────────────────────────────────────────────
-  const kgPorCC = {}, labelPorCC = {};
-  Object.entries(upData).forEach(([ccId, up])=>{
-    const byUnit = {};
-    Object.entries(up.produtos||up.productos).forEach(([,{unidad,guias}])=>{
-      byUnit[unidad]=(byUnit[unidad]||0)+guias.reduce((s,g)=>s+g.cant,0);
-    });
-    kgPorCC[ccId]    = (byUnit["kg"]||0)+(byUnit["ton"]||0)*1000+(byUnit["Bins"]||0)*500;
-    labelPorCC[ccId] = Object.entries(byUnit).map(([u,v])=>fmtCant(v,u,1)).join(" · ");
-  });
-  const prodPorCC = {};
-  Object.entries(upData).forEach(([ccId,up])=>{
-    prodPorCC[ccId]={};
-    Object.entries(up.productos).forEach(([prod,{unidad,guias}])=>{
-      prodPorCC[ccId][prod]=guias.reduce((s,g)=>s+g.cant,0);
-    });
-  });
-
-  const ccBtns   = ccOpts.map(id=>`<button class="fbtn${stateP.ccs.includes(id)?" on":""}" onclick="toggleP('ccs','${id}')">${CC_MAP[id]||id}</button>`).join("");
-  const anioBtns = anioOpts.map(a=>`<button class="fbtn${stateP.anios.includes(a)?" on":""}" onclick="toggleP('anios','${a}')">${a}</button>`).join("");
-  const mesBtns  = mesOpts.map(m=>`<button class="fbtn${stateP.meses.includes(m)?" on":""}" onclick="toggleP('meses','${m}')">${MESES[m]||m}</button>`).join("");
-
-  document.getElementById("app-prod").innerHTML = `
-    <div class="filters-wrap">
-      <div class="filters-row"><div class="filter-label">Unidad prod.</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${ccBtns}</div>
-      <div class="filters-row"><div class="filter-label">Año</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${anioBtns}</div>
-      <div class="filters-row"><div class="filter-label">Mes</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${mesBtns}</div>
-    </div>
-    <div id="mapa-prod"></div>
-    <div class="legend-row">
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a3a0a;"></span>Con producción — tamaño proporcional al volumen</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#aaa;"></span>Sin producción en período</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
-      ${summaryCards}
-    </div>
-    ${upBlocks||'<div class="empty">Sin guías con los filtros seleccionados</div>'}
-    <div class="footer">Guías de despacho emitidas · Los Crisoles · BData</div>`;
-
-  setTimeout(()=>initMapaProd(filtradas, detsFilt, kgPorCC, labelPorCC, prodPorCC), 50);
+  }
+  return docState[key];
 }
 
-// ── INSUMOS ─────────────────────────────────────────────────────────────────
-function renderInsumos() {
-  const comp = GUIAS.filter(r=>String(r["RUT Emisor"]||"").trim()!==RUT_LC);
-
-  const provOpts = [...new Set(comp.map(r=>String(r["Razón Social"]||"").trim()).filter(Boolean))].sort();
-  const anioOpts = [...new Set(comp.map(r=>{const d=parseDate(r["Fecha Emisión"]);return d?String(d.getFullYear()):null;}).filter(Boolean))].sort();
-  const mesOpts  = [...new Set(comp.map(r=>{const d=parseDate(r["Fecha Emisión"]);return d?String(d.getMonth()+1).padStart(2,"0"):null;}).filter(Boolean))].sort();
-
-  const filtradas = comp.filter(r=>{
-    const prov = String(r["Razón Social"]||"").trim();
-    const d    = parseDate(r["Fecha Emisión"]);
-    const anio = d?String(d.getFullYear()):"";
-    const mes  = d?String(d.getMonth()+1).padStart(2,"0"):"";
-    if (stateI.provs.length>0 && !stateI.provs.includes(prov)) return false;
-    if (stateI.anios.length>0 && !stateI.anios.includes(anio)) return false;
-    if (stateI.meses.length>0 && !stateI.meses.includes(mes))  return false;
-    return true;
-  });
-
-  const keys     = new Set(filtradas.map(r=>r["KEY"]));
-  const detsFilt = DETALLES.filter(d=>keys.has(d["ID_Guia_Padre"]));
-
-  // ── Build proveedor tree ─────────────────────────────────────────────────
-  // provData[prov] = { productos: { nombre: { guias: [...] } }, guias: [...] }
-  const provData = {};
-  filtradas.forEach(g => {
-    const prov = String(g["Razón Social"]||"—").trim();
-    if (!provData[prov]) provData[prov] = { productos:{}, totalMonto:0 };
-    provData[prov].totalMonto += Number(g["Monto Total"]||0);
-
-    const dets = detsFilt.filter(d=>d["ID_Guia_Padre"]===g["KEY"]);
-    if (dets.length === 0) {
-      // No detail — add guia directly under a generic product
-      const prod = "Sin detalle";
-      if (!provData[prov].productos[prod]) provData[prov].productos[prod] = {guias:[]};
-      provData[prov].productos[prod].guias.push({
-        fecha: parseDate(g["Fecha Emisión"]),
-        folio: g["Folio"],
-        monto: Number(g["Monto Total"]||0),
-        cant:  null, unidad: null
-      });
-    } else {
-      dets.forEach(d=>{
-        const prod  = String(d["Nombre Item"]||"Sin detalle").trim();
-        const monto = Number(d["Monto Item"]||0);
-        const cant  = Number(d["Cantidad"]||0);
-        const pu    = Number(d["Precio Unitario"]||0);
-        if (!provData[prov].productos[prod]) provData[prov].productos[prod] = {guias:[]};
-        provData[prov].productos[prod].guias.push({
-          fecha: parseDate(g["Fecha Emisión"]),
-          folio: g["Folio"],
-          monto, cant, pu
-        });
-      });
-    }
-  });
-
-  // Sort proveedores by total monto desc
-  const provEntries = Object.entries(provData).sort((a,b)=>b[1].totalMonto-a[1].totalMonto);
-
-  // ── Summary cards ────────────────────────────────────────────────────────
-  const summaryCards = provEntries.map(([prov,{productos,totalMonto}])=>{
-    const topProds = Object.entries(productos)
-      .map(([p,{guias}])=>[p, guias.reduce((s,g)=>s+g.monto,0)])
-      .sort((a,b)=>b[1]-a[1]).slice(0,3);
-    return `<div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:12px 14px;">
-      <div style="font-size:13px;font-weight:bold;margin-bottom:2px;">${prov}</div>
-      <div style="font-size:14px;font-weight:bold;color:#b45309;margin-bottom:8px;">${fmtPeso(totalMonto)}</div>
-      ${topProds.map(([p,m])=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:11px;">
-        <span style="color:#444;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px;" title="${p}">${p}</span>
-        <span style="font-weight:bold;color:#b45309;flex-shrink:0;margin-left:8px;">${fmtPeso(m)}</span>
-      </div>`).join("")}
-    </div>`;
-  }).join("");
-
-  // ── Expandable blocks: Proveedor > Producto > Mes ────────────────────────
-  const provBlocks = provEntries.map(([prov,{productos,totalMonto}])=>{
-    const safeProvId = prov.replace(/[^a-zA-Z0-9]/g,"_");
-
-    // Products sorted by monto desc
-    const prodEntries = Object.entries(productos)
-      .map(([p,{guias}])=>[p, guias, guias.reduce((s,g)=>s+g.monto,0)])
-      .sort((a,b)=>b[2]-a[2]);
-
-    const prodBlocks = prodEntries.map(([prod,guias,totalProd])=>{
-      const safeProdId = (safeProvId+"_"+prod).replace(/[^a-zA-Z0-9]/g,"_");
-
-      // Por mes
-      const porMes = {};
-      guias.forEach(g=>{
-        if(!g.fecha) return;
-        const k=mesKey(g.fecha);
-        porMes[k]=(porMes[k]||0)+g.monto;
-      });
-      const mesRowsP = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
-      const mesMaxP  = Math.max(...mesRowsP.map(([,v])=>v),1);
-      let acum=0;
-      const mesHTML = mesRowsP.map(([k,v])=>{
-        acum+=v;
-        const pct  = Math.round(v/mesMaxP*100);
-        const pctA = Math.round(acum/totalProd*100);
-        return `<div class="mes-row">
-          <div class="mes-label">${fmtMesLabel(k)}</div>
-          <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-              <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Mensual</div>
-              <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pct}%;background:#b45309;"></div></div>
-              <div class="mes-val" style="color:#b45309;">${fmtPeso(v)}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Acumulado</div>
-              <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:#b4530966;"></div></div>
-              <div class="mes-val" style="color:#b4530999;">${fmtPeso(acum)}</div>
-            </div>
-          </div>
-        </div>`;
-      }).join("");
-
-      // Detalle guias
-      const detalleRows = [...guias].sort((a,b)=>(b.fecha||0)-(a.fecha||0)).map(g=>`
-        <tr>
-          <td style="color:#888;font-size:12px;">${g.fecha?g.fecha.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}):"—"}</td>
-          <td style="font-size:12px;">F:${g.folio||"—"}</td>
-          ${g.cant!==null?`<td style="text-align:right;font-size:12px;color:#555;">${fmtNum(g.cant)} u.</td><td style="text-align:right;font-size:12px;color:#555;">$${Math.round(g.pu).toLocaleString("es-CL")}</td>`:`<td colspan="2"></td>`}
-          <td style="text-align:right;font-weight:bold;color:#b45309;">${fmtPeso(g.monto)}</td>
-        </tr>`).join("");
-
-      return `<div style="border:1px solid #f0ede6;border-radius:8px;margin-bottom:6px;overflow:hidden;">
-        <div onclick="toggleBloqueProd('${safeProdId}')"
-          style="background:#fffaf6;padding:9px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:13px;font-weight:bold;color:#854F0B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;">${prod}</div>
-          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-            <span style="font-size:13px;font-weight:bold;color:#b45309;">${fmtPeso(totalProd)}</span>
-            <span id="arr-${safeProdId}" style="font-size:11px;color:#888;transition:transform 0.2s;">▼</span>
-          </div>
-        </div>
-        <div id="body-${safeProdId}" style="display:none;padding:12px 14px;border-top:1px solid #f5f3ef;">
-          <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Evolución mensual</div>
-          ${mesHTML||'<div class="empty">Sin datos</div>'}
-          <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin:12px 0 8px;">Detalle guías</div>
-          <div style="overflow-x:auto;">
-            <table class="tbl">
-              <thead><tr><th>Fecha</th><th>Folio</th><th style="text-align:right;">Cant.</th><th style="text-align:right;">P.Unit.</th><th style="text-align:right;">Monto</th></tr></thead>
-              <tbody>${detalleRows}</tbody>
-            </table>
-          </div>
-        </div>
-      </div>`;
-    }).join("");
-
-    return `<div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;margin-bottom:10px;overflow:hidden;">
-      <div onclick="toggleBloqueUP('ins_${safeProvId}')"
-        style="background:#fff8f4;padding:11px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-size:14px;font-weight:bold;">${prov}</div>
-          <div style="font-size:11px;color:#888;margin-top:1px;">${Object.keys(productos).length} producto${Object.keys(productos).length!==1?"s":""} · ${filtradas.filter(g=>String(g["Razón Social"]||"").trim()===prov).length} guías</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span style="font-size:13px;font-weight:bold;color:#b45309;">${fmtPeso(totalMonto)}</span>
-          <span id="arr-up-ins_${safeProvId}" style="font-size:11px;color:#888;transition:transform 0.2s;">▼</span>
-        </div>
-      </div>
-      <div id="body-up-ins_${safeProvId}" style="display:none;padding:12px 14px;border-top:1px solid #f0ede6;">
-        ${prodBlocks}
-      </div>
-    </div>`;
-  }).join("");
-
-  const provBtns = provOpts.map(p=>`<button class="fbtn${stateI.provs.includes(p)?" on":""}" onclick="toggleI('provs',${JSON.stringify(p)})">${p.length>22?p.slice(0,22)+"…":p}</button>`).join("");
-  const anioBtns = anioOpts.map(a=>`<button class="fbtn${stateI.anios.includes(a)?" on":""}" onclick="toggleI('anios','${a}')">${a}</button>`).join("");
-  const mesBtns  = mesOpts.map(m=>`<button class="fbtn${stateI.meses.includes(m)?" on":""}" onclick="toggleI('meses','${m}')">${MESES[m]||m}</button>`).join("");
-
-  const totalMonto = filtradas.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
-
-  document.getElementById("app-insumos").innerHTML = `
-    <div class="filters-wrap">
-      <div class="filters-row"><div class="filter-label">Proveedor</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${provBtns}</div>
-      <div class="filters-row"><div class="filter-label">Año</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${anioBtns}</div>
-      <div class="filters-row"><div class="filter-label">Mes</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${mesBtns}</div>
-    </div>
-    <div style="background:#fff8f4;border:1px solid #f0d5c0;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-size:13px;color:#854F0B;">Total insumos · ${filtradas.length} guías · ${Object.keys(provData).length} proveedores</div>
-      <div style="font-size:18px;font-weight:bold;color:#b45309;">${fmtPeso(totalMonto)}</div>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
-      ${summaryCards}
-    </div>
-    ${provBlocks||'<div class="empty">Sin guías con los filtros seleccionados</div>'}
-    <div class="footer">Guías de despacho recibidas · Los Crisoles · BData</div>`;
+function setMetodo(key, metodo, montoTotal) {
+  const s = docState[key];
+  s.metodo = metodo;
+  if (metodo === "iguales") {
+    const n = s.filas.length || 1;
+    s.filas.forEach(f => { f.monto = Math.round(montoTotal/n); f.pct = Math.round(100/n); });
+  }
+  if (metodo === "hectareas") {
+    distribuirPorHa(key, montoTotal);
+  }
+  render();
 }
 
-// ── MAPA ───────────────────────────────────────────────────────────────────
-function initMapaProd(filtradas, detallesFilt, kgPorCC, labelPorCC, prodPorCC) {
-  const el = document.getElementById("mapa-prod");
-  if (!el) return;
-  if (window._mapaProd) { window._mapaProd.remove(); window._mapaProd = null; }
-
-  // kgPorCC, labelPorCC, prodPorCC passed as params from renderProd
-
-  const puntos = Object.entries(COORD_MAP).map(([id, coord]) => {
-    const nombre = CC_MAP[id]||id;
-    const fundo  = FUNDO_MAP[id]||"";
-    const ha     = HA_MAP[id]||0;
-    const kg     = kgPorCC[id]||0;
-    const label  = labelPorCC[id]||"";
-    const prods  = prodPorCC[id]||{};
-    const top3   = Object.entries(prods).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([nombre,val])=>{const {unidad}=normalizarProducto(nombre);return [nombre,val,unidad];});
-    return { id, nombre, fundo, ha, kg, label, top3, lat:coord.lat, lng:coord.lng };
-  });
-
-  if (!puntos.length) return;
-
-  const maxKg = Math.max(...puntos.map(p=>p.kg),1);
-  const avgLat = puntos.reduce((s,p)=>s+p.lat,0)/puntos.length;
-  const avgLng = puntos.reduce((s,p)=>s+p.lng,0)/puntos.length;
-
-  const mapa = L.map("mapa-prod").setView([avgLat, avgLng], 14);
-  window._mapaProd = mapa;
-
-  const satelite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",{attribution:"© Esri",maxZoom:19});
-  const osm      = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap",maxZoom:19});
-  satelite.addTo(mapa);
-  L.control.layers({"🛰 Satélite":satelite,"🗺 Mapa":osm},{},{position:"topright"}).addTo(mapa);
-
-  puntos.forEach(p => {
-    const r = p.kg>0 ? Math.max(10, Math.min(28, Math.round(p.kg/maxKg*24)+8)) : 9;
-    const color = p.kg>0 ? "#1a3a0a" : "#aaa";
-
-    if (p.kg>0) {
-      L.circleMarker([p.lat,p.lng],{radius:r+8,fillColor:color,color:color,weight:1,opacity:0.2,fillOpacity:0.1,interactive:false}).addTo(mapa);
-    }
-
-    const marker = L.circleMarker([p.lat,p.lng],{
-      radius:r, fillColor:color, color:"#fff", weight:2, opacity:1, fillOpacity:0.9
-    }).addTo(mapa);
-
-    const topHTML = p.top3.map(([nombre,val,unidad])=>
-      `<div class="popup-row"><span class="popup-label">${nombre}</span><span class="popup-val">${fmtCant(val,unidad,1)}</span></div>`
-    ).join("");
-
-    marker.bindPopup(`
-      <div class="popup-title">${p.nombre}</div>
-      <div class="popup-row"><span class="popup-label">Centro de Costo</span><span class="popup-val">${p.fundo||"—"}</span></div>
-      <div class="popup-row"><span class="popup-label">Hectáreas</span><span class="popup-val">${p.ha||"—"}</span></div>
-      <div class="popup-row"><span class="popup-label">Despachado</span><span class="popup-val" style="color:#1a3a0a;">${p.label||fmtNum(p.kg)+" kg"}</span></div>
-      ${p.top3.length ? `<div style="margin-top:6px;border-top:1px solid #eee;padding-top:6px;font-size:11px;color:#888;margin-bottom:4px;">Productos</div>${topHTML}` : ""}
-    `);
-
-    L.marker([p.lat,p.lng],{
-      icon: L.divIcon({
-        className:"",
-        html:`<div style="font-size:10px;font-weight:bold;color:#fff;text-align:center;text-shadow:0 1px 2px rgba(0,0,0,0.8);white-space:nowrap;">${p.nombre.replace("Pivote","Piv").replace("Potrero","Pot")}</div>`,
-        iconSize:[60,18], iconAnchor:[30,-8]
-      }),
-      interactive:false
-    }).addTo(mapa);
+function distribuirPorHa(key, montoTotal) {
+  const s = docState[key];
+  const totalHa = s.filas.reduce((sum,f) => sum + (HA_MAP[f.up_id]||0), 0);
+  if (totalHa === 0) return;
+  s.filas.forEach(f => {
+    const ha = HA_MAP[f.up_id]||0;
+    f.pct   = Math.round(ha/totalHa*100);
+    f.monto = Math.round(montoTotal * ha/totalHa);
   });
 }
 
-// ── PRODUCCION ─────────────────────────────────────────────────────────────
-function renderProd() {
-  const prod = GUIAS.filter(r=>String(r["RUT Emisor"]||"").trim()===RUT_LC);
-
-  // Filter options
-  const ccOpts   = [...new Set(prod.map(r=>String(r["Centro de Costo"]||"").trim()).filter(id=>id&&id!=="CC_NO_ENCONTRADO"))].sort();
-  const anioOpts = [...new Set(prod.map(r=>{const d=parseDate(r["Fecha Emisión"]);return d?String(d.getFullYear()):null;}).filter(Boolean))].sort();
-  const mesOpts  = [...new Set(prod.map(r=>{const d=parseDate(r["Fecha Emisión"]);return d?String(d.getMonth()+1).padStart(2,"0"):null;}).filter(Boolean))].sort();
-
-  const filtradas = prod.filter(r=>{
-    const cc   = String(r["Centro de Costo"]||"").trim();
-    const d    = parseDate(r["Fecha Emisión"]);
-    const anio = d?String(d.getFullYear()):"";
-    const mes  = d?String(d.getMonth()+1).padStart(2,"0"):"";
-    if (stateP.ccs.length>0   && !stateP.ccs.includes(cc))     return false;
-    if (stateP.anios.length>0 && !stateP.anios.includes(anio)) return false;
-    if (stateP.meses.length>0 && !stateP.meses.includes(mes))  return false;
-    return true;
-  });
-
-  const keys     = new Set(filtradas.map(r=>r["KEY"]));
-  const detsFilt = DETALLES.filter(d=>keys.has(d["ID_Guia_Padre"]));
-
-  // ── Build UP tree: UP -> products -> guias ──────────────────────────────
-  // upData[ccId] = { nombre, fundo, productos: { nombreProd: { unidad, guias: [...] } } }
-  const upData = {};
-  filtradas.forEach(g => {
-    const ccId = String(g["Centro de Costo"]||"").trim();
-    if (ccId==="CC_NO_ENCONTRADO") return;
-    if (!upData[ccId]) upData[ccId] = {
-      nombre: CC_MAP[ccId]||ccId,
-      fundo:  FUNDO_MAP[ccId]||"",
-      productos: {}
-    };
-    const dets = detsFilt.filter(d=>d["ID_Guia_Padre"]===g["KEY"]);
-    dets.forEach(d=>{
-      const {nombre, unidad, factor} = normalizarProducto(d["Nombre Item"]);
-      if (!upData[ccId].productos[nombre]) upData[ccId].productos[nombre] = {unidad, factor, guias:[]};
-      upData[ccId].productos[nombre].guias.push({
-        fecha:  parseDate(g["Fecha Emisión"]),
-        folio:  g["Folio"],
-        cliente:String(g["RznSocRecep"]||"—").trim(),
-        cant:   Number(d["Cantidad"]||0) * factor
-      });
-    });
-  });
-
-  // Sort UPs by total volume descending
-  const upEntries = Object.entries(upData).sort((a,b)=>{
-    const sumA = Object.values(a[1].productos).reduce((s,p)=>s+p.guias.reduce((ss,g)=>ss+g.cant,0),0);
-    const sumB = Object.values(b[1].productos).reduce((s,p)=>s+p.guias.reduce((ss,g)=>ss+g.cant,0),0);
-    return sumB - sumA;
-  });
-
-  // ── Summary cards ───────────────────────────────────────────────────────
-  const summaryCards = upEntries.map(([ccId, up])=>{
-    const prodSummary = Object.entries(up.productos).map(([prod,{unidad,guias}])=>{
-      const total = guias.reduce((s,g)=>s+g.cant,0);
-      return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f5f3ef;font-size:12px;">
-        <span style="color:#444;">${prod}</span>
-        <span style="font-weight:bold;color:#1a3a0a;">${fmtCant(total,unidad,1)}</span>
-      </div>`;
-    }).join("");
-    return `<div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:12px 14px;">
-      <div style="font-size:13px;font-weight:bold;margin-bottom:2px;">${up.nombre}</div>
-      <div style="font-size:11px;color:#888;margin-bottom:8px;">${up.fundo}</div>
-      ${prodSummary}
-    </div>`;
-  }).join("");
-
-  // ── Expandable UP blocks ────────────────────────────────────────────────
-  const upBlocks = upEntries.map(([ccId, up])=>{
-    const prodBlocks = Object.entries(up.productos).map(([prod,{unidad,factor,guias}])=>{
-      const total = guias.reduce((s,g)=>s+g.cant,0);
-
-      // Evolucion mensual
-      const porMes = {};
-      guias.forEach(g=>{
-        if(!g.fecha) return;
-        const k = mesKey(g.fecha);
-        porMes[k] = (porMes[k]||0)+g.cant;
-      });
-      const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
-      const mesMax  = Math.max(...mesRows.map(([,v])=>v),1);
-      let acum=0;
-      const mesHTML = mesRows.map(([k,v])=>{
-        acum+=v;
-        const pct  = Math.round(v/mesMax*100);
-        const pctA = Math.round(acum/total*100);
-        return `<div class="mes-row">
-          <div class="mes-label">${fmtMesLabel(k)}</div>
-          <div style="flex:1;">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-              <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Mensual</div>
-              <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pct}%;background:#1a3a0a;"></div></div>
-              <div class="mes-val" style="color:#1a3a0a;">${fmtCant(v,unidad,1)}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <div style="font-size:10px;color:#888;width:65px;flex-shrink:0;">Acumulado</div>
-              <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:#1a3a0a66;"></div></div>
-              <div class="mes-val" style="color:#1a3a0a99;">${fmtCant(acum,unidad,1)}</div>
-            </div>
-          </div>
-        </div>`;
-      }).join("");
-
-      // Detalle guias
-      const detalleRows = [...guias].sort((a,b)=>(b.fecha||0)-(a.fecha||0)).map(g=>`
-        <tr>
-          <td style="color:#888;font-size:12px;">${g.fecha?g.fecha.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}):"—"}</td>
-          <td style="font-size:12px;">F:${g.folio||"—"}</td>
-          <td style="font-size:13px;">${g.cliente}</td>
-          <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtCant(g.cant,unidad,1)}</td>
-        </tr>`).join("");
-
-      return `<div style="border:1px solid #e5e2da;border-radius:8px;margin-bottom:8px;overflow:hidden;">
-        <div onclick="toggleBloqueProd('${ccId}-${prod.replace(/\s+/g,'_')}')"
-          style="background:#f8fff8;padding:9px 14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:13px;font-weight:bold;color:#1a3a0a;">${prod}</div>
-          <div style="display:flex;align-items:center;gap:12px;">
-            <span style="font-size:13px;font-weight:bold;color:#1a3a0a;">${fmtCant(total,unidad,1)}</span>
-            <span id="arr-${ccId}-${prod.replace(/\s+/g,'_')}" style="font-size:11px;color:#888;">▼</span>
-          </div>
-        </div>
-        <div id="body-${ccId}-${prod.replace(/\s+/g,'_')}" style="display:none;padding:12px 14px;border-top:1px solid #f0ede6;">
-          <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;">Evolución mensual</div>
-          ${mesHTML||'<div class="empty">Sin datos</div>'}
-          <div style="font-size:11px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin:12px 0 8px;">Detalle guías</div>
-          <div style="overflow-x:auto;">
-            <table class="tbl">
-              <thead><tr><th>Fecha</th><th>Folio</th><th>Cliente</th><th style="text-align:right;">Cantidad</th></tr></thead>
-              <tbody>${detalleRows}</tbody>
-            </table>
-          </div>
-        </div>
-      </div>`;
-    }).join("");
-
-    const upTotal = Object.entries(up.productos).map(([,{unidad,guias}])=>
-      `${fmtCant(guias.reduce((s,g)=>s+g.cant,0),unidad,1)}`
-    ).join(" · ");
-
-    return `<div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;margin-bottom:10px;overflow:hidden;">
-      <div onclick="toggleBloqueUP('${ccId}')"
-        style="background:#f8f8f6;padding:11px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-size:14px;font-weight:bold;">${up.nombre}</div>
-          <div style="font-size:11px;color:#888;margin-top:1px;">${up.fundo}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span style="font-size:12px;color:#1a3a0a;font-weight:bold;">${upTotal}</span>
-          <span id="arr-up-${ccId}" style="font-size:11px;color:#888;">▼</span>
-        </div>
-      </div>
-      <div id="body-up-${ccId}" style="display:none;padding:12px 14px;border-top:1px solid #f0ede6;">
-        ${prodBlocks}
-      </div>
-    </div>`;
-  }).join("");
-
-  // ── Mapa CC totals ──────────────────────────────────────────────────────
-  const kgPorCC = {}, labelPorCC = {};
-  Object.entries(upData).forEach(([ccId, up])=>{
-    const byUnit = {};
-    Object.entries(up.produtos||up.productos).forEach(([,{unidad,guias}])=>{
-      byUnit[unidad]=(byUnit[unidad]||0)+guias.reduce((s,g)=>s+g.cant,0);
-    });
-    kgPorCC[ccId]    = (byUnit["kg"]||0)+(byUnit["ton"]||0)*1000+(byUnit["Bins"]||0)*500;
-    labelPorCC[ccId] = Object.entries(byUnit).map(([u,v])=>fmtCant(v,u,1)).join(" · ");
-  });
-  const prodPorCC = {};
-  Object.entries(upData).forEach(([ccId,up])=>{
-    prodPorCC[ccId]={};
-    Object.entries(up.productos).forEach(([prod,{unidad,guias}])=>{
-      prodPorCC[ccId][prod]=guias.reduce((s,g)=>s+g.cant,0);
-    });
-  });
-
-  const ccBtns   = ccOpts.map(id=>`<button class="fbtn${stateP.ccs.includes(id)?" on":""}" onclick="toggleP('ccs','${id}')">${CC_MAP[id]||id}</button>`).join("");
-  const anioBtns = anioOpts.map(a=>`<button class="fbtn${stateP.anios.includes(a)?" on":""}" onclick="toggleP('anios','${a}')">${a}</button>`).join("");
-  const mesBtns  = mesOpts.map(m=>`<button class="fbtn${stateP.meses.includes(m)?" on":""}" onclick="toggleP('meses','${m}')">${MESES[m]||m}</button>`).join("");
-
-  document.getElementById("app-prod").innerHTML = `
-    <div class="filters-wrap">
-      <div class="filters-row"><div class="filter-label">Unidad prod.</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${ccBtns}</div>
-      <div class="filters-row"><div class="filter-label">Año</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${anioBtns}</div>
-      <div class="filters-row"><div class="filter-label">Mes</div><div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>${mesBtns}</div>
-    </div>
-    <div id="mapa-prod"></div>
-    <div class="legend-row">
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a3a0a;"></span>Con producción — tamaño proporcional al volumen</span>
-      <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#aaa;"></span>Sin producción en período</span>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">
-      ${summaryCards}
-    </div>
-    ${upBlocks||'<div class="empty">Sin guías con los filtros seleccionados</div>'}
-    <div class="footer">Guías de despacho emitidas · Los Crisoles · BData</div>`;
-
-  setTimeout(()=>initMapaProd(filtradas, detsFilt, kgPorCC, labelPorCC, prodPorCC), 50);
+function addFila(key, montoTotal) {
+  docState[key].filas.push({ up_id:"", monto:0, pct:0 });
+  recalcMetodo(key, montoTotal);
+  render();
 }
 
-// ── INSUMOS ────────────────────────────────────────────────────────────────
-// ── MAIN ───────────────────────────────────────────────────────────────────
-async function main() {
-  try {
-    const [guias, detalles, ccsRaw, asignaciones] = await Promise.all([
-      fetchSheet(API_FIN, "GuiasDespacho"),
-      fetchSheet(API_FIN, "DetallesGuias"),
-      fetchSheet(API_CC, "BD_CC"),
-      fetchSheet(API_FIN, "Asignaciones_U")
-    ]);
+function delFila(key, idx, montoTotal) {
+  docState[key].filas.splice(idx, 1);
+  recalcMetodo(key, montoTotal);
+  render();
+}
 
-    GUIAS    = Array.isArray(guias)    ? guias    : [];
+function recalcMetodo(key, montoTotal) {
+  const s = docState[key];
+  if (s.metodo === "iguales") {
+    const n = s.filas.length||1;
+    s.filas.forEach(f => { f.monto = Math.round(montoTotal/n); f.pct = Math.round(100/n); });
+  }
+  if (s.metodo === "hectareas") distribuirPorHa(key, montoTotal);
+}
 
-    // Build asignaciones lookup: KEY -> UP_ID
-    const ASIG_MAP = {};
-    (Array.isArray(asignaciones)?asignaciones:[]).forEach(a => {
-      const key = String(a["KEY_Documento"]||"").trim();
-      if (key && a["UP_ID"]) ASIG_MAP[key] = String(a["UP_ID"]).trim();
-    });
-
-    // Enrich guias with UP from Asignaciones_U when CC_NO_ENCONTRADO
-    GUIAS = GUIAS.map(g => {
-      const cc = String(g["Centro de Costo"]||"").trim();
-      if (cc === "CC_NO_ENCONTRADO" || cc === "") {
-        const key = String(g["KEY"]||"").trim();
-        const upId = ASIG_MAP[key];
-        if (upId) return { ...g, "Centro de Costo": upId };
-      }
-      return g;
-    });
-    DETALLES = Array.isArray(detalles) ? detalles : [];
-    const ccs = Array.isArray(ccsRaw)  ? ccsRaw   : [];
-
-    ccs.forEach(c => {
-      const id = String(c["Id_CC"]||"").trim();
-      if (!id) return;
-      CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
-      FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
-      HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0)||0;
-      const coords  = String(c["Coordenadas"]||"").trim();
-      if (coords) {
-        const [lat,lng] = coords.split(",").map(s=>parseFloat(s.trim()));
-        if (!isNaN(lat)&&!isNaN(lng)) COORD_MAP[id] = {lat,lng};
-      }
-    });
-
-    const prod = guias.filter(r=>String(r["RUT Emisor"]||"").trim()===RUT_LC);
-    const comp = guias.filter(r=>String(r["RUT Emisor"]||"").trim()!==RUT_LC);
-    const prodKeys = new Set(prod.map(r=>r["KEY"]));
-    const prodDets = detalles.filter(d=>prodKeys.has(d["ID_Guia_Padre"]));
-    const totalKg  = prodDets.reduce((s,d)=>s+Number(d["Cantidad"]||0),0);
-    const totalComp = comp.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
-
-    document.getElementById("m-guias-prod").textContent = prod.length;
-    document.getElementById("m-kg-prod").textContent    = fmtNum(totalKg)+" kg";
-    document.getElementById("m-guias-comp").textContent = comp.length;
-    document.getElementById("m-monto-comp").textContent = fmtPeso(totalComp);
-
-    const now = new Date();
-    document.getElementById("hdr-date").textContent = now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-    document.getElementById("hdr-refresh").innerHTML = `Actualizado<br>${now.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}`;
-
-    renderProd();
-    renderInsumos();
-
-  } catch(e) {
-    document.getElementById("app-prod").innerHTML = `<div class="err"><strong>No se pudieron cargar los datos</strong><br><br>${e.message}</div>`;
+function updateFila(key, idx, campo, valor, montoTotal) {
+  const s = docState[key];
+  const f = s.filas[idx];
+  if (campo === "up_id") {
+    f.up_id = valor;
+    if (s.metodo === "hectareas") distribuirPorHa(key, montoTotal);
+  }
+  if (campo === "monto") {
+    f.monto = Number(valor)||0;
+    f.pct   = montoTotal>0 ? Math.round(f.monto/montoTotal*100) : 0;
+  }
+  if (campo === "pct") {
+    f.pct   = Number(valor)||0;
+    f.monto = Math.round(montoTotal * f.pct/100);
+  }
+  // Re-render just the resumen
+  const resEl = document.getElementById("resumen-"+key.replace(/[^a-z0-9]/gi,"_"));
+  if (resEl) {
+    const totalAsig = s.filas.reduce((sum,ff)=>sum+ff.monto,0);
+    const diff = montoTotal - totalAsig;
+    resEl.innerHTML = buildResumen(totalAsig, diff, montoTotal);
   }
 }
+
+function buildResumen(totalAsig, diff, montoTotal) {
+  const cls = Math.abs(diff) < 10 ? "resumen-ok" : "resumen-err";
+  return `<span>Asignado: <b>${fmtPeso(totalAsig)}</b></span>
+    <span class="${cls}">Diferencia: <b>${diff >= 0 ? "+" : ""}${fmtPeso(diff)}</b></span>
+    <span>Total doc: <b>${fmtPeso(montoTotal)}</b></span>`;
+}
+
+async function guardar(key, tipo, proveedor, folio, montoTotal, rutEmisor) {
+  const s    = docState[key];
+  const user = document.getElementById("usuario-input").value.trim() || "sin usuario";
+
+  if (!s.filas.every(f => f.up_id)) {
+    showToast("Debés seleccionar una UP en cada fila", false);
+    return;
+  }
+  const totalAsig = s.filas.reduce((sum,f)=>sum+f.monto,0);
+  if (Math.abs(totalAsig - montoTotal) > 100) {
+    showToast("El monto asignado no coincide con el total del documento", false);
+    return;
+  }
+
+  const btn = document.getElementById("btn-"+key.replace(/[^a-z0-9]/gi,"_"));
+  if (btn) btn.disabled = true;
+
+  // Base row builder
+  const baseRow = (f) => ({
+    tipo_doc:        tipo,
+    key_documento:   key,
+    proveedor,
+    folio,
+    monto_total_doc: montoTotal,
+    up_id:           f.up_id,
+    up_nombre:       CC_MAP[f.up_id]||f.up_id,
+    cc_id:           f.up_id,
+    cc_nombre:       FUNDO_MAP[f.up_id]||"",
+    metodo:          s.metodo,
+    monto_asignado:  f.monto,
+    porcentaje:      f.pct,
+    observacion:     s.obs,
+    usuario:         user
+  });
+
+  let asignaciones = [];
+
+  if (tipo === "guia" || tipo === "guia-emitida") {
+    // One row per detail line per UP
+    // Both guia and guia-emitida use DET_GUIAS (GuiasDespacho keys)
+    // Fallback: match by RUT+Folio when id_XML differs between tables
+    let dets = window.DET_GUIAS?.[key] || [];
+    if (!dets.length) {
+      const fk = (rutEmisor||"") + "-" + String(folio||"").trim();
+      dets = window.DET_GUIAS_BY_FOLIO?.[fk] || [];
+    }
+
+    if (dets.length > 0) {
+      s.filas.forEach(f => {
+        dets.forEach(d => {
+          const cant = Number(d["Cantidad"]||0);
+          const pctFactor = f.pct / 100;
+          asignaciones.push({
+            ...baseRow(f),
+            nombre_item: String(d["Nombre Item"]||"").trim(),
+            cantidad:    Math.round(cant * pctFactor * 1000) / 1000,
+            unidad:      String(d["um"]||"").trim()
+          });
+        });
+      });
+    } else {
+      // No detail lines — one row per UP without quantity
+      s.filas.forEach(f => asignaciones.push({ ...baseRow(f), nombre_item:"", cantidad:0, unidad:"" }));
+    }
+  } else {
+    // Facturas — one row per UP, no quantity detail
+    s.filas.forEach(f => asignaciones.push({ ...baseRow(f), nombre_item:"", cantidad:0, unidad:"" }));
+  }
+
+  try {
+    const res = await fetch(WORKER, {
+      method:  "POST",
+      headers: {"Content-Type":"application/json"},
+      body:    JSON.stringify({ asignaciones })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      ASIGNADOS.add(key);
+      showToast("✓ Guardado correctamente — " + asignaciones.length + " asignación(es)", true);
+      render();
+    } else {
+      showToast("Error al guardar: " + (data.error||"desconocido"), false);
+      if (btn) btn.disabled = false;
+    }
+  } catch(e) {
+    showToast("Error de conexión", false);
+    if (btn) btn.disabled = false;
+  }
+}
+
+function render() {
+  const sinAsignar = DOCS.filter(d => !ASIGNADOS.has(d.KEY));
+  const fechaDesde = document.getElementById("fecha-desde")?.value;
+  const filtrados  = sinAsignar.filter(d => {
+    if (filtro === "guia"    && d._tipo !== "guia")    return false;
+    if (filtro === "factura" && d._tipo !== "factura") return false;
+    if (fechaDesde) {
+      const fe = String(d["Fecha Emisión"]||"").split("T")[0];
+      if (fe < fechaDesde) return false;
+    }
+    return true;
+  });
+
+  // Metrics
+  const montoSin = sinAsignar.reduce((s,d)=>s+Number(d["Monto Total"]||0),0);
+  document.getElementById("m-sin").textContent     = sinAsignar.length;
+  document.getElementById("m-parcial").textContent = Object.keys(docState).filter(k=>!ASIGNADOS.has(k)&&docState[k].filas.some(f=>f.up_id)).length;
+  document.getElementById("m-total-monto").textContent = fmtPesoK(montoSin);
+
+  if (filtrados.length === 0) {
+    document.getElementById("app").innerHTML = `<div class="empty">🎉 No hay documentos sin asignar${filtro!=="todos"?" en esta categoría":""}.</div>`;
+    return;
+  }
+
+  // Build CC options
+  const ccOpts = Object.entries(CC_MAP).map(([id,nombre])=>{
+    const fundo = FUNDO_MAP[id]||"";
+    const ha    = HA_MAP[id]||0;
+    return `<option value="${id}">${nombre}${fundo?" — "+fundo:""}${ha?" ("+ha+"há)":""}</option>`;
+  }).join("");
+
+  const cards = filtrados.map(doc => {
+    const key      = String(doc.KEY||doc["Folio"]||Math.random()).trim();
+    const safeKey  = key.replace(/[^a-z0-9]/gi,"_");
+    const monto    = Number(doc["Monto Total"]||0);
+    const proveedor= String(doc["Razón Social"]||"").trim();
+    const folio    = doc["Folio"]||"";
+    const fecha    = doc["Fecha Emisión"] ? new Date(doc["Fecha Emisión"]).toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}) : "—";
+    const tipo     = doc._tipo;
+    const s        = getDocState(key, monto);
+
+    const metodoTabs = ["porcentaje","monto","iguales","hectareas"].map(m => {
+      const labels = {porcentaje:"% Porcentaje", monto:"$ Monto fijo", iguales:"÷ Iguales", hectareas:"🌱 Por há"};
+      return `<button class="mtab${s.metodo===m?" on":""}" onclick="setMetodo('${key}','${m}',${monto})">${labels[m]}</button>`;
+    }).join("");
+
+    const filas = s.filas.map((f,i) => {
+      const haInfo = f.up_id && HA_MAP[f.up_id] ? `<div class="ha-info">${HA_MAP[f.up_id]} há</div>` : "";
+      const cantInput = s.metodo === "porcentaje"
+        ? `<input type="number" min="0" max="100" value="${f.pct}" onchange="updateFila('${key}',${i},'pct',this.value,${monto})" placeholder="%">`
+        : s.metodo === "monto"
+        ? `<input type="number" min="0" value="${f.monto}" onchange="updateFila('${key}',${i},'monto',this.value,${monto})" placeholder="$">`
+        : `<input type="number" value="${s.metodo==='iguales'?f.pct:f.pct}" readonly style="background:#f8f8f6;color:#888;">`;
+
+      return `<div class="asig-row">
+        <div>
+          <select onchange="updateFila('${key}',${i},'up_id',this.value,${monto})">
+            <option value="">— Seleccionar UP —</option>${ccOpts.replace(`value="${f.up_id}"`,`value="${f.up_id}" selected`)}
+          </select>
+          ${haInfo}
+          ${f.up_id ? `<div style="font-size:11px;color:#0f6e56;margin-top:2px;">${FUNDO_MAP[f.up_id]||""}</div>` : ""}
+        </div>
+        <div class="hide-mobile" style="font-size:12px;color:#888;padding-top:6px;">${FUNDO_MAP[f.up_id]||""}</div>
+        ${cantInput}
+        <div style="font-size:12px;font-weight:bold;color:#1a3a0a;padding-top:6px;">${fmtPeso(f.monto)}</div>
+        <button class="btn-del" onclick="delFila('${key}',${i},${monto})" ${s.filas.length<=1?"disabled style='opacity:0.3'":""}>✕</button>
+      </div>`;
+    }).join("");
+
+    const totalAsig = s.filas.reduce((sum,f)=>sum+f.monto,0);
+    const diff      = monto - totalAsig;
+
+    return `<div class="doc-card">
+      <div class="doc-head ${tipo==="factura"?"factura":""}"
+        onclick="toggleDocCard('${safeKey}')"
+        style="cursor:pointer;user-select:none;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span class="badge-tipo ${tipo==="guia"?"badge-guia":tipo==="guia-emitida"?"badge-asig":"badge-fact"}">${tipo==="guia"?"Guía recibida":tipo==="guia-emitida"?"Guía emitida":"Factura"}</span>
+            <span style="font-size:11px;color:#888;">F:${folio} · ${fecha}</span>
+          </div>
+          <div class="doc-nombre">${proveedor}</div>
+          ${doc["TermPagoGlosa"] ? `<div class="doc-meta">${doc["TermPagoGlosa"]}</div>` : ""}
+          ${(()=>{
+            // For facturas: key matches ID_Factura_Padre
+            // For guias: key from CargaHTML_Demo, try DET_GUIAS with GuiasDespacho KEY format
+            let dets = [];
+            if (tipo==="factura") {
+              dets = window.DET_FACTURAS?.[key] || [];
+            } else {
+              dets = window.DET_GUIAS?.[key] || [];
+              if (!dets.length) {
+                const rut   = String(doc["RUT Emisor"]||"").trim();
+                const folio = String(doc["Folio"]||"").trim();
+                dets = window.DET_GUIAS_BY_FOLIO?.[rut+"-"+folio] || [];
+              }
+            }
+            if (!dets.length) return tipo==="guia" ? '<div style="font-size:11px;color:#bbb;margin-top:6px;padding:6px 8px;">Sin detalle de líneas disponible</div>' : "";
+            const rows = dets.slice(0,5).map(d=>
+              `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:11px;">
+                <span style="color:#555;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${String(d["Nombre Item"]||"").trim()}">${String(d["Nombre Item"]||"").trim()}</span>
+                <span style="color:#888;flex-shrink:0;">${Number(d["Cantidad"]||0).toLocaleString("es-CL")} ${d["um"]||""}</span>
+                <span style="font-weight:600;color:#444;flex-shrink:0;">${fmtPeso(Number(d["Monto Item"]||0))}</span>
+              </div>`
+            ).join("");
+            const extra = dets.length>5 ? `<div style="font-size:10px;color:#aaa;margin-top:4px;">+${dets.length-5} líneas más</div>` : "";
+            return `<div style="margin-top:8px;background:#f8f6f2;border-radius:6px;padding:8px 10px;">
+              <div style="font-size:10px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Detalle ${dets.length} línea${dets.length!==1?"s":""}</div>
+              ${rows}${extra}
+            </div>`;
+          })()}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+          <div class="doc-monto">${fmtPeso(monto)}</div>
+          <div id="doc-arrow-${safeKey}" style="font-size:13px;color:#aaa;transition:transform 0.2s;">▼</div>
+        </div>
+      </div>
+      <div id="doc-body-${safeKey}" style="display:none;">
+        <div class="doc-body">
+          <div class="metodo-tabs">${metodoTabs}</div>
+          <div class="asig-row-label">
+            <div>Unidad Productiva</div><div>Centro de Costo</div>
+            <div>${s.metodo==="porcentaje"?"%":"Monto $"}</div>
+            <div>Total</div><div></div>
+          </div>
+          ${filas}
+          <button class="btn-add" onclick="addFila('${key}',${monto})">+ Agregar otra UP</button>
+          <div class="obs-row">
+            <input type="text" placeholder="Observación (opcional)" value="${s.obs}"
+              onchange="docState['${key}'].obs=this.value" style="margin-top:8px;">
+          </div>
+          <div class="resumen" id="resumen-${safeKey}">
+            ${buildResumen(totalAsig, diff, monto)}
+          </div>
+          <div style="text-align:right;margin-top:10px;">
+            <button class="btn-guardar" id="btn-${safeKey}"
+              onclick="guardar('${key}','${tipo}','${proveedor.replace(/'/g,"\'")}','${folio}',${monto},'${String(doc["RUT Emisor"]||"").trim()}')">
+              Guardar asignación
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("app").innerHTML = cards;
+}
+
+async function main() {
+  try {
+    const [docs, guias, ccs, asignaciones, detFacturas, detGuias] = await Promise.all([
+      fetchSheet(API_FIN, "CargaHTML_Demo"),
+      fetchSheet(API_FIN, "GuiasDespacho"),
+      fetchSheet(API_CC,  "BD_CC"),
+      fetchSheet(API_FIN, "Asignaciones_U"),
+      fetchSheet(API_FIN, "DetallesFacturas"),
+      fetchSheet(API_FIN, "DetallesGuias")
+    ]);
+
+    // Build CC maps
+    (Array.isArray(ccs)?ccs:[]).forEach(c => {
+      const id = String(c["Id_CC"]||"").trim();
+      if (id) {
+        CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
+        FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
+        HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0)||0;
+      }
+    });
+
+    // Mark already assigned docs
+    (Array.isArray(asignaciones)?asignaciones:[]).forEach(a => {
+      if (a["KEY_Documento"]) ASIGNADOS.add(String(a["KEY_Documento"]).trim());
+    });
+
+    // Filter docs without UP + classify type
+    const RUT_LC = "76099766-8";
+    const sinAsignarFiltro = (arr) => (Array.isArray(arr)?arr:[]).filter(d => {
+      const fundo = String(d["Fundo"]||"").trim();
+      const sinAsig = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO" || fundo === "CC_NO_ENCONTRADO";
+      return sinAsig && d["KEY"];
+    });
+
+    // Facturas: solo de proveedores externos (excluir TODO lo de Los Crisoles)
+    const facturasSin = sinAsignarFiltro(docs)
+      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
+      .map(d => ({ ...d, _tipo: "factura" }));
+
+    // Guías recibidas (insumos de proveedores)
+    const guiasRecibidas = sinAsignarFiltro(guias)
+      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
+      .map(d => ({ ...d, _tipo: "guia" }));
+
+    // Guías emitidas (producción propia sin CC asignado) — vienen de GuiasDespacho
+    const guiasEmitidas = (Array.isArray(guias)?guias:[]).filter(d => {
+      const cc  = String(d["Centro de Costo"]||"").trim();
+      const rut = String(d["RUT Emisor"]||"").trim();
+      const sinCC = cc === "" || cc === "CC_NO_ENCONTRADO";
+      return sinCC && rut === RUT_LC && d["KEY"];
+    }).map(d => ({ ...d, _tipo: "guia-emitida" }));
+
+    DOCS = [...facturasSin, ...guiasRecibidas, ...guiasEmitidas]
+      .sort((a,b) => new Date(b["Fecha Emisión"]||0) - new Date(a["Fecha Emisión"]||0));
+
+    // Build detalles lookup: KEY_padre -> [lineas]
+    window.DET_FACTURAS = {};
+    (Array.isArray(detFacturas)?detFacturas:[]).forEach(d => {
+      const key = String(d["ID_Factura_Padre"]||"").trim();
+      if (!key) return;
+      if (!window.DET_FACTURAS[key]) window.DET_FACTURAS[key] = [];
+      window.DET_FACTURAS[key].push(d);
+    });
+    window.DET_GUIAS = {};
+    window.DET_GUIAS_BY_FOLIO = {};
+    (Array.isArray(detGuias)?detGuias:[]).forEach(d => {
+      const key = String(d["ID_Guia_Padre"]||"").trim();
+      if (key) {
+        if (!window.DET_GUIAS[key]) window.DET_GUIAS[key] = [];
+        window.DET_GUIAS[key].push(d);
+      }
+      const rut   = String(d["RUT Emisor"]||"").trim();
+      const folio = String(d["Folio"]||"").trim();
+      if (rut && folio) {
+        const fk = rut + "-" + folio;
+        if (!window.DET_GUIAS_BY_FOLIO[fk]) window.DET_GUIAS_BY_FOLIO[fk] = [];
+        window.DET_GUIAS_BY_FOLIO[fk].push(d);
+      }
+    });
+
+    render();
+  } catch(e) {
+    document.getElementById("app").innerHTML =
+      `<div style="background:#fff8f8;border:1px solid #fca5a5;border-radius:10px;padding:16px;color:#991b1b;font-size:13px;">
+        Error cargando datos: ${e.message}
+      </div>`;
+  }
+}
+
+// Set default date to yesterday
+const ayer = new Date(); ayer.setDate(ayer.getDate()-1);
+document.addEventListener("DOMContentLoaded", () => {
+  const el = document.getElementById("fecha-desde");
+  if (el) el.value = ayer.toISOString().split("T")[0];
+});
 
 main();
 </script>
