@@ -348,10 +348,12 @@ function renderProd() {
   (window.ASIGNACIONES||[]).filter(r =>
     Number(r["Monto_Asignado"]||0)>0 && String(r["Tipo_Doc"]||"").includes("guia")
   ).forEach(r => {
-    const upId   = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    // UP_Nombre has real UP_ID in old rows, UP_ID may have wrong value
+    const upNombre = String(r["UP_Nombre"]||"").trim();
+    const upId   = CC_MAP[upNombre] ? upNombre : (CC_MAP[String(r["UP_ID"]||"").trim()] ? String(r["UP_ID"]||"").trim() : upNombre);
     const prod   = String(r["Nombre_Item"]||"").trim();
-    const cant   = Number(r["Cantidad"]||0);
-    const unidad = String(r["Unidad"]||"kg").trim();
+    const cant   = Number(r["Cantidad"]||r["Cantidad "]||0);
+    const unidad = String(r["Unidad"]||r["Unidad "]||"kg").trim();
     if (!upId || !prod || !cant) return;
     if (!upData[upId]) upData[upId] = { nombre: CC_MAP[upId]||upId, fundo: FUNDO_MAP[upId]||"", productos:{} };
     const {factor} = normalizarProducto(prod);
@@ -839,10 +841,12 @@ function renderProd() {
   (window.ASIGNACIONES||[]).filter(r =>
     Number(r["Monto_Asignado"]||0)>0 && String(r["Tipo_Doc"]||"").includes("guia")
   ).forEach(r => {
-    const upId   = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    // UP_Nombre has real UP_ID in old rows, UP_ID may have wrong value
+    const upNombre = String(r["UP_Nombre"]||"").trim();
+    const upId   = CC_MAP[upNombre] ? upNombre : (CC_MAP[String(r["UP_ID"]||"").trim()] ? String(r["UP_ID"]||"").trim() : upNombre);
     const prod   = String(r["Nombre_Item"]||"").trim();
-    const cant   = Number(r["Cantidad"]||0);
-    const unidad = String(r["Unidad"]||"kg").trim();
+    const cant   = Number(r["Cantidad"]||r["Cantidad "]||0);
+    const unidad = String(r["Unidad"]||r["Unidad "]||"kg").trim();
     if (!upId || !prod || !cant) return;
     if (!upData[upId]) upData[upId] = { nombre: CC_MAP[upId]||upId, fundo: FUNDO_MAP[upId]||"", productos:{} };
     const {factor} = normalizarProducto(prod);
