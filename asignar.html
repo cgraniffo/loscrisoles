@@ -300,7 +300,12 @@ async function guardar(key, tipo, proveedor, folio, montoTotal, rutEmisor) {
   if (tipo === "guia" || tipo === "guia-emitida") {
     // One row per detail line per UP
     // Both guia and guia-emitida use DET_GUIAS (GuiasDespacho keys)
-    const dets = window.DET_GUIAS?.[key] || [];
+    // Fallback: match by RUT+Folio when id_XML differs between tables
+    let dets = window.DET_GUIAS?.[key] || [];
+    if (!dets.length) {
+      const fk = (rutEmisor||"") + "-" + String(folio||"").trim();
+      dets = window.DET_GUIAS_BY_FOLIO?.[fk] || [];
+    }
 
     if (dets.length > 0) {
       s.filas.forEach(f => {
@@ -460,15 +465,11 @@ function render() {
             if (tipo==="factura") {
               dets = window.DET_FACTURAS?.[key] || [];
             } else {
-              // Try direct key match first
               dets = window.DET_GUIAS?.[key] || [];
-              // If not found, try matching by folio+rut pattern from GuiasDespacho
               if (!dets.length) {
-                const guiaKey = Object.keys(window.DET_GUIAS||{}).find(k => {
-                  const parts = k.split("-");
-                  return parts.length>=2 && key.includes(parts[1]) && key.includes(parts[parts.length-1]);
-                });
-                if (guiaKey) dets = window.DET_GUIAS[guiaKey];
+                const rut   = String(doc["RUT Emisor"]||"").trim();
+                const folio = String(doc["Folio"]||"").trim();
+                dets = window.DET_GUIAS_BY_FOLIO?.[rut+"-"+folio] || [];
               }
             }
             if (!dets.length) return tipo==="guia" ? '<div style="font-size:11px;color:#bbb;margin-top:6px;padding:6px 8px;">Sin detalle de líneas disponible</div>' : "";
@@ -586,21 +587,6 @@ async function main() {
       window.DET_FACTURAS[key].push(d);
     });
     window.DET_GUIAS = {};
-    window.DET_GUIAS_BY_FOLIO = {};
-    (Array.isArray(detGuias)?detGuias:[]).forEach(d => {
-      const key = String(d["ID_Guia_Padre"]||"").trim();
-      if (key) {
-        if (!window.DET_GUIAS[key]) window.DET_GUIAS[key] = [];
-        window.DET_GUIAS[key].push(d);
-      }
-      const rut   = String(d["RUT Emisor"]||"").trim();
-      const folio = String(d["Folio"]||"").trim();
-      if (rut && folio) {
-        const fk = rut + "-" + folio;
-        if (!window.DET_GUIAS_BY_FOLIO[fk]) window.DET_GUIAS_BY_FOLIO[fk] = [];
-        window.DET_GUIAS_BY_FOLIO[fk].push(d);
-      }
-    });
 
     render();
   } catch(e) {
