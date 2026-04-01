@@ -93,7 +93,7 @@
 <div class="hdr">
   <div class="hdr-logo">Los Crisoles · BData</div>
   <div class="hdr-title">Asignación de Documentos</div>
-  <div class="hdr-sub">Asigna guías y facturas a sus unidades productivas</div>
+  <div class="hdr-sub">Asigná guías y facturas a sus unidades productivas</div>
   <div class="metrics">
     <div class="m"><div class="m-val red" id="m-sin">—</div><div class="m-label">Sin asignar</div></div>
     <div class="m"><div class="m-val" id="m-parcial">—</div><div class="m-label">Parcialmente asignados</div></div>
@@ -436,8 +436,9 @@ function render() {
 
 async function main() {
   try {
-    const [docs, ccs, asignaciones] = await Promise.all([
+    const [docs, guias, ccs, asignaciones] = await Promise.all([
       fetchSheet(API_FIN, "CargaHTML_Demo"),
+      fetchSheet(API_FIN, "GuiasDespacho"),
       fetchSheet(API_CC,  "BD_CC"),
       fetchSheet(API_FIN, "Asignaciones_U")
     ]);
@@ -459,15 +460,17 @@ async function main() {
 
     // Filter docs without UP + classify type
     const RUT_LC = "76099766-8";
-    DOCS = (Array.isArray(docs)?docs:[]).filter(d => {
+    const sinAsignar = (arr, tipo) => (Array.isArray(arr)?arr:[]).filter(d => {
       const fundo = String(d["Fundo"]||"").trim();
       const rut   = String(d["RUT Emisor"]||"").trim();
       const sinAsig = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO" || fundo === "CC_NO_ENCONTRADO";
       return sinAsig && rut !== RUT_LC && d["KEY"];
-    }).map(d => ({
-      ...d,
-      _tipo: Number(d["TipoDTE"]||0) === 52 ? "guia" : "factura"
-    }));
+    }).map(d => ({ ...d, _tipo: tipo }));
+
+    DOCS = [
+      ...sinAsignar(docs,  "factura"),
+      ...sinAsignar(guias, "guia")
+    ].sort((a,b) => new Date(b["Fecha Emisión"]||0) - new Date(a["Fecha Emisión"]||0));
 
     render();
   } catch(e) {
