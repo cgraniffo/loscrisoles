@@ -299,9 +299,8 @@ async function guardar(key, tipo, proveedor, folio, montoTotal) {
 
   if (tipo === "guia" || tipo === "guia-emitida") {
     // One row per detail line per UP
-    const dets = tipo === "guia-emitida"
-      ? (window.DET_GUIAS?.[key] || [])
-      : (window.DET_GUIAS?.[key] || window.DET_FACTURAS?.[key] || []);
+    // Both guia and guia-emitida use DET_GUIAS (GuiasDespacho keys)
+    const dets = window.DET_GUIAS?.[key] || [];
 
     if (dets.length > 0) {
       s.filas.forEach(f => {
@@ -558,10 +557,13 @@ async function main() {
       .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
       .map(d => ({ ...d, _tipo: "guia" }));
 
-    // Guías emitidas (producción propia sin UP asignada)
-    const guiasEmitidas = sinAsignarFiltro(guias)
-      .filter(d => String(d["RUT Emisor"]||"").trim() === RUT_LC)
-      .map(d => ({ ...d, _tipo: "guia-emitida" }));
+    // Guías emitidas (producción propia sin CC asignado) — vienen de GuiasDespacho
+    const guiasEmitidas = (Array.isArray(guias)?guias:[]).filter(d => {
+      const cc  = String(d["Centro de Costo"]||"").trim();
+      const rut = String(d["RUT Emisor"]||"").trim();
+      const sinCC = cc === "" || cc === "CC_NO_ENCONTRADO";
+      return sinCC && rut === RUT_LC && d["KEY"];
+    }).map(d => ({ ...d, _tipo: "guia-emitida" }));
 
     DOCS = [...facturasSin, ...guiasRecibidas, ...guiasEmitidas]
       .sort((a,b) => new Date(b["Fecha Emisión"]||0) - new Date(a["Fecha Emisión"]||0));
