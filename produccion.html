@@ -964,13 +964,32 @@ function renderProd() {
 // ── MAIN ───────────────────────────────────────────────────────────────────
 async function main() {
   try {
-    const [guias, detalles, ccsRaw] = await Promise.all([
+    const [guias, detalles, ccsRaw, asignaciones] = await Promise.all([
       fetchSheet(API_FIN, "GuiasDespacho"),
       fetchSheet(API_FIN, "DetallesGuias"),
-      fetchSheet(API_CC, "BD_CC")
+      fetchSheet(API_CC, "BD_CC"),
+      fetchSheet(API_FIN, "Asignaciones_U")
     ]);
 
     GUIAS    = Array.isArray(guias)    ? guias    : [];
+
+    // Build asignaciones lookup: KEY -> UP_ID
+    const ASIG_MAP = {};
+    (Array.isArray(asignaciones)?asignaciones:[]).forEach(a => {
+      const key = String(a["KEY_Documento"]||"").trim();
+      if (key && a["UP_ID"]) ASIG_MAP[key] = String(a["UP_ID"]).trim();
+    });
+
+    // Enrich guias with UP from Asignaciones_U when CC_NO_ENCONTRADO
+    GUIAS = GUIAS.map(g => {
+      const cc = String(g["Centro de Costo"]||"").trim();
+      if (cc === "CC_NO_ENCONTRADO" || cc === "") {
+        const key = String(g["KEY"]||"").trim();
+        const upId = ASIG_MAP[key];
+        if (upId) return { ...g, "Centro de Costo": upId };
+      }
+      return g;
+    });
     DETALLES = Array.isArray(detalles) ? detalles : [];
     const ccs = Array.isArray(ccsRaw)  ? ccsRaw   : [];
 
