@@ -1357,7 +1357,7 @@ function renderCostos() {
 
   // Costos nuevos Asignaciones_U (desde el corte)
   const costosNuevos = (window.ASIGNACIONES||[]).filter(r => {
-    const ccId  = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    const ccId  = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
     const tmpCC = TEMP_MAP[ccId];
     const fechaAsig = r["Fecha_Documento"] || r["Fecha_Asignacion"];
     const tempR = tmpCC ? getTemporadaDeFecha(fechaAsig, tmpCC.mesInicio) : null;
