@@ -801,6 +801,7 @@ async function main() {
       ${sinAsignar.length===0?'<div style="text-align:center;color:var(--gris);padding:20px;">🎉 Todo asignado</div>':""}`;
 
     window._activos      = activos;
+    window._proyecciones = Array.isArray(proyecciones) ? proyecciones : [];
     window._docs         = Array.isArray(docs) ? docs : [];
     window._asignaciones = Array.isArray(asignaciones) ? asignaciones : [];
     buildMapa(registros);
@@ -886,7 +887,56 @@ function buildContexto() {
     "=== DOCS SIN ASIGNAR (desde 01-Abr) ===",
     sinAsigNuevos.slice(0,10).map(function(d){
       return String(d["Razón Social"]||"").trim() + " | F:" + d["Folio"] + " | $" + Math.round(Number(d["Monto Total"]||0)/1000) + "k";
-    }).join("\n")
+    }).join("\n"),
+    "",
+    "=== PRODUCCION REAL (GUIAS ASIGNADAS) ===",
+    (function(){
+      var asig = window._asignaciones||[];
+      var guias = asig.filter(function(r){ return String(r["Tipo_Doc"]||"").includes("guia"); });
+      var porUP = {};
+      guias.forEach(function(r){
+        var up   = String(r["UP_Nombre"]||"").trim();
+        var prod = String(r["Nombre_Item"]||"").trim();
+        var cant = Number(r["Cantidad "]||r["Cantidad"]||0);
+        var und  = String(r["Unidad "]||r["Unidad"]||"kg").trim();
+        if (!up||!prod||!cant) return;
+        if (!porUP[up]) porUP[up] = {};
+        porUP[up][prod] = (porUP[up]||{})[prod]||0;
+        porUP[up][prod] += cant;
+      });
+      if (!Object.keys(porUP).length) return "Sin producción real registrada aún";
+      return Object.entries(porUP).map(function(e){
+        return e[0]+": "+Object.entries(e[1]).map(function(p){ return p[1].toLocaleString("es-CL")+" "+p[0]; }).join(", ");
+      }).join("\n");
+    })(),
+    "",
+    "=== INGRESOS Y PRODUCCION ESTIMADA ===",
+    (function(){
+      var proy = window._proyecciones||[];
+      var total = proy.reduce(function(s,r){return s+Number(r["Monto_Total"]||0);},0);
+      var lines = ["Total estimado: $"+Math.round(total/1000)+"k"];
+      var porUP = {};
+      proy.forEach(function(r){
+        var up = String(r["Unidad_Productiva"]||"").trim();
+        porUP[up] = (porUP[up]||0)+Number(r["Monto_Total"]||0);
+      });
+      Object.entries(porUP).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){
+        lines.push(e[0]+": $"+Math.round(e[1]/1000)+"k");
+      });
+      return lines.join("\n");
+    })(),
+    "",
+    "=== COSTOS POR UP ===",
+    (function(){
+      var asig = window._asignaciones||[];
+      var porUP = {};
+      asig.forEach(function(r){
+        var up = String(r["UP_Nombre"]||"").trim();
+        porUP[up] = (porUP[up]||0)+Number(r["Monto_Asignado"]||0);
+      });
+      return Object.entries(porUP).sort(function(a,b){return b[1]-a[1];}).slice(0,8)
+        .map(function(e){ return e[0]+": $"+Math.round(e[1]/1000)+"k"; }).join("\n") || "Sin datos";
+    })()
   ];
   return lines.join("\n");
 }
