@@ -865,35 +865,35 @@ function chatKeyDown(e) {
 }
 
 function buildContexto() {
-  // Safe fallbacks for variables that may not exist in all pages
-  const _ACTIVOS    = typeof _ACTIVOS    !== "undefined" ? _ACTIVOS    : (_TODOS||[]).filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
-  const _TODOS      = typeof TODOS      !== "undefined" ? TODOS      : (_TODOS||[]);
-  const _PROYECC    = typeof _PROYECC !== "undefined" ? _PROYECC : (window._PROYECC||[]);
-  const _DOCS       = typeof DOCUMENTOS !== "undefined" ? DOCUMENTOS : (_DOCS||[]);
-  const _ASIG       = typeof ASIGNACIONES !== "undefined" ? ASIGNACIONES : (_ASIG||[]);
-  const _CC         = typeof _CC     !== "undefined" ? _CC     : {};
-  const _FUNDO      = typeof _FUNDO  !== "undefined" ? _FUNDO  : {};
-  const _ENC        = typeof _ENC    !== "undefined" ? _ENC    : {};
-  const _LAB        = typeof _LAB    !== "undefined" ? _LAB    : {};
-  const _HA         = typeof _HA     !== "undefined" ? _HA     : {};
-  const _CAJA       = typeof _CAJA !== "undefined" ? _CAJA : (window._CAJA||0);
+  // Fallbacks for pages that don't have all variables
+  if (typeof ACTIVOS    === "undefined") var ACTIVOS    = (window.TODOS||[]).filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
+  if (typeof TODOS      === "undefined") var TODOS      = window.TODOS||[];
+  if (typeof PROYECCIONES==="undefined") var PROYECCIONES = window.PROYECCIONES||[];
+  if (typeof DOCUMENTOS === "undefined") var DOCUMENTOS = window.DOCUMENTOS||[];
+  if (typeof ASIGNACIONES==="undefined") var ASIGNACIONES = window.ASIGNACIONES||[];
+  if (typeof CC_MAP     === "undefined") var CC_MAP     = {};
+  if (typeof FUNDO_MAP  === "undefined") var FUNDO_MAP  = {};
+  if (typeof ENC_MAP    === "undefined") var ENC_MAP    = {};
+  if (typeof LAB_MAP    === "undefined") var LAB_MAP    = {};
+  if (typeof HA_MAP     === "undefined") var HA_MAP     = {};
+  if (typeof CAJA_ACTUAL=== "undefined") var CAJA_ACTUAL = window.CAJA_ACTUAL||0;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const RUT_LC = "76099766-8";
 
-  const resolveCC  = function(id) { return _CC[String(id||"").trim()]  || String(id||"").trim(); };
-  const resolveEnc = function(id) { return _ENC[String(id||"").trim()] || String(id||"").trim(); };
-  const resolveLab = function(id) { return _LAB[String(id||"").trim()] || String(id||"").trim(); };
+  const resolveCC  = function(id) { return CC_MAP[String(id||"").trim()]  || String(id||"").trim(); };
+  const resolveEnc = function(id) { return ENC_MAP[String(id||"").trim()] || String(id||"").trim(); };
+  const resolveLab = function(id) { return LAB_MAP[String(id||"").trim()] || String(id||"").trim(); };
   const fmtD = function(val) {
     var d = parseDate(val);
     return d ? d.toLocaleDateString("es-CL") : "sin fecha";
   };
 
   // ── LABORES ──────────────────────────────────────────────────────────────
-  var activos = _ACTIVOS || [];
+  var activos = ACTIVOS || [];
   var laborResumen = function(r) {
     return "[" + String(r["Estado Operativo"]||"").trim() + "] " +
       resolveLab(r["Labor"]) + " | UP: " + resolveCC(r["Centro_Costo"]) +
-      " | Fundo: " + (_FUNDO[String(r["Centro_Costo"]||"").trim()]||"") +
+      " | Fundo: " + (FUNDO_MAP[String(r["Centro_Costo"]||"").trim()]||"") +
       " | Encargado: " + resolveEnc(r["Encargado"]) +
       " | Fecha: " + fmtD(r["Fecha"]) +
       " | Obs: " + (r["Observaciones"]||"");
@@ -939,7 +939,7 @@ function buildContexto() {
   var en15 = new Date(hoy); en15.setDate(en15.getDate()+15);
   var cobrar15 = cobrar.filter(function(r){ var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
   var pagar15  = pagar.filter(function(r){  var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
-  var saldoProy = _CAJA + sumDoc(cobrar15) - sumDoc(pagar15);
+  var saldoProy = CAJA_ACTUAL + sumDoc(cobrar15) - sumDoc(pagar15);
 
   var docLine = function(r){
     var d=parseDate(r["Fecha_Real"]);
@@ -950,8 +950,8 @@ function buildContexto() {
   var pagarDetalle  = pagar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,40).map(docLine).join("\n");
   var cobrarDetalle = cobrar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,20).map(docLine).join("\n");
 
-  // ── INGRESOS / _PROYECC ───────────────────────────────────────────────
-  var proy = _PROYECC || [];
+  // ── INGRESOS / PROYECCIONES ───────────────────────────────────────────────
+  var proy = PROYECCIONES || [];
   var ingTotal = proy.reduce(function(s,r){ return s+Number(r["Monto_Total"]||0); },0);
   var proyDetalle = proy.map(function(r){
     var up = resolveCC(r["Unidad_Productiva"]);
@@ -981,7 +981,7 @@ function buildContexto() {
     topCostoReg,
     "",
     "=== CAJA ===",
-    "Saldo actual: $" + Math.round(_CAJA/1000) + "k",
+    "Saldo actual: $" + Math.round(CAJA_ACTUAL/1000) + "k",
     "Saldo proyectado 15d: $" + Math.round(saldoProy/1000) + "k",
     "POR PAGAR (" + pagar.length + " docs):",
     pagarDetalle,
@@ -994,11 +994,11 @@ function buildContexto() {
     "",
     "=== PRODUCCION REAL (GUIAS ASIGNADAS) ===",
     (function(){
-      var asig = _ASIG||[];
+      var asig = window.ASIGNACIONES||[];
       var guias = asig.filter(function(r){ return String(r["Tipo_Doc"]||"").includes("guia"); });
       var porUP = {};
       guias.forEach(function(r){
-        var up   = _CC[String(r["UP_ID"]||"").trim()] || String(r["UP_Nombre"]||"").trim();
+        var up   = CC_MAP[String(r["UP_ID"]||"").trim()] || String(r["UP_Nombre"]||"").trim();
         var prod = String(r["Nombre_Item"]||"").trim();
         var cant = Number(r["Cantidad "]||r["Cantidad"]||0);
         var und  = String(r["Unidad "]||r["Unidad"]||"kg").trim();
@@ -1013,8 +1013,8 @@ function buildContexto() {
     })(),
     "",
     "=== ASIGNACIONES DE COSTOS ===",
-    "Total asignaciones: " + (_ASIG||[]).length,
-    "Monto total asignado: $" + Math.round((_ASIG||[]).reduce(function(s,r){return s+Number(r["Monto_Asignado"]||0);},0)/1000) + "k"
+    "Total asignaciones: " + (window.ASIGNACIONES||[]).length,
+    "Monto total asignado: $" + Math.round((window.ASIGNACIONES||[]).reduce(function(s,r){return s+Number(r["Monto_Asignado"]||0);},0)/1000) + "k"
   ];
   return lineas.join("\n");
 }
