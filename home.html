@@ -312,19 +312,19 @@
   <div class="section on" id="sec-resumen">
     <!-- Nav cards -->
     <div class="nav-grid" style="margin-bottom:20px;margin-top:4px;">
-      <a class="nav-card verde" href="/reporte">
+      <a class="nav-card verde" href="/reporte" target="_blank">
         <div class="nav-icon">📋</div>
         <div class="nav-title">Reporte diario</div>
         <div class="nav-desc">Labores, caja, costos, ingresos y márgenes del campo</div>
         <div class="nav-badge badge-verde" id="nav-labores-badge">Cargando...</div>
       </a>
-      <a class="nav-card azul" href="/produccion">
+      <a class="nav-card azul" href="/produccion" target="_blank">
         <div class="nav-icon">🌱</div>
         <div class="nav-title">Producción</div>
         <div class="nav-desc">Guías de despacho emitidas e insumos recibidos por UP</div>
         <div class="nav-badge badge-verde" id="nav-prod-badge">Cargando...</div>
       </a>
-      <a class="nav-card amber" href="/asignar">
+      <a class="nav-card amber" href="/asignar" target="_blank">
         <div class="nav-icon">📎</div>
         <div class="nav-title">Asignar docs</div>
         <div class="nav-desc">Asignar facturas y guías a unidades productivas</div>
@@ -337,14 +337,14 @@
       <div class="card">
         <div class="card-head">
           <div class="card-title">⚠️ Labores urgentes</div>
-          <a href="/reporte" class="card-link">Ver todas →</a>
+          <a href="/reporte" target="_blank" class="card-link">Ver todas →</a>
         </div>
         <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
       </div>
       <div class="card">
         <div class="card-head">
           <div class="card-title">🏦 Flujo de caja</div>
-          <a href="/reporte" class="card-link">Ver detalle →</a>
+          <a href="/reporte" target="_blank" class="card-link">Ver detalle →</a>
         </div>
         <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
       </div>
@@ -355,14 +355,14 @@
       <div class="card">
         <div class="card-head">
           <div class="card-title">💰 Costos por UP</div>
-          <a href="/reporte" class="card-link">Ver detalle →</a>
+          <a href="/reporte" target="_blank" class="card-link">Ver detalle →</a>
         </div>
         <div class="card-body" id="card-costos"><div class="loading pulse">Cargando...</div></div>
       </div>
       <div class="card">
         <div class="card-head">
-          <div class="card-title">📈 Producción estimada</div>
-          <a href="/reporte" class="card-link">Ver ingresos →</a>
+          <div class="card-title">📈 Ingresos y producción estimada</div>
+          <a href="/reporte" target="_blank" class="card-link">Ver ingresos →</a>
         </div>
         <div class="card-body" id="card-prod"><div class="loading pulse">Cargando...</div></div>
       </div>
@@ -389,14 +389,14 @@
       <div class="card">
         <div class="card-head">
           <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
-          <a href="/reporte" class="card-link">Ver caja →</a>
+          <a href="/reporte" target="_blank" class="card-link">Ver caja →</a>
         </div>
         <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
       </div>
       <div class="card">
         <div class="card-head">
           <div class="card-title">⬇️ Por cobrar — próximos 30 días</div>
-          <a href="/reporte" class="card-link">Ver caja →</a>
+          <a href="/reporte" target="_blank" class="card-link">Ver caja →</a>
         </div>
         <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
       </div>
@@ -404,7 +404,7 @@
     <div class="card">
       <div class="card-head">
         <div class="card-title">📎 Documentos sin asignar</div>
-        <a href="/asignar" class="card-link">Asignar →</a>
+        <a href="/asignar" target="_blank" class="card-link">Asignar →</a>
       </div>
       <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
     </div>
@@ -548,21 +548,44 @@ async function main() {
     document.getElementById('nav-labores-badge').className = "nav-badge " + (vencidas.length>0?"badge-rojo":"badge-verde");
 
     const colorEstado = e => e==="Vencido"||parseDate(e)<hoy ? "#ef4444" : "#f59e0b";
+    // Group labores by date for calendar view
+    const laboresPorFecha = {};
+    urgentes.forEach(r => {
+      const d = parseDate(r["Fecha"]);
+      if (!d) return;
+      const k = d.toISOString().split("T")[0];
+      if (!laboresPorFecha[k]) laboresPorFecha[k] = [];
+      laboresPorFecha[k].push(r);
+    });
+    const fechasOrdenadas = Object.keys(laboresPorFecha).sort();
+
     document.getElementById('card-labores').innerHTML = urgentes.length === 0
       ? `<div style="text-align:center;padding:20px;color:var(--gris);">✅ Sin labores urgentes</div>`
-      : urgentes.map(r => {
-          const d = parseDate(r["Fecha"]);
-          const venc = d && d<hoy;
-          const cc = CC_MAP[String(r["Centro_Costo"]||"").trim()]||"—";
-          return `<div class="labor-row">
-            <div class="labor-dot" style="background:${venc?"#ef4444":"#f59e0b"};"></div>
-            <div style="flex:1;">
-              <div class="labor-name">${LAB_MAP[String(r["Labor"]||"").trim()] || String(r["Labor"]||"—").trim()}</div>
-              <div class="labor-up">${cc}</div>
+      : fechasOrdenadas.map(fecha => {
+          const d = new Date(fecha + "T12:00:00");
+          const venc = d < hoy;
+          const esHoy = d.toDateString() === hoy.toDateString();
+          const laboresDelDia = laboresPorFecha[fecha];
+          const bgColor = venc ? "#fff5f5" : esHoy ? "#fffbeb" : "#f8fff8";
+          const borderColor = venc ? "#fca5a5" : esHoy ? "#fcd34d" : "#d1fae5";
+          const fechaLabel = esHoy ? "HOY" : d.toLocaleDateString("es-CL",{weekday:"short",day:"2-digit",month:"2-digit"}).toUpperCase();
+          return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:8px 10px;margin-bottom:8px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              <div style="font-size:11px;font-weight:bold;color:${venc?"#c0392b":esHoy?"#d97706":"#166534"};background:${venc?"#fee2e2":esHoy?"#fef3c7":"#dcfce7"};padding:2px 8px;border-radius:99px;">${fechaLabel}</div>
+              <div style="font-size:11px;color:var(--gris);">${laboresDelDia.length} labor${laboresDelDia.length!==1?"es":""}</div>
             </div>
-            <div class="labor-badge" style="background:${venc?"#fee2e2":"#fef3c7"};color:${venc?"#c0392b":"#d97706"};">
-              ${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"}):"—"}
-            </div>
+            ${laboresDelDia.map(r => {
+              const cc  = CC_MAP[String(r["Centro_Costo"]||"").trim()]||"—";
+              const enc = ENC_MAP[String(r["Encargado"]||"").trim()]||"";
+              const lab = LAB_MAP[String(r["Labor"]||"").trim()]||String(r["Labor"]||"—").trim();
+              return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.05);">
+                <div style="width:6px;height:6px;border-radius:50%;background:${venc?"#ef4444":"#f59e0b"};flex-shrink:0;"></div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lab}</div>
+                  <div style="font-size:11px;color:var(--gris);">${cc}${enc?" · "+enc:""}</div>
+                </div>
+              </div>`;
+            }).join("")}
           </div>`;
         }).join('');
 
@@ -671,14 +694,17 @@ async function main() {
     document.getElementById('nav-prod-badge').textContent = ingRows.length + " UPs con proyección";
 
     // ── DOCS SIN ASIGNAR ──────────────────────────────────────────────────
+    const CORTE_ASIG = "2026-04-01";
     const sinAsignar = (Array.isArray(docs)?docs:[]).filter(d => {
       const fundo = String(d["Fundo"]||"").trim();
       const rut   = String(d["RUT Emisor"]||"").trim();
       return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && rut!==RUT_LC;
     });
-    document.getElementById('h-sin-asignar').textContent = sinAsignar.length;
-    document.getElementById('nav-asignar-badge').textContent = sinAsignar.length + " pendientes";
-    document.getElementById('nav-asignar-badge').className = "nav-badge " + (sinAsignar.length>0?"badge-rojo":"badge-verde");
+    const sinAsigNuevos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] >= CORTE_ASIG);
+    const sinAsigViejos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] < CORTE_ASIG);
+    document.getElementById('h-sin-asignar').textContent = sinAsigNuevos.length + " / " + sinAsignar.length;
+    document.getElementById('nav-asignar-badge').textContent = sinAsigNuevos.length + " nuevos · " + sinAsigViejos.length + " anteriores";
+    document.getElementById('nav-asignar-badge').className = "nav-badge " + (sinAsigNuevos.length>0?"badge-rojo":"badge-verde");
 
     // Finanzas tab content
     const pagar30HTML = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
@@ -706,7 +732,17 @@ async function main() {
       <td style="color:var(--gris);">F:${r["Folio"]||"—"}</td>
       <td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`)
       .join('');
-    document.getElementById('card-sin-asignar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Proveedor</th><th>Folio</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsignar.slice(0,8).map(r=>`<tr><td>${String(r["Razón Social"]||"").trim().slice(0,28)}</td><td style="color:var(--gris);">F:${r["Folio"]||"—"}</td><td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`).join('')}</tbody></table>`;
+    const docRow = r => `<tr><td>${String(r["Razón Social"]||"").trim().slice(0,28)}</td><td style="color:var(--gris);">F:${r["Folio"]||"—"}</td><td style="color:var(--gris);font-size:10px;">${String(r["Fecha Emisión"]||"").split("T")[0]}</td><td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
+    document.getElementById('card-sin-asignar').innerHTML = `
+      ${sinAsigNuevos.length>0?`
+        <div style="font-size:10px;font-weight:bold;color:#c0392b;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Desde 01-Abr (${sinAsigNuevos.length})</div>
+        <table class="mini-tbl" style="margin-bottom:12px;"><thead><tr><th>Proveedor</th><th>Folio</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsigNuevos.slice(0,5).map(docRow).join('')}</tbody></table>
+      `:""}
+      ${sinAsigViejos.length>0?`
+        <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Anteriores al 01-Abr (${sinAsigViejos.length})</div>
+        <table class="mini-tbl"><thead><tr><th>Proveedor</th><th>Folio</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsigViejos.slice(0,5).map(docRow).join('')}</tbody></table>
+      `:""}
+      ${sinAsignar.length===0?'<div style="text-align:center;color:var(--gris);padding:20px;">🎉 Todo asignado</div>':""}`;
 
     buildMapa(registros);
 
