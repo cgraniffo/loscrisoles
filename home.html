@@ -293,7 +293,7 @@
         </div>
         <div class="hkpi">
           <div class="hkpi-val red" id="h-sin-asignar">—</div>
-          <div class="hkpi-label">Docs sin asignar</div>
+          <div class="hkpi-label">Sin asignar desde 01-Abr</div>
         </div>
       </div>
     </div>
@@ -667,7 +667,16 @@ async function main() {
     const costoMax = costoRows[0]?.[1]||1;
 
     document.getElementById('h-costos').textContent = fmtPeso(costoTotal);
-    document.getElementById('card-costos').innerHTML = costoRows.map(([nombre,val]) =>
+    // Calculate period from costosHist
+    const costFechas = costosHist.map(r=>String(r["Fecha"]||"").split("T")[0]).filter(Boolean).sort();
+    const costPeriodo = costFechas.length > 0
+      ? costFechas[0].slice(0,7).replace("-","/") + " — " + costFechas[costFechas.length-1].slice(0,7).replace("-","/")
+      : "";
+    document.getElementById('card-costos').innerHTML = `
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-weight:bold;font-size:22px;color:var(--verde);">${fmtPeso(costoTotal)}</div>
+        ${costPeriodo?`<div style="font-size:11px;color:var(--gris);">${costPeriodo}</div>`:""}
+      </div>` + costoRows.map(([nombre,val]) =>
       `<div class="bar-row">
         <div class="bar-label" title="${nombre}">${nombre}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/costoMax*100)}%;background:var(--verde2);"></div></div>
@@ -684,13 +693,34 @@ async function main() {
     });
     const ingRows = Object.entries(ingPorUP).sort((a,b)=>b[1]-a[1]).slice(0,5);
     const ingMax  = ingRows[0]?.[1]||1;
+        // Volumes from Asignaciones_U (guia-emitida)
+    const volPorUP = {};
+    (Array.isArray(asignaciones)?asignaciones:[]).filter(r=>String(r["Tipo_Doc"]||"").includes("guia")).forEach(r=>{
+      const up   = String(r["UP_Nombre"]||"").trim();
+      const cant = Number(r["Cantidad "]||r["Cantidad"]||0);
+      const und  = String(r["Unidad "]||r["Unidad"]||"").trim()||"kg";
+      if (!up||!cant) return;
+      if (!volPorUP[up]) volPorUP[up]={};
+      volPorUP[up][und] = (volPorUP[up][und]||0)+cant;
+    });
+    const volRows = Object.entries(volPorUP).map(([up,units])=>
+      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:12px;">
+        <span style="color:#444;">${up}</span>
+        <span style="font-weight:600;color:#1a3a0a;">${Object.entries(units).map(([u,v])=>v.toLocaleString("es-CL")+" "+u).join(" · ")}</span>
+      </div>`
+    ).join("");
     document.getElementById('card-prod').innerHTML = `
-      <div style="font-weight:bold;font-size:28px;font-weight:700;color:var(--verde);margin-bottom:14px;">${fmtPeso(ingTotal)}</div>
+      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:4px;">Ingresos estimados</div>
+      <div style="font-weight:bold;font-size:22px;color:var(--verde);margin-bottom:10px;">${fmtPeso(ingTotal)}</div>
       ${ingRows.map(([nombre,val]) => `<div class="bar-row">
         <div class="bar-label" title="${nombre}">${nombre}</div>
         <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/ingMax*100)}%;background:#0f6e56;"></div></div>
         <div class="bar-val">${fmtPeso(val)}</div>
-      </div>`).join('')}`;
+      </div>`).join('')}
+      ${volRows?`<div style="margin-top:10px;padding-top:8px;border-top:1px solid #f0ede6;">
+        <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Producción real despachada</div>
+        ${volRows}
+      </div>`:""}`;
     document.getElementById('nav-prod-badge').textContent = ingRows.length + " UPs con proyección";
 
     // ── DOCS SIN ASIGNAR ──────────────────────────────────────────────────
@@ -702,7 +732,7 @@ async function main() {
     });
     const sinAsigNuevos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] >= CORTE_ASIG);
     const sinAsigViejos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] < CORTE_ASIG);
-    document.getElementById('h-sin-asignar').textContent = sinAsigNuevos.length + " / " + sinAsignar.length;
+    document.getElementById('h-sin-asignar').textContent = sinAsigNuevos.length;
     document.getElementById('nav-asignar-badge').textContent = sinAsigNuevos.length + " nuevos · " + sinAsigViejos.length + " anteriores";
     document.getElementById('nav-asignar-badge').className = "nav-badge " + (sinAsigNuevos.length>0?"badge-rojo":"badge-verde");
 
