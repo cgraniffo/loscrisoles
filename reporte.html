@@ -193,12 +193,20 @@
     <div class="m"><div class="m-val" id="m-margen-ton">—</div><div class="m-label">Margen por tonelada</div></div>
     <div class="m"><div class="m-val" id="m-margen-ha">—</div><div class="m-label">Margen por hectárea</div></div>
   </div>
-  <div class="tabs">
-    <div class="tab on" id="tab-labores" onclick="switchTab('labores')">📋 Labores</div>
-    <div class="tab" id="tab-caja" onclick="switchTab('caja')">🏦 Caja</div>
-    <div class="tab" id="tab-costos" onclick="switchTab('costos')">💰 Costos</div>
-    <div class="tab" id="tab-ingresos" onclick="switchTab('ingresos')">🌾 Ingresos</div>
-    <div class="tab" id="tab-margenes" onclick="switchTab('margenes')">📊 Márgenes</div>
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+    <div class="tabs">
+      <div class="tab on" id="tab-labores" onclick="switchTab('labores')">📋 Labores</div>
+      <div class="tab" id="tab-caja" onclick="switchTab('caja')">🏦 Caja</div>
+      <div class="tab" id="tab-costos" onclick="switchTab('costos')">💰 Costos</div>
+      <div class="tab" id="tab-ingresos" onclick="switchTab('ingresos')">🌾 Ingresos</div>
+      <div class="tab" id="tab-margenes" onclick="switchTab('margenes')">📊 Márgenes</div>
+    </div>
+    <div style="padding:0 12px 4px;display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;color:#9fe1cb;">Temporada:</span>
+      <select id="sel-temporada" onchange="cambiarTemporada(this.value)"
+        style="font-size:12px;font-weight:bold;background:#2d6a1a;color:#fff;border:1px solid #86efac;border-radius:6px;padding:4px 10px;cursor:pointer;outline:none;">
+      </select>
+    </div>
   </div>
 </div>
 
@@ -225,6 +233,8 @@ const FECHA_CORTE_COSTOS = "2026-03-30";
 // ─────────────────────────────────────────────────────────────────────────
 
 window.ACTIVOS = []; window.TODOS = []; window.PROYECCIONES = []; window.DOCUMENTOS = []; window.ASIGNACIONES = [];
+const TEMP_MAP = {}; // ccId -> {temporada, mesInicio}
+const TEMP_CC  = {}; // temporada -> [ccIds]
 var ACTIVOS = window.ACTIVOS, TODOS = window.TODOS, PROYECCIONES = window.PROYECCIONES, DOCUMENTOS = window.DOCUMENTOS, ASIGNACIONES = window.ASIGNACIONES;
 let state = { estados:[], encargados:[], ups:[], fundos:[], soloVencidas:false };
 let stateCostos = { ccs:[], fundos:[], anios:[], meses:[] };
@@ -628,6 +638,34 @@ function renderIngresos() {
       ${mesHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}
     </div>
     <div class="footer">Ingresos desde Proyecciones_Manuales · Los Crisoles · BData</div>`;
+}
+
+
+// Determina la temporada de una fecha dado el mes de inicio
+function getTemporadaDeFecha(fecha, mesInicio) {
+  const d = typeof fecha === "string" ? new Date(fecha) : fecha;
+  if (!d || isNaN(d)) return null;
+  const anio = d.getFullYear();
+  const mes  = d.getMonth() + 1; // 1-12
+  if (mes >= mesInicio) {
+    return anio + "-" + (anio + 1);
+  } else {
+    return (anio - 1) + "-" + anio;
+  }
+}
+
+// Temporada activa por defecto (más reciente en TEMP_CC)
+function getTemporadaActiva() {
+  const temps = Object.keys(TEMP_CC).sort();
+  return temps[temps.length - 1] || "";
+}
+
+let TEMPORADA_ACTIVA = "";
+function cambiarTemporada(temp) {
+  TEMPORADA_ACTIVA = temp;
+  renderCostos();
+  renderMargenes();
+  renderIngresos();
 }
 
 function toggleBloque(id) {
@@ -1287,12 +1325,18 @@ function filtrarPorUP(id) {
 // ── RENDER COSTOS ──────────────────────────────────────────────────────────
 function renderCostos() {
   const FECHA_CORTE = FECHA_CORTE_COSTOS;
+  const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
+  const ccDeTemp    = TEMP_CC[tempActiva] || Object.keys(CC_MAP); // UPs de la temporada
 
   // Costos históricos BD_Registro (antes del corte)
   const costosHistoricos = (window.TODOS||[]).filter(r => {
     const raw   = String(r["Fecha"]||"");
     const fecha = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
-    return Number(r["Costo Total"]||0) > 0 && (fecha === "" || fecha < FECHA_CORTE);
+    const ccId  = String(r["Centro_Costo"]||"").trim();
+    const tmpCC = TEMP_MAP[ccId];
+    const tempR = tmpCC ? getTemporadaDeFecha(r["Fecha"], tmpCC.mesInicio) : null;
+    const passTemp = !tempActiva || tempR === tempActiva;
+    return Number(r["Costo Total"]||0) > 0 && (fecha === "" || fecha < FECHA_CORTE) && passTemp;
   }).map(r => ({
     _fuente:      "BD_Registro",
     Centro_Costo: String(r["Centro_Costo"]||"").trim(),
@@ -1302,10 +1346,13 @@ function renderCostos() {
   }));
 
   // Costos nuevos Asignaciones_U (desde el corte)
-  // Nota: UP_Nombre contiene el UP_ID real, CC_ID contiene el nombre del CC
-  const costosNuevos = (window.ASIGNACIONES||[]).filter(r =>
-    Number(r["Monto_Asignado"]||0) > 0
-  ).map(r => ({
+  const costosNuevos = (window.ASIGNACIONES||[]).filter(r => {
+    const ccId  = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    const tmpCC = TEMP_MAP[ccId];
+    const tempR = tmpCC ? getTemporadaDeFecha(r["Fecha_Asignacion"], tmpCC.mesInicio) : null;
+    const passTemp = !tempActiva || tempR === tempActiva;
+    return Number(r["Monto_Asignado"]||0) > 0 && passTemp;
+  }).map(r => ({
     _fuente:      "Asignaciones_U",
     Centro_Costo: String(r["UP_Nombre"]||r["UP_ID"]||"").trim(),
     Fecha:        r["Fecha_Asignacion"],
@@ -1511,6 +1558,13 @@ async function main() {
         CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
         FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
         HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0) || 0;
+        const temp    = String(c["Temporada"]||"").trim();
+        const mesIni  = parseInt(c["MES_INICIO_TEMPORADA"]||7)||7;
+        if (temp) {
+          TEMP_MAP[id] = { temporada: temp, mesInicio: mesIni };
+          if (!TEMP_CC[temp]) TEMP_CC[temp] = [];
+          if (!TEMP_CC[temp].includes(id)) TEMP_CC[temp].push(id);
+        }
         const coords  = String(c["Coordenadas"]||"").trim();
         if (coords) {
           const [lat, lng] = coords.split(",").map(s => parseFloat(s.trim()));
