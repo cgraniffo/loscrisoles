@@ -1526,8 +1526,12 @@ function renderCostos() {
       ${mesHTML || "<div style='font-size:12px;color:#aaa;'>Sin datos suficientes</div>"}
     </div>
 
-    <div class="stat-card" style="margin-top:12px;">
-      <div class="stat-title">Detalle de registros — ${conCosto.length} registros · ${fmtPeso(totalGeneral)}</div>
+    <div class="stat-card" style="margin-top:12px;overflow:hidden;">
+      <div class="stat-title" onclick="toggleBloque('costo-detalle')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+        <span>Detalle de registros — ${conCosto.length} registros · ${fmtPeso(totalGeneral)}</span>
+        <span id="arrow-costo-detalle" style="font-size:12px;color:#888;transition:transform 0.2s;">▼</span>
+      </div>
+      <div id="body-costo-detalle" style="display:none;">
       <div style="overflow-x:auto;">
         <table class="up-table">
           <thead><tr>
@@ -1554,6 +1558,7 @@ function renderCostos() {
             ${conCosto.length > 50 ? `<tr><td colspan="5" style="text-align:center;color:#aaa;font-size:12px;padding:10px;">Mostrando 50 de ${conCosto.length} registros</td></tr>` : ""}
           </tbody>
         </table>
+      </div>
       </div>
     </div>
     <div class="footer">Costos: BD_Registro pre-${FECHA_CORTE} (${nHistorico}) + Asignaciones_U (${nNuevo}) · Los Crisoles · BData</div>`;
