@@ -1854,7 +1854,31 @@ function buildContexto() {
     "",
     "=== INGRESOS ESTIMADOS ===",
     "Total: $" + Math.round(ingTotal/1000) + "k",
-    proyDetalle
+    proyDetalle,
+    "",
+    "=== PRODUCCION REAL (GUIAS ASIGNADAS) ===",
+    (function(){
+      var asig = window.ASIGNACIONES||[];
+      var guias = asig.filter(function(r){ return String(r["Tipo_Doc"]||"").includes("guia"); });
+      var porUP = {};
+      guias.forEach(function(r){
+        var up   = CC_MAP[String(r["UP_ID"]||"").trim()] || String(r["UP_Nombre"]||"").trim();
+        var prod = String(r["Nombre_Item"]||"").trim();
+        var cant = Number(r["Cantidad "]||r["Cantidad"]||0);
+        var und  = String(r["Unidad "]||r["Unidad"]||"kg").trim();
+        if (!up||!prod||!cant) return;
+        if (!porUP[up]) porUP[up] = {};
+        porUP[up][prod] = (porUP[up][prod]||0)+cant;
+      });
+      return Object.entries(porUP).map(function(e){
+        var up = e[0]; var prods = e[1];
+        return up+": "+Object.entries(prods).map(function(p){ return p[1].toLocaleString("es-CL")+" "+p[0]; }).join(", ");
+      }).join("\n") || "Sin producción real registrada";
+    })(),
+    "",
+    "=== ASIGNACIONES DE COSTOS ===",
+    "Total asignaciones: " + (window.ASIGNACIONES||[]).length,
+    "Monto total asignado: $" + Math.round((window.ASIGNACIONES||[]).reduce(function(s,r){return s+Number(r["Monto_Asignado"]||0);},0)/1000) + "k"
   ];
   return lineas.join("\n");
 }
