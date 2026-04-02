@@ -571,29 +571,54 @@ async function main() {
     const cobrar = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r));
     const pagar  = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r));
     const sumD   = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+    const pagar15  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en15;});
+    const cobrar15 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en15;});
     const pagar30  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
     const cobrar30 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
     const pagarVenc  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
     const cobrarVenc = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
+    const saldo15 = CAJA_ACTUAL + sumD(cobrar15) + sumD(cobrarVenc) - sumD(pagar15) - sumD(pagarVenc);
     const saldo30 = CAJA_ACTUAL + sumD(cobrar30) + sumD(cobrarVenc) - sumD(pagar30) - sumD(pagarVenc);
 
     document.getElementById('h-caja').textContent = fmtPeso(CAJA_ACTUAL);
     document.getElementById('card-caja').innerHTML = `
-      <div class="caja-flow">
-        <div class="caja-item">
-          <div class="caja-val" style="color:var(--verde);">${fmtPeso(CAJA_ACTUAL)}</div>
-          <div class="caja-lbl">Hoy</div>
-        </div>
-        <div class="caja-item">
-          <div class="caja-val" style="color:#ef4444;">-${fmtPeso(sumD(pagarVenc)+sumD(pagar30))}</div>
-          <div class="caja-lbl">Por pagar</div>
-        </div>
-        <div class="caja-item">
-          <div class="caja-val" style="color:var(--verde2);">+${fmtPeso(sumD(cobrarVenc)+sumD(cobrar30))}</div>
-          <div class="caja-lbl">Por cobrar</div>
-        </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div class="caja-item" style="background:#eaf3de;">
-          <div class="caja-val" style="color:${saldo30>=0?"var(--verde)":"#ef4444"};">${fmtPeso(saldo30)}</div>
+          <div class="caja-val" style="color:var(--verde);font-size:22px;">${fmtPeso(CAJA_ACTUAL)}</div>
+          <div class="caja-lbl">💰 Caja Hoy</div>
+        </div>
+        <div class="caja-item" style="background:#fff8f8;">
+          <div class="caja-val" style="color:#ef4444;font-size:18px;">-${fmtPeso(sumD(pagarVenc))}</div>
+          <div class="caja-lbl">⚠️ Por pagar vencido</div>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Próximos 15 días</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div class="caja-item">
+          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagar15))}</div>
+          <div class="caja-lbl">Por pagar 15d</div>
+        </div>
+        <div class="caja-item">
+          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrar15))}</div>
+          <div class="caja-lbl">Por cobrar 15d</div>
+        </div>
+        <div class="caja-item" style="background:${saldo15>=0?"#eaf3de":"#fff8f8"};">
+          <div class="caja-val" style="color:${saldo15>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldo15)}</div>
+          <div class="caja-lbl">Proyectado 15d</div>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Próximos 30 días</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div class="caja-item">
+          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagar30))}</div>
+          <div class="caja-lbl">Por pagar 30d</div>
+        </div>
+        <div class="caja-item">
+          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrar30))}</div>
+          <div class="caja-lbl">Por cobrar 30d</div>
+        </div>
+        <div class="caja-item" style="background:${saldo30>=0?"#eaf3de":"#fff8f8"};">
+          <div class="caja-val" style="color:${saldo30>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldo30)}</div>
           <div class="caja-lbl">Proyectado 30d</div>
         </div>
       </div>`;
