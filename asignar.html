@@ -676,6 +676,18 @@ function chatKeyDown(e) {
 }
 
 function buildContexto() {
+  // Fallbacks for pages that don't have all variables
+  if (typeof ACTIVOS    === "undefined") var ACTIVOS    = (window.TODOS||[]).filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
+  if (typeof TODOS      === "undefined") var TODOS      = window.TODOS||[];
+  if (typeof PROYECCIONES==="undefined") var PROYECCIONES = window.PROYECCIONES||[];
+  if (typeof DOCUMENTOS === "undefined") var DOCUMENTOS = window.DOCUMENTOS||[];
+  if (typeof ASIGNACIONES==="undefined") var ASIGNACIONES = window.ASIGNACIONES||[];
+  if (typeof CC_MAP     === "undefined") var CC_MAP     = {};
+  if (typeof FUNDO_MAP  === "undefined") var FUNDO_MAP  = {};
+  if (typeof ENC_MAP    === "undefined") var ENC_MAP    = {};
+  if (typeof LAB_MAP    === "undefined") var LAB_MAP    = {};
+  if (typeof HA_MAP     === "undefined") var HA_MAP     = {};
+  if (typeof CAJA_ACTUAL=== "undefined") var CAJA_ACTUAL = window.CAJA_ACTUAL||0;
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const RUT_LC = "76099766-8";
 
@@ -897,36 +909,20 @@ async function chatSend() {
   </div>
 </div>
 
-
-<div id="chat-panel">
-  <div id="chat-head">
-    <div>
-      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
-      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
-    </div>
-    <button id="chat-close" onclick="toggleChat()">✕</button>
-  </div>
-  <div id="chat-msgs">
-    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
-  </div>
-  <div class="chat-suggestions">
-    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
-  </div>
-  <div id="chat-input-wrap">
-    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
-    <button id="chat-send" onclick="chatSend()">Enviar</button>
-  </div>
-</div>
-
+</body>
+</html>
 </script>
+</body>
+</html>
 </script>
+</body>
+</html>
 </script>
 
 
 
+</body>
+</html>
 </script>
 </body>
 </html>
