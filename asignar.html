@@ -82,6 +82,29 @@
       .btn-add { width: 100%; text-align: center; padding: 10px; }
       .obs-row input { font-size: 14px; padding: 10px; }
     }
+/* ── CHAT IA ─────────────────────────────────────────── */
+    #chat-btn { position:fixed; bottom:24px; right:24px; width:52px; height:52px; border-radius:50%; background:#1a3a0a; color:#fff; border:none; font-size:22px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.25); z-index:9999; display:flex; align-items:center; justify-content:center; transition:transform 0.2s; }
+    #chat-btn:hover { transform:scale(1.08); }
+    #chat-panel { position:fixed; bottom:88px; right:24px; width:380px; max-height:560px; background:#fff; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.18); display:none; flex-direction:column; z-index:9998; border:1px solid #e5e2da; overflow:hidden; }
+    #chat-panel.open { display:flex; }
+    #chat-head { background:#1a3a0a; color:#fff; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+    #chat-head-title { font-size:14px; font-weight:bold; }
+    #chat-head-sub { font-size:11px; color:#9fe1cb; margin-top:1px; }
+    #chat-close { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; padding:0 4px; }
+    #chat-msgs { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+    .chat-msg { max-width:88%; padding:9px 12px; border-radius:12px; font-size:13px; line-height:1.5; }
+    .chat-msg.user { background:#1a3a0a; color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
+    .chat-msg.ai { background:#f0ede6; color:#1a1a1a; align-self:flex-start; border-bottom-left-radius:4px; }
+    .chat-msg.ai.loading { color:#888; font-style:italic; }
+    #chat-input-wrap { padding:10px 12px; border-top:1px solid #f0ede6; display:flex; gap:8px; flex-shrink:0; }
+    #chat-input { flex:1; border:1px solid #ddd; border-radius:8px; padding:8px 12px; font-size:13px; font-family:Arial,sans-serif; resize:none; height:38px; outline:none; }
+    #chat-input:focus { border-color:#1a3a0a; }
+    #chat-send { background:#1a3a0a; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; flex-shrink:0; }
+    #chat-send:hover { background:#2d6a1a; }
+    #chat-send:disabled { background:#ccc; cursor:not-allowed; }
+    .chat-suggestions { display:flex; flex-wrap:wrap; gap:6px; padding:8px 12px; border-top:1px solid #f0ede6; flex-shrink:0; }
+    .chat-sug { font-size:11px; padding:4px 10px; border-radius:99px; border:1px solid #ddd; background:#f8f8f6; color:#555; cursor:pointer; white-space:nowrap; }
+    .chat-sug:hover { border-color:#1a3a0a; color:#1a3a0a; }
     .loading { text-align: center; color: #888; padding: 40px; font-size: 14px; }
     .empty { text-align: center; color: #aaa; padding: 40px; font-size: 14px; background: #fff; border-radius: 10px; border: 1px solid #e5e2da; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a3a0a; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
@@ -600,6 +623,153 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 main();
+</script>
+
+<button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
+
+<div id="chat-panel">
+  <div id="chat-head">
+    <div>
+      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
+      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
+    </div>
+    <button id="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div id="chat-msgs">
+    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
+  </div>
+  <div class="chat-suggestions">
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
+  </div>
+  <div id="chat-input-wrap">
+    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
+    <button id="chat-send" onclick="chatSend()">Enviar</button>
+  </div>
+</div>
+
+
+<script>
+
+function buildContexto() {
+  var lines = [
+    "Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, conciso y directo.",
+    "FECHA HOY: " + new Date().toLocaleDateString("es-CL"),
+    "",
+    "=== DOCUMENTOS SIN ASIGNAR ===",
+    "Total sin asignar: " + (DOCS||[]).length,
+    "Facturas: " + (DOCS||[]).filter(function(d){return d._tipo==="factura";}).length,
+    "Guías recibidas: " + (DOCS||[]).filter(function(d){return d._tipo==="guia";}).length,
+    "Guías emitidas: " + (DOCS||[]).filter(function(d){return d._tipo==="guia-emitida";}).length,
+    "",
+    "DETALLE (primeros 20):",
+    (DOCS||[]).slice(0,20).map(function(d){
+      return d._tipo+" | "+String(d["Razón Social"]||"").trim()+" | F:"+d["Folio"]+" | $"+(Number(d["Monto Total"]||0)/1000).toFixed(0)+"k | "+String(d["Fecha Emisión"]||"").split("T")[0];
+    }).join("\n")
+  ];
+  return lines.join("\n");
+}
+
+function toggleChat() {
+  const panel = document.getElementById("chat-panel");
+  panel.classList.toggle("open");
+  if (panel.classList.contains("open")) {
+    document.getElementById("chat-input").focus();
+  }
+}
+
+function sendSug(el) {
+  document.getElementById("chat-input").value = el.textContent;
+  chatSend();
+}
+
+function chatKeyDown(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(); }
+}
+
+async function chatSend() {
+  const input = document.getElementById("chat-input");
+  const msgs  = document.getElementById("chat-msgs");
+  const send  = document.getElementById("chat-send");
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  // Add user message
+  input.value = "";
+  input.style.height = "38px";
+  msgs.innerHTML += `<div class="chat-msg user">${texto}</div>`;
+
+  // Add loading
+  const loadId = "load-" + Date.now();
+  msgs.innerHTML += `<div class="chat-msg ai loading" id="${loadId}">Analizando datos del campo...</div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+  send.disabled = true;
+
+  chatHistory.push({ role:"user", content: texto });
+
+  try {
+    const contexto = buildContexto();
+    const res = await fetch("https://round-night-574d.christian-19c.workers.dev", {
+      method:"POST",
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        system: contexto,
+        messages: chatHistory
+      })
+    });
+
+    const data = await res.json();
+    const respuesta = data.content?.[0]?.text || "No pude obtener una respuesta.";
+
+    chatHistory.push({ role:"assistant", content: respuesta });
+
+    // Keep history short
+    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
+
+    document.getElementById(loadId).className = "chat-msg ai";
+    document.getElementById(loadId).innerHTML = respuesta.replace(/\n/g,"<br>");
+
+  } catch(e) {
+    document.getElementById(loadId).innerHTML = "Error al conectar con la IA. Verificá tu conexión.";
+  }
+
+  msgs.scrollTop = msgs.scrollHeight;
+  send.disabled = false;
+  input.focus();
+}
+</script>
+
+
+<button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
+
+<div id="chat-panel">
+  <div id="chat-head">
+    <div>
+      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
+      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
+    </div>
+    <button id="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div id="chat-msgs">
+    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
+  </div>
+  <div class="chat-suggestions">
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
+  </div>
+  <div id="chat-input-wrap">
+    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
+    <button id="chat-send" onclick="chatSend()">Enviar</button>
+  </div>
+</div>
+
+</body>
+</html>
 </script>
 </body>
 </html>
