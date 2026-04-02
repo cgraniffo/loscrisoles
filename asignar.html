@@ -675,6 +675,17 @@ function chatKeyDown(e) {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(); }
 }
 
+function parseDate(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  try {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
+    if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(s)) { const sep=s.includes("-")?"-":"/"; const [d,m,y]=s.split(sep); return new Date(+y,+m-1,+d); }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y,m,d]=s.split("-"); return new Date(+y,+m-1,+d); }
+  } catch(e) {}
+  return null;
+}
+
 function buildContexto() {
   // Fallbacks for pages that don't have all variables
   if (typeof ACTIVOS    === "undefined") var ACTIVOS    = (window.TODOS||[]).filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
