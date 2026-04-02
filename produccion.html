@@ -1056,7 +1056,11 @@ async function main() {
     ]);
 
     GUIAS    = Array.isArray(guias)    ? guias    : [];
-    window.ASIGNACIONES = Array.isArray(asignaciones) ? asignaciones : [];
+    window.ASIGNACIONES  = Array.isArray(asignaciones) ? asignaciones : [];
+    // For buildContexto compatibility
+    window.TODOS         = [];  // no BD_Registro in produccion
+    window.PROYECCIONES  = Array.isArray(proyecciones) ? proyecciones : [];
+    window.DOCUMENTOS    = [];
 
     // Build proyecciones lookup by UP_ID
     window.PROY_MAP = {};
@@ -1161,36 +1165,146 @@ main();
 <script>
 
 function buildContexto() {
-  var lines = [
-    "Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, conciso y directo.",
-    "FECHA HOY: " + new Date().toLocaleDateString("es-CL"),
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const RUT_LC = "76099766-8";
+
+  const resolveCC  = function(id) { return CC_MAP[String(id||"").trim()]  || String(id||"").trim(); };
+  const resolveEnc = function(id) { return ENC_MAP[String(id||"").trim()] || String(id||"").trim(); };
+  const resolveLab = function(id) { return LAB_MAP[String(id||"").trim()] || String(id||"").trim(); };
+  const fmtD = function(val) {
+    var d = parseDate(val);
+    return d ? d.toLocaleDateString("es-CL") : "sin fecha";
+  };
+
+  // ── LABORES ──────────────────────────────────────────────────────────────
+  var activos = ACTIVOS || [];
+  var laborResumen = function(r) {
+    return "[" + String(r["Estado Operativo"]||"").trim() + "] " +
+      resolveLab(r["Labor"]) + " | UP: " + resolveCC(r["Centro_Costo"]) +
+      " | Fundo: " + (FUNDO_MAP[String(r["Centro_Costo"]||"").trim()]||"") +
+      " | Encargado: " + resolveEnc(r["Encargado"]) +
+      " | Fecha: " + fmtD(r["Fecha"]) +
+      " | Obs: " + (r["Observaciones"]||"");
+  };
+  var vencidas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; });
+  var hoyL     = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d.getTime()===hoy.getTime(); });
+  var proximas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>hoy; });
+
+  // ── COSTOS ───────────────────────────────────────────────────────────────
+  var todos = TODOS || [];
+  var costoTotal = todos.reduce(function(s,r){ return s+Number(r["Costo Total"]||0); },0);
+  var costoPorCC = {};
+  var costoPorEnc = {};
+  var costoPorTipo = {};
+  todos.forEach(function(r){
+    var cc   = resolveCC(r["Centro_Costo"]);
+    var enc  = resolveEnc(r["Encargado"]);
+    var tipo = String(r["Tipo_Labor"]||"—").trim();
+    var c    = Number(r["Costo Total"]||0);
+    costoPorCC[cc]   = (costoPorCC[cc]||0)   + c;
+    costoPorEnc[enc] = (costoPorEnc[enc]||0) + c;
+    costoPorTipo[tipo]=(costoPorTipo[tipo]||0)+ c;
+  });
+  var topCC  = Object.entries(costoPorCC).sort(function(a,b){return b[1]-a[1];}).slice(0,8).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
+  var topEnc = Object.entries(costoPorEnc).sort(function(a,b){return b[1]-a[1];}).slice(0,6).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
+  var topTipo= Object.entries(costoPorTipo).sort(function(a,b){return b[1]-a[1];}).slice(0,5).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
+
+  // Top registros de costo recientes
+  var topCostoReg = todos.filter(function(r){ return Number(r["Costo Total"]||0)>0; })
+    .sort(function(a,b){ return Number(b["Costo Total"]||0)-Number(a["Costo Total"]||0); })
+    .slice(0,20).map(function(r){
+      return fmtD(r["Fecha"]) + " | " + resolveLab(r["Labor"]) + " | " + resolveCC(r["Centro_Costo"]) +
+        " | Enc: " + resolveEnc(r["Encargado"]) + " | Tipo: " + String(r["Tipo_Labor"]||"").trim() +
+        " | $" + Math.round(Number(r["Costo Total"]||0)/1000) + "k";
+    }).join("\n");
+
+  // ── CAJA ─────────────────────────────────────────────────────────────────
+  var docs = DOCUMENTOS || [];
+  var isPend = function(r){ return !["pagado","anulado"].includes(String(r["EstadoPago"]||"").trim().toLowerCase()); };
+  var cobrar = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r); });
+  var pagar  = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r); });
+  var sumDoc = function(arr){ return arr.reduce(function(s,r){ return s+Number(r["Monto Total"]||r["Monto_Total"]||0); },0); };
+  var en15 = new Date(hoy); en15.setDate(en15.getDate()+15);
+  var cobrar15 = cobrar.filter(function(r){ var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
+  var pagar15  = pagar.filter(function(r){  var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
+  var saldoProy = CAJA_ACTUAL + sumDoc(cobrar15) - sumDoc(pagar15);
+
+  var docLine = function(r){
+    var d=parseDate(r["Fecha_Real"]);
+    var venc = d && d<hoy ? "[VENCIDO]" : "";
+    return fmtD(r["Fecha_Real"]) + " | " + String(r["Razón Social"]||"").trim() +
+      " | F:" + (r["Folio"]||"") + " | $" + Math.round(Number(r["Monto Total"]||0)/1000) + "k " + venc;
+  };
+  var pagarDetalle  = pagar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,40).map(docLine).join("\n");
+  var cobrarDetalle = cobrar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,20).map(docLine).join("\n");
+
+  // ── INGRESOS / PROYECCIONES ───────────────────────────────────────────────
+  var proy = PROYECCIONES || [];
+  var ingTotal = proy.reduce(function(s,r){ return s+Number(r["Monto_Total"]||0); },0);
+  var proyDetalle = proy.map(function(r){
+    var up = resolveCC(r["Unidad_Productiva"]);
+    return fmtD(r["Fecha_Estimada"]) + " | " + up + " | " +
+      Number(r["Kilos_Estimados"]||0).toLocaleString("es-CL") + " kg | $" +
+      Math.round(Number(r["Monto_Total"]||0)/1000) + "k | " + String(r["Estado"]||"");
+  }).join("\n");
+
+  var lineas = [
+    "Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, de forma concisa y directa usando los datos reales.",
+    "FECHA HOY: " + hoy.toLocaleDateString("es-CL"),
     "",
-    "=== PRODUCCION REAL (GUIAS EMITIDAS) ===",
-    "Total guías emitidas: " + (GUIAS||[]).filter(function(r){return String(r["RUT Emisor"]||"").trim()==="76099766-8";}).length,
+    "=== LABORES ACTIVAS (" + activos.length + " total) ===",
+    "VENCIDAS (" + vencidas.length + "):",
+    vencidas.slice(0,20).map(laborResumen).join("\n"),
+    "VENCEN HOY (" + hoyL.length + "):",
+    hoyL.map(laborResumen).join("\n"),
+    "PROXIMAS (" + proximas.length + "):",
+    proximas.slice(0,15).map(laborResumen).join("\n"),
     "",
-    "=== INSUMOS (GUIAS RECIBIDAS) ===",
-    "Total guías recibidas: " + (GUIAS||[]).filter(function(r){return String(r["RUT Emisor"]||"").trim()!=="76099766-8";}).length
+    "=== COSTOS ===",
+    "Total acumulado: $" + Math.round(costoTotal/1000) + "k",
+    "Por UP: " + topCC,
+    "Por encargado: " + topEnc,
+    "Por tipo: " + topTipo,
+    "Top registros por monto:",
+    topCostoReg,
+    "",
+    "=== CAJA ===",
+    "Saldo actual: $" + Math.round(CAJA_ACTUAL/1000) + "k",
+    "Saldo proyectado 15d: $" + Math.round(saldoProy/1000) + "k",
+    "POR PAGAR (" + pagar.length + " docs):",
+    pagarDetalle,
+    "POR COBRAR (" + cobrar.length + " docs):",
+    cobrarDetalle,
+    "",
+    "=== INGRESOS ESTIMADOS ===",
+    "Total: $" + Math.round(ingTotal/1000) + "k",
+    proyDetalle,
+    "",
+    "=== PRODUCCION REAL (GUIAS ASIGNADAS) ===",
+    (function(){
+      var asig = window.ASIGNACIONES||[];
+      var guias = asig.filter(function(r){ return String(r["Tipo_Doc"]||"").includes("guia"); });
+      var porUP = {};
+      guias.forEach(function(r){
+        var up   = CC_MAP[String(r["UP_ID"]||"").trim()] || String(r["UP_Nombre"]||"").trim();
+        var prod = String(r["Nombre_Item"]||"").trim();
+        var cant = Number(r["Cantidad "]||r["Cantidad"]||0);
+        var und  = String(r["Unidad "]||r["Unidad"]||"kg").trim();
+        if (!up||!prod||!cant) return;
+        if (!porUP[up]) porUP[up] = {};
+        porUP[up][prod] = (porUP[up][prod]||0)+cant;
+      });
+      return Object.entries(porUP).map(function(e){
+        var up = e[0]; var prods = e[1];
+        return up+": "+Object.entries(prods).map(function(p){ return p[1].toLocaleString("es-CL")+" "+p[0]; }).join(", ");
+      }).join("\n") || "Sin producción real registrada";
+    })(),
+    "",
+    "=== ASIGNACIONES DE COSTOS ===",
+    "Total asignaciones: " + (window.ASIGNACIONES||[]).length,
+    "Monto total asignado: $" + Math.round((window.ASIGNACIONES||[]).reduce(function(s,r){return s+Number(r["Monto_Asignado"]||0);},0)/1000) + "k"
   ];
-  return lines.join("\n");
-}
-
-let chatHistory = [];
-
-function toggleChat() {
-  const panel = document.getElementById("chat-panel");
-  panel.classList.toggle("open");
-  if (panel.classList.contains("open")) {
-    document.getElementById("chat-input").focus();
-  }
-}
-
-function sendSug(el) {
-  document.getElementById("chat-input").value = el.textContent;
-  chatSend();
-}
-
-function chatKeyDown(e) {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(); }
+  return lineas.join("\n");
 }
 
 async function chatSend() {
