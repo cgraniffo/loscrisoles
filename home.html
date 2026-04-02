@@ -498,7 +498,7 @@ async function main() {
   const en30 = new Date(hoy); en30.setDate(hoy.getDate()+30);
 
   try {
-    const [registros, ccs, docs, proyecciones, asignaciones, labores, encargados] = await Promise.all([
+    const [registros, ccs, docs, proyecciones, asignaciones, banco, labores, encargados] = await Promise.all([
       fetchSheet(API_REG, "BD_Registro"),
       fetchSheet(API_CC,  "BD_CC"),
       fetchSheet(API_FIN, "CargaHTML_Demo"),
