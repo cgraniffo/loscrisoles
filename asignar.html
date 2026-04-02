@@ -82,7 +82,8 @@
       .btn-add { width: 100%; text-align: center; padding: 10px; }
       .obs-row input { font-size: 14px; padding: 10px; }
     }
-/* ── CHAT IA ─────────────────────────────────────────── */
+
+    /* ── CHAT IA ─────────────────────────────────────────── */
     #chat-btn { position:fixed; bottom:24px; right:24px; width:52px; height:52px; border-radius:50%; background:#1a3a0a; color:#fff; border:none; font-size:22px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.25); z-index:9999; display:flex; align-items:center; justify-content:center; transition:transform 0.2s; }
     #chat-btn:hover { transform:scale(1.08); }
     #chat-panel { position:fixed; bottom:88px; right:24px; width:380px; max-height:560px; background:#fff; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.18); display:none; flex-direction:column; z-index:9998; border:1px solid #e5e2da; overflow:hidden; }
@@ -631,6 +632,7 @@ document.addEventListener("DOMContentLoaded", () => {
 main();
 </script>
 
+
 <button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
 
 <div id="chat-panel">
@@ -656,230 +658,17 @@ main();
   </div>
 </div>
 
-
-<script>
-
-function buildContexto() {
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const RUT_LC = "76099766-8";
-
-  const resolveCC  = function(id) { return CC_MAP[String(id||"").trim()]  || String(id||"").trim(); };
-  const resolveEnc = function(id) { return ENC_MAP[String(id||"").trim()] || String(id||"").trim(); };
-  const resolveLab = function(id) { return LAB_MAP[String(id||"").trim()] || String(id||"").trim(); };
-  const fmtD = function(val) {
-    var d = parseDate(val);
-    return d ? d.toLocaleDateString("es-CL") : "sin fecha";
-  };
-
-  // ── LABORES ──────────────────────────────────────────────────────────────
-  var activos = ACTIVOS || [];
-  var laborResumen = function(r) {
-    return "[" + String(r["Estado Operativo"]||"").trim() + "] " +
-      resolveLab(r["Labor"]) + " | UP: " + resolveCC(r["Centro_Costo"]) +
-      " | Fundo: " + (FUNDO_MAP[String(r["Centro_Costo"]||"").trim()]||"") +
-      " | Encargado: " + resolveEnc(r["Encargado"]) +
-      " | Fecha: " + fmtD(r["Fecha"]) +
-      " | Obs: " + (r["Observaciones"]||"");
-  };
-  var vencidas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; });
-  var hoyL     = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d.getTime()===hoy.getTime(); });
-  var proximas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>hoy; });
-
-  // ── COSTOS ───────────────────────────────────────────────────────────────
-  var todos = TODOS || [];
-  var costoTotal = todos.reduce(function(s,r){ return s+Number(r["Costo Total"]||0); },0);
-  var costoPorCC = {};
-  var costoPorEnc = {};
-  var costoPorTipo = {};
-  todos.forEach(function(r){
-    var cc   = resolveCC(r["Centro_Costo"]);
-    var enc  = resolveEnc(r["Encargado"]);
-    var tipo = String(r["Tipo_Labor"]||"—").trim();
-    var c    = Number(r["Costo Total"]||0);
-    costoPorCC[cc]   = (costoPorCC[cc]||0)   + c;
-    costoPorEnc[enc] = (costoPorEnc[enc]||0) + c;
-    costoPorTipo[tipo]=(costoPorTipo[tipo]||0)+ c;
-  });
-  var topCC  = Object.entries(costoPorCC).sort(function(a,b){return b[1]-a[1];}).slice(0,8).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
-  var topEnc = Object.entries(costoPorEnc).sort(function(a,b){return b[1]-a[1];}).slice(0,6).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
-  var topTipo= Object.entries(costoPorTipo).sort(function(a,b){return b[1]-a[1];}).slice(0,5).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
-
-  // Top registros de costo recientes
-  var topCostoReg = todos.filter(function(r){ return Number(r["Costo Total"]||0)>0; })
-    .sort(function(a,b){ return Number(b["Costo Total"]||0)-Number(a["Costo Total"]||0); })
-    .slice(0,20).map(function(r){
-      return fmtD(r["Fecha"]) + " | " + resolveLab(r["Labor"]) + " | " + resolveCC(r["Centro_Costo"]) +
-        " | Enc: " + resolveEnc(r["Encargado"]) + " | Tipo: " + String(r["Tipo_Labor"]||"").trim() +
-        " | $" + Math.round(Number(r["Costo Total"]||0)/1000) + "k";
-    }).join("\n");
-
-  // ── CAJA ─────────────────────────────────────────────────────────────────
-  var docs = DOCUMENTOS || [];
-  var isPend = function(r){ return !["pagado","anulado"].includes(String(r["EstadoPago"]||"").trim().toLowerCase()); };
-  var cobrar = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r); });
-  var pagar  = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r); });
-  var sumDoc = function(arr){ return arr.reduce(function(s,r){ return s+Number(r["Monto Total"]||r["Monto_Total"]||0); },0); };
-  var en15 = new Date(hoy); en15.setDate(en15.getDate()+15);
-  var cobrar15 = cobrar.filter(function(r){ var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
-  var pagar15  = pagar.filter(function(r){  var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
-  var saldoProy = CAJA_ACTUAL + sumDoc(cobrar15) - sumDoc(pagar15);
-
-  var docLine = function(r){
-    var d=parseDate(r["Fecha_Real"]);
-    var venc = d && d<hoy ? "[VENCIDO]" : "";
-    return fmtD(r["Fecha_Real"]) + " | " + String(r["Razón Social"]||"").trim() +
-      " | F:" + (r["Folio"]||"") + " | $" + Math.round(Number(r["Monto Total"]||0)/1000) + "k " + venc;
-  };
-  var pagarDetalle  = pagar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,40).map(docLine).join("\n");
-  var cobrarDetalle = cobrar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,20).map(docLine).join("\n");
-
-  // ── INGRESOS / PROYECCIONES ───────────────────────────────────────────────
-  var proy = PROYECCIONES || [];
-  var ingTotal = proy.reduce(function(s,r){ return s+Number(r["Monto_Total"]||0); },0);
-  var proyDetalle = proy.map(function(r){
-    var up = resolveCC(r["Unidad_Productiva"]);
-    return fmtD(r["Fecha_Estimada"]) + " | " + up + " | " +
-      Number(r["Kilos_Estimados"]||0).toLocaleString("es-CL") + " kg | $" +
-      Math.round(Number(r["Monto_Total"]||0)/1000) + "k | " + String(r["Estado"]||"");
-  }).join("\n");
-
-  var lineas = [
-    "Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, de forma concisa y directa usando los datos reales.",
-    "FECHA HOY: " + hoy.toLocaleDateString("es-CL"),
-    "",
-    "=== LABORES ACTIVAS (" + activos.length + " total) ===",
-    "VENCIDAS (" + vencidas.length + "):",
-    vencidas.slice(0,20).map(laborResumen).join("\n"),
-    "VENCEN HOY (" + hoyL.length + "):",
-    hoyL.map(laborResumen).join("\n"),
-    "PROXIMAS (" + proximas.length + "):",
-    proximas.slice(0,15).map(laborResumen).join("\n"),
-    "",
-    "=== COSTOS ===",
-    "Total acumulado: $" + Math.round(costoTotal/1000) + "k",
-    "Por UP: " + topCC,
-    "Por encargado: " + topEnc,
-    "Por tipo: " + topTipo,
-    "Top registros por monto:",
-    topCostoReg,
-    "",
-    "=== CAJA ===",
-    "Saldo actual: $" + Math.round(CAJA_ACTUAL/1000) + "k",
-    "Saldo proyectado 15d: $" + Math.round(saldoProy/1000) + "k",
-    "POR PAGAR (" + pagar.length + " docs):",
-    pagarDetalle,
-    "POR COBRAR (" + cobrar.length + " docs):",
-    cobrarDetalle,
-    "",
-    "=== INGRESOS ESTIMADOS ===",
-    "Total: $" + Math.round(ingTotal/1000) + "k",
-    proyDetalle,
-    "",
-    "=== PRODUCCION REAL (GUIAS ASIGNADAS) ===",
-    (function(){
-      var asig = window.ASIGNACIONES||[];
-      var guias = asig.filter(function(r){ return String(r["Tipo_Doc"]||"").includes("guia"); });
-      var porUP = {};
-      guias.forEach(function(r){
-        var up   = CC_MAP[String(r["UP_ID"]||"").trim()] || String(r["UP_Nombre"]||"").trim();
-        var prod = String(r["Nombre_Item"]||"").trim();
-        var cant = Number(r["Cantidad "]||r["Cantidad"]||0);
-        var und  = String(r["Unidad "]||r["Unidad"]||"kg").trim();
-        if (!up||!prod||!cant) return;
-        if (!porUP[up]) porUP[up] = {};
-        porUP[up][prod] = (porUP[up][prod]||0)+cant;
-      });
-      return Object.entries(porUP).map(function(e){
-        var up = e[0]; var prods = e[1];
-        return up+": "+Object.entries(prods).map(function(p){ return p[1].toLocaleString("es-CL")+" "+p[0]; }).join(", ");
-      }).join("\n") || "Sin producción real registrada";
-    })(),
-    "",
-    "=== ASIGNACIONES DE COSTOS ===",
-    "Total asignaciones: " + (window.ASIGNACIONES||[]).length,
-    "Monto total asignado: $" + Math.round((window.ASIGNACIONES||[]).reduce(function(s,r){return s+Number(r["Monto_Asignado"]||0);},0)/1000) + "k"
-  ];
-  return lineas.join("\n");
-}
-
-async function chatSend() {
-  const input = document.getElementById("chat-input");
-  const msgs  = document.getElementById("chat-msgs");
-  const send  = document.getElementById("chat-send");
-  const texto = input.value.trim();
-  if (!texto) return;
-
-  // Add user message
-  input.value = "";
-  input.style.height = "38px";
-  msgs.innerHTML += `<div class="chat-msg user">${texto}</div>`;
-
-  // Add loading
-  const loadId = "load-" + Date.now();
-  msgs.innerHTML += `<div class="chat-msg ai loading" id="${loadId}">Analizando datos del campo...</div>`;
-  msgs.scrollTop = msgs.scrollHeight;
-  send.disabled = true;
-
-  chatHistory.push({ role:"user", content: texto });
-
-  try {
-    const contexto = buildContexto();
-    const res = await fetch("https://round-night-574d.christian-19c.workers.dev", {
-      method:"POST",
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        system: contexto,
-        messages: chatHistory
-      })
-    });
-
-    const data = await res.json();
-    const respuesta = data.content?.[0]?.text || "No pude obtener una respuesta.";
-
-    chatHistory.push({ role:"assistant", content: respuesta });
-
-    // Keep history short
-    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-
-    document.getElementById(loadId).className = "chat-msg ai";
-    document.getElementById(loadId).innerHTML = respuesta.replace(/\n/g,"<br>");
-
-  } catch(e) {
-    document.getElementById(loadId).innerHTML = "Error al conectar con la IA. Verificá tu conexión.";
-  }
-
-  msgs.scrollTop = msgs.scrollHeight;
-  send.disabled = false;
-  input.focus();
-}
+</body>
+</html>
+</script>
+</body>
+</html>
+</script>
+</body>
+</html>
 </script>
 
 
-<button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
-
-<div id="chat-panel">
-  <div id="chat-head">
-    <div>
-      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
-      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
-    </div>
-    <button id="chat-close" onclick="toggleChat()">✕</button>
-  </div>
-  <div id="chat-msgs">
-    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
-  </div>
-  <div class="chat-suggestions">
-    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
-  </div>
-  <div id="chat-input-wrap">
-    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
-    <button id="chat-send" onclick="chatSend()">Enviar</button>
-  </div>
-</div>
 
 </body>
 </html>
