@@ -261,7 +261,8 @@ function buildResumen(totalAsig, diff, montoTotal) {
 }
 
 async function guardar(key, tipo, proveedor, folio, montoTotal, rutEmisor) {
-  const s    = docState[key];
+  const s   = docState[key];
+  const doc = DOCS.find(d => String(d.KEY||"").trim() === key) || {};
   const user = document.getElementById("usuario-input").value.trim() || "sin usuario";
 
   if (!s.filas.every(f => f.up_id)) {
@@ -278,11 +279,15 @@ async function guardar(key, tipo, proveedor, folio, montoTotal, rutEmisor) {
   if (btn) btn.disabled = true;
 
   // Base row builder
+  // Get fecha_documento from the doc object
+  const fechaDoc = String(doc?.["Fecha Emisión"]||"").split("T")[0] || "";
+
   const baseRow = (f) => ({
     tipo_doc:        tipo,
     key_documento:   key,
     proveedor,
     folio,
+    fecha_documento: fechaDoc,
     monto_total_doc: montoTotal,
     up_id:           f.up_id,
     up_nombre:       CC_MAP[f.up_id]||f.up_id,
