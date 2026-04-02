@@ -645,7 +645,6 @@ function fmtPesoFull(n) {
 
 function renderCaja() {
   const RUT_LC = "76099766-8";
-  const CAJA_ACTUAL = 61805719;
   const hoy    = new Date(); hoy.setHours(0,0,0,0);
   const en15   = new Date(hoy); en15.setDate(en15.getDate() + 15);
   const en30   = new Date(hoy); en30.setDate(en30.getDate() + 30);
@@ -1495,14 +1494,15 @@ function toggleCostoMulti(key, val) {
 // ── MAIN ───────────────────────────────────────────────────────────────────
 async function main() {
   try {
-    const [registros, ccs, labores, encargados, proyecciones, documentos, asignaciones] = await Promise.all([
+    const [registros, ccs, labores, encargados, proyecciones, documentos, asignaciones, banco] = await Promise.all([
       fetchSheet(API_REGISTRO, "BD_Registro"),
       fetchSheet(API_CC,       "BD_CC"),
       fetchSheet(API_LABORES,  "BD_Labores"),
       fetchSheet(API_REGISTRO, "Encargados"),
       fetchSheet(API_REGISTRO, "Proyecciones_Manuales"),
       fetchSheet(API_FINANZAS, "CargaHTML_Demo"),
-      fetchSheet(API_FINANZAS, "Asignaciones_U")
+      fetchSheet(API_FINANZAS, "Asignaciones_U"),
+      fetchSheet(API_FINANZAS, "BD_Banco")
     ]);
 
     ccs.forEach(c => {
@@ -1531,6 +1531,11 @@ async function main() {
     PROYECCIONES = window.PROYECCIONES = proyecciones;
     DOCUMENTOS   = window.DOCUMENTOS   = documentos;
     ASIGNACIONES = window.ASIGNACIONES = Array.isArray(asignaciones) ? asignaciones : [];
+
+    // Saldo real desde BD_Banco
+    const bancoDatos = Array.isArray(banco) ? banco : [];
+    const CAJA_ACTUAL = bancoDatos.reduce((s,r) => s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0), 0);
+    window.CAJA_ACTUAL = CAJA_ACTUAL;
     ACTIVOS = window.ACTIVOS = registros.filter(r => {
       const est = String(r["Estado Operativo"]||"").trim();
       return est==="En Proceso" || est==="Pendiente";
@@ -1618,7 +1623,6 @@ function chatKeyDown(e) {
 function buildContexto() {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const RUT_LC = "76099766-8";
-  const CAJA_ACTUAL = 61805719;
 
   const resolveCC  = function(id) { return CC_MAP[String(id||"").trim()]  || String(id||"").trim(); };
   const resolveEnc = function(id) { return ENC_MAP[String(id||"").trim()] || String(id||"").trim(); };
