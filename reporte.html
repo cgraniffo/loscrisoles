@@ -1637,6 +1637,24 @@ async function main() {
     document.getElementById("hdr-date").textContent = now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
     document.getElementById("hdr-refresh").innerHTML = `Actualizado<br>${now.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}`;
 
+    // Populate temporada selector from actual data
+    const tempsSet = new Set();
+    (window.TODOS||[]).forEach(r => {
+      const ccId = String(r["Centro_Costo"]||"").trim();
+      const tmp  = TEMP_MAP[ccId];
+      if (!tmp) return;
+      const t = getTemporadaDeFecha(r["Fecha"], tmp.mesInicio);
+      if (t) tempsSet.add(t);
+    });
+    const tempsArr = [...tempsSet].sort().reverse();
+    TEMPORADA_ACTIVA = tempsArr[0] || "";
+    const selTemp = document.getElementById("sel-temporada");
+    if (selTemp && tempsArr.length) {
+      selTemp.innerHTML = tempsArr.map(t =>
+        `<option value="${t}" ${t===TEMPORADA_ACTIVA?"selected":""}>${t}</option>`
+      ).join("");
+    }
+
     renderPageLabores();
     renderCostos();
     renderMargenes();
