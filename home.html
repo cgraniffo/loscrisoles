@@ -275,7 +275,7 @@
 
     <div class="headline">
       <div>
-        <div class="headline-title">Gestión<br><span>informada</span><br>del campo</div>
+        <div class="headline-title">Gestión<br><span>inteligente</span><br>del campo</div>
         <div class="headline-sub">Todos los datos de Los Crisoles en un solo lugar — labores, costos, caja y producción en tiempo real.</div>
       </div>
       <div class="headline-kpis">
@@ -531,13 +531,11 @@ async function main() {
       if (id && nombre) LAB_MAP[id] = nombre;
     });
     (Array.isArray(encargados)?encargados:[]).forEach(r => {
-      const id   = String(r["Id_Encargado"]||r["id"]||"").trim();
+      const id   = String(r["id_Encargado"]||r["Id_Encargado"]||r["id"]||"").trim();
       const nombre = String(r["Nombre Encargado"]||r["Nombre"]||"").trim();
       if (id && nombre) ENC_MAP[id] = nombre;
     });
 
-    // Debug ENC_MAP
-    console.log('ENC_MAP size:', Object.keys(ENC_MAP).length, 'ejemplo:', Object.entries(ENC_MAP)[0]);
     // ── LABORES ──────────────────────────────────────────────────
     const activos = (Array.isArray(registros)?registros:[]).filter(r =>
       !["Completado","Anulado"].includes(String(r["Estado Operativo"]||"").trim())
