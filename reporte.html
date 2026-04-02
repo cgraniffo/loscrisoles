@@ -654,10 +654,20 @@ function getTemporadaDeFecha(fecha, mesInicio) {
   }
 }
 
-// Temporada activa por defecto (más reciente en TEMP_CC)
+// Temporada activa por defecto — calculada desde los datos reales
 function getTemporadaActiva() {
-  const temps = Object.keys(TEMP_CC).sort();
-  return temps[temps.length - 1] || "";
+  // Count records per temporada from TODOS
+  const conteo = {};
+  (window.TODOS||[]).forEach(r => {
+    const ccId = String(r["Centro_Costo"]||"").trim();
+    const tmp  = TEMP_MAP[ccId];
+    if (!tmp) return;
+    const t = getTemporadaDeFecha(r["Fecha"], tmp.mesInicio);
+    if (t) conteo[t] = (conteo[t]||0) + 1;
+  });
+  // Return temporada with most records
+  const sorted = Object.entries(conteo).sort((a,b)=>b[1]-a[1]);
+  return sorted[0]?.[0] || Object.keys(TEMP_CC).sort().pop() || "";
 }
 
 let TEMPORADA_ACTIVA = "";
