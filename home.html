@@ -891,6 +891,8 @@ function buildContexto() {
   return lines.join("\n");
 }
 
+let chatHistory = [];
+
 function toggleChat() {
   const panel = document.getElementById("chat-panel");
   panel.classList.toggle("open");
