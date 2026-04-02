@@ -275,8 +275,8 @@
 
     <div class="headline">
       <div>
-        <div class="headline-title"><br><span>Gestión de campo</span><br></div>
-        <div class="headline-sub">Panel de Control Los Crisoles</div>
+        <div class="headline-title">Gestión<br><span>inteligente</span><br>del campo</div>
+        <div class="headline-sub">Todos los datos de Los Crisoles en un solo lugar — labores, costos, caja y producción en tiempo real.</div>
       </div>
       <div class="headline-kpis">
         <div class="hkpi">
@@ -418,7 +418,7 @@ const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt9
 const API_FIN     = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
 const API_LABORES = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 const RUT_LC  = "76099766-8";
-const CAJA_ACTUAL = 61805719;
+let CAJA_ACTUAL = 61805719; // se actualiza desde BD_Banco
 const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {}, COORD_MAP = {}, LAB_MAP = {}, ENC_MAP = {};
@@ -504,9 +504,14 @@ async function main() {
       fetchSheet(API_FIN, "CargaHTML_Demo"),
       fetchSheet(API_REG, "Proyecciones_Manuales"),
       fetchSheet(API_FIN, "Asignaciones_U"),
+      fetchSheet(API_FIN, "BD_Banco"),
       fetchSheet(API_LABORES, "BD_Labores"),
       fetchSheet(API_REG, "Encargados")
     ]);
+
+    // Saldo real desde BD_Banco
+    const bancoDatos = Array.isArray(banco) ? banco : [];
+    CAJA_ACTUAL = bancoDatos.reduce((s,r) => s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0), 0);
 
     // Build maps
     (Array.isArray(ccs)?ccs:[]).forEach(c => {
