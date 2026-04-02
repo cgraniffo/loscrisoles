@@ -152,6 +152,74 @@
     .saldo-label { font-size:12px; color:#9fe1cb; margin-bottom:4px; }
     .saldo-val { font-size:28px; font-weight:bold; color:#fff; }
     .saldo-formula { font-size:11px; color:#9fe1cb; margin-top:4px; }
+    /* ── RESPONSIVE ─────────────────────────────────────────── */
+    @media (max-width: 768px) {
+
+      /* Header */
+      .hdr-inner { padding: 14px 14px 0; }
+      .hdr-title  { font-size: 18px; }
+      .hdr-sub    { font-size: 11px; }
+      .metrics    { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+      .m-val      { font-size: 20px; }
+      .m-label    { font-size: 10px; }
+
+      /* Tabs */
+      .tabs { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+      .tab  { font-size: 11px; padding: 8px 12px; flex-shrink: 0; }
+
+      /* Temporada selector */
+      #sel-temporada { font-size: 11px; padding: 3px 6px; }
+
+      /* Body */
+      .body { padding: 10px 12px 80px; }
+
+      /* Filters */
+      .filters { flex-wrap: wrap; gap: 6px; }
+      .filter-group { flex-wrap: wrap; gap: 4px; }
+      .fbtn { font-size: 11px; padding: 4px 10px; }
+
+      /* Labores */
+      .labor-table th, .labor-table td { font-size: 11px; padding: 6px 8px; }
+      .labor-table th:nth-child(3),
+      .labor-table td:nth-child(3) { display: none; } /* hide encargado col */
+      .labor-row { flex-wrap: wrap; gap: 4px; }
+
+      /* Mapa Leaflet */
+      #mapa { height: 220px !important; }
+
+      /* Caja */
+      .caja-cascade { font-size: 12px; }
+      .caja-item    { padding: 8px 10px; }
+      .caja-val     { font-size: 16px; }
+      .caja-lbl     { font-size: 10px; }
+      .caja-chart   { height: 160px; }
+
+      /* Costos / tablas */
+      .up-table th, .up-table td { font-size: 11px; padding: 5px 6px; }
+      .up-table th:nth-child(3),
+      .up-table td:nth-child(3) { display: none; } /* hide hectáreas */
+      .stat-card  { padding: 12px; }
+      .stat-title { font-size: 12px; }
+
+      /* Barras */
+      .bar-row   { gap: 4px; }
+      .bar-label { width: 80px; font-size: 11px; }
+      .bar-val   { width: 55px; font-size: 11px; }
+
+      /* Márgenes */
+      .margen-row { flex-direction: column; gap: 4px; }
+
+      /* Chat btn */
+      #chat-btn { width: 44px; height: 44px; font-size: 18px; bottom: 16px; right: 16px; }
+      #chat-panel { width: calc(100vw - 24px); right: 12px; bottom: 68px; max-height: 70vh; }
+    }
+
+    @media (max-width: 480px) {
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .m-val   { font-size: 17px; }
+      .tabs    { padding: 0 8px; }
+      .tab     { font-size: 10px; padding: 7px 10px; }
+    }
   </style>
 </head>
 <body>
