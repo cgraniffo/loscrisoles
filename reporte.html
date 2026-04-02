@@ -1495,9 +1495,11 @@ function renderCostos() {
   const upTabla = upCostos.map((item, i) => {
     const pct    = totalGeneral > 0 ? (item.total/totalGeneral*100).toFixed(1) : 0;
     const costoHa = item.ha > 0 ? item.total / item.ha : 0;
+    const badgeReg  = item.totalReg  > 0 ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#eaf3de;color:#3b6d11;margin-right:2px;">BD ${fmtPeso(item.totalReg)}</span>` : "";
+    const badgeAsig = item.totalAsig > 0 ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#e6f1fb;color:#0c447c;">ASG ${fmtPeso(item.totalAsig)}</span>` : "";
     return `<tr>
       <td style="font-weight:bold;">${i+1}</td>
-      <td>${item.nombre}</td>
+      <td>${item.nombre}<div style="margin-top:2px;">${badgeReg}${badgeAsig}</div></td>
       <td style="color:#888;">${item.fundo}</td>
       <td style="text-align:right;color:#888;">${item.ha > 0 ? item.ha : "—"}</td>
       <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(item.total)}</td>
@@ -1524,7 +1526,37 @@ function renderCostos() {
       ${mesHTML || "<div style='font-size:12px;color:#aaa;'>Sin datos suficientes</div>"}
     </div>
 
-    <div class="footer">Costos basados en campo "Costo Total" · Los Crisoles · BData</div>`;
+    <div class="stat-card" style="margin-top:12px;">
+      <div class="stat-title">Detalle de registros — ${conCosto.length} registros · ${fmtPeso(totalGeneral)}</div>
+      <div style="overflow-x:auto;">
+        <table class="up-table">
+          <thead><tr>
+            <th>Fecha</th><th>UP</th><th>Tipo / Labor</th>
+            <th style="text-align:center;">Fuente</th>
+            <th style="text-align:right;">Monto</th>
+          </tr></thead>
+          <tbody>
+            ${conCosto.sort((a,b)=>(parseDate(b.Fecha)||0)-(parseDate(a.Fecha)||0)).slice(0,50).map(r => {
+              const cc  = CC_MAP[r.Centro_Costo]||r.Centro_Costo;
+              const fnd = FUNDO_MAP[r.Centro_Costo]||"";
+              const d   = parseDate(r.Fecha);
+              const fuenteBadge = r._fuente === "BD_Registro"
+                ? `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#eaf3de;color:#3b6d11;">BD Registro</span>`
+                : `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#e6f1fb;color:#0c447c;">Asignación</span>`;
+              return `<tr>
+                <td style="color:#888;font-size:12px;">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—"}</td>
+                <td>${cc}<span style="color:#888;font-size:11px;"> ${fnd}</span></td>
+                <td style="font-size:12px;color:#555;">${r.Tipo_Labor||"—"}</td>
+                <td style="text-align:center;">${fuenteBadge}</td>
+                <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(r.monto)}</td>
+              </tr>`;
+            }).join("")}
+            ${conCosto.length > 50 ? `<tr><td colspan="5" style="text-align:center;color:#aaa;font-size:12px;padding:10px;">Mostrando 50 de ${conCosto.length} registros</td></tr>` : ""}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="footer">Costos: BD_Registro pre-${FECHA_CORTE} (${nHistorico}) + Asignaciones_U (${nNuevo}) · Los Crisoles · BData</div>`;
 }
 
 function toggleMulti(key, val) {
