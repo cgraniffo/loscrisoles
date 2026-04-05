@@ -7,20 +7,48 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #1a3a0a; display: flex; flex-direction: column; height: 100vh; }
+
     .tabbar {
-      display: flex; overflow-x: auto; white-space: nowrap;
-      background: #1a3a0a; border-bottom: 2px solid rgba(134,239,172,0.25);
+      display: flex; align-items: stretch; overflow-x: auto;
+      white-space: nowrap; background: #1a3a0a;
+      border-bottom: 1px solid rgba(134,239,172,0.15);
       flex-shrink: 0; -webkit-overflow-scrolling: touch;
     }
-    .tab {
-      font-size: 12px; font-weight: 600; padding: 12px 18px;
-      cursor: pointer; color: rgba(255,255,255,0.55);
-      border-bottom: 3px solid transparent; flex-shrink: 0;
-      transition: all 0.15s; user-select: none;
+
+    /* Separador entre grupos */
+    .tab-sep {
+      width: 1px; background: rgba(134,239,172,0.2);
+      margin: 8px 4px; flex-shrink: 0;
     }
-    .tab:hover { color: #fff; background: rgba(255,255,255,0.06); }
-    .tab.active { color: #fff; border-bottom-color: #86efac; }
-    .frame-wrap { flex: 1; position: relative; }
+
+    /* Etiqueta de grupo */
+    .tab-group-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: rgba(134,239,172,0.5);
+      padding: 8px 10px 0 12px; flex-shrink: 0;
+      display: flex; align-items: flex-start;
+      pointer-events: none; user-select: none;
+    }
+
+    .tab {
+      font-size: 12px; font-weight: 600; padding: 14px 16px 10px;
+      cursor: pointer; color: rgba(255,255,255,0.5);
+      border-bottom: 3px solid transparent;
+      flex-shrink: 0; transition: all 0.15s;
+      user-select: none; display: flex; align-items: center; gap: 5px;
+    }
+    .tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
+
+    /* Colores por grupo */
+    .tab.g-resumen.active { color: #fff; border-bottom-color: #86efac; }
+    .tab.g-campo.active   { color: #fff; border-bottom-color: #6ee7b7; }
+    .tab.g-finanzas.active{ color: #fff; border-bottom-color: #fcd34d; }
+
+    .tab.g-resumen:hover  { background: rgba(134,239,172,0.08); }
+    .tab.g-campo:hover    { background: rgba(110,231,183,0.08); }
+    .tab.g-finanzas:hover { background: rgba(252,211,77,0.08); }
+
+    .frame-wrap { flex: 1; position: relative; overflow: hidden; }
     iframe {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
@@ -28,36 +56,51 @@
       background: #f5f0e8;
     }
     iframe.active { display: block; }
-    @media (max-width: 600px) { .tab { font-size: 10px; padding: 10px 12px; } }
+
+    @media (max-width: 600px) {
+      .tab { font-size: 10px; padding: 12px 11px 8px; gap: 3px; }
+      .tab-group-label { display: none; }
+      .tab-sep { margin: 6px 2px; }
+    }
   </style>
 </head>
 <body>
 
 <div class="tabbar">
-  <div class="tab active" onclick="show('home', this)">🏠 Resumen</div>
-  <div class="tab"        onclick="show('labores', this)">📋 Labores</div>
-  <div class="tab"        onclick="show('caja', this)">🏦 Caja</div>
-  <div class="tab"        onclick="show('costos', this)">💰 Costos</div>
-  <div class="tab"        onclick="show('insumos', this)">📦 Insumos</div>
-  <div class="tab"        onclick="show('produccion', this)">🌱 Producción</div>
-  <div class="tab"        onclick="show('ingresos', this)">🌾 Ingresos</div>
-  <div class="tab"        onclick="show('margenes', this)">📊 Márgenes</div>
-  <div class="tab"        onclick="show('asignar', this)">📎 Asignar</div>
-  <div class="tab"        onclick="show('campo', this)">🗺 Campo</div>
+
+  <!-- RESUMEN -->
+  <div class="tab g-resumen active" onclick="show('home', this)">🏠 Resumen</div>
+
+  <div class="tab-sep"></div>
+  <div class="tab-group-label">Campo</div>
+
+  <!-- CAMPO -->
+  <div class="tab g-campo" onclick="show('labores', this)">📋 Labores</div>
+  <div class="tab g-campo" onclick="show('produccion', this)">🌱 Producción</div>
+  <div class="tab g-campo" onclick="show('insumos', this)">📦 Insumos</div>
+
+  <div class="tab-sep"></div>
+  <div class="tab-group-label">Finanzas</div>
+
+  <!-- FINANZAS -->
+  <div class="tab g-finanzas" onclick="show('caja', this)">🏦 Caja</div>
+  <div class="tab g-finanzas" onclick="show('costos', this)">💰 Costos</div>
+  <div class="tab g-finanzas" onclick="show('ingresos', this)">🌾 Ingresos</div>
+  <div class="tab g-finanzas" onclick="show('margenes', this)">📊 Márgenes</div>
+  <div class="tab g-finanzas" onclick="show('asignar', this)">📎 Asignar</div>
+
 </div>
 
 <div class="frame-wrap">
-  <!-- src vacío en todos excepto home. Se carga al primer click. -->
   <iframe id="f-home"       class="active" src="home.html"></iframe>
   <iframe id="f-labores"    data-src="reporte.html#labores"></iframe>
+  <iframe id="f-produccion" data-src="produccion.html#produccion"></iframe>
+  <iframe id="f-insumos"    data-src="produccion.html#insumos"></iframe>
   <iframe id="f-caja"       data-src="reporte.html#caja"></iframe>
   <iframe id="f-costos"     data-src="reporte.html#costos"></iframe>
-  <iframe id="f-insumos"    data-src="produccion.html#insumos"></iframe>
-  <iframe id="f-produccion" data-src="produccion.html#produccion"></iframe>
   <iframe id="f-ingresos"   data-src="reporte.html#ingresos"></iframe>
   <iframe id="f-margenes"   data-src="reporte.html#margenes"></iframe>
   <iframe id="f-asignar"    data-src="asignar.html"></iframe>
-  <iframe id="f-campo"      data-src="home.html#campo"></iframe>
 </div>
 
 <script>
