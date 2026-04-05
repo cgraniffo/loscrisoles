@@ -6,46 +6,42 @@
   <title>Los Crisoles · Dashboard</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #1a3a0a; display: flex; flex-direction: column; height: 100vh; }
+    body { font-family: Arial, sans-serif; background: #1a3a0a; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
     /* ── HEADER ── */
-    .dash-header {
-      background: #1a3a0a; padding: 12px 20px 0;
-      flex-shrink: 0;
-    }
-    .dash-top {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
-    }
+    .dash-header { background: #1a3a0a; padding: 12px 20px 0; flex-shrink: 0; }
+    .dash-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
     .dash-logo { display: flex; align-items: center; gap: 10px; }
-    .dash-logo-icon {
-      width: 32px; height: 32px; background: #86efac; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center; font-size: 16px;
-    }
+    .dash-logo-icon { width: 32px; height: 32px; background: #86efac; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
     .dash-logo-name { font-size: 16px; font-weight: 700; color: #fff; }
     .dash-logo-sub  { font-size: 9px; color: #86efac; letter-spacing: 0.1em; text-transform: uppercase; }
+    .dash-right { display: flex; align-items: center; gap: 12px; }
     .dash-date { font-size: 11px; color: #9fe1cb; text-align: right; }
 
+    /* Temporada selector */
+    .temp-wrap { display: flex; align-items: center; gap: 6px; }
+    .temp-label { font-size: 10px; color: #9fe1cb; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    #dash-temporada {
+      font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.1);
+      color: #fff; border: 1px solid rgba(134,239,172,0.3); border-radius: 6px;
+      padding: 4px 8px; cursor: pointer; outline: none;
+    }
+    #dash-temporada option { background: #1a3a0a; color: #fff; }
+
     /* ── KPIs ── */
-    .dash-kpis {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0;
-    }
-    .kpi {
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px; padding: 8px 12px;
-    }
+    .dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0; }
+    .kpi { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 12px; }
     .kpi-val { font-size: 20px; font-weight: 700; color: #fff; line-height: 1; }
-    .kpi-val.green  { color: #86efac; }
-    .kpi-val.red    { color: #fca5a5; }
-    .kpi-val.amber  { color: #fcd34d; }
+    .kpi-val.green { color: #86efac; }
+    .kpi-val.red   { color: #fca5a5; }
+    .kpi-val.amber { color: #fcd34d; }
     .kpi-label { font-size: 10px; color: #9fe1cb; margin-top: 4px; }
 
     /* ── TABS ── */
     .tabbar {
-      display: flex; align-items: stretch; overflow-x: auto;
-      white-space: nowrap; background: #1a3a0a;
-      border-bottom: 1px solid rgba(134,239,172,0.15);
-      flex-shrink: 0; -webkit-overflow-scrolling: touch;
-      margin-top: 10px;
+      display: flex; align-items: stretch; overflow-x: auto; white-space: nowrap;
+      background: #1a3a0a; border-bottom: 1px solid rgba(134,239,172,0.15);
+      flex-shrink: 0; -webkit-overflow-scrolling: touch; margin-top: 10px;
     }
     .tab-sep { width: 1px; background: rgba(134,239,172,0.2); margin: 8px 4px; flex-shrink: 0; }
     .tab-group-label {
@@ -56,21 +52,39 @@
     .tab {
       font-size: 12px; font-weight: 600; padding: 12px 15px 9px;
       cursor: pointer; color: rgba(255,255,255,0.5);
-      border-bottom: 3px solid transparent; flex-shrink: 0;
-      transition: all 0.15s; user-select: none;
+      border-bottom: 3px solid transparent; flex-shrink: 0; transition: color 0.15s; user-select: none;
     }
     .tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
     .tab.g-resumen.active  { color: #fff; border-bottom-color: #86efac; }
     .tab.g-campo.active    { color: #fff; border-bottom-color: #6ee7b7; }
     .tab.g-finanzas.active { color: #fff; border-bottom-color: #fcd34d; }
 
-    /* ── IFRAME ── */
-    .frame-wrap { flex: 1; position: relative; overflow: hidden; }
+    /* ── FRAME AREA ── */
+    .frame-wrap { flex: 1; position: relative; overflow: hidden; background: #f5f0e8; }
+
     iframe {
       position: absolute; inset: 0; width: 100%; height: 100%;
-      border: none; display: none; background: #f5f0e8;
+      border: none; background: #f5f0e8;
+      /* Hidden until ready */
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease;
     }
-    iframe.active { display: block; }
+    iframe.ready { opacity: 1; pointer-events: auto; }
+    iframe.hidden { display: none; }
+
+    /* Loading overlay per iframe */
+    .frame-loader {
+      position: absolute; inset: 0; background: #f5f0e8;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10; transition: opacity 0.2s ease;
+    }
+    .frame-loader.gone { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid #e5e2da;
+      border-top-color: #1a3a0a; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 768px) {
       .dash-kpis { grid-template-columns: repeat(2, 1fr); }
@@ -78,6 +92,7 @@
       .tab { font-size: 10px; padding: 10px 10px 7px; }
       .tab-group-label { display: none; }
       .tab-sep { margin: 6px 2px; }
+      .dash-right { flex-direction: column; align-items: flex-end; gap: 4px; }
     }
   </style>
 </head>
@@ -92,7 +107,15 @@
         <div class="dash-logo-sub">Dashboard de gestión</div>
       </div>
     </div>
-    <div class="dash-date" id="dash-date">—</div>
+    <div class="dash-right">
+      <div class="temp-wrap">
+        <span class="temp-label">Temporada</span>
+        <select id="dash-temporada" onchange="onTemporadaChange()">
+          <option value="">Cargando...</option>
+        </select>
+      </div>
+      <div class="dash-date" id="dash-date">—</div>
+    </div>
   </div>
 
   <div class="dash-kpis">
@@ -132,89 +155,45 @@
 </div>
 
 <div class="frame-wrap">
-  <iframe id="f-home"       class="active" src="/home"></iframe>
-  <iframe id="f-labores"    data-src="/reporte" data-tab="labores"></iframe>
-  <iframe id="f-produccion" data-src="/produccion" data-tab="produccion"></iframe>
-  <iframe id="f-insumos"    data-src="/produccion" data-tab="insumos"></iframe>
-  <iframe id="f-caja"       data-src="/reporte" data-tab="caja"></iframe>
-  <iframe id="f-costos"     data-src="/reporte" data-tab="costos"></iframe>
-  <iframe id="f-ingresos"   data-src="/reporte" data-tab="ingresos"></iframe>
-  <iframe id="f-margenes"   data-src="/reporte" data-tab="margenes"></iframe>
-  <iframe id="f-asignar"    data-src="/asignar"></iframe>
+  <!-- Loading overlay (shared) -->
+  <div class="frame-loader" id="loader"><div class="spinner"></div></div>
+
+  <iframe id="f-home"       src="/home"       data-tab=""></iframe>
+  <iframe id="f-labores"    src=""  data-src="/reporte"    data-tab="labores"    class="hidden"></iframe>
+  <iframe id="f-produccion" src=""  data-src="/produccion" data-tab="produccion" class="hidden"></iframe>
+  <iframe id="f-insumos"    src=""  data-src="/produccion" data-tab="insumos"    class="hidden"></iframe>
+  <iframe id="f-caja"       src=""  data-src="/reporte"    data-tab="caja"       class="hidden"></iframe>
+  <iframe id="f-costos"     src=""  data-src="/reporte"    data-tab="costos"     class="hidden"></iframe>
+  <iframe id="f-ingresos"   src=""  data-src="/reporte"    data-tab="ingresos"   class="hidden"></iframe>
+  <iframe id="f-margenes"   src=""  data-src="/reporte"    data-tab="margenes"   class="hidden"></iframe>
+  <iframe id="f-asignar"    src=""  data-src="/asignar"    data-tab=""           class="hidden"></iframe>
 </div>
 
 <script>
-  var loaded = { home: true };
-
-  // ── APIs ─────────────────────────────────────────────────────
+  // ── CONFIG ───────────────────────────────────────────────────
   var API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
   var API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
-  var API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
   var RUT_LC  = "76099766-8";
   var CORTE   = "2026-04-01";
 
+  var currentTab  = 'home';
+  var loaded      = {};
+  var temporada   = '';
+
+  // CSS injected into every iframe to hide internal header/tabs
+  var HIDE_CSS = [
+    '.hdr, .header, .tabs, .metrics-top, .metrics { display: none !important; }',
+    '.body { padding-top: 16px !important; }'
+  ].join(' ');
+
+  // ── HELPERS ──────────────────────────────────────────────────
   function fmtPeso(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
 
   async function fetchSheet(api, sheet) {
-    var res = await fetch(api + "?sheet=" + encodeURIComponent(sheet), { redirect: "follow" });
+    var res = await fetch(api + "?sheet=" + encodeURIComponent(sheet), { redirect:"follow" });
     var txt = await res.text();
     try { return JSON.parse(txt); } catch(e) { return []; }
   }
-
-  async function loadKPIs() {
-    // Date
-    document.getElementById("dash-date").textContent =
-      new Date().toLocaleDateString("es-CL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
-
-    try {
-      var [banco, registros, docs, asignaciones] = await Promise.all([
-        fetchSheet(API_FIN, "BD_Banco"),
-        fetchSheet(API_REG, "BD_Registro"),
-        fetchSheet(API_FIN, "CargaHTML_Demo"),
-        fetchSheet(API_FIN, "Asignaciones_U"),
-      ]);
-
-      // Caja real desde BD_Banco
-      var caja = (Array.isArray(banco) ? banco : [])
-        .reduce(function(s,r){ return s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0); }, 0);
-      document.getElementById("k-caja").textContent = fmtPeso(caja);
-      document.getElementById("k-caja").className   = "kpi-val " + (caja >= 0 ? "green" : "red");
-
-      // Costos acumulados (BD_Registro + Asignaciones)
-      var costoReg = (Array.isArray(registros) ? registros : [])
-        .reduce(function(s,r){ return s + Number(r["Costo Total"]||0); }, 0);
-      var costoAsig = (Array.isArray(asignaciones) ? asignaciones : [])
-        .reduce(function(s,r){ return s + Number(r["Monto_Asignado"]||0); }, 0);
-      document.getElementById("k-costos").textContent = fmtPeso(costoReg + costoAsig);
-
-      // Labores vencidas
-      var hoy = new Date(); hoy.setHours(0,0,0,0);
-      var vencidas = (Array.isArray(registros) ? registros : []).filter(function(r) {
-        var est = String(r["Estado Operativo"]||"").trim();
-        if (est === "Completado" || est === "Anulado") return false;
-        var d = new Date(String(r["Fecha"]||"").split("T")[0]);
-        return !isNaN(d) && d < hoy;
-      }).length;
-      document.getElementById("k-vencidas").textContent = vencidas;
-      document.getElementById("k-vencidas").className   = "kpi-val " + (vencidas > 0 ? "amber" : "green");
-
-      // Docs sin asignar desde corte
-      var sinAsignar = (Array.isArray(docs) ? docs : []).filter(function(d) {
-        var fundo = String(d["Fundo"]||"").trim();
-        var rut   = String(d["RUT Emisor"]||"").trim();
-        var fecha = String(d["Fecha Emisión"]||"").split("T")[0];
-        return (fundo === "" || fundo === "FUNDO_NO_ENCONTRADO") && rut !== RUT_LC && fecha >= CORTE;
-      }).length;
-      document.getElementById("k-sinasignar").textContent = sinAsignar;
-      document.getElementById("k-sinasignar").className   = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
-
-    } catch(e) {
-      console.error("KPI error:", e);
-    }
-  }
-
-  // ── IFRAME SWITCHER ──────────────────────────────────────────
-  var HIDE_CSS = '.hdr,.header,.tabs,.metrics-top,.metrics{display:none!important}.body{padding-top:16px!important}';
 
   function injectCSS(iframe) {
     try {
@@ -226,38 +205,197 @@
   }
 
   function switchIframeTab(iframe, tab) {
+    if (!tab) return;
     try {
       var win = iframe.contentWindow;
-      if (typeof win.switchTab === 'function') {
-        var map = { produccion:'prod', insumos:'insumos' };
-        win.switchTab(map[tab] || tab);
-      }
+      var map = { produccion:'prod', insumos:'insumos' };
+      if (typeof win.switchTab === 'function') win.switchTab(map[tab] || tab);
     } catch(e) {}
   }
 
-  function show(name, el) {
-    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-    el.classList.add('active');
-    document.querySelectorAll('iframe').forEach(function(f) { f.classList.remove('active'); });
-    var frame = document.getElementById('f-' + name);
-    if (!loaded[name]) {
-      var tab = frame.getAttribute('data-tab');
-      frame.src = frame.getAttribute('data-src');
-      loaded[name] = true;
-      frame.addEventListener('load', function() {
-        injectCSS(frame);
-        if (tab) switchIframeTab(frame, tab);
-      });
-    }
-    frame.classList.add('active');
+  function pushTemporada(iframe) {
+    if (!temporada) return;
+    try {
+      var win = iframe.contentWindow;
+      if (typeof win.cambiarTemporada === 'function') win.cambiarTemporada(temporada);
+      // Also update the select inside the iframe if it exists
+      var sel = win.document.getElementById('sel-temporada');
+      if (sel) sel.value = temporada;
+    } catch(e) {}
   }
 
-  // Inject CSS into home on load
-  document.getElementById('f-home').addEventListener('load', function() {
-    injectCSS(this);
+  // ── LOADER ───────────────────────────────────────────────────
+  function showLoader() {
+    var l = document.getElementById('loader');
+    l.classList.remove('gone');
+  }
+  function hideLoader() {
+    var l = document.getElementById('loader');
+    l.classList.add('gone');
+  }
+
+  // ── IFRAME READY ─────────────────────────────────────────────
+  // Called when an iframe finishes loading
+  function onFrameLoad(name) {
+    var frame = document.getElementById('f-' + name);
+    var tab   = frame.getAttribute('data-tab');
+
+    // 1. Inject hide CSS immediately
+    injectCSS(frame);
+
+    // 2. Switch to correct sub-tab
+    switchIframeTab(frame, tab);
+
+    // 3. Push current temporada
+    pushTemporada(frame);
+
+    // 4. Small delay then reveal (gives CSS time to apply)
+    setTimeout(function() {
+      frame.classList.add('ready');
+      if (name === currentTab) hideLoader();
+    }, 80);
+  }
+
+  // Attach load listeners to all iframes
+  document.querySelectorAll('iframe').forEach(function(f) {
+    var name = f.id.replace('f-', '');
+    f.addEventListener('load', function() { onFrameLoad(name); });
   });
 
-  // Load KPIs on start
+  // ── TAB SWITCHER ─────────────────────────────────────────────
+  function show(name, el) {
+    if (name === currentTab) return;
+    currentTab = name;
+
+    // Update tab styles
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
+
+    // Hide all iframes
+    document.querySelectorAll('iframe').forEach(function(f) {
+      f.classList.add('hidden');
+      f.classList.remove('ready');
+    });
+
+    var frame = document.getElementById('f-' + name);
+    frame.classList.remove('hidden');
+
+    if (!loaded[name]) {
+      // First load — show loader, set src
+      showLoader();
+      loaded[name] = true;
+      frame.src = frame.getAttribute('data-src');
+      // onFrameLoad will hide loader when ready
+    } else {
+      // Already loaded — show immediately (already has ready class from before, re-add)
+      frame.classList.add('ready');
+      hideLoader();
+    }
+  }
+
+  // Mark home as loaded on its first load
+  loaded['home'] = true;
+  document.getElementById('f-home').addEventListener('load', function() {
+    onFrameLoad('home');
+  }, { once: true });
+
+  // ── TEMPORADA ────────────────────────────────────────────────
+  function onTemporadaChange() {
+    temporada = document.getElementById('dash-temporada').value;
+    // Push to all loaded iframes that have costos/margenes/ingresos
+    ['f-costos','f-ingresos','f-margenes','f-labores','f-caja'].forEach(function(id) {
+      var f = document.getElementById(id);
+      if (loaded[id.replace('f-','')] && f.contentWindow) pushTemporada(f);
+    });
+  }
+
+  // ── KPIs ─────────────────────────────────────────────────────
+  async function loadKPIs() {
+    document.getElementById("dash-date").textContent =
+      new Date().toLocaleDateString("es-CL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+
+    try {
+      var [banco, registros, docs, asignaciones, ccs] = await Promise.all([
+        fetchSheet(API_FIN, "BD_Banco"),
+        fetchSheet(API_REG, "BD_Registro"),
+        fetchSheet(API_FIN, "CargaHTML_Demo"),
+        fetchSheet(API_FIN, "Asignaciones_U"),
+        fetchSheet(API_REG, "BD_CC"),  // for temporada options
+      ]);
+
+      // Caja
+      var caja = (Array.isArray(banco) ? banco : [])
+        .reduce(function(s,r){ return s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0); }, 0);
+      document.getElementById("k-caja").textContent = fmtPeso(caja);
+      document.getElementById("k-caja").className = "kpi-val " + (caja >= 0 ? "green" : "red");
+
+      // Costos (BD_Registro + Asignaciones_U)
+      var costoReg  = (Array.isArray(registros) ? registros : []).reduce(function(s,r){ return s+Number(r["Costo Total"]||0); }, 0);
+      var costoAsig = (Array.isArray(asignaciones) ? asignaciones : []).reduce(function(s,r){ return s+Number(r["Monto_Asignado"]||0); }, 0);
+      document.getElementById("k-costos").textContent = fmtPeso(costoReg + costoAsig);
+
+      // Labores vencidas
+      var hoy = new Date(); hoy.setHours(0,0,0,0);
+      var vencidas = (Array.isArray(registros) ? registros : []).filter(function(r) {
+        var est = String(r["Estado Operativo"]||"").trim();
+        if (est === "Completado" || est === "Anulado") return false;
+        var raw = String(r["Fecha"]||""); var d = new Date(raw.split("T")[0]);
+        return !isNaN(d) && d < hoy;
+      }).length;
+      document.getElementById("k-vencidas").textContent = vencidas;
+      document.getElementById("k-vencidas").className = "kpi-val " + (vencidas > 0 ? "amber" : "green");
+
+      // Sin asignar desde corte
+      var sinAsignar = (Array.isArray(docs) ? docs : []).filter(function(d) {
+        var fundo = String(d["Fundo"]||"").trim();
+        var rut   = String(d["RUT Emisor"]||"").trim();
+        var fecha = String(d["Fecha Emisión"]||"").split("T")[0];
+        return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && rut!==RUT_LC && fecha>=CORTE;
+      }).length;
+      document.getElementById("k-sinasignar").textContent = sinAsignar;
+      document.getElementById("k-sinasignar").className = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
+
+      // Build temporada options from BD_CC
+      var tempSet = {};
+      var TEMP_MAP = {};
+      (Array.isArray(ccs) ? ccs : []).forEach(function(c) {
+        var id   = String(c["Id_CC"]||"").trim();
+        var temp = String(c["Temporada"]||"").trim();
+        var mes  = parseInt(c["MES_INICIO_TEMPORADA"]||7)||7;
+        if (id && temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
+      });
+
+      function getTemporada(fechaStr, mesInicio) {
+        var d = new Date(String(fechaStr||"").split("T")[0]);
+        if (isNaN(d)) return null;
+        var y = d.getFullYear(); var m = d.getMonth()+1;
+        return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
+      }
+
+      (Array.isArray(registros) ? registros : []).forEach(function(r) {
+        var ccId = String(r["Centro_Costo"]||"").trim();
+        var tmp  = TEMP_MAP[ccId];
+        if (!tmp) return;
+        var t = getTemporada(r["Fecha"], tmp.mesInicio);
+        if (t) tempSet[t] = (tempSet[t]||0) + 1;
+      });
+
+      var temps = Object.entries(tempSet).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){ return e[0]; });
+      var sel = document.getElementById('dash-temporada');
+      if (temps.length) {
+        sel.innerHTML = temps.map(function(t) {
+          return '<option value="'+t+'">'+t+'</option>';
+        }).join('');
+        temporada = temps[0]; // default = most records
+      } else {
+        sel.innerHTML = '<option value="">Sin temporadas</option>';
+      }
+
+    } catch(e) {
+      console.error("KPI error:", e);
+    }
+  }
+
   loadKPIs();
 </script>
 
