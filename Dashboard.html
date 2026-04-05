@@ -358,6 +358,51 @@
       document.getElementById("k-caja").className = "kpi-val " + (caja >= 0 ? "green" : "red");
 
       // Costos (BD_Registro + Asignaciones_U)
+      // Build temporada options - use BD_CC Temporada col if available, else derive from fecha
+      var tempSet = {};
+      var TEMP_MAP = {};
+      (Array.isArray(ccs) ? ccs : []).forEach(function(c) {
+        var id   = String(c["Id_CC"]||"").trim();
+        var temp = String(c["Temporada"]||"").trim();
+        var mes  = parseInt(c["MES_INICIO_TEMPORADA"]||3)||3;
+        if (id && temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
+      });
+      // Idéntico a reporte.html: solo procesar registros con CC en TEMP_MAP
+      function getTemporada(fechaStr, mesInicio) {
+        var raw = String(fechaStr||"");
+        var d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
+        if (isNaN(d)) return null;
+        var y = d.getFullYear(); var m = d.getMonth()+1;
+        return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
+      }
+
+      console.log('TEMP_MAP size:', Object.keys(TEMP_MAP).length, 'sample:', JSON.stringify(Object.keys(TEMP_MAP).slice(0,3)));
+      console.log('BD_Registro size:', Array.isArray(registros) ? registros.length : 0);
+      if (Array.isArray(registros) && registros[0]) console.log('First Centro_Costo:', JSON.stringify(registros[0]['Centro_Costo']));
+
+      (Array.isArray(registros) ? registros : []).forEach(function(r) {
+        var ccId = String(r["Centro_Costo"]||"").trim();
+        var tmp  = TEMP_MAP[ccId];
+        if (!tmp) return;
+        var t = getTemporada(r["Fecha"], tmp.mesInicio);
+        if (t) tempSet[t] = (tempSet[t]||0) + 1;
+      });
+      console.log("tempSet:", tempSet);
+
+      var temps = Object.entries(tempSet).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){ return e[0]; });
+      var sel = document.getElementById('dash-temporada');
+      if (temps.length) {
+        sel.innerHTML = temps.map(function(t) {
+          return '<option value="'+t+'">'+t+'</option>';
+        }).join('');
+        // Default: prefer 2026-2027, else most-records
+        temporada = temps.indexOf('2026-2027') !== -1 ? '2026-2027' : temps[0];
+        // Reflect default in selector
+        sel.value = temporada;
+      } else {
+        sel.innerHTML = '<option value="">Sin datos</option>';
+      }
+
       // Costos filtrados por temporada activa
       function costosDeLaTemporada(regs, asigs, temp) {
         var costoReg = (Array.isArray(regs) ? regs : []).filter(function(r) {
@@ -405,52 +450,6 @@
       }).length;
       document.getElementById("k-sinasignar").textContent = sinAsignar;
       document.getElementById("k-sinasignar").className = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
-
-      // Build temporada options - use BD_CC Temporada col if available, else derive from fecha
-      var tempSet = {};
-      var TEMP_MAP = {};
-      (Array.isArray(ccs) ? ccs : []).forEach(function(c) {
-        var id   = String(c["Id_CC"]||"").trim();
-        var temp = String(c["Temporada"]||"").trim();
-        var mes  = parseInt(c["MES_INICIO_TEMPORADA"]||3)||3;
-        if (id && temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
-      });
-      // Idéntico a reporte.html: solo procesar registros con CC en TEMP_MAP
-      function getTemporada(fechaStr, mesInicio) {
-        var raw = String(fechaStr||"");
-        var d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
-        if (isNaN(d)) return null;
-        var y = d.getFullYear(); var m = d.getMonth()+1;
-        return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
-      }
-
-      console.log('TEMP_MAP size:', Object.keys(TEMP_MAP).length, 'sample:', JSON.stringify(Object.keys(TEMP_MAP).slice(0,3)));
-      console.log('BD_Registro size:', Array.isArray(registros) ? registros.length : 0);
-      if (Array.isArray(registros) && registros[0]) console.log('First Centro_Costo:', JSON.stringify(registros[0]['Centro_Costo']));
-
-      (Array.isArray(registros) ? registros : []).forEach(function(r) {
-        var ccId = String(r["Centro_Costo"]||"").trim();
-        var tmp  = TEMP_MAP[ccId];
-        if (!tmp) return;
-        var t = getTemporada(r["Fecha"], tmp.mesInicio);
-        if (t) tempSet[t] = (tempSet[t]||0) + 1;
-      });
-      console.log("tempSet:", tempSet);
-
-      var temps = Object.entries(tempSet).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){ return e[0]; });
-      var sel = document.getElementById('dash-temporada');
-      if (temps.length) {
-        sel.innerHTML = temps.map(function(t) {
-          return '<option value="'+t+'">'+t+'</option>';
-        }).join('');
-        // Default: prefer 2026-2027, else most-records
-        temporada = temps.indexOf('2026-2027') !== -1 ? '2026-2027' : temps[0];
-        // Reflect default in selector
-        sel.value = temporada;
-      } else {
-        sel.innerHTML = '<option value="">Sin datos</option>';
-      }
-
     } catch(e) {
       console.error("KPI error:", e);
     }
