@@ -368,11 +368,10 @@
       (Array.isArray(ccs) ? ccs : []).forEach(function(c) {
         var id   = String(c["Id_CC"]||"").trim();
         var temp = String(c["Temporada"]||"").trim();
-        var mes  = parseInt(c["MES_INICIO_TEMPORADA"]||7)||7;
+        var mes  = parseInt(c["MES_INICIO_TEMPORADA"]||3)||3;
         if (id && temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
       });
-      var hasTempMap = Object.keys(TEMP_MAP).length > 0;
-
+      // Idéntico a reporte.html: solo procesar registros con CC en TEMP_MAP
       function getTemporada(fechaStr, mesInicio) {
         var raw = String(fechaStr||"");
         var d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
@@ -382,14 +381,10 @@
       }
 
       (Array.isArray(registros) ? registros : []).forEach(function(r) {
-        var ccId     = String(r["Centro_Costo"]||"").trim();
-        var mesInicio = 7;
-        if (hasTempMap) {
-          var tmp = TEMP_MAP[ccId];
-          if (!tmp) return;
-          mesInicio = tmp.mesInicio;
-        }
-        var t = getTemporada(r["Fecha"], mesInicio);
+        var ccId = String(r["Centro_Costo"]||"").trim();
+        var tmp  = TEMP_MAP[ccId];
+        if (!tmp) return; // sin mapeo en BD_CC → ignorar
+        var t = getTemporada(r["Fecha"], tmp.mesInicio);
         if (t) tempSet[t] = (tempSet[t]||0) + 1;
       });
 
