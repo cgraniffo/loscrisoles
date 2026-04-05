@@ -549,127 +549,180 @@ function toggleIngresosMulti(key, val) {
 
 function renderIngresos() {
   const MESES = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
+  const RUT_LC = "76099766-8";
+  const tempActiva = TEMPORADA_ACTIVA || getTemporadaActiva();
 
-  // Filter options
-  const upOpts    = [...new Set(PROYECCIONES.map(r=>String(r["Unidad_Productiva"]||"").trim()).filter(Boolean))].sort();
-  const estadoOpts = [...new Set(PROYECCIONES.map(r=>String(r["Estado"]||"").trim()).filter(Boolean))].sort();
-  const anioOpts  = [...new Set(PROYECCIONES.map(r=>{const d=parseDate(r["Fecha_Estimada"]);return d?String(d.getFullYear()):null;}).filter(Boolean))].sort();
-  const mesOpts   = [...new Set(PROYECCIONES.map(r=>{const d=parseDate(r["Fecha_Estimada"]);return d?String(d.getMonth()+1).padStart(2,"0"):null;}).filter(Boolean))].sort();
+  function passTemp(fechaVal, ccId) {
+    if (!tempActiva) return true;
+    const tmp = TEMP_MAP[ccId];
+    if (!tmp) return true;
+    return getTemporadaDeFecha(fechaVal, tmp.mesInicio) === tempActiva;
+  }
+
+  // ── FUENTE 1: Facturas emitidas asignadas (Real Facturado) ────────────────
+  const facturasAsig = (window.ASIGNACIONES||[]).filter(r => {
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    const id   = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    return tipo.includes("factura") && Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id);
+  }).map(r => ({
+    _fuente:      "factura",
+    up:           String(r["UP_Nombre"]||r["UP_ID"]||"").trim(),
+    monto:        Number(r["Monto_Asignado"]||0),
+    fecha:        r["Fecha_Documento"]||r["Fecha_Asignacion"]||"",
+    kilos:        0
+  }));
+
+  // UPs que ya tienen factura real — sus "Real" de proyecciones quedan excluidos
+  const upsConFactura = new Set(facturasAsig.map(r => r.up));
+
+  // ── FUENTE 2: Proyecciones Estimado ───────────────────────────────────────
+  const proyEstimado = (window.PROYECCIONES||[]).filter(r => {
+    const id    = String(r["Unidad_Productiva"]||"").trim();
+    const est   = String(r["Estado"]||"").trim();
+    const fecha = r["Fecha_Estimada"]||"";
+    return est === "Estimado" && passTemp(fecha, id);
+  }).map(r => ({
+    _fuente: "estimado",
+    up:      String(r["Unidad_Productiva"]||"").trim(),
+    monto:   Number(r["Monto_Total"]||0),
+    fecha:   r["Fecha_Estimada"]||"",
+    kilos:   Number(r["Kilos_Estimados"]||0)
+  }));
+
+  // ── FUENTE 3: Proyecciones Real (solo UPs SIN factura aún) ────────────────
+  const proyReal = (window.PROYECCIONES||[]).filter(r => {
+    const id    = String(r["Unidad_Productiva"]||"").trim();
+    const est   = String(r["Estado"]||"").trim();
+    const fecha = r["Fecha_Estimada"]||"";
+    return est === "Real" && !upsConFactura.has(id) && passTemp(fecha, id);
+  }).map(r => ({
+    _fuente: "real-proy",
+    up:      String(r["Unidad_Productiva"]||"").trim(),
+    monto:   Number(r["Monto_Total"]||0),
+    fecha:   r["Fecha_Estimada"]||"",
+    kilos:   Number(r["Kilos_Estimados"]||0)
+  }));
+
+  // ── TOTALES POR FUENTE ────────────────────────────────────────────────────
+  const sumF   = arr => arr.reduce((s,r)=>s+r.monto,0);
+  const tFact  = sumF(facturasAsig);
+  const tReal  = sumF(proyReal);
+  const tEst   = sumF(proyEstimado);
+  const tTotal = tFact + tReal + tEst;
+  const pFact  = tTotal>0 ? Math.round(tFact/tTotal*100) : 0;
+  const pReal  = tTotal>0 ? Math.round(tReal/tTotal*100) : 0;
+  const pEst   = tTotal>0 ? Math.round(tEst/tTotal*100)  : 0;
+
+  // ── FILTROS UI ────────────────────────────────────────────────────────────
+  const allRows = [...facturasAsig, ...proyReal, ...proyEstimado];
+  const upOpts  = [...new Set(allRows.map(r=>r.up).filter(Boolean))].sort();
+  const fundoOptsI = [...new Set(upOpts.map(id=>FUNDO_MAP[id]||"").filter(Boolean))].sort();
+  const anioOpts = [...new Set(allRows.map(r=>{ const d=parseDate(r.fecha); return d?String(d.getFullYear()):null; }).filter(Boolean))].sort();
+  const mesOpts  = [...new Set(allRows.map(r=>{ const d=parseDate(r.fecha); return d?String(d.getMonth()+1).padStart(2,"0"):null; }).filter(Boolean))].sort();
 
   const upBtns     = upOpts.map(id=>`<button class="fbtn${stateIngresos.ups.includes(id)?" on":""}" onclick="toggleIngresosMulti('ups','${id}')">${CC_MAP[id]||id}</button>`).join("");
-  const fundoOptsI = [...new Set(upOpts.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
   const fundoBtnsI = fundoOptsI.map(f=>`<button class="fbtn${stateIngresos.fundos.includes(f)?" on":""}" onclick="toggleIngresosMulti('fundos','${f}')">${f}</button>`).join("");
-  const estadoBtns = estadoOpts.map(e=>`<button class="fbtn${stateIngresos.estados.includes(e)?" on":""}" onclick="toggleIngresosMulti('estados','${e}')">${e}</button>`).join("");
   const anioBtns   = anioOpts.map(a=>`<button class="fbtn${stateIngresos.anios.includes(a)?" on":""}" onclick="toggleIngresosMulti('anios','${a}')">${a}</button>`).join("");
   const mesBtns    = mesOpts.map(m=>`<button class="fbtn${stateIngresos.meses.includes(m)?" on":""}" onclick="toggleIngresosMulti('meses','${m}')">${MESES[m]||m}</button>`).join("");
 
-  // Apply filters
-  const filtrados = PROYECCIONES.filter(r => {
-    const up    = String(r["Unidad_Productiva"]||"").trim();
-    const est   = String(r["Estado"]||"").trim();
-    const d     = parseDate(r["Fecha_Estimada"]);
-    const anio  = d ? String(d.getFullYear()) : "";
-    const mes   = d ? String(d.getMonth()+1).padStart(2,"0") : "";
-    const fundoI = FUNDO_MAP[up] || "";
-    if (stateIngresos.ups.length    > 0 && !stateIngresos.ups.includes(up))         return false;
-    if (stateIngresos.fundos.length > 0 && !stateIngresos.fundos.includes(fundoI))  return false;
-    if (stateIngresos.estados.length> 0 && !stateIngresos.estados.includes(est))    return false;
-    if (stateIngresos.anios.length  > 0 && !stateIngresos.anios.includes(anio))     return false;
-    if (stateIngresos.meses.length  > 0 && !stateIngresos.meses.includes(mes))      return false;
-    return true;
-  });
+  function applyFilters(arr) {
+    return arr.filter(r => {
+      const fundo = FUNDO_MAP[r.up]||"";
+      const d     = parseDate(r.fecha);
+      const anio  = d?String(d.getFullYear()):"";
+      const mes   = d?String(d.getMonth()+1).padStart(2,"0"):"";
+      if (stateIngresos.ups.length    > 0 && !stateIngresos.ups.includes(r.up))      return false;
+      if (stateIngresos.fundos.length > 0 && !stateIngresos.fundos.includes(fundo))  return false;
+      if (stateIngresos.anios.length  > 0 && !stateIngresos.anios.includes(anio))    return false;
+      if (stateIngresos.meses.length  > 0 && !stateIngresos.meses.includes(mes))     return false;
+      return true;
+    });
+  }
 
-  // Group by UP
+  const filtFact  = applyFilters(facturasAsig);
+  const filtReal  = applyFilters(proyReal);
+  const filtEst   = applyFilters(proyEstimado);
+  const filtTodos = [...filtFact, ...filtReal, ...filtEst];
+
+  // ── TABLA POR UP ──────────────────────────────────────────────────────────
   const porUP = {};
-  filtrados.forEach(r => {
-    const id = String(r["Unidad_Productiva"]||"").trim();
-    if (!porUP[id]) porUP[id] = { real:[], estimado:[] };
-    const est = String(r["Estado"]||"").trim();
-    if (est === "Real") porUP[id].real.push(r);
-    else porUP[id].estimado.push(r);
+  filtTodos.forEach(r => {
+    if (!porUP[r.up]) porUP[r.up] = { fact:0, real:0, est:0, kilosF:0, kilosR:0, kilosE:0 };
+    if (r._fuente==="factura")   { porUP[r.up].fact  += r.monto; porUP[r.up].kilosF += r.kilos; }
+    if (r._fuente==="real-proy") { porUP[r.up].real  += r.monto; porUP[r.up].kilosR += r.kilos; }
+    if (r._fuente==="estimado")  { porUP[r.up].est   += r.monto; porUP[r.up].kilosE += r.kilos; }
   });
 
-  const sum = arr => arr.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
-  const kg  = arr => arr.reduce((s,r)=>s+Number(r["Kilos_Estimados"]||0),0);
+  const upRows = Object.entries(porUP).map(([id,g]) => {
+    const nombre   = CC_MAP[id]||id;
+    const fundo    = FUNDO_MAP[id]||"—";
+    const ha       = HA_MAP[id]||0;
+    const ingTot   = g.fact + g.real + g.est;
+    const kilosTot = g.kilosF + g.kilosR + g.kilosE;
+    const rend     = ha>0 ? kilosTot/ha : 0;
+    const precioP  = kilosTot>0 ? ingTot/kilosTot : 0;
+    return { id, nombre, fundo, ha, ingTot, ...g, kilosTot, rend, precioP };
+  }).sort((a,b)=>b.ingTot-a.ingTot);
 
-  // Build UP rows sorted by total ingreso desc
-  const upRows = Object.entries(porUP).map(([id, g]) => {
-    const nombre   = CC_MAP[id] || id;
-    const fundo    = FUNDO_MAP[id] || "—";
-    const ha       = HA_MAP[id] || 0;
-    const ingReal  = sum(g.real);
-    const ingEst   = sum(g.estimado);
-    const ingTot   = ingReal + ingEst;
-    const kilosR   = kg(g.real);
-    const kilosE   = kg(g.estimado);
-    const kilosTot = kilosR + kilosE;
-    const rend     = ha > 0 ? kilosTot / ha : 0;
-    const precioP  = kilosTot > 0 ? ingTot / kilosTot : 0;
-    return { id, nombre, fundo, ha, ingReal, ingEst, ingTot, kilosR, kilosE, kilosTot, rend, precioP };
-  }).sort((a,b) => b.ingTot - a.ingTot);
-
-  const maxIng = upRows[0]?.ingTot || 1;
-  let tIngR=0,tIngE=0,tKgR=0,tKgE=0,tHa=0;
-  upRows.forEach(r=>{tIngR+=r.ingReal;tIngE+=r.ingEst;tKgR+=r.kilosR;tKgE+=r.kilosE;tHa+=r.ha;});
-  const tIngTot=tIngR+tIngE, tKgTot=tKgR+tKgE;
-  const tRend = tHa>0 ? tKgTot/tHa : 0;
-  const tPrecio = tKgTot>0 ? tIngTot/tKgTot : 0;
+  const maxIng = upRows[0]?.ingTot||1;
+  let tF=0,tR=0,tE=0,tKg=0,tHa=0;
+  upRows.forEach(r=>{tF+=r.fact;tR+=r.real;tE+=r.est;tKg+=r.kilosTot;tHa+=r.ha;});
+  const tTot=tF+tR+tE;
 
   const tbody = upRows.map(r => {
     const barW = Math.round(r.ingTot/maxIng*80);
+    const bFact = r.fact>0 ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#eaf3de;color:#3b6d11;">F ${fmtPeso(r.fact)}</span>` : "";
+    const bReal = r.real>0 ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#e6f1fb;color:#0c447c;">P ${fmtPeso(r.real)}</span>` : "";
     return `<tr>
-      <td style="font-weight:bold;">${r.nombre}</td>
+      <td style="font-weight:bold;">${r.nombre}<div style="margin-top:2px;">${bFact}${bReal}</div></td>
       <td style="color:#888;">${r.fundo}</td>
-      <td style="text-align:right;" class="ing-real">${r.ingReal>0?fmtPeso(r.ingReal):"—"}</td>
-      <td style="text-align:right;" class="ing-est">${r.ingEst>0?fmtPeso(r.ingEst):"—"}</td>
+      <td style="text-align:right;color:#1a6e3a;font-weight:600;">${r.fact>0?fmtPeso(r.fact):"—"}</td>
+      <td style="text-align:right;color:#0c447c;">${r.real>0?fmtPeso(r.real):"—"}</td>
+      <td style="text-align:right;color:#b45309;">${r.est>0?fmtPeso(r.est):"—"}</td>
       <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(r.ingTot)}</td>
-      <td style="text-align:right;color:#555;">${r.kilosR>0?(r.kilosR/1000).toFixed(1)+"t":"—"}</td>
-      <td style="text-align:right;color:#888;">${r.kilosE>0?(r.kilosE/1000).toFixed(1)+"t":"—"}</td>
-      <td style="text-align:right;color:#555;">${r.rend>0?Math.round(r.rend).toLocaleString("es-CL")+" kg/há":"—"}</td>
-      <td style="text-align:right;color:#888;">${r.precioP>0?"$"+Math.round(r.precioP).toLocaleString("es-CL")+"/kg":"—"}</td>
+      <td style="text-align:right;color:#555;">${r.kilosTot>0?(r.kilosTot/1000).toFixed(1)+"t":"—"}</td>
+      <td style="text-align:right;color:#888;">${r.rend>0?Math.round(r.rend).toLocaleString("es-CL")+" kg/há":"—"}</td>
       <td><div style="height:8px;border-radius:4px;background:#1a3a0a;width:${barW}px;display:inline-block;"></div></td>
     </tr>`;
   }).join("");
 
   const totRow = `<tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
     <td colspan="2">Total</td>
-    <td style="text-align:right;" class="ing-real">${fmtPeso(tIngR)}</td>
-    <td style="text-align:right;" class="ing-est">${fmtPeso(tIngE)}</td>
-    <td style="text-align:right;color:#1a3a0a;">${fmtPeso(tIngTot)}</td>
-    <td style="text-align:right;color:#555;">${(tKgR/1000).toFixed(1)}t</td>
-    <td style="text-align:right;color:#888;">${(tKgE/1000).toFixed(1)}t</td>
-    <td style="text-align:right;color:#555;">${tRend>0?Math.round(tRend).toLocaleString("es-CL")+" kg/há":"—"}</td>
-    <td style="text-align:right;color:#888;">${tPrecio>0?"$"+Math.round(tPrecio).toLocaleString("es-CL")+"/kg":"—"}</td>
-    <td></td>
+    <td style="text-align:right;color:#1a6e3a;">${fmtPeso(tF)}</td>
+    <td style="text-align:right;color:#0c447c;">${fmtPeso(tR)}</td>
+    <td style="text-align:right;color:#b45309;">${fmtPeso(tE)}</td>
+    <td style="text-align:right;color:#1a3a0a;">${fmtPeso(tTot)}</td>
+    <td style="text-align:right;color:#555;">${(tKg/1000).toFixed(1)}t</td>
+    <td></td><td></td>
   </tr>`;
 
-  // Evolución mensual
+  // ── EVOLUCIÓN MENSUAL (todas las fuentes) ─────────────────────────────────
   const porMes = {};
-  filtrados.forEach(r => {
-    const d = parseDate(r["Fecha_Estimada"]);
-    if (!d) return;
+  filtTodos.forEach(r => {
+    const d = parseDate(r.fecha); if (!d) return;
     const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if (!porMes[key]) porMes[key] = 0;
-    porMes[key] += Number(r["Monto_Total"]||0);
+    if (!porMes[key]) porMes[key] = { fact:0, real:0, est:0 };
+    if (r._fuente==="factura")   porMes[key].fact += r.monto;
+    if (r._fuente==="real-proy") porMes[key].real += r.monto;
+    if (r._fuente==="estimado")  porMes[key].est  += r.monto;
   });
   const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
-  const mesMax  = Math.max(...mesRows.map(([,v])=>v),1);
+  const mesMax  = Math.max(...mesRows.map(([,v])=>v.fact+v.real+v.est), 1);
   let acumMes = 0;
   const mesHTML = mesRows.map(([k,v]) => {
-    acumMes += v;
-    const pctM = Math.round(v/mesMax*100);
-    const pctA = Math.round(acumMes/mesRows.reduce((s,[,v])=>s+v,0)*100);
+    const tot = v.fact+v.real+v.est; acumMes += tot;
+    const pctM = Math.round(tot/mesMax*100);
+    const pctA = Math.round(acumMes/filtTodos.reduce((s,r)=>s+r.monto,0)*100);
     const label = new Date(k+"-15").toLocaleDateString("es-CL",{month:"short",year:"numeric"});
+    const barFact = v.fact>0 ? `<div style="height:6px;border-radius:2px;background:#1a6e3a;width:${Math.round(v.fact/mesMax*100)}%;margin-bottom:2px;"></div>` : "";
+    const barReal = v.real>0 ? `<div style="height:6px;border-radius:2px;background:#0c447c;width:${Math.round(v.real/mesMax*100)}%;margin-bottom:2px;"></div>` : "";
+    const barEst  = v.est>0  ? `<div style="height:6px;border-radius:2px;background:#b45309;width:${Math.round(v.est/mesMax*100)}%;margin-bottom:2px;"></div>` : "";
     return `<div class="mes-row">
       <div class="mes-label">${label}</div>
       <div style="flex:1;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-          <div style="font-size:10px;color:#888;width:60px;flex-shrink:0;">Mensual</div>
-          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctM}%;background:#1a3a0a;"></div></div>
-          <div class="mes-val">${fmtPeso(v)}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="font-size:10px;color:#888;width:60px;flex-shrink:0;">Acumulado</div>
+        ${barFact}${barReal}${barEst}
+        <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
           <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:#0f6e56;"></div></div>
           <div class="mes-val" style="color:#0f6e56;">${fmtPeso(acumMes)}</div>
         </div>
@@ -678,12 +731,42 @@ function renderIngresos() {
   }).join("");
 
   document.getElementById("app-ingresos").innerHTML = `
-    <div class="filters-wrap" style="margin-bottom:12px;">
-      <div class="filters-row">
-        <div class="filter-label">Estado</div>
-        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
-        ${estadoBtns}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+
+      <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Real Facturado</div>
+        <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFact)}</div>
+        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${facturasAsig.length} asignaciones · ${pFact}% del total</div>
+        <div style="font-size:10px;color:#6b9e3a;margin-top:2px;">Facturas emitidas con UP asignada</div>
       </div>
+
+      <div style="background:#e6f1fb;border:1px solid #9ec5e8;border-radius:10px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;color:#0c447c;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">📋 Real Proyectado</div>
+        <div style="font-size:22px;font-weight:700;color:#0c447c;line-height:1;">${fmtPeso(tReal)}</div>
+        <div style="font-size:11px;color:#0c447c;margin-top:4px;">${proyReal.length} registros · ${pReal}% del total</div>
+        <div style="font-size:10px;color:#3a7abf;margin-top:2px;">Proyecciones_Manuales Estado=Real (sin factura)</div>
+      </div>
+
+      <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Estimado</div>
+        <div style="font-size:22px;font-weight:700;color:#b45309;line-height:1;">${fmtPeso(tEst)}</div>
+        <div style="font-size:11px;color:#b45309;margin-top:4px;">${proyEstimado.length} registros · ${pEst}% del total</div>
+        <div style="font-size:10px;color:#d97706;margin-top:2px;">Proyecciones_Manuales Estado=Estimado</div>
+      </div>
+
+    </div>
+
+    <div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:16px;font-size:11px;">
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#1a6e3a;display:inline-block;"></span> Facturado</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#0c447c;display:inline-block;"></span> Real proy.</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#b45309;display:inline-block;"></span> Estimado</span>
+      </div>
+      <div style="font-size:20px;font-weight:700;color:#1a3a0a;">${fmtPeso(tTot)}</div>
+    </div>
+
+    <div class="filters-wrap" style="margin-bottom:12px;">
       <div class="filters-row">
         <div class="filter-label">Unidad prod.</div>
         <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
@@ -705,19 +788,19 @@ function renderIngresos() {
         ${mesBtns}
       </div>
     </div>
+
     <div class="stat-card" style="margin-bottom:12px;">
       <div class="stat-title">Ingresos por unidad productiva</div>
       <div style="overflow-x:auto;">
         <table class="mg-table">
           <thead><tr>
             <th>Unidad Productiva</th><th>Centro Costos</th>
-            <th style="text-align:right;">Real</th>
-            <th style="text-align:right;">Estimado</th>
+            <th style="text-align:right;color:#1a6e3a;">🧾 Facturado</th>
+            <th style="text-align:right;color:#0c447c;">📋 Real proy.</th>
+            <th style="text-align:right;color:#b45309;">🔮 Estimado</th>
             <th style="text-align:right;">Total</th>
-            <th style="text-align:right;">Kg Real</th>
-            <th style="text-align:right;">Kg Est.</th>
+            <th style="text-align:right;">Toneladas</th>
             <th style="text-align:right;">Rend. kg/há</th>
-            <th style="text-align:right;">$/kg</th>
             <th></th>
           </tr></thead>
           <tbody>${tbody}${totRow}</tbody>
@@ -725,10 +808,10 @@ function renderIngresos() {
       </div>
     </div>
     <div class="stat-card" style="margin-bottom:12px;">
-      <div class="stat-title">Evolución mensual de ingresos</div>
+      <div class="stat-title">Evolución mensual · <span style="font-size:10px;font-weight:400;color:#888;">verde=facturado · azul=real proy. · naranjo=estimado</span></div>
       ${mesHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}
     </div>
-    <div class="footer">Ingresos desde Proyecciones_Manuales · Los Crisoles · BData</div>`;
+    <div class="footer">Ingresos: Facturas emitidas + Proyecciones_Manuales · Los Crisoles · BData</div>`;
 }
 
 
