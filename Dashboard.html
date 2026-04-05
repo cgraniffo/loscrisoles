@@ -1,1180 +1,458 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<script>
-if (location.search.includes('embed=1')) {
-  document.write('<style>.hdr,.header,.tabs,.hdr-top,.hdr-logo,.hdr-date,.hdr-refresh,.metrics-top,.metrics{display:none!important}</style>');
-}
-</script>
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Los Crisoles — Dashboard</title>
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <title>Los Crisoles · Dashboard</title>
   <style>
-    :root {
-      --verde:    #1a3a0a;
-      --verde2:   #2d6a1a;
-      --verde3:   #86efac;
-      --tierra:   #c8b89a;
-      --crema:    #f5f0e8;
-      --blanco:   #fdfcf9;
-      --gris:     #6b6555;
-      --rojo:     #c0392b;
-      --amber:    #d97706;
-      --azul:     #1d4ed8;
-    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: var(--crema); color: #1a1a0f; min-height: 100vh; }
+    body { font-family: Arial, sans-serif; background: #1a3a0a; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-    /* ── HEADER ─────────────────────────────────────────────── */
-    .header {
-      background: var(--verde);
-      padding: 0;
-      position: relative;
-      overflow: hidden;
-    }
-    .header-bg {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 80% 50%, #2d6a1a44 0%, transparent 60%),
-                  radial-gradient(ellipse at 20% 80%, #0f2a0444 0%, transparent 50%);
-    }
-    .header-grid {
-      position: absolute; inset: 0; opacity: 0.04;
-      background-image: linear-gradient(#86efac 1px, transparent 1px), linear-gradient(90deg, #86efac 1px, transparent 1px);
-      background-size: 40px 40px;
-    }
-    .header-inner {
-      position: relative; z-index: 1;
-      max-width: 1200px; margin: 0 auto;
-      padding: 28px 32px 0;
-    }
-    .header-top {
-      display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px;
-    }
-    .logo-wrap { display: flex; align-items: center; gap: 14px; }
-    .logo-icon {
-      width: 44px; height: 44px; background: var(--verde3); border-radius: 10px;
-      display: flex; align-items: center; justify-content: center; font-size: 22px;
-      box-shadow: 0 4px 16px rgba(134,239,172,0.3);
-    }
-    .logo-text { font-weight: bold; }
-    .logo-name { font-size: 22px; font-weight: 700; color: #fff; line-height: 1; }
-    .logo-sub { font-size: 11px; color: var(--verde3); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 3px; }
-    .bdata-badge {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--verde3); background: rgba(134,239,172,0.12); border: 1px solid rgba(134,239,172,0.25);
-      padding: 5px 12px; border-radius: 99px;
-    }
-    .header-date { font-size: 12px; color: #9fe1cb; margin-top: 2px; text-align: right; }
+    /* ── HEADER ── */
+    .dash-header { background: #1a3a0a; padding: 12px 20px 0; flex-shrink: 0; }
+    .dash-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .dash-logo { display: flex; align-items: center; gap: 10px; }
+    .dash-logo-icon { width: 32px; height: 32px; background: #86efac; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .dash-logo-name { font-size: 16px; font-weight: 700; color: #fff; }
+    .dash-logo-sub  { font-size: 9px; color: #86efac; letter-spacing: 0.1em; text-transform: uppercase; }
+    .dash-right { display: flex; align-items: center; gap: 12px; }
+    .dash-date { font-size: 11px; color: #9fe1cb; text-align: right; }
 
-    /* ── HEADLINE ─────────────────────────────────────────────── */
-    .headline {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: end; margin-bottom: 28px;
+    /* Temporada selector */
+    .temp-wrap { display: flex; align-items: center; gap: 6px; }
+    .temp-label { font-size: 10px; color: #9fe1cb; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    #dash-temporada {
+      font-size: 12px; font-weight: 700; background: rgba(255,255,255,0.1);
+      color: #fff; border: 1px solid rgba(134,239,172,0.3); border-radius: 6px;
+      padding: 4px 8px; cursor: pointer; outline: none;
     }
-    .headline-title {
-      font-weight: bold;
-      font-size: clamp(32px, 4vw, 52px);
-      font-weight: 900; color: #fff; line-height: 1.05;
+    #dash-temporada option { background: #1a3a0a; color: #fff; }
+
+    /* ── KPIs ── */
+    .dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0; }
+    .kpi { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 12px; }
+    .kpi-val { font-size: 20px; font-weight: 700; color: #fff; line-height: 1; }
+    .kpi-val.green { color: #86efac; }
+    .kpi-val.red   { color: #fca5a5; }
+    .kpi-val.amber { color: #fcd34d; }
+    .kpi-label { font-size: 10px; color: #9fe1cb; margin-top: 4px; }
+
+    /* ── TABS ── */
+    .tabbar {
+      display: flex; align-items: stretch; overflow-x: auto; white-space: nowrap;
+      background: #1a3a0a; border-bottom: 1px solid rgba(134,239,172,0.15);
+      flex-shrink: 0; -webkit-overflow-scrolling: touch; margin-top: 10px;
     }
-    .headline-title span { color: var(--verde3); }
-    .headline-sub { font-size: 13px; color: #9fe1cb; margin-top: 10px; line-height: 1.6; max-width: 360px; }
-    .headline-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .hkpi {
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px; padding: 14px 16px; backdrop-filter: blur(8px);
-      transition: background 0.2s;
+    .tab-sep { width: 1px; background: rgba(134,239,172,0.2); margin: 8px 4px; flex-shrink: 0; }
+    .tab-group-label {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(134,239,172,0.45); padding: 8px 8px 0 10px; flex-shrink: 0;
+      display: flex; align-items: flex-start; pointer-events: none; user-select: none;
     }
-    .hkpi:hover { background: rgba(255,255,255,0.11); }
-    .hkpi-val { font-weight: bold; font-size: 26px; font-weight: 700; color: #fff; line-height: 1; }
-    .hkpi-val.green { color: var(--verde3); }
-    .hkpi-val.red   { color: #fca5a5; }
-    .hkpi-val.amber { color: #fcd34d; }
-    .hkpi-label { font-size: 11px; color: #9fe1cb; margin-top: 5px; }
-
-    /* ── NAV TABS ─────────────────────────────────────────────── */
-    .nav-tabs {
-      display: flex; gap: 4px; padding: 0 32px;
-      position: relative; z-index: 1; max-width: 1200px; margin: 0 auto;
+    .tab {
+      font-size: 12px; font-weight: 600; padding: 12px 15px 9px;
+      cursor: pointer; color: rgba(255,255,255,0.5);
+      border-bottom: 3px solid transparent; flex-shrink: 0; transition: color 0.15s; user-select: none;
     }
-    .ntab {
-      font-size: 12px; font-weight: 600; padding: 10px 20px;
-      border-radius: 10px 10px 0 0; cursor: pointer;
-      color: #9fe1cb; background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.08); border-bottom: none;
-      transition: all 0.2s; letter-spacing: 0.02em;
+    .tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
+    .tab.g-resumen.active  { color: #fff; border-bottom-color: #86efac; }
+    .tab.g-campo.active    { color: #fff; border-bottom-color: #6ee7b7; }
+    .tab.g-finanzas.active { color: #fff; border-bottom-color: #fcd34d; }
+
+    /* ── FRAME AREA ── */
+    .frame-wrap { flex: 1; position: relative; overflow: hidden; background: #f5f0e8; }
+
+    iframe {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      border: none; background: #f5f0e8;
+      /* Hidden until ready */
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease;
     }
-    .ntab:hover { background: rgba(255,255,255,0.1); }
-    .ntab.on { background: var(--crema); color: var(--verde); border-color: var(--crema); }
+    iframe.ready { opacity: 1; pointer-events: auto; }
+    iframe.hidden { display: none; }
 
-    /* ── BODY ─────────────────────────────────────────────── */
-    .body { max-width: 1200px; margin: 0 auto; padding: 24px 32px 48px; }
-
-    /* ── SECTION ─────────────────────────────────────────────── */
-    .section { display: none; }
-    .section.on { display: block; }
-
-    /* ── GRID LAYOUTS ─────────────────────────────────────────────── */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 16px; }
-    .span2 { grid-column: span 2; }
-
-    /* ── CARDS ─────────────────────────────────────────────── */
-    .card {
-      background: var(--blanco); border-radius: 16px;
-      border: 1px solid rgba(0,0,0,0.07);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-      overflow: hidden;
+    /* Loading overlay per iframe */
+    .frame-loader {
+      position: absolute; inset: 0; background: #f5f0e8;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 10; transition: opacity 0.2s ease;
     }
-    .card-head {
-      padding: 16px 20px 12px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid #f0ede6;
+    .frame-loader.gone { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 32px; height: 32px; border: 3px solid #e5e2da;
+      border-top-color: #1a3a0a; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
     }
-    .card-title { font-size: 11px; font-weight: 600; color: var(--gris); letter-spacing: 0.08em; text-transform: uppercase; }
-    .card-body { padding: 16px 20px; }
-    .card-link {
-      font-size: 11px; color: var(--verde2); font-weight: 600;
-      text-decoration: none; display: flex; align-items: center; gap: 4px;
-    }
-    .card-link:hover { color: var(--verde); }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── KPI METRIC ─────────────────────────────────────────────── */
-    .metric-big { font-weight: bold; font-size: 36px; font-weight: 700; line-height: 1; }
-    .metric-label { font-size: 12px; color: var(--gris); margin-top: 6px; }
-    .metric-delta { font-size: 12px; font-weight: 600; margin-top: 4px; }
-    .up   { color: #16a34a; }
-    .down { color: var(--rojo); }
-
-    /* ── NAV BUTTONS ─────────────────────────────────────────────── */
-    .nav-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 16px; }
-    .nav-card {
-      background: var(--blanco); border-radius: 16px; border: 1px solid rgba(0,0,0,0.07);
-      padding: 20px; text-decoration: none; color: inherit;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-      transition: all 0.25s; display: flex; flex-direction: column; gap: 10px;
-      position: relative; overflow: hidden;
-    }
-    .nav-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    }
-    .nav-card.verde::before  { background: linear-gradient(90deg, var(--verde), var(--verde2)); }
-    .nav-card.azul::before   { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
-    .nav-card.amber::before  { background: linear-gradient(90deg, #d97706, #f59e0b); }
-    .nav-card.rojo::before   { background: linear-gradient(90deg, #c0392b, #e74c3c); }
-    .nav-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.1); }
-    .nav-icon { font-size: 28px; }
-    .nav-title { font-size: 16px; font-weight: 700; }
-    .nav-desc { font-size: 12px; color: var(--gris); line-height: 1.5; }
-    .nav-badge {
-      font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
-      align-self: flex-start; margin-top: 4px;
-    }
-    .badge-verde { background: #eaf3de; color: var(--verde); }
-    .badge-rojo  { background: #fee2e2; color: var(--rojo); }
-    .badge-amber { background: #fef3c7; color: var(--amber); }
-
-    /* ── BAR ─────────────────────────────────────────────── */
-    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .bar-label { font-size: 12px; color: #444; width: 110px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bar-track { flex: 1; background: #f0ede6; border-radius: 4px; height: 7px; }
-    .bar-fill  { height: 7px; border-radius: 4px; transition: width 0.8s ease; }
-    .bar-val   { font-size: 11px; font-weight: 700; width: 70px; text-align: right; flex-shrink: 0; }
-
-    /* ── LABOR ROW ─────────────────────────────────────────────── */
-    .labor-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f3ef; }
-    .labor-row:last-child { border-bottom: none; }
-    .labor-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .labor-name { font-size: 13px; flex: 1; }
-    .labor-up   { font-size: 11px; color: var(--gris); }
-    .labor-date { font-size: 11px; color: var(--gris); flex-shrink: 0; }
-    .labor-badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; flex-shrink: 0; }
-
-    /* ── MAP ─────────────────────────────────────────────── */
-    #mapa-home { height: 320px; border-radius: 12px; z-index: 0; }
-    .leaflet-popup-content { font-family: Arial, sans-serif; font-size: 12px; }
-
-    /* ── CAJA FLOW ─────────────────────────────────────────────── */
-    .caja-flow { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
-    .caja-item { text-align: center; padding: 14px 8px; background: #f8f6f2; border-radius: 12px; }
-    .caja-val  { font-weight: bold; font-size: 20px; font-weight: 700; }
-    .caja-lbl  { font-size: 10px; color: var(--gris); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
-    .caja-arrow { display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; padding-top: 20px; }
-
-    /* ── TABLE ─────────────────────────────────────────────── */
-    .mini-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .mini-tbl th { text-align: left; font-size: 10px; color: var(--gris); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border-bottom: 2px solid #f0ede6; }
-    .mini-tbl td { padding: 7px 8px; border-bottom: 1px solid #f8f5f0; }
-    .mini-tbl tr:last-child td { border-bottom: none; }
-    .mini-tbl tr:hover td { background: #fafaf7; }
-
-    /* ── LOADING ─────────────────────────────────────────────── */
-
-    /* ── CHAT IA ─────────────────────────────────────────── */
-    #chat-btn { position:fixed; bottom:24px; right:24px; width:52px; height:52px; border-radius:50%; background:#1a3a0a; color:#fff; border:none; font-size:22px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.25); z-index:9999; display:flex; align-items:center; justify-content:center; transition:transform 0.2s; }
-    #chat-btn:hover { transform:scale(1.08); }
-    #chat-panel { position:fixed; bottom:88px; right:24px; width:380px; max-height:560px; background:#fff; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.18); display:none; flex-direction:column; z-index:9998; border:1px solid #e5e2da; overflow:hidden; }
-    #chat-panel.open { display:flex; }
-    #chat-head { background:#1a3a0a; color:#fff; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-    #chat-head-title { font-size:14px; font-weight:bold; }
-    #chat-head-sub { font-size:11px; color:#9fe1cb; margin-top:1px; }
-    #chat-close { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; padding:0 4px; }
-    #chat-msgs { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
-    .chat-msg { max-width:88%; padding:9px 12px; border-radius:12px; font-size:13px; line-height:1.5; }
-    .chat-msg.user { background:#1a3a0a; color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
-    .chat-msg.ai { background:#f0ede6; color:#1a1a1a; align-self:flex-start; border-bottom-left-radius:4px; }
-    .chat-msg.ai/* ── CHAT IA ─────────────────────────────────────────── */
-    #chat-btn { position:fixed; bottom:24px; right:24px; width:52px; height:52px; border-radius:50%; background:#1a3a0a; color:#fff; border:none; font-size:22px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.25); z-index:9999; display:flex; align-items:center; justify-content:center; transition:transform 0.2s; }
-    #chat-btn:hover { transform:scale(1.08); }
-    #chat-panel { position:fixed; bottom:88px; right:24px; width:380px; max-height:560px; background:#fff; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.18); display:none; flex-direction:column; z-index:9998; border:1px solid #e5e2da; overflow:hidden; }
-    #chat-panel.open { display:flex; }
-    #chat-head { background:#1a3a0a; color:#fff; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-    #chat-head-title { font-size:14px; font-weight:bold; }
-    #chat-head-sub { font-size:11px; color:#9fe1cb; margin-top:1px; }
-    #chat-close { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; padding:0 4px; }
-    #chat-msgs { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
-    .chat-msg { max-width:88%; padding:9px 12px; border-radius:12px; font-size:13px; line-height:1.5; }
-    .chat-msg.user { background:#1a3a0a; color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
-    .chat-msg.ai { background:#f0ede6; color:#1a1a1a; align-self:flex-start; border-bottom-left-radius:4px; }
-    .chat-msg.ai.loading { color:#888; font-style:italic; }
-    #chat-input-wrap { padding:10px 12px; border-top:1px solid #f0ede6; display:flex; gap:8px; flex-shrink:0; }
-    #chat-input { flex:1; border:1px solid #ddd; border-radius:8px; padding:8px 12px; font-size:13px; font-family:Arial,sans-serif; resize:none; height:38px; outline:none; }
-    #chat-input:focus { border-color:#1a3a0a; }
-    #chat-send { background:#1a3a0a; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; flex-shrink:0; }
-    #chat-send:hover { background:#2d6a1a; }
-    #chat-send:disabled { background:#ccc; cursor:not-allowed; }
-    .chat-suggestions { display:flex; flex-wrap:wrap; gap:6px; padding:8px 12px; border-top:1px solid #f0ede6; flex-shrink:0; }
-    .chat-sug { font-size:11px; padding:4px 10px; border-radius:99px; border:1px solid #ddd; background:#f8f8f6; color:#555; cursor:pointer; white-space:nowrap; }
-    .chat-sug:hover { border-color:#1a3a0a; color:#1a3a0a; }
-    .loading { color:#888; font-style:italic; }
-    #chat-input-wrap { padding:10px 12px; border-top:1px solid #f0ede6; display:flex; gap:8px; flex-shrink:0; }
-    #chat-input { flex:1; border:1px solid #ddd; border-radius:8px; padding:8px 12px; font-size:13px; font-family:Arial,sans-serif; resize:none; height:38px; outline:none; }
-    #chat-input:focus { border-color:#1a3a0a; }
-    #chat-send { background:#1a3a0a; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; flex-shrink:0; }
-    #chat-send:hover { background:#2d6a1a; }
-    #chat-send:disabled { background:#ccc; cursor:not-allowed; }
-    .chat-suggestions { display:flex; flex-wrap:wrap; gap:6px; padding:8px 12px; border-top:1px solid #f0ede6; flex-shrink:0; }
-    .chat-sug { font-size:11px; padding:4px 10px; border-radius:99px; border:1px solid #ddd; background:#f8f8f6; color:#555; cursor:pointer; white-space:nowrap; }
-    .chat-sug:hover { border-color:#1a3a0a; color:#1a3a0a; }
-    .loading { text-align: center; padding: 40px; color: var(--gris); font-size: 14px; }
-    .pulse { animation: pulse 1.5s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-    /* ── ANIMATIONS ─────────────────────────────────────────────── */
-    .fade-in { animation: fadeIn 0.5s ease forwards; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-    .card { animation: fadeIn 0.4s ease forwards; }
-
-    /* ── RESPONSIVE ─────────────────────────────────────────────── */
     @media (max-width: 768px) {
-      .header-inner { padding: 16px 14px 0; }
-      .logo-name { font-size: 18px; }
-      .bdata-badge { font-size: 9px; padding: 4px 9px; }
-      .body { padding: 12px 14px 32px; }
-      .nav-tabs { padding: 0 14px; overflow-x: auto; white-space: nowrap; }
-      .ntab { font-size: 11px; padding: 8px 14px; }
-      .headline { grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; }
-      .headline-title { font-size: 28px; }
-      .headline-sub { display: none; }
-      .headline-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .hkpi { padding: 10px 12px; }
-      .hkpi-val { font-size: 20px; }
-      .hkpi-label { font-size: 10px; }
-      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-      .nav-grid { grid-template-columns: 1fr; gap: 10px; }
-      .nav-card { flex-direction: row; align-items: center; gap: 12px; padding: 14px; }
-      .nav-icon { font-size: 24px; flex-shrink: 0; }
-      .nav-desc { display: none; }
-      .caja-flow { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .caja-val { font-size: 16px; }
-      .caja-lbl { font-size: 9px; }
-      .span2 { grid-column: span 1; }
-      #mapa-home { height: 250px; }
-      .mini-tbl { font-size: 11px; }
-      .mini-tbl td, .mini-tbl th { padding: 5px 6px; }
-      .bar-label { width: 80px; font-size: 11px; }
-      .bar-val { width: 55px; font-size: 11px; }
-      .metric-big { font-size: 26px; }
-    }
-    @media (max-width: 480px) {
-      .headline-kpis { grid-template-columns: 1fr 1fr; }
-      .hkpi-val { font-size: 17px; }
-      .caja-flow { grid-template-columns: 1fr 1fr; }
+      .dash-kpis { grid-template-columns: repeat(2, 1fr); }
+      .kpi-val { font-size: 17px; }
+      .tab { font-size: 10px; padding: 10px 10px 7px; }
+      .tab-group-label { display: none; }
+      .tab-sep { margin: 6px 2px; }
+      .dash-right { flex-direction: column; align-items: flex-end; gap: 4px; }
     }
   </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-bg"></div>
-  <div class="header-grid"></div>
-  <div class="header-inner">
-    <div class="header-top">
-      <div class="logo-wrap">
-        <div class="logo-icon">🌱</div>
-        <div class="logo-text">
-          <div class="logo-name">Los Crisoles</div>
-          <div class="logo-sub">Dashboard de gestión</div>
-        </div>
-      </div>
-      <div style="text-align:right;">
-        <div class="bdata-badge">BData.cl</div>
-        <div class="header-date" id="hdr-date">—</div>
+<div class="dash-header">
+  <div class="dash-top">
+    <div class="dash-logo">
+      <div class="dash-logo-icon">🌱</div>
+      <div>
+        <div class="dash-logo-name">Los Crisoles</div>
+        <div class="dash-logo-sub">Dashboard de gestión</div>
       </div>
     </div>
-
-    <div class="headline">
-      <div>
-        <div class="headline-title">Gestión<br><span>inteligente</span><br>del campo</div>
-        <div class="headline-sub">Todos los datos de Los Crisoles en un solo lugar — labores, costos, caja y producción en tiempo real.</div>
+    <div class="dash-right">
+      <div class="temp-wrap">
+        <span class="temp-label">Temporada</span>
+        <select id="dash-temporada" onchange="onTemporadaChange()">
+          <option value="">Cargando...</option>
+        </select>
       </div>
-      <div class="headline-kpis">
-        <div class="hkpi">
-          <div class="hkpi-val green" id="h-caja">—</div>
-          <div class="hkpi-label">Caja actual</div>
-        </div>
-        <div class="hkpi">
-          <div class="hkpi-val" id="h-costos">—</div>
-          <div class="hkpi-label">Costos acumulados</div>
-        </div>
-        <div class="hkpi">
-          <div class="hkpi-val amber" id="h-vencidas">—</div>
-          <div class="hkpi-label">Labores vencidas</div>
-        </div>
-        <div class="hkpi">
-          <div class="hkpi-val red" id="h-sin-asignar">—</div>
-          <div class="hkpi-label">Sin asignar desde 01-Abr</div>
-        </div>
-      </div>
+      <div class="dash-date" id="dash-date">—</div>
     </div>
   </div>
 
-  <div class="nav-tabs">
-    <div class="ntab on" onclick="switchTab('resumen')">🏠 Resumen</div>
-    <div class="ntab" onclick="switchTab('finanzas')">💰 Finanzas</div>
-    <div class="ntab" onclick="switchTab('campo')">🗺 Campo</div>
+  <div class="dash-kpis">
+    <div class="kpi">
+      <div class="kpi-val green" id="k-caja">—</div>
+      <div class="kpi-label">💰 Caja actual</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" id="k-costos">—</div>
+      <div class="kpi-label" id="k-costos-label">📊 Costos acumulados</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val amber" id="k-vencidas">—</div>
+      <div class="kpi-label">⚠️ Labores vencidas</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val red" id="k-sinasignar">—</div>
+      <div class="kpi-label">📎 Sin asignar (desde 01-Abr)</div>
+    </div>
   </div>
 </div>
 
-<div class="body">
+<div class="tabbar">
+  <div class="tab g-resumen active" onclick="show('home', this)">🏠 Resumen</div>
+  <div class="tab-sep"></div>
+  <div class="tab-group-label">Campo</div>
+  <div class="tab g-campo" onclick="show('labores', this)">📋 Labores</div>
+  <div class="tab g-campo" onclick="show('produccion', this)">🌱 Producción</div>
+  <div class="tab g-campo" onclick="show('insumos', this)">📦 Insumos</div>
+  <div class="tab-sep"></div>
+  <div class="tab-group-label">Finanzas</div>
+  <div class="tab g-finanzas" onclick="show('caja', this)">🏦 Caja</div>
+  <div class="tab g-finanzas" onclick="show('costos', this)">💰 Costos</div>
+  <div class="tab g-finanzas" onclick="show('ingresos', this)">🌾 Ingresos</div>
+  <div class="tab g-finanzas" onclick="show('margenes', this)">📊 Márgenes</div>
+  <div class="tab g-finanzas" onclick="show('asignar', this)">📎 Asignar</div>
+</div>
 
-  <!-- ── RESUMEN ───────────────────────────────────────────── -->
-  <div class="section on" id="sec-resumen">
-    <!-- Nav cards -->
-    <div class="nav-grid" style="margin-bottom:20px;margin-top:4px;">
-      <a class="nav-card verde" href="/reporte" target="_blank">
-        <div class="nav-icon">📋</div>
-        <div class="nav-title">Reporte diario</div>
-        <div class="nav-desc">Labores, caja, costos, ingresos y márgenes del campo</div>
-        <div class="nav-badge badge-verde" id="nav-labores-badge">Cargando...</div>
-      </a>
-      <a class="nav-card azul" href="/produccion" target="_blank">
-        <div class="nav-icon">🌱</div>
-        <div class="nav-title">Producción</div>
-        <div class="nav-desc">Guías de despacho emitidas e insumos recibidos por UP</div>
-        <div class="nav-badge badge-verde" id="nav-prod-badge">Cargando...</div>
-      </a>
-      <a class="nav-card amber" href="/asignar" target="_blank">
-        <div class="nav-icon">📎</div>
-        <div class="nav-title">Asignar docs</div>
-        <div class="nav-desc">Asignar facturas y guías a unidades productivas</div>
-        <div class="nav-badge badge-rojo" id="nav-asignar-badge">Cargando...</div>
-      </a>
-    </div>
+<div class="frame-wrap">
+  <!-- Loading overlay (shared) -->
+  <div class="frame-loader" id="loader"><div class="spinner"></div></div>
 
-    <!-- Labores + Caja -->
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">⚠️ Labores urgentes</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver todas →</a>
-        </div>
-        <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">🏦 Flujo de caja</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver detalle →</a>
-        </div>
-        <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
-      </div>
-    </div>
-
-    <!-- Costos + Produccion estimada -->
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">💰 Costos por UP</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver detalle →</a>
-        </div>
-        <div class="card-body" id="card-costos"><div class="loading pulse">Cargando...</div></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">📈 Ingresos y producción estimada</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver ingresos →</a>
-        </div>
-        <div class="card-body" id="card-prod"><div class="loading pulse">Cargando...</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── CAMPO ───────────────────────────────────────────── -->
-  <div class="section" id="sec-campo">
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-head">
-        <div class="card-title">🗺 Mapa de unidades productivas</div>
-        <div style="font-size:11px;color:var(--gris);">Click en marcador para ver detalles</div>
-      </div>
-      <div class="card-body" style="padding:12px;">
-        <div id="mapa-home"></div>
-      </div>
-    </div>
-    <div class="grid-3" id="up-cards"></div>
-  </div>
-
-  <!-- ── FINANZAS ───────────────────────────────────────────── -->
-  <div class="section" id="sec-finanzas">
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver caja →</a>
-        </div>
-        <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">⬇️ Por cobrar — próximos 30 días</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver caja →</a>
-        </div>
-        <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">📎 Documentos sin asignar</div>
-        <a href="/asignar" target="_blank" class="card-link">Asignar →</a>
-      </div>
-      <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
-    </div>
-  </div>
-
+  <iframe id="f-home"       src="/home"       data-tab=""></iframe>
+  <iframe id="f-labores"    src=""  data-src="/reporte"    data-tab="labores"    class="hidden"></iframe>
+  <iframe id="f-produccion" src=""  data-src="/produccion" data-tab="produccion" class="hidden"></iframe>
+  <iframe id="f-insumos"    src=""  data-src="/produccion" data-tab="insumos"    class="hidden"></iframe>
+  <iframe id="f-caja"       src=""  data-src="/reporte"    data-tab="caja"       class="hidden"></iframe>
+  <iframe id="f-costos"     src=""  data-src="/reporte"    data-tab="costos"     class="hidden"></iframe>
+  <iframe id="f-ingresos"   src=""  data-src="/reporte"    data-tab="ingresos"   class="hidden"></iframe>
+  <iframe id="f-margenes"   src=""  data-src="/reporte"    data-tab="margenes"   class="hidden"></iframe>
+  <iframe id="f-asignar"    src=""  data-src="/asignar"    data-tab=""           class="hidden"></iframe>
 </div>
 
 <script>
-const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
-const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
-const API_FIN     = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
-const API_LABORES = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
-const RUT_LC  = "76099766-8";
-let CAJA_ACTUAL = 61805719; // se actualiza desde BD_Banco
-const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  // ── CONFIG ───────────────────────────────────────────────────
+  var API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
+  var API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
+  var API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+  var RUT_LC  = "76099766-8";
+  var CORTE   = "2026-04-01";
 
-const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {}, COORD_MAP = {}, LAB_MAP = {}, ENC_MAP = {};
+  var currentTab  = 'home';
+  var loaded      = {};
+  var temporada   = '';
 
-// ── TEMPORADA ────────────────────────────────────────────────────────────────
-const TEMP_MAP = {};
-let TEMPORADA_ACTIVA = null;
+  // CSS injected into every iframe to hide internal header/tabs
+  var HIDE_CSS = [
+    /* reporte / produccion / asignar */
+    '.hdr { display: none !important; }',
+    '.tabs { display: none !important; }',
+    '.metrics-top { display: none !important; }',
+    '.metrics { display: none !important; }',
+    /* home: hide the big green header + nav tabs */
+    '.header { display: none !important; }',
+    '.ntab { display: none !important; }',
+    /* home: hide the section tabs (Resumen/Finanzas/Campo) */
+    '.nav-tabs { display: none !important; }',
+    /* show only the active section, remove top padding */
+    '.body { padding-top: 8px !important; }',
+    /* home: make sure resumen section is visible */
+    '.section { display: block !important; }',
+  ].join(' ');
 
-function getTemporada(fechaVal, mesInicio) {
-  const raw = String(fechaVal||"");
-  const d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
-  if (isNaN(d)) return null;
-  const y = d.getFullYear(), m = d.getMonth()+1;
-  return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
-}
+  // ── HELPERS ──────────────────────────────────────────────────
+  function fmtPeso(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
 
-window.cambiarTemporada = function(temp) {
-  TEMPORADA_ACTIVA = temp || null;
-  if (window._homeData) renderHome(window._homeData);
-};
+  var WORKER = "https://round-night-574d.christian-19c.workers.dev";
 
-async function fetchSheet(api, sheet) {
-  const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
-  const text = await res.text();
-  try { return JSON.parse(text); } catch(e) { return []; }
-}
-
-function parseDate(val) {
-  if (!val) return null;
-  const s = String(val).trim();
-  try {
-    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s))  { const [y,m,d]=s.split("-"); return new Date(+y,+m-1,+d); }
-  } catch(e) {}
-  return null;
-}
-
-function fmtPeso(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
-function fmtPesoFull(n) { return "$" + Math.round(n).toLocaleString("es-CL"); }
-
-function switchTab(tab) {
-  document.querySelectorAll('.ntab').forEach((el,i) => {
-    el.classList.toggle('on', ['resumen','finanzas','campo'][i] === tab);
-  });
-  document.querySelectorAll('.section').forEach(el => el.classList.remove('on'));
-  document.getElementById('sec-'+tab).classList.add('on');
-  if (tab === 'campo' && window._mapa) setTimeout(()=>window._mapa.invalidateSize(),100);
-}
-
-function buildMapa(registros) {
-  const el = document.getElementById('mapa-home');
-  if (!el || window._mapa) return;
-  const puntos = Object.entries(COORD_MAP).map(([id,c]) => ({
-    id, nombre: CC_MAP[id]||id, fundo: FUNDO_MAP[id]||"", ha: HA_MAP[id]||0,
-    lat: c.lat, lng: c.lng
-  }));
-  if (!puntos.length) return;
-  const avgLat = puntos.reduce((s,p)=>s+p.lat,0)/puntos.length;
-  const avgLng = puntos.reduce((s,p)=>s+p.lng,0)/puntos.length;
-  const mapa = L.map('mapa-home').setView([avgLat,avgLng],14);
-  window._mapa = mapa;
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    {attribution:"© Esri", maxZoom:19}).addTo(mapa);
-  puntos.forEach(p => {
-    const marker = L.circleMarker([p.lat,p.lng],{
-      radius:10, fillColor:"#1a3a0a", color:"#fff", weight:2, opacity:1, fillOpacity:0.9
-    }).addTo(mapa);
-    marker.bindPopup(`<b>${p.nombre}</b><br>${p.fundo}<br>${p.ha?p.ha+' há':''}`);
-    L.marker([p.lat,p.lng],{
-      icon:L.divIcon({className:"",
-        html:`<div style="font-size:10px;font-weight:bold;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.9);white-space:nowrap;">${p.nombre}</div>`,
-        iconSize:[60,16], iconAnchor:[30,-6]}), interactive:false
-    }).addTo(mapa);
-  });
-  // UP cards
-  const upHTML = puntos.map(p => `
-    <div class="card fade-in">
-      <div class="card-body">
-        <div style="font-size:16px;font-weight:700;margin-bottom:2px;">${p.nombre}</div>
-        <div style="font-size:12px;color:var(--gris);margin-bottom:10px;">${p.fundo}</div>
-        ${p.ha?`<div style="font-size:12px;"><b>${p.ha}</b> hectáreas</div>`:''}
-      </div>
-    </div>`).join('');
-  document.getElementById('up-cards').innerHTML = upHTML;
-}
-
-async function main() {
-  const now = new Date();
-  document.getElementById('hdr-date').textContent =
-    now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const en15 = new Date(hoy); en15.setDate(hoy.getDate()+15);
-  const en30 = new Date(hoy); en30.setDate(hoy.getDate()+30);
-
-  try {
-    const [registros, ccs, docs, proyecciones, asignaciones, banco, labores, encargados] = await Promise.all([
-      fetchSheet(API_REG, "BD_Registro"),
-      fetchSheet(API_CC,  "BD_CC"),
-      fetchSheet(API_FIN, "CargaHTML_Demo"),
-      fetchSheet(API_REG, "Proyecciones_Manuales"),
-      fetchSheet(API_FIN, "Asignaciones_U"),
-      fetchSheet(API_FIN, "BD_Banco"),
-      fetchSheet(API_LABORES, "BD_Labores"),
-      fetchSheet(API_REG, "Encargados")
-    ]);
-
-    // Saldo real desde BD_Banco
-    const bancoDatos = Array.isArray(banco) ? banco : [];
-    CAJA_ACTUAL = bancoDatos.reduce((s,r) => s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0), 0);
-
-    // Build maps
-    (Array.isArray(ccs)?ccs:[]).forEach(c => {
-      const id = String(c["Id_CC"]||"").trim();
-      if (!id) return;
-      CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
-      FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
-      HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0)||0;
-      const coords  = String(c["Coordenadas"]||"").trim();
-      if (coords) { const [lat,lng]=coords.split(",").map(s=>parseFloat(s.trim())); if(!isNaN(lat)&&!isNaN(lng)) COORD_MAP[id]={lat,lng}; }
-      // Poblar TEMP_MAP para filtro de temporada
-      const temp = String(c["Temporada"]||"").trim();
-      const mes  = parseInt(c["MES_INICIO_TEMPORADA"]||3)||3;
-      if (temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
-    });
-
-    // Build LAB_MAP and ENC_MAP
-    (Array.isArray(labores)?labores:[]).forEach(r => {
-      const id     = String(r["Id_Labor"]||"").trim();
-      const nombre = String(r["Nombre Labor"]||"").trim();
-      if (id && nombre) LAB_MAP[id] = nombre;
-    });
-    (Array.isArray(encargados)?encargados:[]).forEach(r => {
-      const id   = String(r["id_Encargado"]||r["Id_Encargado"]||r["id"]||"").trim();
-      const nombre = String(r["Nombre Encargado"]||r["Nombre"]||"").trim();
-      if (id && nombre) ENC_MAP[id] = nombre;
-    });
-
-    // ── LABORES ──────────────────────────────────────────────────
-    const activos = (Array.isArray(registros)?registros:[]).filter(r =>
-      !["Completado","Anulado"].includes(String(r["Estado Operativo"]||"").trim())
-    );
-    const vencidas = activos.filter(r => { const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; });
-    const urgentes = [...vencidas, ...activos.filter(r => { const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; })].slice(0,6);
-
-    document.getElementById('h-vencidas').textContent = vencidas.length;
-    document.getElementById('nav-labores-badge').textContent = vencidas.length + " vencidas · " + activos.length + " activas";
-    document.getElementById('nav-labores-badge').className = "nav-badge " + (vencidas.length>0?"badge-rojo":"badge-verde");
-
-    const colorEstado = e => e==="Vencido"||parseDate(e)<hoy ? "#ef4444" : "#f59e0b";
-    // Group labores by date for calendar view
-    const laboresPorFecha = {};
-    urgentes.forEach(r => {
-      const d = parseDate(r["Fecha"]);
-      if (!d) return;
-      const k = d.toISOString().split("T")[0];
-      if (!laboresPorFecha[k]) laboresPorFecha[k] = [];
-      laboresPorFecha[k].push(r);
-    });
-    const fechasOrdenadas = Object.keys(laboresPorFecha).sort();
-
-    document.getElementById('card-labores').innerHTML = urgentes.length === 0
-      ? `<div style="text-align:center;padding:20px;color:var(--gris);">✅ Sin labores urgentes</div>`
-      : fechasOrdenadas.map(fecha => {
-          const d = new Date(fecha + "T12:00:00");
-          const venc = d < hoy;
-          const esHoy = d.toDateString() === hoy.toDateString();
-          const laboresDelDia = laboresPorFecha[fecha];
-          const bgColor = venc ? "#fff5f5" : esHoy ? "#fffbeb" : "#f8fff8";
-          const borderColor = venc ? "#fca5a5" : esHoy ? "#fcd34d" : "#d1fae5";
-          const fechaLabel = esHoy ? "HOY" : d.toLocaleDateString("es-CL",{weekday:"short",day:"2-digit",month:"2-digit"}).toUpperCase();
-          return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:8px 10px;margin-bottom:8px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-              <div style="font-size:11px;font-weight:bold;color:${venc?"#c0392b":esHoy?"#d97706":"#166534"};background:${venc?"#fee2e2":esHoy?"#fef3c7":"#dcfce7"};padding:2px 8px;border-radius:99px;">${fechaLabel}</div>
-              <div style="font-size:11px;color:var(--gris);">${laboresDelDia.length} labor${laboresDelDia.length!==1?"es":""}</div>
-            </div>
-            ${laboresDelDia.map(r => {
-              const cc  = CC_MAP[String(r["Centro_Costo"]||"").trim()]||"—";
-              const enc = ENC_MAP[String(r["Encargado"]||"").trim()]||"";
-              const lab = LAB_MAP[String(r["Labor"]||"").trim()]||String(r["Labor"]||"—").trim();
-              return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.05);">
-                <div style="width:6px;height:6px;border-radius:50%;background:${venc?"#ef4444":"#f59e0b"};flex-shrink:0;"></div>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lab}</div>
-                  <div style="font-size:11px;color:var(--gris);">${cc}${enc?" · "+enc:""}</div>
-                </div>
-              </div>`;
-            }).join("")}
-          </div>`;
-        }).join('');
-
-    // ── CAJA ──────────────────────────────────────────────────
-    const isPend = r => !["pagado","anulado"].includes(String(r["EstadoPago"]||"").toLowerCase());
-    const cobrar = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r));
-    const pagar  = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r));
-    const sumD   = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
-    const pagar15  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en15;});
-    const cobrar15 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en15;});
-    const pagar30  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
-    const cobrar30 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
-    const pagarVenc  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
-    const cobrarVenc = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
-    const saldo15 = CAJA_ACTUAL + sumD(cobrar15) + sumD(cobrarVenc) - sumD(pagar15) - sumD(pagarVenc);
-    const saldo30 = CAJA_ACTUAL + sumD(cobrar30) + sumD(cobrarVenc) - sumD(pagar30) - sumD(pagarVenc);
-
-    document.getElementById('h-caja').textContent = fmtPeso(CAJA_ACTUAL);
-    document.getElementById('card-caja').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        <div class="caja-item" style="background:#eaf3de;">
-          <div class="caja-val" style="color:var(--verde);font-size:22px;">${fmtPeso(CAJA_ACTUAL)}</div>
-          <div class="caja-lbl">💰 Caja Hoy</div>
-        </div>
-        <div class="caja-item" style="background:#fff8f8;">
-          <div class="caja-val" style="color:#ef4444;font-size:18px;">-${fmtPeso(sumD(pagarVenc))}</div>
-          <div class="caja-lbl">⚠️ Por pagar vencido</div>
-        </div>
-      </div>
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Próximos 15 días</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-        <div class="caja-item">
-          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagar15))}</div>
-          <div class="caja-lbl">Por pagar 15d</div>
-        </div>
-        <div class="caja-item">
-          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrar15))}</div>
-          <div class="caja-lbl">Por cobrar 15d</div>
-        </div>
-        <div class="caja-item" style="background:${saldo15>=0?"#eaf3de":"#fff8f8"};">
-          <div class="caja-val" style="color:${saldo15>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldo15)}</div>
-          <div class="caja-lbl">Proyectado 15d</div>
-        </div>
-      </div>
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Próximos 30 días</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div class="caja-item">
-          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagar30))}</div>
-          <div class="caja-lbl">Por pagar 30d</div>
-        </div>
-        <div class="caja-item">
-          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrar30))}</div>
-          <div class="caja-lbl">Por cobrar 30d</div>
-        </div>
-        <div class="caja-item" style="background:${saldo30>=0?"#eaf3de":"#fff8f8"};">
-          <div class="caja-val" style="color:${saldo30>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldo30)}</div>
-          <div class="caja-lbl">Proyectado 30d</div>
-        </div>
-      </div>`;
-
-    // ── COSTOS y PRODUCCIÓN → renderHome() ──────────────────────────────────
-    // (se llama aquí y también al cambiar temporada desde el dashboard)
-
-
-    const CORTE_ASIG = "2026-04-01";
-    const sinAsignar = (Array.isArray(docs)?docs:[]).filter(d => {
-      const fundo = String(d["Fundo"]||"").trim();
-      const rut   = String(d["RUT Emisor"]||"").trim();
-      return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && rut!==RUT_LC;
-    });
-    const sinAsigNuevos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] >= CORTE_ASIG);
-    const sinAsigViejos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] < CORTE_ASIG);
-    document.getElementById('h-sin-asignar').textContent = sinAsigNuevos.length;
-    document.getElementById('nav-asignar-badge').textContent = sinAsigNuevos.length + " nuevos · " + sinAsigViejos.length + " anteriores";
-    document.getElementById('nav-asignar-badge').className = "nav-badge " + (sinAsigNuevos.length>0?"badge-rojo":"badge-verde");
-
-    // Finanzas tab content
-    const pagar30HTML = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
-      .sort((a,b)=>(parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0)).slice(0,8)
-      .map(r => {
-        const d = parseDate(r["Fecha_Real"]);
-        return `<tr><td style="color:var(--gris);">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"}):"—"}</td>
-          <td>${String(r["Razón Social"]||"").trim().slice(0,25)}</td>
-          <td style="text-align:right;font-weight:600;color:#ef4444;">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
-      }).join('');
-    document.getElementById('card-pagar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Proveedor</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${pagar30HTML}</tbody></table>`;
-
-    const cobrar30HTML = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
-      .sort((a,b)=>(parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0)).slice(0,8)
-      .map(r => {
-        const d = parseDate(r["Fecha_Real"]);
-        return `<tr><td style="color:var(--gris);">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"}):"—"}</td>
-          <td>${String(r["RznSocRecep"]||r["Razón Social"]||"").trim().slice(0,25)}</td>
-          <td style="text-align:right;font-weight:600;color:var(--verde2);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
-      }).join('');
-    document.getElementById('card-cobrar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${cobrar30HTML}</tbody></table>`;
-
-    document.getElementById('card-sin-asignar').innerHTML = sinAsignar.slice(0,8).map(r => `
-      <tr><td>${String(r["Razón Social"]||"").trim().slice(0,30)}</td>
-      <td style="color:var(--gris);">F:${r["Folio"]||"—"}</td>
-      <td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`)
-      .join('');
-    const docRow = r => `<tr><td>${String(r["Razón Social"]||"").trim().slice(0,28)}</td><td style="color:var(--gris);">F:${r["Folio"]||"—"}</td><td style="color:var(--gris);font-size:10px;">${String(r["Fecha Emisión"]||"").split("T")[0]}</td><td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
-    document.getElementById('card-sin-asignar').innerHTML = `
-      ${sinAsigNuevos.length>0?`
-        <div style="font-size:10px;font-weight:bold;color:#c0392b;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Desde 01-Abr (${sinAsigNuevos.length})</div>
-        <table class="mini-tbl" style="margin-bottom:12px;"><thead><tr><th>Proveedor</th><th>Folio</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsigNuevos.slice(0,5).map(docRow).join('')}</tbody></table>
-      `:""}
-      ${sinAsigViejos.length>0?`
-        <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Anteriores al 01-Abr (${sinAsigViejos.length})</div>
-        <table class="mini-tbl"><thead><tr><th>Proveedor</th><th>Folio</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsigViejos.slice(0,5).map(docRow).join('')}</tbody></table>
-      `:""}
-      ${sinAsignar.length===0?'<div style="text-align:center;color:var(--gris);padding:20px;">🎉 Todo asignado</div>':""}`;
-
-    window._activos      = activos;
-    window._proyecciones = Array.isArray(proyecciones) ? proyecciones : [];
-    window._docs         = Array.isArray(docs) ? docs : [];
-    window._asignaciones = Array.isArray(asignaciones) ? asignaciones : [];
-    // For buildContexto compatibility
-    window.TODOS         = Array.isArray(registros) ? registros : [];
-    window.PROYECCIONES  = Array.isArray(proyecciones) ? proyecciones : [];
-    window.DOCUMENTOS    = Array.isArray(docs) ? docs : [];
-    window.ASIGNACIONES  = window._asignaciones;
-
-    // Guardar datos crudos para poder re-renderizar al cambiar temporada
-    window._homeData = { registros, asignaciones, proyecciones };
-    renderHome(window._homeData);
-    buildMapa(registros);
-
-  } catch(e) {
-    console.error(e);
-    document.getElementById('card-labores').innerHTML = `<div style="color:#ef4444;font-size:13px;">Error: ${e.message}</div>`;
-  }
-}
-
-
-// ── RENDER COSTOS + PRODUCCIÓN (filtrado por temporada) ─────────────────────
-function renderHome({ registros, asignaciones, proyecciones }) {
-  const FECHA_CORTE = "2026-03-30";
-
-  // Filtro de temporada activa
-  function enTemporada(fechaVal, ccId) {
-    if (!TEMPORADA_ACTIVA) return true; // sin filtro → todo
-    const entry = TEMP_MAP[ccId];
-    if (!entry) return true; // CC sin temporada definida → incluir
-    return getTemporada(fechaVal, entry.mesInicio) === TEMPORADA_ACTIVA;
+  async function fetchSheet(api, sheet) {
+    var url = api + "?sheet=" + encodeURIComponent(sheet);
+    // API_FIN needs the Worker proxy (CORS); API_REG works direct
+    var fetchUrl = (api === API_FIN)
+      ? WORKER + "?url=" + encodeURIComponent(url)
+      : url;
+    var res = await fetch(fetchUrl, { redirect:"follow" });
+    var txt = await res.text();
+    try { return JSON.parse(txt); } catch(e) { return []; }
   }
 
-  // ── COSTOS ────────────────────────────────────────────────────────────────
-  const costosHist = (Array.isArray(registros)?registros:[]).filter(r => {
-    const raw = String(r["Fecha"]||""); const f = raw.includes("T")?raw.split("T")[0]:raw.slice(0,10);
-    const id  = String(r["Centro_Costo"]||"").trim();
-    return Number(r["Costo Total"]||0)>0 && (f===""||f<FECHA_CORTE) && enTemporada(f, id);
-  });
-  const costosNuevos = (Array.isArray(asignaciones)?asignaciones:[]).filter(r => {
-    const id    = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    return Number(r["Monto_Asignado"]||0)>0 && enTemporada(fecha, id);
-  });
-
-  const costoPorCC = {};
-  costosHist.forEach(r => {
-    const id = String(r["Centro_Costo"]||"").trim();
-    costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Costo Total"]||0);
-  });
-  costosNuevos.forEach(r => {
-    const id = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
-    costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Monto_Asignado"]||0);
-  });
-  const costoTotal = Object.values(costoPorCC).reduce((s,v)=>s+v,0);
-  const costoRows  = Object.entries(costoPorCC).map(([id,v])=>([CC_MAP[id]||id,v])).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const costoMax   = costoRows[0]?.[1]||1;
-
-  document.getElementById('h-costos').textContent = fmtPeso(costoTotal);
-  const costFechas  = costosHist.map(r=>String(r["Fecha"]||"").split("T")[0]).filter(Boolean).sort();
-  const costPeriodo = costFechas.length > 0
-    ? costFechas[0].slice(0,7).replace("-","/") + " — " + costFechas[costFechas.length-1].slice(0,7).replace("-","/")
-    : (TEMPORADA_ACTIVA || "");
-  document.getElementById('card-costos').innerHTML = `
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-weight:bold;font-size:22px;color:var(--verde);">${fmtPeso(costoTotal)}</div>
-      ${costPeriodo?`<div style="font-size:11px;color:var(--gris);">${costPeriodo}</div>`:""}
-    </div>` + costoRows.map(([nombre,val]) =>
-    `<div class="bar-row">
-      <div class="bar-label" title="${nombre}">${nombre}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/costoMax*100)}%;background:var(--verde2);"></div></div>
-      <div class="bar-val">${fmtPeso(val)}</div>
-    </div>`).join('');
-
-  // ── PRODUCCIÓN ESTIMADA ───────────────────────────────────────────────────
-  const proy = (Array.isArray(proyecciones)?proyecciones:[]).filter(r => {
-    const id    = String(r["Unidad_Productiva"]||"").trim();
-    const fecha = r["Fecha_Estimada"]||"";
-    return enTemporada(fecha, id);
-  });
-  const ingTotal = proy.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
-  const ingPorUP = {};
-  proy.forEach(r => {
-    const up = CC_MAP[String(r["Unidad_Productiva"]||"").trim()]||String(r["Unidad_Productiva"]||"").trim();
-    ingPorUP[up] = (ingPorUP[up]||0) + Number(r["Monto_Total"]||0);
-  });
-  const ingRows = Object.entries(ingPorUP).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const ingMax  = ingRows[0]?.[1]||1;
-
-  // Volúmenes despachados filtrados por temporada
-  const volPorUP = {};
-  (Array.isArray(asignaciones)?asignaciones:[])
-    .filter(r => {
-      const id    = String(r["UP_Nombre"]||"").trim();
-      const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-      return String(r["Tipo_Doc"]||"").includes("guia") && enTemporada(fecha, id);
-    })
-    .forEach(r => {
-      const up   = String(r["UP_Nombre"]||"").trim();
-      const cant = Number(r["Cantidad "]||r["Cantidad"]||0);
-      const und  = String(r["Unidad "]||r["Unidad"]||"").trim()||"kg";
-      if (!up||!cant) return;
-      if (!volPorUP[up]) volPorUP[up]={};
-      volPorUP[up][und] = (volPorUP[up][und]||0)+cant;
-    });
-  const volRows = Object.entries(volPorUP).map(([up,units])=>
-    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:12px;">
-      <span style="color:#444;">${up}</span>
-      <span style="font-weight:600;color:#1a3a0a;">${Object.entries(units).map(([u,v])=>v.toLocaleString("es-CL")+" "+u).join(" · ")}</span>
-    </div>`
-  ).join("");
-  document.getElementById('card-prod').innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;">Ingresos estimados</div>
-      ${(()=>{ const ff=proy.map(r=>String(r["Fecha_Estimada"]||"").split("T")[0]).filter(Boolean).sort(); return ff.length?`<div style="font-size:10px;color:var(--gris);">${ff[0].slice(0,7).replace("-","/")} — ${ff[ff.length-1].slice(0,7).replace("-","/")}</div>`:""; })()}
-    </div>
-    <div style="font-weight:bold;font-size:22px;color:var(--verde);margin-bottom:10px;">${fmtPeso(ingTotal)}</div>
-    ${ingRows.map(([nombre,val]) => `<div class="bar-row">
-      <div class="bar-label" title="${nombre}">${nombre}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/ingMax*100)}%;background:#0f6e56;"></div></div>
-      <div class="bar-val">${fmtPeso(val)}</div>
-    </div>`).join('')}
-    ${volRows?`<div style="margin-top:10px;padding-top:8px;border-top:1px solid #f0ede6;">
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Producción real despachada</div>
-      ${volRows}
-    </div>`:""}`;
-  document.getElementById('nav-prod-badge').textContent = ingRows.length + " UPs con proyección";
-}
-
-main();
-
-
-// ── CHAT IA ──────────────────────────────────────────────────────────────
-let chatHistory = [];
-
-function toggleChat() {
-  const panel = document.getElementById("chat-panel");
-  panel.classList.toggle("open");
-  if (panel.classList.contains("open")) {
-    document.getElementById("chat-input").focus();
+  function injectCSS(iframe) {
+    try {
+      var doc = iframe.contentDocument || iframe.contentWindow.document;
+      var s = doc.createElement('style');
+      s.textContent = HIDE_CSS;
+      doc.head.appendChild(s);
+    } catch(e) {}
   }
-}
 
-function sendSug(el) {
-  document.getElementById("chat-input").value = el.textContent;
-  chatSend();
-}
+  function switchIframeTab(iframe, tab) {
+    if (!tab) return;
+    try {
+      var win = iframe.contentWindow;
+      var map = { produccion:'prod', insumos:'insumos' };
+      if (typeof win.switchTab === 'function') win.switchTab(map[tab] || tab);
+    } catch(e) {}
+  }
 
-function chatKeyDown(e) {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(); }
-}
+  function pushTemporada(iframe) {
+    if (!temporada) return;
+    try {
+      var win = iframe.contentWindow;
+      if (typeof win.cambiarTemporada === 'function') win.cambiarTemporada(temporada);
+      // Also update the select inside the iframe if it exists
+      var sel = win.document.getElementById('sel-temporada');
+      if (sel) sel.value = temporada;
+    } catch(e) {}
+  }
 
-function buildContexto() {
-  // Fallbacks for pages that don't have all variables
-  if (typeof ACTIVOS    === "undefined") var ACTIVOS    = (window.TODOS||[]).filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
-  if (typeof TODOS      === "undefined") var TODOS      = window.TODOS||[];
-  if (typeof PROYECCIONES==="undefined") var PROYECCIONES = window.PROYECCIONES||[];
-  if (typeof DOCUMENTOS === "undefined") var DOCUMENTOS = window.DOCUMENTOS||[];
-  if (typeof ASIGNACIONES==="undefined") var ASIGNACIONES = window.ASIGNACIONES||[];
-  if (typeof CC_MAP     === "undefined") var CC_MAP     = {};
-  if (typeof FUNDO_MAP  === "undefined") var FUNDO_MAP  = {};
-  if (typeof ENC_MAP    === "undefined") var ENC_MAP    = {};
-  if (typeof LAB_MAP    === "undefined") var LAB_MAP    = {};
-  if (typeof HA_MAP     === "undefined") var HA_MAP     = {};
-  if (typeof CAJA_ACTUAL=== "undefined") var CAJA_ACTUAL = window.CAJA_ACTUAL||0;
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const RUT_LC = "76099766-8";
+  // ── LOADER ───────────────────────────────────────────────────
+  function showLoader() {
+    var l = document.getElementById('loader');
+    l.classList.remove('gone');
+  }
+  function hideLoader() {
+    var l = document.getElementById('loader');
+    l.classList.add('gone');
+  }
 
-  const resolveCC  = function(id) { return CC_MAP[String(id||"").trim()]  || String(id||"").trim(); };
-  const resolveEnc = function(id) { return ENC_MAP[String(id||"").trim()] || String(id||"").trim(); };
-  const resolveLab = function(id) { return LAB_MAP[String(id||"").trim()] || String(id||"").trim(); };
-  const fmtD = function(val) {
-    var d = parseDate(val);
-    return d ? d.toLocaleDateString("es-CL") : "sin fecha";
-  };
+  // ── IFRAME READY ─────────────────────────────────────────────
+  // Called when an iframe finishes loading
+  function onFrameLoad(name) {
+    var frame = document.getElementById('f-' + name);
+    var tab   = frame.getAttribute('data-tab');
 
-  // ── LABORES ──────────────────────────────────────────────────────────────
-  var activos = ACTIVOS || [];
-  var laborResumen = function(r) {
-    return "[" + String(r["Estado Operativo"]||"").trim() + "] " +
-      resolveLab(r["Labor"]) + " | UP: " + resolveCC(r["Centro_Costo"]) +
-      " | Fundo: " + (FUNDO_MAP[String(r["Centro_Costo"]||"").trim()]||"") +
-      " | Encargado: " + resolveEnc(r["Encargado"]) +
-      " | Fecha: " + fmtD(r["Fecha"]) +
-      " | Obs: " + (r["Observaciones"]||"");
-  };
-  var vencidas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; });
-  var hoyL     = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d.getTime()===hoy.getTime(); });
-  var proximas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>hoy; });
+    // 1. Inject hide CSS immediately
+    injectCSS(frame);
 
-  // ── COSTOS ───────────────────────────────────────────────────────────────
-  var todos = TODOS || [];
-  var costoTotal = todos.reduce(function(s,r){ return s+Number(r["Costo Total"]||0); },0);
-  var costoPorCC = {};
-  var costoPorEnc = {};
-  var costoPorTipo = {};
-  todos.forEach(function(r){
-    var cc   = resolveCC(r["Centro_Costo"]);
-    var enc  = resolveEnc(r["Encargado"]);
-    var tipo = String(r["Tipo_Labor"]||"—").trim();
-    var c    = Number(r["Costo Total"]||0);
-    costoPorCC[cc]   = (costoPorCC[cc]||0)   + c;
-    costoPorEnc[enc] = (costoPorEnc[enc]||0) + c;
-    costoPorTipo[tipo]=(costoPorTipo[tipo]||0)+ c;
+    // 2. Switch to correct sub-tab
+    switchIframeTab(frame, tab);
+
+    // 3. Push current temporada
+    pushTemporada(frame);
+
+    // 4. Small delay then reveal (gives CSS time to apply)
+    setTimeout(function() {
+      frame.classList.add('ready');
+      if (name === currentTab) hideLoader();
+    }, 80);
+  }
+
+  // Attach load listeners to all iframes
+  document.querySelectorAll('iframe').forEach(function(f) {
+    var name = f.id.replace('f-', '');
+    f.addEventListener('load', function() { onFrameLoad(name); });
   });
-  var topCC  = Object.entries(costoPorCC).sort(function(a,b){return b[1]-a[1];}).slice(0,8).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
-  var topEnc = Object.entries(costoPorEnc).sort(function(a,b){return b[1]-a[1];}).slice(0,6).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
-  var topTipo= Object.entries(costoPorTipo).sort(function(a,b){return b[1]-a[1];}).slice(0,5).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
 
-  // Top registros de costo recientes
-  var topCostoReg = todos.filter(function(r){ return Number(r["Costo Total"]||0)>0; })
-    .sort(function(a,b){ return Number(b["Costo Total"]||0)-Number(a["Costo Total"]||0); })
-    .slice(0,20).map(function(r){
-      return fmtD(r["Fecha"]) + " | " + resolveLab(r["Labor"]) + " | " + resolveCC(r["Centro_Costo"]) +
-        " | Enc: " + resolveEnc(r["Encargado"]) + " | Tipo: " + String(r["Tipo_Labor"]||"").trim() +
-        " | $" + Math.round(Number(r["Costo Total"]||0)/1000) + "k";
-    }).join("\n");
+  // ── TAB SWITCHER ─────────────────────────────────────────────
+  function show(name, el) {
+    if (name === currentTab) return;
+    currentTab = name;
 
-  // ── CAJA ─────────────────────────────────────────────────────────────────
-  var docs = DOCUMENTOS || [];
-  var isPend = function(r){ return !["pagado","anulado"].includes(String(r["EstadoPago"]||"").trim().toLowerCase()); };
-  var cobrar = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r); });
-  var pagar  = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r); });
-  var sumDoc = function(arr){ return arr.reduce(function(s,r){ return s+Number(r["Monto Total"]||r["Monto_Total"]||0); },0); };
-  var en15 = new Date(hoy); en15.setDate(en15.getDate()+15);
-  var cobrar15 = cobrar.filter(function(r){ var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
-  var pagar15  = pagar.filter(function(r){  var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
-  var saldoProy = CAJA_ACTUAL + sumDoc(cobrar15) - sumDoc(pagar15);
+    // Update tab styles
+    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+    el.classList.add('active');
 
-  var docLine = function(r){
-    var d=parseDate(r["Fecha_Real"]);
-    var venc = d && d<hoy ? "[VENCIDO]" : "";
-    return fmtD(r["Fecha_Real"]) + " | " + String(r["Razón Social"]||"").trim() +
-      " | F:" + (r["Folio"]||"") + " | $" + Math.round(Number(r["Monto Total"]||0)/1000) + "k " + venc;
-  };
-  var pagarDetalle  = pagar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,40).map(docLine).join("\n");
-  var cobrarDetalle = cobrar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,20).map(docLine).join("\n");
+    // Hide all iframes
+    document.querySelectorAll('iframe').forEach(function(f) {
+      f.classList.add('hidden');
+      f.classList.remove('ready');
+    });
 
-  // ── INGRESOS / PROYECCIONES ───────────────────────────────────────────────
-  var proy = PROYECCIONES || [];
-  var ingTotal = proy.reduce(function(s,r){ return s+Number(r["Monto_Total"]||0); },0);
-  var proyDetalle = proy.map(function(r){
-    var up = resolveCC(r["Unidad_Productiva"]);
-    return fmtD(r["Fecha_Estimada"]) + " | " + up + " | " +
-      Number(r["Kilos_Estimados"]||0).toLocaleString("es-CL") + " kg | $" +
-      Math.round(Number(r["Monto_Total"]||0)/1000) + "k | " + String(r["Estado"]||"");
-  }).join("\n");
+    var frame = document.getElementById('f-' + name);
+    frame.classList.remove('hidden');
 
-  var lineas = [
-    "Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, de forma concisa y directa usando los datos reales.",
-    "FECHA HOY: " + hoy.toLocaleDateString("es-CL"),
-    "",
-    "=== LABORES ACTIVAS (" + activos.length + " total) ===",
-    "VENCIDAS (" + vencidas.length + "):",
-    vencidas.slice(0,20).map(laborResumen).join("\n"),
-    "VENCEN HOY (" + hoyL.length + "):",
-    hoyL.map(laborResumen).join("\n"),
-    "PROXIMAS (" + proximas.length + "):",
-    proximas.slice(0,15).map(laborResumen).join("\n"),
-    "",
-    "=== COSTOS ===",
-    "Total acumulado: $" + Math.round(costoTotal/1000) + "k",
-    "Por UP: " + topCC,
-    "Por encargado: " + topEnc,
-    "Por tipo: " + topTipo,
-    "Top registros por monto:",
-    topCostoReg,
-    "",
-    "=== CAJA ===",
-    "Saldo actual: $" + Math.round(CAJA_ACTUAL/1000) + "k",
-    "Saldo proyectado 15d: $" + Math.round(saldoProy/1000) + "k",
-    "POR PAGAR (" + pagar.length + " docs):",
-    pagarDetalle,
-    "POR COBRAR (" + cobrar.length + " docs):",
-    cobrarDetalle,
-    "",
-    "=== INGRESOS ESTIMADOS ===",
-    "Total: $" + Math.round(ingTotal/1000) + "k",
-    proyDetalle,
-    "",
-    "=== PRODUCCION REAL (GUIAS ASIGNADAS) ===",
-    (function(){
-      var asig = window.ASIGNACIONES||[];
-      var guias = asig.filter(function(r){ return String(r["Tipo_Doc"]||"").includes("guia"); });
-      var porUP = {};
-      guias.forEach(function(r){
-        var up   = CC_MAP[String(r["UP_ID"]||"").trim()] || String(r["UP_Nombre"]||"").trim();
-        var prod = String(r["Nombre_Item"]||"").trim();
-        var cant = Number(r["Cantidad "]||r["Cantidad"]||0);
-        var und  = String(r["Unidad "]||r["Unidad"]||"kg").trim();
-        if (!up||!prod||!cant) return;
-        if (!porUP[up]) porUP[up] = {};
-        porUP[up][prod] = (porUP[up][prod]||0)+cant;
+    if (!loaded[name]) {
+      // First load — show loader, set src
+      showLoader();
+      loaded[name] = true;
+      frame.src = frame.getAttribute('data-src');
+      // onFrameLoad will hide loader when ready
+    } else {
+      // Already loaded — show immediately (already has ready class from before, re-add)
+      frame.classList.add('ready');
+      hideLoader();
+    }
+  }
+
+  // Mark home as loaded on its first load
+  loaded['home'] = true;
+  document.getElementById('f-home').addEventListener('load', function() {
+    onFrameLoad('home');
+  }, { once: true });
+
+  // ── TEMPORADA ────────────────────────────────────────────────
+  function onTemporadaChange() {
+    temporada = document.getElementById('dash-temporada').value;
+
+    // Recalculate costos KPI for selected temporada
+    if (window._kpiData) {
+      var costoTemp = costosDeLaTemporada(window._kpiData.registros, window._kpiData.asignaciones, temporada);
+      document.getElementById('k-costos').textContent = fmtPeso(costoTemp);
+      document.getElementById('k-costos-label').textContent = '📊 Costos ' + (temporada || '');
+    }
+
+    // Push to all loaded iframes
+    ['f-home','f-costos','f-ingresos','f-margenes','f-labores','f-caja','f-produccion','f-insumos'].forEach(function(id) {
+      var f = document.getElementById(id);
+      if (loaded[id.replace('f-','')] && f.contentWindow) pushTemporada(f);
+    });
+  }
+
+  // ── KPIs ─────────────────────────────────────────────────────
+  // ── GLOBALS ──────────────────────────────────────────────────
+  var TEMP_MAP = {};
+
+  function getTemporada(fechaStr, mesInicio) {
+    var raw = String(fechaStr||"");
+    var d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
+    if (isNaN(d)) return null;
+    var y = d.getFullYear(); var m = d.getMonth()+1;
+    return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
+  }
+
+  function costosDeLaTemporada(regs, asigs, temp) {
+    var costoReg = (Array.isArray(regs) ? regs : []).filter(function(r) {
+      var ccId = String(r["Centro_Costo"]||"").trim();
+      var tmp  = TEMP_MAP[ccId];
+      if (!tmp) return false;
+      return getTemporada(r["Fecha"], tmp.mesInicio) === temp;
+    }).reduce(function(s,r){ return s+Number(r["Costo Total"]||0); }, 0);
+    var costoAsig = (Array.isArray(asigs) ? asigs : []).filter(function(a) {
+      var ccId  = String(a["UP_ID"]||a["UP_Nombre"]||"").trim();
+      var tmp   = TEMP_MAP[ccId];
+      var fecha = a["Fecha_Documento"] || a["Fecha_Asignacion"];
+      if (!tmp) return false;
+      return getTemporada(fecha, tmp.mesInicio) === temp;
+    }).reduce(function(s,a){ return s+Number(a["Monto_Asignado"]||0); }, 0);
+    return costoReg + costoAsig;
+  }
+
+  async function loadKPIs() {
+    document.getElementById("dash-date").textContent =
+      new Date().toLocaleDateString("es-CL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+
+    try {
+      var [banco, registros, docs, asignaciones, ccs] = await Promise.all([
+        fetchSheet(API_FIN, "BD_Banco"),
+        fetchSheet(API_REG, "BD_Registro"),
+        fetchSheet(API_FIN, "CargaHTML_Demo"),
+        fetchSheet(API_FIN, "Asignaciones_U"),
+        fetchSheet(API_CC,  "BD_CC"),  // for temporada options
+      ]);
+
+      // Caja
+      var caja = (Array.isArray(banco) ? banco : [])
+        .reduce(function(s,r){ return s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0); }, 0);
+      document.getElementById("k-caja").textContent = fmtPeso(caja);
+      document.getElementById("k-caja").className = "kpi-val " + (caja >= 0 ? "green" : "red");
+
+      // Costos (BD_Registro + Asignaciones_U)
+      // Populate global TEMP_MAP from BD_CC
+      Object.keys(TEMP_MAP).forEach(function(k){ delete TEMP_MAP[k]; });
+      (Array.isArray(ccs) ? ccs : []).forEach(function(row) {
+        var id   = String(row["Id_CC"]||"").trim();
+        var temp = String(row["Temporada"]||"").trim();
+        var mes  = parseInt(row["MES_INICIO_TEMPORADA"]||3)||3;
+        if (id && temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
       });
-      return Object.entries(porUP).map(function(e){
-        var up = e[0]; var prods = e[1];
-        return up+": "+Object.entries(prods).map(function(p){ return p[1].toLocaleString("es-CL")+" "+p[0]; }).join(", ");
-      }).join("\n") || "Sin producción real registrada";
-    })(),
-    "",
-    "=== ASIGNACIONES DE COSTOS ===",
-    "Total asignaciones: " + (window.ASIGNACIONES||[]).length,
-    "Monto total asignado: $" + Math.round((window.ASIGNACIONES||[]).reduce(function(s,r){return s+Number(r["Monto_Asignado"]||0);},0)/1000) + "k"
-  ];
-  return lineas.join("\n");
-}
 
-async function chatSend() {
-  const input = document.getElementById("chat-input");
-  const msgs  = document.getElementById("chat-msgs");
-  const send  = document.getElementById("chat-send");
-  const texto = input.value.trim();
-  if (!texto) return;
+      // Count records per temporada
+      var tempSet = {};
+      (Array.isArray(registros) ? registros : []).forEach(function(r) {
+        var ccId = String(r["Centro_Costo"]||"").trim();
+        var tmp  = TEMP_MAP[ccId];
+        if (!tmp) return;
+        var t = getTemporada(r["Fecha"], tmp.mesInicio);
+        if (t) tempSet[t] = (tempSet[t]||0) + 1;
+      });
 
-  // Add user message
-  input.value = "";
-  input.style.height = "38px";
-  msgs.innerHTML += `<div class="chat-msg user">${texto}</div>`;
+      var temps = Object.entries(tempSet).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){ return e[0]; });
+      var sel = document.getElementById('dash-temporada');
+      if (temps.length) {
+        sel.innerHTML = temps.map(function(t) {
+          return '<option value="'+t+'">'+t+'</option>';
+        }).join('');
+        // Default: prefer 2026-2027, else most-records
+        temporada = temps.indexOf('2026-2027') !== -1 ? '2026-2027' : temps[0];
+        // Reflect default in selector
+        sel.value = temporada;
+      } else {
+        sel.innerHTML = '<option value="">Sin datos</option>';
+      }
 
-  // Add loading
-  const loadId = "load-" + Date.now();
-  msgs.innerHTML += `<div class="chat-msg ai loading" id="${loadId}">Analizando datos del campo...</div>`;
-  msgs.scrollTop = msgs.scrollHeight;
-  send.disabled = true;
+      // Store for recalculation on temporada change
+      window._kpiData = { registros: registros, asignaciones: asignaciones };
 
-  chatHistory.push({ role:"user", content: texto });
+      var costoTemp = costosDeLaTemporada(registros, asignaciones, temporada);
+      document.getElementById("k-costos").textContent = fmtPeso(costoTemp);
+      document.getElementById("k-costos-label").textContent = "📊 Costos " + (temporada || "");
 
-  try {
-    const contexto = buildContexto();
-    const res = await fetch("https://round-night-574d.christian-19c.workers.dev", {
-      method:"POST",
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        system: contexto,
-        messages: chatHistory
-      })
-    });
+      // Labores vencidas
+      var hoy = new Date(); hoy.setHours(0,0,0,0);
+      var vencidas = (Array.isArray(registros) ? registros : []).filter(function(r) {
+        var est = String(r["Estado Operativo"]||"").trim();
+        if (est === "Completado" || est === "Anulado") return false;
+        var raw = String(r["Fecha"]||""); var d = new Date(raw.split("T")[0]);
+        return !isNaN(d) && d < hoy;
+      }).length;
+      document.getElementById("k-vencidas").textContent = vencidas;
+      document.getElementById("k-vencidas").className = "kpi-val " + (vencidas > 0 ? "amber" : "green");
 
-    const data = await res.json();
-    const respuesta = data.content?.[0]?.text || "No pude obtener una respuesta.";
-
-    chatHistory.push({ role:"assistant", content: respuesta });
-
-    // Keep history short
-    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-
-    document.getElementById(loadId).className = "chat-msg ai";
-    document.getElementById(loadId).innerHTML = respuesta.replace(/\n/g,"<br>");
-
-  } catch(e) {
-    document.getElementById(loadId).innerHTML = "Error al conectar con la IA. Verificá tu conexión.";
+      // Sin asignar desde corte
+      var sinAsignar = (Array.isArray(docs) ? docs : []).filter(function(d) {
+        var fundo = String(d["Fundo"]||"").trim();
+        var rut   = String(d["RUT Emisor"]||"").trim();
+        var fecha = String(d["Fecha Emisión"]||"").split("T")[0];
+        return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && rut!==RUT_LC && fecha>=CORTE;
+      }).length;
+      document.getElementById("k-sinasignar").textContent = sinAsignar;
+      document.getElementById("k-sinasignar").className = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
+    } catch(e) {
+      console.error("KPI error:", e);
+    }
   }
 
-  msgs.scrollTop = msgs.scrollHeight;
-  send.disabled = false;
-  input.focus();
-}
+  loadKPIs();
 </script>
 
-
-<button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
-
-<div id="chat-panel">
-  <div id="chat-head">
-    <div>
-      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
-      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
-    </div>
-    <button id="chat-close" onclick="toggleChat()">✕</button>
-  </div>
-  <div id="chat-msgs">
-    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
-  </div>
-  <div class="chat-suggestions">
-    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
-  </div>
-  <div id="chat-input-wrap">
-    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
-    <button id="chat-send" onclick="chatSend()">Enviar</button>
-  </div>
-</div>
-
-</body>
-</html>
-</script>
-</body>
-</html>
-</script>
-</body>
-</html>
-</script>
-
-
-
-</body>
-</html>
-</script>
 </body>
 </html>
