@@ -460,9 +460,9 @@ function renderMargenes() {
     return true;
   });
 
-  const upBtns     = allUPs.map(id => `<button class="fbtn${stateMargenes.ups.includes(id)?" on":""}" onclick="toggleMargenMulti('ups','${id}')">${CC_MAP[id]||id}</button>`).join("");
+  const upBtns     = allUPs.map(id => `<button class="fbtn${stateMargenes.ups.includes(id)?' on':''}" onclick="toggleMargenMulti('ups','${id}')">${CC_MAP[id]||id}</button>`).join("");
   const fundoOptsM = [...new Set(allUPs.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
-  const fundoBtnsM = fundoOptsM.map(f => `<button class="fbtn${stateMargenes.fundos.includes(f)?" on":""}" onclick="toggleMargenMulti('fundos','${f}')">${f}</button>`).join("");
+  const fundoBtnsM = fundoOptsM.map(f => `<button class="fbtn${stateMargenes.fundos.includes(f)?' on':''}" onclick="toggleMargenMulti('fundos','${f}')">${f}</button>`).join("");
 
   let totalIng = 0, totalCost = 0, totalKilos = 0;
   const rows = filtradas.map(ccId => {
@@ -804,10 +804,10 @@ function renderIngresos() {
   const anioOpts = [...new Set(allRows.map(r=>{ const d=parseDate(r.fecha); return d?String(d.getFullYear()):null; }).filter(Boolean))].sort();
   const mesOpts  = [...new Set(allRows.map(r=>{ const d=parseDate(r.fecha); return d?String(d.getMonth()+1).padStart(2,"0"):null; }).filter(Boolean))].sort();
 
-  const upBtns     = upOpts.map(id=>`<button class="fbtn${stateIngresos.ups.includes(id)?" on":""}" onclick="toggleIngresosMulti('ups','${id}')">${CC_MAP[id]||id}</button>`).join("");
-  const fundoBtnsI = fundoOptsI.map(f=>`<button class="fbtn${stateIngresos.fundos.includes(f)?" on":""}" onclick="toggleIngresosMulti('fundos','${f}')">${f}</button>`).join("");
-  const anioBtns   = anioOpts.map(a=>`<button class="fbtn${stateIngresos.anios.includes(a)?" on":""}" onclick="toggleIngresosMulti('anios','${a}')">${a}</button>`).join("");
-  const mesBtns    = mesOpts.map(m=>`<button class="fbtn${stateIngresos.meses.includes(m)?" on":""}" onclick="toggleIngresosMulti('meses','${m}')">${MESES[m]||m}</button>`).join("");
+  const upBtns     = upOpts.map(id=>`<button class="fbtn${stateIngresos.ups.includes(id)?' on':''}" onclick="toggleIngresosMulti('ups','${id}')">${CC_MAP[id]||id}</button>`).join("");
+  const fundoBtnsI = fundoOptsI.map(f=>`<button class="fbtn${stateIngresos.fundos.includes(f)?' on':''}" onclick="toggleIngresosMulti('fundos','${f}')">${f}</button>`).join("");
+  const anioBtns   = anioOpts.map(a=>`<button class="fbtn${stateIngresos.anios.includes(a)?' on':''}" onclick="toggleIngresosMulti('anios','${a}')">${a}</button>`).join("");
+  const mesBtns    = mesOpts.map(m=>`<button class="fbtn${stateIngresos.meses.includes(m)?' on':''}" onclick="toggleIngresosMulti('meses','${m}')">${MESES[m]||m}</button>`).join("");
 
   function applyFilters(arr) {
     return arr.filter(r => {
@@ -1430,18 +1430,18 @@ function renderFilters() {
   const ups = [...new Set(ACTIVOS.map(r=>String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
 
   const estadoBtns = ["En Proceso","Pendiente"].map(e=>
-    `<button class="fbtn${state.estados.includes(e)?" on":""}" onclick="toggleMulti('estados','${e}')">${e}</button>`
+    `<button class="fbtn${state.estados.includes(e)?' on':''}" onclick="toggleMulti('estados','${e}')">${e}</button>`
   ).join("");
   const encBtns = encargados.map(e=>
-    `<button class="fbtn${state.encargados.includes(e)?" on":""}" onclick="toggleMulti('encargados','${e}')">${e}</button>`
+    `<button class="fbtn${state.encargados.includes(e)?' on':''}" onclick="toggleMulti('encargados','${e}')">${e}</button>`
   ).join("");
   const upBtns = ups.map(id=>
-    `<button class="fbtn${state.ups.includes(id)?" on":""}" onclick="toggleMulti('ups','${id}')">${CC_MAP[id]||id}</button>`
+    `<button class="fbtn${state.ups.includes(id)?' on':''}" onclick="toggleMulti('ups','${id}')">${CC_MAP[id]||id}</button>`
   ).join("");
 
   const fundos = [...new Set(ups.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
   const fundoBtnsL = fundos.map(f=>
-    `<button class="fbtn${state.fundos.includes(f)?" on":""}" onclick="toggleMulti('fundos','${f}')">${f}</button>`
+    `<button class="fbtn${state.fundos.includes(f)?' on':''}" onclick="toggleMulti('fundos','${f}')">${f}</button>`
   ).join("");
 
   return `<div class="filters-wrap">
@@ -1449,7 +1449,7 @@ function renderFilters() {
       <div class="filter-label">Estado</div>
       <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
       ${estadoBtns}
-      <button class="fbtn${state.soloVencidas?" on":""}" onclick="toggleVencidas()">Solo vencidas</button>
+      <button class="fbtn${state.soloVencidas?' on':''}" onclick="toggleVencidas()">Solo vencidas</button>
     </div>
     <div class="filters-row">
       <div class="filter-label">Encargado</div>
@@ -1725,8 +1725,8 @@ function renderCostos() {
   const ccOpts   = [...new Set(TODOS_COSTOS.map(r => String(r["Centro_Costo"]||"").trim()).filter(Boolean))].sort();
   const fundoOpts = [...new Set(ccOpts.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
 
-  const ccBtns    = ccOpts.map(id => `<button class="fbtn${stateCostos.ccs.includes(id)?" on":""}" onclick="toggleCostoMulti('ccs','${id}')">${CC_MAP[id]||id}</button>`).join("");
-  const fundoBtns = fundoOpts.map(f  => `<button class="fbtn${stateCostos.fundos.includes(f)?" on":""}" onclick="toggleCostoMulti('fundos','${f}')">${f}</button>`).join("");
+  const ccBtns    = ccOpts.map(id => `<button class="fbtn${stateCostos.ccs.includes(id)?' on':''}" onclick="toggleCostoMulti('ccs','${id}')">${CC_MAP[id]||id}</button>`).join("");
+  const fundoBtns = fundoOpts.map(f  => `<button class="fbtn${stateCostos.fundos.includes(f)?' on':''}" onclick="toggleCostoMulti('fundos','${f}')">${f}</button>`).join("");
 
   // Año y mes options
   const anioOpts = [...new Set(TODOS_COSTOS.map(r => {
@@ -1737,8 +1737,8 @@ function renderCostos() {
   }).filter(Boolean))].sort();
   const MESES = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
 
-  const anioBtns = anioOpts.map(a => `<button class="fbtn${stateCostos.anios.includes(String(a))?" on":""}" onclick="toggleCostoMulti('anios','${a}')">${a}</button>`).join("");
-  const mesBtns  = mesOpts.map(m  => `<button class="fbtn${stateCostos.meses.includes(m)?" on":""}" onclick="toggleCostoMulti('meses','${m}')">${MESES[m]||m}</button>`).join("");
+  const anioBtns = anioOpts.map(a => `<button class="fbtn${stateCostos.anios.includes(String(a))?' on':''}" onclick="toggleCostoMulti('anios','${a}')">${a}</button>`).join("");
+  const mesBtns  = mesOpts.map(m  => `<button class="fbtn${stateCostos.meses.includes(m)?' on':''}" onclick="toggleCostoMulti('meses','${m}')">${MESES[m]||m}</button>`).join("");
 
   const filtrosHTML = `<div class="filters-wrap" style="margin-bottom:12px;">
     <div class="filters-row">
