@@ -389,41 +389,81 @@ function toggleMargenMulti(key, val) {
 }
 
 function renderMargenes() {
-  // Build costos por UP
+  const FECHA_CORTE = FECHA_CORTE_COSTOS;
+  const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
+
+  function passTemp(fechaVal, ccId) {
+    if (!tempActiva) return true;
+    const tmp = TEMP_MAP[ccId];
+    if (!tmp) return true;
+    return getTemporadaDeFecha(fechaVal, tmp.mesInicio) === tempActiva;
+  }
+
+  // ── COSTOS (misma lógica que renderCostos) ────────────────────────────────
   const costosPorUP = {};
-  TODOS.forEach(r => {
-    const cc = String(r["Centro_Costo"]||"").trim();
-    costosPorUP[cc] = (costosPorUP[cc]||0) + Number(r["Costo Total"]||0);
+  (window.TODOS||[]).filter(r => {
+    const raw  = String(r["Fecha"]||"");
+    const f    = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
+    const ccId = String(r["Centro_Costo"]||"").trim();
+    return Number(r["Costo Total"]||0) > 0 && (f===""||f<FECHA_CORTE) && passTemp(f, ccId);
+  }).forEach(r => {
+    const id = String(r["Centro_Costo"]||"").trim();
+    costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Costo Total"]||0);
+  });
+  (window.ASIGNACIONES||[]).filter(r => {
+    const id    = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id);
+  }).forEach(r => {
+    const id = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
   });
 
-  // Build ingresos + kilos por UP
+  // ── INGRESOS (misma lógica que renderIngresos) ────────────────────────────
+  const NAME_TO_ID = {};
+  Object.entries(CC_MAP).forEach(([id, nombre]) => { NAME_TO_ID[nombre.trim().toLowerCase()] = id; });
+  function resolveUpId(val) {
+    const raw = String(val||"").trim();
+    if (CC_MAP[raw]) return raw;
+    return NAME_TO_ID[raw.toLowerCase()] || raw;
+  }
+
   const ingresosPorUP = {};
-  const kilosPorUP   = {};
-  PROYECCIONES.forEach(r => {
-    const up = String(r["Unidad_Productiva"]||"").trim();
-    ingresosPorUP[up] = (ingresosPorUP[up]||0) + Number(r["Monto_Total"]||0);
-    kilosPorUP[up]    = (kilosPorUP[up]||0)    + Number(r["Kilos_Estimados"]||0);
+  const kilosPorUP    = {};
+
+  (window.ASIGNACIONES||[]).filter(r => {
+    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
+    const id    = resolveUpId(r["UP_Nombre"]||r["UP_ID"]||"");
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    return tipo.includes("factura") && Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id);
+  }).forEach(r => {
+    const id = resolveUpId(r["UP_Nombre"]||r["UP_ID"]||"");
+    ingresosPorUP[id] = (ingresosPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
   });
 
-  // Get all UPs
+  (window.PROYECCIONES||[]).filter(r => {
+    const id    = String(r["Unidad_Productiva"]||"").trim();
+    const fecha = r["Fecha_Estimada"]||"";
+    return passTemp(fecha, id);
+  }).forEach(r => {
+    const id = String(r["Unidad_Productiva"]||"").trim();
+    ingresosPorUP[id] = (ingresosPorUP[id]||0) + Number(r["Monto_Total"]||0);
+    kilosPorUP[id]    = (kilosPorUP[id]||0)    + Number(r["Kilos_Estimados"]||0);
+  });
+
+  // ── FILAS ─────────────────────────────────────────────────────────────────
   const allUPs = [...new Set([...Object.keys(costosPorUP), ...Object.keys(ingresosPorUP)])].sort();
 
-  // Filter
   const filtradas = allUPs.filter(id => {
-    if (stateMargenes.ups.length > 0    && !stateMargenes.ups.includes(id))                return false;
+    if (stateMargenes.ups.length    > 0 && !stateMargenes.ups.includes(id))                   return false;
     if (stateMargenes.fundos.length > 0 && !stateMargenes.fundos.includes(FUNDO_MAP[id]||"")) return false;
     return true;
   });
 
-  const upBtns = allUPs.map(id =>
-    `<button class="fbtn${stateMargenes.ups.includes(id)?" on":""}" onclick="toggleMargenMulti('ups','${id}')">${CC_MAP[id]||id}</button>`
-  ).join("");
+  const upBtns     = allUPs.map(id => `<button class="fbtn${stateMargenes.ups.includes(id)?" on":""}" onclick="toggleMargenMulti('ups','${id}')">${CC_MAP[id]||id}</button>`).join("");
   const fundoOptsM = [...new Set(allUPs.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
-  const fundoBtnsM = fundoOptsM.map(f=>
-    `<button class="fbtn${stateMargenes.fundos.includes(f)?" on":""}" onclick="toggleMargenMulti('fundos','${f}')">${f}</button>`
-  ).join("");
+  const fundoBtnsM = fundoOptsM.map(f => `<button class="fbtn${stateMargenes.fundos.includes(f)?" on":""}" onclick="toggleMargenMulti('fundos','${f}')">${f}</button>`).join("");
 
-  // Build rows
   let totalIng = 0, totalCost = 0, totalKilos = 0;
   const rows = filtradas.map(ccId => {
     const nombre    = CC_MAP[ccId]    || ccId;
@@ -436,19 +476,17 @@ function renderMargenes() {
     const ha        = HA_MAP[ccId]        || 0;
     const margenTon = toneladas > 0 ? margen / toneladas : 0;
     const margenHa  = ha > 0 ? margen / ha : 0;
-    const pct = ingreso > 0 ? (margen/ingreso*100).toFixed(1) : "—";
+    const pct       = ingreso > 0 ? (margen/ingreso*100).toFixed(1) : "—";
     totalIng   += ingreso;
     totalCost  += costo;
     totalKilos += kilos;
-    const cls = margen >= 0 ? "mg-pos" : "mg-neg";
-    return { nombre, fundo, ingreso, costo, margen, toneladas, ha, margenTon, margenHa, pct, cls };
+    return { nombre, fundo, ingreso, costo, margen, toneladas, ha, margenTon, margenHa, pct, cls: margen>=0?"mg-pos":"mg-neg" };
   }).sort((a,b) => b.margen - a.margen);
 
   const margenTotal = totalIng - totalCost;
-  const margenTonTotal = totalKilos > 0 ? margenTotal / (totalKilos/1000) : 0;
-  const maxAbsMargen = Math.max(...rows.map(r => Math.abs(r.margen)), 1);
+  const pctTotal    = totalIng > 0 ? (margenTotal/totalIng*100).toFixed(1) : "—";
+  const clsTotal    = margenTotal >= 0 ? "#1a6e3a" : "#cc2222";
 
-  // Split rows: con kilos y con hectáreas (excluir los que no tienen ninguno)
   const rowsConKilos = rows.filter(r => r.toneladas > 0);
   const rowsConHa    = rows.filter(r => r.ha > 0);
 
@@ -460,26 +498,24 @@ function renderMargenes() {
     const tMargen = tIng - tCost;
     const tMedVal = tMed > 0 ? tMargen/tMed : 0;
     const tCls    = tMargen >= 0 ? "mg-pos" : "mg-neg";
-    const maxAbs  = Math.max(...filas.map(r=>Math.abs(r.margen)),1);
+    const maxAbs  = Math.max(...filas.map(r=>Math.abs(r.margen)), 1);
 
     const tbody = filas.map(r => {
-      const medVal  = esTon ? r.toneladas : r.ha;
-      const mgnMed  = esTon ? r.margenTon : r.margenHa;
-      const medLbl  = esTon ? r.toneladas.toFixed(1)+"t" : r.ha+"há";
-      const mgnLbl  = esTon ? fmtPeso(mgnMed)+"/t" : fmtPeso(mgnMed)+"/há";
-      const barW    = Math.round(Math.abs(r.margen)/maxAbs*80);
+      const mgnMed = esTon ? r.margenTon : r.margenHa;
+      const medLbl = esTon ? r.toneladas.toFixed(1)+"t" : r.ha+"há";
+      const mgnLbl = esTon ? fmtPeso(mgnMed)+"/t" : fmtPeso(mgnMed)+"/há";
+      const barW   = Math.round(Math.abs(r.margen)/maxAbs*80);
       const barHTML = r.margen >= 0
         ? `<div class="mg-bar-pos" style="width:${barW}px;"></div>`
         : `<div class="mg-bar-neg" style="width:${barW}px;"></div>`;
       return `<tr>
-        <td style="font-weight:bold;">${r.nombre}</td>
-        <td style="color:#888;">${r.fundo}</td>
-        <td style="text-align:right;color:#1a3a0a;">${fmtPeso(r.ingreso)}</td>
+        <td style="font-weight:bold;">${r.nombre}<br><span style="font-size:10px;color:#888;">${r.fundo}</span></td>
+        <td style="text-align:right;color:#1a6e3a;">${fmtPeso(r.ingreso)}</td>
         <td style="text-align:right;color:#cc2222;">${fmtPeso(r.costo)}</td>
         <td style="text-align:right;" class="${r.cls}">${fmtPeso(r.margen)}</td>
+        <td style="text-align:right;color:#888;">${r.pct !== "—" ? r.pct+"%" : "—"}</td>
         <td style="text-align:right;color:#555;">${medLbl}</td>
         <td style="text-align:right;" class="${r.cls}">${mgnLbl}</td>
-        <td style="text-align:right;color:#888;">${r.pct !== "—" ? r.pct+"%" : "—"}</td>
         <td style="padding-left:8px;">${barHTML}</td>
       </tr>`;
     }).join("");
@@ -487,13 +523,13 @@ function renderMargenes() {
     const medTotLbl = esTon ? tMed.toFixed(1)+"t" : tMed+"há";
     const mgnTotLbl = tMed > 0 ? fmtPeso(tMedVal)+(esTon?"/t":"/há") : "—";
     const totRow = `<tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
-      <td colspan="2">Total</td>
-      <td style="text-align:right;color:#1a3a0a;">${fmtPeso(tIng)}</td>
+      <td>Total</td>
+      <td style="text-align:right;color:#1a6e3a;">${fmtPeso(tIng)}</td>
       <td style="text-align:right;color:#cc2222;">${fmtPeso(tCost)}</td>
       <td style="text-align:right;" class="${tCls}">${fmtPeso(tMargen)}</td>
+      <td style="text-align:right;color:#888;">${tIng>0?(tMargen/tIng*100).toFixed(1)+"%":"—"}</td>
       <td style="text-align:right;color:#555;">${medTotLbl}</td>
       <td style="text-align:right;" class="${tCls}">${mgnTotLbl}</td>
-      <td style="text-align:right;color:#888;">${tIng>0?(tMargen/tIng*100).toFixed(1)+"%":"—"}</td>
       <td></td>
     </tr>`;
 
@@ -502,13 +538,13 @@ function renderMargenes() {
     return `<div style="overflow-x:auto;">
       <table class="mg-table">
         <thead><tr>
-          <th>Unidad Productiva</th><th>Centro Costos</th>
-          <th style="text-align:right;">Ingresos</th>
-          <th style="text-align:right;">Costos</th>
+          <th>Unidad Productiva</th>
+          <th style="text-align:right;color:#1a6e3a;">Ingresos</th>
+          <th style="text-align:right;color:#cc2222;">Costos</th>
           <th style="text-align:right;">Margen</th>
+          <th style="text-align:right;">%</th>
           <th style="text-align:right;">${unidadLbl}</th>
           <th style="text-align:right;">${mgnLblHdr}</th>
-          <th style="text-align:right;">%</th>
           <th></th>
         </tr></thead>
         <tbody>${tbody}${totRow}</tbody>
@@ -516,7 +552,157 @@ function renderMargenes() {
     </div>`;
   };
 
+  // ── WATERFALL POR UP ─────────────────────────────────────────────────────
+  function buildWaterfall(filas) {
+    if (!filas.length) return "";
+
+    const BAR_W   = 28;   // ancho de cada barra
+    const GAP     = 10;   // gap entre grupos
+    const GROUP_W = BAR_W * 3 + GAP * 2 + 20; // ancho por UP
+    const H       = 180;  // altura área de barras
+    const PAD_TOP = 20;
+    const PAD_BOT = 52;   // espacio para labels
+    const PAD_L   = 52;   // eje Y
+    const SVG_H   = H + PAD_TOP + PAD_BOT;
+
+    const maxVal = Math.max(...filas.map(r => r.ingreso), 1);
+
+    const SVG_W = PAD_L + filas.length * GROUP_W + 20;
+
+    // Eje Y: 4 marcas
+    const yTicks = [0, 0.25, 0.5, 0.75, 1].map(p => ({
+      val: maxVal * p,
+      y:   PAD_TOP + H - Math.round(p * H)
+    }));
+
+    const ticksHTML = yTicks.map(t =>
+      `<line x1="${PAD_L - 4}" y1="${t.y}" x2="${SVG_W}" y2="${t.y}"
+             stroke="#e5e2da" stroke-width="1" stroke-dasharray="3,3"/>
+       <text x="${PAD_L - 8}" y="${t.y + 4}" text-anchor="end"
+             font-size="9" fill="#aaa">${fmtPeso(t.val)}</text>`
+    ).join("");
+
+    const barsHTML = filas.map((r, i) => {
+      const x0 = PAD_L + i * GROUP_W;
+
+      // Alturas proporcionales
+      const hIng  = Math.max(2, Math.round(r.ingreso / maxVal * H));
+      const hCost = Math.max(2, Math.round(r.costo   / maxVal * H));
+      const hMarg = Math.abs(Math.round(r.margen      / maxVal * H));
+      const margPos = r.margen >= 0;
+
+      const yIng  = PAD_TOP + H - hIng;
+      const yCost = PAD_TOP + H - hCost;
+      const yMarg = margPos ? PAD_TOP + H - hMarg : PAD_TOP + H;
+
+      // Posición X de cada barra
+      const xIng  = x0;
+      const xCost = x0 + BAR_W + GAP;
+      const xMarg = x0 + (BAR_W + GAP) * 2;
+
+      // Label nombre UP (truncado)
+      const nombre = r.nombre.length > 10 ? r.nombre.slice(0, 9) + "…" : r.nombre;
+
+      // Valor encima de cada barra
+      const labelY = (yBar, h) => Math.max(PAD_TOP + 10, yBar - 3);
+
+      return `
+        <g>
+          <!-- Ingreso -->
+          <rect x="${xIng}" y="${yIng}" width="${BAR_W}" height="${hIng}"
+                fill="#1a6e3a" rx="2"/>
+          <text x="${xIng + BAR_W/2}" y="${labelY(yIng, hIng)}"
+                text-anchor="middle" font-size="8" fill="#1a6e3a"
+                font-weight="600">${fmtPeso(r.ingreso)}</text>
+
+          <!-- Costo -->
+          <rect x="${xCost}" y="${yCost}" width="${BAR_W}" height="${hCost}"
+                fill="#cc2222" rx="2"/>
+          <text x="${xCost + BAR_W/2}" y="${labelY(yCost, hCost)}"
+                text-anchor="middle" font-size="8" fill="#cc2222"
+                font-weight="600">${fmtPeso(r.costo)}</text>
+
+          <!-- Margen -->
+          <rect x="${xMarg}" y="${yMarg}" width="${BAR_W}" height="${hMarg}"
+                fill="${margPos ? "#0f6e56" : "#f87171"}" rx="2"/>
+          <text x="${xMarg + BAR_W/2}" y="${margPos ? labelY(yMarg, hMarg) : yMarg + hMarg + 11}"
+                text-anchor="middle" font-size="8"
+                fill="${margPos ? "#0f6e56" : "#cc2222"}"
+                font-weight="700">${fmtPeso(r.margen)}</text>
+
+          <!-- Línea conectora ingreso→costo -->
+          <line x1="${xIng + BAR_W}" y1="${yIng}" x2="${xCost}" y2="${yIng}"
+                stroke="#e5e2da" stroke-width="1" stroke-dasharray="2,2"/>
+          <!-- Línea conectora costo→margen -->
+          <line x1="${xCost + BAR_W}" y1="${yCost}" x2="${xMarg}" y2="${yCost}"
+                stroke="#e5e2da" stroke-width="1" stroke-dasharray="2,2"/>
+
+          <!-- Label nombre UP -->
+          <text x="${x0 + GROUP_W/2 - 10}" y="${PAD_TOP + H + 18}"
+                text-anchor="middle" font-size="9" fill="#555"
+                font-weight="600">${nombre}</text>
+          <!-- % margen -->
+          <text x="${x0 + GROUP_W/2 - 10}" y="${PAD_TOP + H + 30}"
+                text-anchor="middle" font-size="9"
+                fill="${margPos ? "#0f6e56" : "#cc2222"}">${r.pct !== "—" ? r.pct+"%" : "—"}</text>
+        </g>`;
+    }).join("");
+
+    // Leyenda
+    const legY = SVG_H - 8;
+    const legX = PAD_L;
+    const legend = `
+      <rect x="${legX}"    y="${legY - 7}" width="8" height="8" fill="#1a6e3a" rx="1"/>
+      <text x="${legX+11}" y="${legY}"     font-size="9" fill="#555">Ingreso</text>
+      <rect x="${legX+60}" y="${legY - 7}" width="8" height="8" fill="#cc2222" rx="1"/>
+      <text x="${legX+71}" y="${legY}"     font-size="9" fill="#555">Costo</text>
+      <rect x="${legX+110}" y="${legY - 7}" width="8" height="8" fill="#0f6e56" rx="1"/>
+      <text x="${legX+121}" y="${legY}"    font-size="9" fill="#555">Margen</text>`;
+
+    return `
+      <div style="overflow-x:auto;padding-bottom:4px;">
+        <svg width="${SVG_W}" height="${SVG_H + 20}" xmlns="http://www.w3.org/2000/svg"
+             style="font-family:Arial,sans-serif;">
+          <!-- Fondo -->
+          <rect width="${SVG_W}" height="${SVG_H + 20}" fill="#fafaf8" rx="8"/>
+          <!-- Ticks -->
+          ${ticksHTML}
+          <!-- Línea base -->
+          <line x1="${PAD_L}" y1="${PAD_TOP + H}" x2="${SVG_W}" y2="${PAD_TOP + H}"
+                stroke="#aaa" stroke-width="1"/>
+          <!-- Barras -->
+          ${barsHTML}
+          <!-- Leyenda -->
+          ${legend}
+        </svg>
+      </div>`;
+  }
+
   document.getElementById("app-margenes").innerHTML = `
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🌾 Ingresos</div>
+        <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(totalIng)}</div>
+        <div style="font-size:10px;color:#6b9e3a;margin-top:4px;">Facturado + Estimado</div>
+      </div>
+      <div style="background:#fff5f5;border:1px solid #fca5a5;border-radius:10px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;color:#cc2222;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">📊 Costos</div>
+        <div style="font-size:22px;font-weight:700;color:#cc2222;line-height:1;">${fmtPeso(totalCost)}</div>
+        <div style="font-size:10px;color:#e05555;margin-top:4px;">BD Registro + Asignaciones</div>
+      </div>
+      <div style="background:${margenTotal>=0?"#eaf3de":"#fff5f5"};border:1px solid ${margenTotal>=0?"#c3e0a0":"#fca5a5"};border-radius:10px;padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;color:${clsTotal};letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">${margenTotal>=0?"✅":"⚠️"} Margen</div>
+        <div style="font-size:22px;font-weight:700;color:${clsTotal};line-height:1;">${fmtPeso(margenTotal)}</div>
+        <div style="font-size:10px;color:${clsTotal};margin-top:4px;">${pctTotal !== "—" ? pctTotal+"% sobre ingresos" : "Sin ingresos"}</div>
+      </div>
+    </div>
+
+    <div class="stat-card" style="margin-bottom:14px;overflow:hidden;">
+      <div class="stat-title" style="margin-bottom:10px;">Ingreso · Costo · Margen por UP</div>
+      ${buildWaterfall(rows)}
+    </div>
+
     <div class="filters-wrap" style="margin-bottom:12px;">
       <div class="filters-row">
         <div class="filter-label">Unidad prod.</div>
@@ -529,6 +715,7 @@ function renderMargenes() {
         ${fundoBtnsM}
       </div>
     </div>
+
     <div class="stat-card" style="margin-bottom:12px;">
       <div class="stat-title">Margen por tonelada</div>
       ${buildTable(rowsConKilos, "ton")}
@@ -537,7 +724,7 @@ function renderMargenes() {
       <div class="stat-title">Margen por hectárea</div>
       ${buildTable(rowsConHa, "ha")}
     </div>
-    <div class="footer">Ingresos desde Proyecciones_Manuales · Costos desde BD_Registro · Los Crisoles · BData</div>`;
+    <div class="footer">Ingresos: Facturado + Proyecciones · Costos: BD Registro + Asignaciones · Los Crisoles · BData</div>\`;
 }
 
 function toggleIngresosMulti(key, val) {
