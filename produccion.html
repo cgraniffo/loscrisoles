@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script>
+if (location.search.includes('embed=1')) {
+  document.write('<style>.hdr,.header,.tabs,.hdr-top,.hdr-logo,.hdr-date,.hdr-refresh,.metrics-top,.metrics{display:none!important}</style>');
+}
+</script>
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Producción e Insumos — Los Crisoles</title>
@@ -143,6 +149,23 @@
       .tab { font-size: 10px; padding: 7px 10px; }
     }
   </style>
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var tab = params.get('tab');
+  if (tab) {
+    window.addEventListener('load', function() {
+      // Try reporte's switchTab
+      if (typeof switchTab === 'function') switchTab(tab);
+      // Try produccion's switchTab
+      if (typeof switchTabProd === 'function') {
+        var map = { produccion:'prod', insumos:'insumos' };
+        switchTabProd(map[tab] || tab);
+      }
+    });
+  }
+})();
+</script>
 </head>
 <body>
 <div class="hdr">
