@@ -499,10 +499,17 @@ function render() {
     const key      = String(doc.KEY||doc["Folio"]||Math.random()).trim();
     const safeKey  = key.replace(/[^a-z0-9]/gi,"_");
     const monto    = Number(doc["Monto Total"]||0);
-    const proveedor= String(doc["Razón Social"]||"").trim();
+    const tipo     = doc._tipo;
+    // Para facturas emitidas (ventas), mostrar el cliente del detalle en vez del emisor
+    let proveedor  = String(doc["Razón Social"]||"").trim();
+    if (tipo === "factura-emitida") {
+      const key0 = String(doc.KEY||doc["Folio"]||"").trim();
+      const dets0 = window.DET_FACTURAS?.[key0] || [];
+      const cliente = dets0[0] ? String(dets0[0]["Cliente"]||"").trim() : "";
+      if (cliente) proveedor = cliente;
+    }
     const folio    = doc["Folio"]||"";
     const fecha    = doc["Fecha Emisión"] ? new Date(doc["Fecha Emisión"]).toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}) : "—";
-    const tipo     = doc._tipo;
     const s        = getDocState(key, monto);
 
     const metodoTabs = ["porcentaje","monto","iguales","hectareas"].map(m => {
