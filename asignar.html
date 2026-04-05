@@ -31,7 +31,8 @@ if (location.search.includes('embed=1')) {
     select:focus, input:focus, textarea:focus { border-color: #1a3a0a; }
     .doc-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 12px; overflow: hidden; }
     .doc-head { padding: 12px 16px; background: #fef9ec; border-bottom: 1px solid #f0ede6; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .doc-head.factura { background: #faece7; }
+    .doc-head.factura          { background: #faece7; }
+    .doc-head.factura-emitida  { background: #eaf3de; }
     .doc-nombre { font-size: 14px; font-weight: bold; }
     .doc-meta { font-size: 12px; color: #888; margin-top: 3px; }
     .doc-monto { font-size: 16px; font-weight: bold; color: #b45309; white-space: nowrap; }
@@ -210,9 +211,10 @@ if (location.search.includes('embed=1')) {
 <div class="body">
   <div class="filters-wrap">
     <div class="filter-label">Mostrar:</div>
-    <button class="fbtn on" id="f-todos"     onclick="setFiltro('todos')">Todos</button>
-    <button class="fbtn"    id="f-guia"      onclick="setFiltro('guia')">Solo guías</button>
-    <button class="fbtn"    id="f-factura"   onclick="setFiltro('factura')">Solo facturas</button>
+    <button class="fbtn on" id="f-todos"          onclick="setFiltro('todos')">Todos</button>
+    <button class="fbtn"    id="f-guia"           onclick="setFiltro('guia')">Solo guías</button>
+    <button class="fbtn"    id="f-factura"        onclick="setFiltro('factura')">Facturas recibidas</button>
+    <button class="fbtn"    id="f-factura-emitida" onclick="setFiltro('factura-emitida')">🌾 Facturas emitidas</button>
     <div style="width:1px;background:#eee;align-self:stretch;"></div>
     <div style="width:1px;background:#eee;align-self:stretch;"></div>
     <div class="filter-label">Desde:</div>
@@ -264,7 +266,7 @@ function toggleDocCard(safeKey) {
 
 function setFiltro(f) {
   filtro = f;
-  ["todos","guia","factura"].forEach(x => {
+  ["todos","guia","factura","factura-emitida"].forEach(x => {
     document.getElementById("f-"+x).className = "fbtn" + (x===f?" on":"");
   });
   render();
@@ -465,8 +467,9 @@ function render() {
   const sinAsignar = DOCS.filter(d => !ASIGNADOS.has(d.KEY));
   const fechaDesde = document.getElementById("fecha-desde")?.value;
   const filtrados  = sinAsignar.filter(d => {
-    if (filtro === "guia"    && d._tipo !== "guia")    return false;
-    if (filtro === "factura" && d._tipo !== "factura") return false;
+    if (filtro === "guia"            && d._tipo !== "guia")            return false;
+    if (filtro === "factura"         && d._tipo !== "factura")         return false;
+    if (filtro === "factura-emitida" && d._tipo !== "factura-emitida") return false;
     if (fechaDesde) {
       const fe = String(d["Fecha Emisión"]||"").split("T")[0];
       if (fe < fechaDesde) return false;
@@ -534,7 +537,7 @@ function render() {
     const diff      = monto - totalAsig;
 
     return `<div class="doc-card">
-      <div class="doc-head ${tipo==="factura"?"factura":""}"
+      <div class="doc-head ${tipo==="factura"?"factura":tipo==="factura-emitida"?"factura-emitida":""}"
         onclick="toggleDocCard('${safeKey}')"
         style="cursor:pointer;user-select:none;">
         <div style="flex:1;">
@@ -542,7 +545,7 @@ function render() {
             <span class="badge-tipo ${tipo==="guia"?"badge-guia":tipo==="guia-emitida"?"badge-asig":"badge-fact"}">${tipo==="guia"?"Guía recibida":tipo==="guia-emitida"?"Guía emitida":"Factura"}</span>
             <span style="font-size:11px;color:#888;">F:${folio} · ${fecha}</span>
           </div>
-          <div class="doc-nombre">${proveedor}</div>
+          <div class="doc-nombre">${proveedor}${tipo==="factura-emitida"?' <span style="font-size:10px;background:#1a3a0a;color:#86efac;padding:1px 6px;border-radius:3px;margin-left:4px;">🌾 INGRESO</span>':""}</div>
           ${doc["TermPagoGlosa"] ? `<div class="doc-meta">${doc["TermPagoGlosa"]}</div>` : ""}
           ${(()=>{
             // For facturas: key matches ID_Factura_Padre
@@ -666,6 +669,11 @@ async function main() {
       .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
       .map(d => ({ ...d, _tipo: "factura" }));
 
+    // Facturas emitidas por Los Crisoles sin UP asignada (ingresos propios)
+    const facturasPropias = sinAsignarFiltro(docs)
+      .filter(d => String(d["RUT Emisor"]||"").trim() === RUT_LC)
+      .map(d => ({ ...d, _tipo: "factura-emitida" }));
+
     // Guías recibidas (insumos de proveedores)
     const guiasRecibidas = sinAsignarFiltro(guias)
       .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
@@ -685,7 +693,7 @@ async function main() {
     window.DOCUMENTOS   = Array.isArray(docs) ? docs : [];
     window.ASIGNACIONES = Array.isArray(asignaciones) ? asignaciones : [];
 
-    DOCS = [...facturasSin, ...guiasRecibidas, ...guiasEmitidas]
+    DOCS = [...facturasSin, ...guiasRecibidas, ...guiasEmitidas, ...facturasPropias]
       .sort((a,b) => new Date(b["Fecha Emisión"]||0) - new Date(a["Fecha Emisión"]||0));
 
     // Build detalles lookup: KEY_padre -> [lineas]
