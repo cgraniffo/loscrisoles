@@ -362,7 +362,7 @@
       document.getElementById("k-sinasignar").textContent = sinAsignar;
       document.getElementById("k-sinasignar").className = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
 
-      // Build temporada options from BD_CC
+      // Build temporada options - use BD_CC Temporada col if available, else derive from fecha
       var tempSet = {};
       var TEMP_MAP = {};
       (Array.isArray(ccs) ? ccs : []).forEach(function(c) {
@@ -371,19 +371,25 @@
         var mes  = parseInt(c["MES_INICIO_TEMPORADA"]||7)||7;
         if (id && temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
       });
+      var hasTempMap = Object.keys(TEMP_MAP).length > 0;
 
       function getTemporada(fechaStr, mesInicio) {
-        var d = new Date(String(fechaStr||"").split("T")[0]);
+        var raw = String(fechaStr||"");
+        var d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
         if (isNaN(d)) return null;
         var y = d.getFullYear(); var m = d.getMonth()+1;
         return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
       }
 
       (Array.isArray(registros) ? registros : []).forEach(function(r) {
-        var ccId = String(r["Centro_Costo"]||"").trim();
-        var tmp  = TEMP_MAP[ccId];
-        if (!tmp) return;
-        var t = getTemporada(r["Fecha"], tmp.mesInicio);
+        var ccId     = String(r["Centro_Costo"]||"").trim();
+        var mesInicio = 7;
+        if (hasTempMap) {
+          var tmp = TEMP_MAP[ccId];
+          if (!tmp) return;
+          mesInicio = tmp.mesInicio;
+        }
+        var t = getTemporada(r["Fecha"], mesInicio);
         if (t) tempSet[t] = (tempSet[t]||0) + 1;
       });
 
@@ -393,9 +399,9 @@
         sel.innerHTML = temps.map(function(t) {
           return '<option value="'+t+'">'+t+'</option>';
         }).join('');
-        temporada = temps[0]; // default = most records
+        temporada = temps[0];
       } else {
-        sel.innerHTML = '<option value="">Sin temporadas</option>';
+        sel.innerHTML = '<option value="">Sin datos</option>';
       }
 
     } catch(e) {
