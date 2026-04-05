@@ -338,6 +338,34 @@
   }
 
   // ── KPIs ─────────────────────────────────────────────────────
+  // ── GLOBALS ──────────────────────────────────────────────────
+  var TEMP_MAP = {};
+
+  function getTemporada(fechaStr, mesInicio) {
+    var raw = String(fechaStr||"");
+    var d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
+    if (isNaN(d)) return null;
+    var y = d.getFullYear(); var m = d.getMonth()+1;
+    return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
+  }
+
+  function costosDeLaTemporada(regs, asigs, temp) {
+    var costoReg = (Array.isArray(regs) ? regs : []).filter(function(r) {
+      var ccId = String(r["Centro_Costo"]||"").trim();
+      var tmp  = TEMP_MAP[ccId];
+      if (!tmp) return false;
+      return getTemporada(r["Fecha"], tmp.mesInicio) === temp;
+    }).reduce(function(s,r){ return s+Number(r["Costo Total"]||0); }, 0);
+    var costoAsig = (Array.isArray(asigs) ? asigs : []).filter(function(a) {
+      var ccId  = String(a["UP_ID"]||a["UP_Nombre"]||"").trim();
+      var tmp   = TEMP_MAP[ccId];
+      var fecha = a["Fecha_Documento"] || a["Fecha_Asignacion"];
+      if (!tmp) return false;
+      return getTemporada(fecha, tmp.mesInicio) === temp;
+    }).reduce(function(s,a){ return s+Number(a["Monto_Asignado"]||0); }, 0);
+    return costoReg + costoAsig;
+  }
+
   async function loadKPIs() {
     document.getElementById("dash-date").textContent =
       new Date().toLocaleDateString("es-CL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
@@ -358,28 +386,17 @@
       document.getElementById("k-caja").className = "kpi-val " + (caja >= 0 ? "green" : "red");
 
       // Costos (BD_Registro + Asignaciones_U)
-      // Build temporada options - use BD_CC Temporada col if available, else derive from fecha
-      var tempSet = {};
-      var TEMP_MAP = {};
-      (Array.isArray(ccs) ? ccs : []).forEach(function(c) {
-        var id   = String(c["Id_CC"]||"").trim();
-        var temp = String(c["Temporada"]||"").trim();
-        var mes  = parseInt(c["MES_INICIO_TEMPORADA"]||3)||3;
+      // Populate global TEMP_MAP from BD_CC
+      Object.keys(TEMP_MAP).forEach(function(k){ delete TEMP_MAP[k]; });
+      (Array.isArray(ccs) ? ccs : []).forEach(function(row) {
+        var id   = String(row["Id_CC"]||"").trim();
+        var temp = String(row["Temporada"]||"").trim();
+        var mes  = parseInt(row["MES_INICIO_TEMPORADA"]||3)||3;
         if (id && temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
       });
-      // Idéntico a reporte.html: solo procesar registros con CC en TEMP_MAP
-      function getTemporada(fechaStr, mesInicio) {
-        var raw = String(fechaStr||"");
-        var d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
-        if (isNaN(d)) return null;
-        var y = d.getFullYear(); var m = d.getMonth()+1;
-        return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
-      }
 
-      console.log('TEMP_MAP size:', Object.keys(TEMP_MAP).length, 'sample:', JSON.stringify(Object.keys(TEMP_MAP).slice(0,3)));
-      console.log('BD_Registro size:', Array.isArray(registros) ? registros.length : 0);
-      if (Array.isArray(registros) && registros[0]) console.log('First Centro_Costo:', JSON.stringify(registros[0]['Centro_Costo']));
-
+      // Count records per temporada
+      var tempSet = {};
       (Array.isArray(registros) ? registros : []).forEach(function(r) {
         var ccId = String(r["Centro_Costo"]||"").trim();
         var tmp  = TEMP_MAP[ccId];
@@ -387,7 +404,6 @@
         var t = getTemporada(r["Fecha"], tmp.mesInicio);
         if (t) tempSet[t] = (tempSet[t]||0) + 1;
       });
-      console.log("tempSet:", tempSet);
 
       var temps = Object.entries(tempSet).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){ return e[0]; });
       var sel = document.getElementById('dash-temporada');
@@ -401,26 +417,6 @@
         sel.value = temporada;
       } else {
         sel.innerHTML = '<option value="">Sin datos</option>';
-      }
-
-      // Costos filtrados por temporada activa
-      function costosDeLaTemporada(regs, asigs, temp) {
-        var costoReg = (Array.isArray(regs) ? regs : []).filter(function(r) {
-          var ccId = String(r["Centro_Costo"]||"").trim();
-          var tmp  = TEMP_MAP[ccId];
-          if (!tmp) return false;
-          return getTemporada(r["Fecha"], tmp.mesInicio) === temp;
-        }).reduce(function(s,r){ return s+Number(r["Costo Total"]||0); }, 0);
-
-        var costoAsig = (Array.isArray(asigs) ? asigs : []).filter(function(a) {
-          var ccId = String(a["UP_ID"]||a["UP_Nombre"]||"").trim();
-          var tmp  = TEMP_MAP[ccId];
-          var fecha = a["Fecha_Documento"] || a["Fecha_Asignacion"];
-          if (!tmp) return false;
-          return getTemporada(fecha, tmp.mesInicio) === temp;
-        }).reduce(function(s,a){ return s+Number(a["Monto_Asignado"]||0); }, 0);
-
-        return costoReg + costoAsig;
       }
 
       // Store for recalculation on temporada change
