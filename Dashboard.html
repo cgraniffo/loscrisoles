@@ -189,8 +189,15 @@
   // ── HELPERS ──────────────────────────────────────────────────
   function fmtPeso(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
 
+  var WORKER = "https://round-night-574d.christian-19c.workers.dev";
+
   async function fetchSheet(api, sheet) {
-    var res = await fetch(api + "?sheet=" + encodeURIComponent(sheet), { redirect:"follow" });
+    var url = api + "?sheet=" + encodeURIComponent(sheet);
+    // API_FIN needs the Worker proxy (CORS); API_REG works direct
+    var fetchUrl = (api === API_FIN)
+      ? WORKER + "?url=" + encodeURIComponent(url)
+      : url;
+    var res = await fetch(fetchUrl, { redirect:"follow" });
     var txt = await res.text();
     try { return JSON.parse(txt); } catch(e) { return []; }
   }
