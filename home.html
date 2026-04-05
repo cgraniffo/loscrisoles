@@ -723,11 +723,6 @@ async function main() {
     // ── COSTOS y PRODUCCIÓN → renderHome() ──────────────────────────────────
     // (se llama aquí y también al cambiar temporada desde el dashboard)
 
-  } catch(e) {
-    console.error(e);
-    document.getElementById('card-labores').innerHTML = `<div style="color:#ef4444;font-size:13px;">Error: ${e.message}</div>`;
-  }
-}
 
 // ── RENDER COSTOS + PRODUCCIÓN (filtrado por temporada) ─────────────────────
 function renderHome({ registros, asignaciones, proyecciones }) {
