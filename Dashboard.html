@@ -171,6 +171,7 @@
 
 <script>
   // ── CONFIG ───────────────────────────────────────────────────
+  var API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
   var API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
   var API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
   var RUT_LC  = "76099766-8";
@@ -327,7 +328,7 @@
         fetchSheet(API_REG, "BD_Registro"),
         fetchSheet(API_FIN, "CargaHTML_Demo"),
         fetchSheet(API_FIN, "Asignaciones_U"),
-        fetchSheet(API_REG, "BD_CC"),  // for temporada options
+        fetchSheet(API_CC,  "BD_CC"),  // for temporada options
       ]);
 
       // Caja
