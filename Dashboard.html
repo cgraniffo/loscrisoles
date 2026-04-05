@@ -330,8 +330,8 @@
       document.getElementById('k-costos-label').textContent = '📊 Costos ' + (temporada || '');
     }
 
-    // Push to all loaded iframes that have costos/margenes/ingresos
-    ['f-costos','f-ingresos','f-margenes','f-labores','f-caja'].forEach(function(id) {
+    // Push to all loaded iframes
+    ['f-home','f-costos','f-ingresos','f-margenes','f-labores','f-caja','f-produccion','f-insumos'].forEach(function(id) {
       var f = document.getElementById(id);
       if (loaded[id.replace('f-','')] && f.contentWindow) pushTemporada(f);
     });
