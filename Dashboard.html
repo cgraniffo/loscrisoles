@@ -303,7 +303,8 @@
     }
   </style>
   <style>
-:root {
+
+    :root {
       --verde:    #1a3a0a;
       --verde2:   #2d6a1a;
       --verde3:   #86efac;
@@ -593,253 +594,14 @@
       .hkpi-val { font-size: 17px; }
       .caja-flow { grid-template-columns: 1fr 1fr; }
     }
+  
 
-    /* ── REPORTE CSS ── */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
-    .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 0; }
-    .hdr-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
-    .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
-    .hdr-title { font-size: 20px; font-weight: bold; color: #fff; }
-    .hdr-date { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
-    .hdr-refresh { font-size: 11px; color: #9fe1cb; text-align: right; }
-    .metrics-top { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 0; }
-    .m { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; }
-    .m-val { font-size: 26px; font-weight: bold; color: #fff; line-height: 1; }
-    .m-val.red { color: #fca5a5; } .m-val.amber { color: #fcd34d; } .m-val.green { color: #86efac; }
-    .m-label { font-size: 11px; color: #9fe1cb; margin-top: 4px; }
-
-    /* TABS */
-    .tabs { display: flex; gap: 0; margin-top: 16px; }
-    .tab { padding: 10px 22px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 8px 8px 0 0; color: #9fe1cb; background: rgba(255,255,255,0.08); margin-right: 4px; }
-    .tab.on { background: #f0ede6; color: #1a3a0a; }
-
-    .body { padding: 16px; max-width: 900px; margin: 0 auto; }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    .stat-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 14px 16px; }
-    .stat-title { font-size: 11px; font-weight: bold; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
-    .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .bar-row:last-child { margin-bottom: 0; }
-    .bar-label { font-size: 12px; color: #444; width: 110px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bar-wrap { flex: 1; background: #f0ede6; border-radius: 4px; height: 8px; }
-    .bar-fill { height: 8px; border-radius: 4px; }
-    .bar-num { font-size: 12px; font-weight: bold; color: #444; width: 24px; text-align: right; flex-shrink: 0; }
-    .bar-num-wide { font-size: 11px; font-weight: bold; color: #444; width: 80px; text-align: right; flex-shrink: 0; }
-    .rank-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #f5f3ef; }
-    .rank-row:last-child { border-bottom: none; }
-    .rank-num { font-size: 13px; font-weight: bold; color: #ccc; width: 20px; flex-shrink: 0; }
-    .rank-name { font-size: 12px; color: #1a1a1a; flex: 1; line-height: 1.4; }
-    .rank-val { font-size: 13px; font-weight: bold; color: #cc2222; }
-    .atraso-big { font-size: 36px; font-weight: bold; color: #cc2222; line-height: 1; }
-    .atraso-sub { font-size: 12px; color: #888; margin-top: 4px; margin-bottom: 12px; }
-    .atraso-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #f5f3ef; font-size: 12px; }
-    .atraso-row:last-child { border-bottom: none; }
-    .filters-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; margin-bottom: 14px; }
-    .filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
-    .filters-row:last-child { margin-bottom: 0; }
-    .filter-label { font-size: 11px; color: #888; width: 80px; flex-shrink: 0; }
-    .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
-    .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
-    .sec-head { display: flex; align-items: center; gap: 8px; margin: 16px 0 10px; }
-    .sec-icon { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; flex-shrink: 0; }
-    .sec-icon.proc { background: #fef3c7; color: #92400e; } .sec-icon.pend { background: #e5e2da; color: #555; }
-    .sec-title { font-size: 12px; font-weight: bold; color: #555; letter-spacing: 0.05em; text-transform: uppercase; }
-    .sec-count { font-size: 12px; color: #aaa; }
-    .card { background: #fff; border-radius: 10px; margin-bottom: 10px; overflow: hidden; border: 1px solid #e5e2da; }
-    .card-hd { padding: 10px 14px; border-bottom: 1px solid #f0ede6; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-    .card-hd.proc { background: #fefdf7; } .card-hd.pend { background: #fafaf8; }
-    .card-hd-name { font-size: 14px; font-weight: bold; color: #1a1a1a; }
-    .card-hd-sub { font-size: 11px; color: #aaa; margin-top: 2px; }
-    .badge { font-size: 10px; padding: 2px 9px; border-radius: 99px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
-    .badge.proc { background: #fef3c7; color: #92400e; } .badge.pend { background: #f0f0ee; color: #666; border: 1px solid #ddd; }
-    .labor { display: flex; border-bottom: 1px solid #f5f3ef; }
-    .labor:last-child { border-bottom: none; }
-    .labor-bar { width: 3px; flex-shrink: 0; }
-    .labor-inner { display: flex; gap: 10px; padding: 9px 14px; flex: 1; align-items: flex-start; }
-    .labor-date { font-size: 11px; font-weight: bold; width: 72px; flex-shrink: 0; padding-top: 1px; }
-    .labor-name { font-size: 13px; font-weight: bold; color: #1a1a1a; }
-    .labor-obs { font-size: 11px; color: #888; margin-top: 2px; line-height: 1.4; }
-    .labor-meta { font-size: 10px; color: #bbb; margin-top: 4px; display: flex; gap: 10px; flex-wrap: wrap; }
-    .empty { text-align: center; color: #aaa; font-size: 14px; padding: 40px 20px; background: #fff; border-radius: 10px; border: 1px solid #e5e2da; }
-    .loading { text-align: center; color: #666; font-size: 14px; padding: 60px 20px; }
-    .err { background: #fff8f8; border: 1px solid #fca5a5; border-radius: 10px; padding: 16px; color: #991b1b; font-size: 13px; line-height: 1.6; margin-top: 16px; }
-
-    
-    .footer { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 16px; margin-top: 16px; font-size: 12px; color: #888; text-align: center; }
-
-    /* COSTOS */
-    .costo-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-    .cm { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 14px 16px; }
-    .cm-val { font-size: 22px; font-weight: bold; color: #1a3a0a; line-height: 1; }
-    .cm-label { font-size: 11px; color: #888; margin-top: 4px; }
-    .mes-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f3ef; }
-    .mes-row:last-child { border-bottom: none; }
-    .mes-label { font-size: 13px; color: #1a1a1a; width: 100px; flex-shrink: 0; }
-    .mes-bar-wrap { flex: 1; background: #f0ede6; border-radius: 4px; height: 10px; }
-    .mes-bar-fill { height: 10px; border-radius: 4px; background: #1a3a0a; }
-    .mes-val { font-size: 12px; font-weight: bold; color: #1a3a0a; width: 90px; text-align: right; flex-shrink: 0; }
-    .up-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .up-table th { text-align: left; font-size: 11px; color: #888; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; padding: 6px 8px; border-bottom: 2px solid #f0ede6; }
-    .up-table td { padding: 8px 8px; border-bottom: 1px solid #f5f3ef; vertical-align: middle; }
-    .up-table tr:last-child td { border-bottom: none; }
-    .up-table tr:hover td { background: #fafaf8; }
-    .tipo-pill { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; margin: 2px; }
-    #mapa-campo { height: 420px; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 12px; z-index: 0; }
-    .leaflet-popup-content { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6; min-width: 160px; }
-    .popup-title { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
-    .popup-row { display: flex; justify-content: space-between; gap: 12px; }
-    .popup-label { color: #888; }
-    .popup-val { font-weight: bold; }
-    .mg-table { width:100%; border-collapse:collapse; font-size:13px; }
-    .mg-table th { text-align:left; font-size:11px; color:#888; font-weight:bold; letter-spacing:0.05em; text-transform:uppercase; padding:6px 8px; border-bottom:2px solid #f0ede6; }
-    .mg-table td { padding:8px; border-bottom:1px solid #f5f3ef; vertical-align:middle; }
-    .mg-table tr:last-child td { border-bottom: none; }
-    .mg-table tr:hover td { background:#fafaf8; }
-    .mg-pos { color:#1a3a0a; font-weight:bold; }
-    .mg-neg { color:#cc2222; font-weight:bold; }
-    .mg-bar-pos { height:8px; border-radius:4px; background:#1a3a0a; display:inline-block; }
-    .mg-bar-neg { height:8px; border-radius:4px; background:#fca5a5; display:inline-block; }
-    .ing-real { color:#1a3a0a; font-weight:bold; }
-    .ing-est  { color:#b45309; }
-    .caja-section { background:#fff; border-radius:10px; border:1px solid #e5e2da; margin-bottom:12px; overflow:hidden; }
-    .caja-section-head { padding:10px 14px; border-bottom:1px solid #f0ede6; display:flex; align-items:center; justify-content:space-between; }
-    .caja-section-title { font-size:11px; font-weight:bold; color:#888; letter-spacing:0.06em; text-transform:uppercase; }
-    .caja-section-total { font-size:14px; font-weight:bold; }
-    .caja-row { display:flex; align-items:center; padding:8px 14px; border-bottom:1px solid #f5f3ef; gap:10px; }
-    .caja-row:last-child { border-bottom:none; }
-    .caja-date { font-size:11px; color:#888; width:80px; flex-shrink:0; }
-    .caja-name { font-size:13px; flex:1; }
-    .caja-folio { font-size:11px; color:#aaa; }
-    .caja-monto { font-size:13px; font-weight:bold; text-align:right; white-space:nowrap; }
-    .caja-venc { color:#cc2222; }
-    .caja-prox { color:#1a3a0a; }
-    .saldo-box { background:#1a3a0a; color:#fff; border-radius:10px; padding:16px 20px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between; }
-    .saldo-label { font-size:12px; color:#9fe1cb; margin-bottom:4px; }
-    .saldo-val { font-size:28px; font-weight:bold; color:#fff; }
-    .saldo-formula { font-size:11px; color:#9fe1cb; margin-top:4px; }
-    /* ── RESPONSIVE ─────────────────────────────────────────── */
-    
-
-    /* ── PRODUCCION CSS ── */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
-    .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 0; }
-    .hdr-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
-    .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
-    .hdr-title { font-size: 20px; font-weight: bold; color: #fff; }
-    .hdr-date { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
-    .metrics-top { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 0; }
-    .m { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; }
-    .m-val { font-size: 22px; font-weight: bold; color: #fff; line-height: 1; }
-    .m-val.green { color: #86efac; } .m-val.amber { color: #fcd34d; }
-    .m-label { font-size: 11px; color: #9fe1cb; margin-top: 4px; }
-    .tabs { display: flex; gap: 0; margin-top: 16px; }
-    .tab { padding: 10px 22px; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 8px 8px 0 0; color: #9fe1cb; background: rgba(255,255,255,0.08); margin-right: 4px; }
-    .tab.on { background: #f0ede6; color: #1a3a0a; }
-    .body { padding: 16px; max-width: 960px; margin: 0 auto; }
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
-    .stat-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 14px 16px; margin-bottom: 14px; }
-    .stat-title { font-size: 11px; font-weight: bold; color: #888; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; }
-    .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-    .bar-row:last-child { margin-bottom: 0; }
-    .bar-label { font-size: 12px; color: #444; width: 130px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bar-wrap { flex: 1; background: #f0ede6; border-radius: 4px; height: 8px; }
-    .bar-fill { height: 8px; border-radius: 4px; }
-    .bar-num { font-size: 11px; font-weight: bold; color: #444; width: 80px; text-align: right; flex-shrink: 0; }
-    .filters-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; margin-bottom: 14px; }
-    .filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
-    .filters-row:last-child { margin-bottom: 0; }
-    .filter-label { font-size: 11px; color: #888; width: 90px; flex-shrink: 0; }
-    .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
-    .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
-    .tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .tbl th { text-align: left; font-size: 11px; color: #888; font-weight: bold; letter-spacing: 0.05em; text-transform: uppercase; padding: 6px 10px; border-bottom: 2px solid #f0ede6; }
-    .tbl td { padding: 8px 10px; border-bottom: 1px solid #f5f3ef; vertical-align: top; }
-    .tbl tr:last-child td { border-bottom: none; }
-    .tbl tr:hover td { background: #fafaf8; }
-    .mes-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f5f3ef; }
-    .mes-row:last-child { border-bottom: none; }
-    .mes-label { font-size: 12px; color: #1a1a1a; width: 90px; flex-shrink: 0; }
-    .mes-bar-wrap { flex: 1; background: #f0ede6; border-radius: 4px; height: 8px; }
-    .mes-bar-fill { height: 8px; border-radius: 4px; }
-    .mes-val { font-size: 11px; font-weight: bold; width: 80px; text-align: right; flex-shrink: 0; }
-    #mapa-prod { height: 400px; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 14px; z-index: 0; }
-    .leaflet-popup-content { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6; min-width: 160px; }
-    .popup-title { font-size: 13px; font-weight: bold; margin-bottom: 6px; color: #1a3a0a; }
-    .popup-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 2px; }
-    .popup-label { color: #888; }
-    .popup-val { font-weight: bold; }
-    .legend-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: #555; margin-bottom: 14px; }
-    
-    .footer { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 16px; margin-top: 16px; font-size: 12px; color: #888; text-align: center; }
-
-    .empty { text-align: center; color: #aaa; font-size: 13px; padding: 24px; }
-    /* ── RESPONSIVE ─────────────────────────────────────────── */
-    
-
-    /* ── ASIGNAR CSS ── */
-* { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
-    .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 16px; }
-    .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
-    .hdr-title { font-size: 20px; font-weight: bold; }
-    .hdr-sub { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
-    .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 14px; }
-    .m { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; }
-    .m-val { font-size: 24px; font-weight: bold; color: #fff; }
-    .m-val.red { color: #fca5a5; }
-    .m-label { font-size: 11px; color: #9fe1cb; margin-top: 3px; }
-    .body { padding: 16px; max-width: 900px; margin: 0 auto; }
-    .filters-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; margin-bottom: 14px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
-    .filter-label { font-size: 11px; color: #888; }
-    .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
-    .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
-    select, input[type=text], textarea { border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: Arial, sans-serif; width: 100%; outline: none; }
-    select:focus, input:focus, textarea:focus { border-color: #1a3a0a; }
-    .doc-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 12px; overflow: hidden; }
-    .doc-head { padding: 12px 16px; background: #fef9ec; border-bottom: 1px solid #f0ede6; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-    .doc-head.factura { background: #faece7; }
-    .doc-nombre { font-size: 14px; font-weight: bold; }
-    .doc-meta { font-size: 12px; color: #888; margin-top: 3px; }
-    .doc-monto { font-size: 16px; font-weight: bold; color: #b45309; white-space: nowrap; }
-    .doc-body { padding: 14px 16px; }
-    .asig-row { display: grid; grid-template-columns: 1fr 1fr 100px 90px 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
-    .asig-row-label { font-size: 11px; color: #888; font-weight: bold; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; display: grid; grid-template-columns: 1fr 1fr 100px 90px 32px; gap: 8px; }
-    .btn-add { font-size: 12px; padding: 6px 14px; border-radius: 6px; border: 1px dashed #1a3a0a; background: transparent; color: #1a3a0a; cursor: pointer; margin-top: 4px; }
-    .btn-add:hover { background: #eaf3de; }
-    .btn-del { background: none; border: none; color: #cc2222; font-size: 16px; cursor: pointer; padding: 0; line-height: 1; }
-    .metodo-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
-    .mtab { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
-    .mtab.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
-    .resumen { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid #f0ede6; margin-top: 8px; font-size: 12px; }
-    .resumen-total { font-weight: bold; }
-    .resumen-ok { color: #1a3a0a; }
-    .resumen-err { color: #cc2222; }
-    .btn-guardar { background: #1a3a0a; color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-size: 13px; font-weight: bold; cursor: pointer; }
-    .btn-guardar:hover { background: #2d6a1a; }
-    .btn-guardar:disabled { background: #ccc; cursor: not-allowed; }
-    .obs-row { margin-top: 8px; }
-    .badge-tipo { font-size: 10px; padding: 2px 8px; border-radius: 99px; }
-    .badge-guia { background: #eaf3de; color: #3b6d11; }
-    .badge-fact { background: #faece7; color: #993c1d; }
-    .badge-asig { background: #e6f1fb; color: #0c447c; }
-
-    /* ── RESPONSIVE ────────────────────────────────────────── */
-    
-    /* ── UNIFIED TABS ──────────────────────────────────────── */
-    .tabs { display: flex; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; padding: 0; background: #1a3a0a; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .tab  { font-size: 12px; padding: 10px 16px; cursor: pointer; color: rgba(255,255,255,0.6); border-bottom: 2px solid transparent; transition: all 0.15s; flex-shrink: 0; }
-    .tab.on  { color: #fff; border-bottom-color: #86efac; }
-    .tab:hover { color: #fff; }
-    .main-sec { animation: fadeIn 0.15s ease; }
-    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-    /* Hide asignar's own header since we have the main header */
+    /* ── MAIN TABS ───────────────────────────────────────── */
+    .main-sec { animation: fadeInSec 0.15s ease; }
+    @keyframes fadeInSec { from{opacity:0} to{opacity:1} }
     #main-sec-asignar .hdr { display: none !important; }
-    /* Reporte's hdr-inner inside body should be hidden */
     .body .hdr-inner { display: none; }
-    @media (max-width: 768px) {
-      .tab { font-size: 10px; padding: 8px 10px; }
-    }
+
   </style>
 </head>
 <body>
@@ -895,17 +657,17 @@
   </div>
 </div>
 
-<div class="tabs" id="main-tabs">
-  <div class="tab on" id="tab-resumen" onclick="switchMainTab('resumen')">🏠 Resumen</div>
-  <div class="tab" id="tab-labores" onclick="switchMainTab('labores')">📋 Labores</div>
-  <div class="tab" id="tab-caja" onclick="switchMainTab('caja')">🏦 Caja</div>
-  <div class="tab" id="tab-costos" onclick="switchMainTab('costos')">💰 Costos</div>
-  <div class="tab" id="tab-insumos" onclick="switchMainTab('insumos')">📦 Insumos</div>
-  <div class="tab" id="tab-produccion" onclick="switchMainTab('produccion')">🌱 Producción</div>
-  <div class="tab" id="tab-ingresos" onclick="switchMainTab('ingresos')">🌾 Ingresos</div>
-  <div class="tab" id="tab-margenes" onclick="switchMainTab('margenes')">📊 Márgenes</div>
-  <div class="tab" id="tab-asignar" onclick="switchMainTab('asignar')">📎 Asignar</div>
-  <div class="tab" id="tab-campo" onclick="switchMainTab('campo')">🗺 Campo</div>
+<div class="tabs" id="main-tabs" style="display:flex;overflow-x:auto;white-space:nowrap;background:#1a3a0a;border-bottom:1px solid rgba(255,255,255,0.1);">
+  <div class="tab on" id="tab-resumen"    onclick="switchMainTab('resumen')"    style="font-size:12px;padding:10px 16px;cursor:pointer;color:#fff;border-bottom:2px solid #86efac;flex-shrink:0;">🏠 Resumen</div>
+  <div class="tab"    id="tab-labores"    onclick="switchMainTab('labores')"    style="font-size:12px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,0.6);border-bottom:2px solid transparent;flex-shrink:0;">📋 Labores</div>
+  <div class="tab"    id="tab-caja"       onclick="switchMainTab('caja')"       style="font-size:12px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,0.6);border-bottom:2px solid transparent;flex-shrink:0;">🏦 Caja</div>
+  <div class="tab"    id="tab-costos"     onclick="switchMainTab('costos')"     style="font-size:12px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,0.6);border-bottom:2px solid transparent;flex-shrink:0;">💰 Costos</div>
+  <div class="tab"    id="tab-insumos"    onclick="switchMainTab('insumos')"    style="font-size:12px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,0.6);border-bottom:2px solid transparent;flex-shrink:0;">📦 Insumos</div>
+  <div class="tab"    id="tab-produccion" onclick="switchMainTab('produccion')" style="font-size:12px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,0.6);border-bottom:2px solid transparent;flex-shrink:0;">🌱 Producción</div>
+  <div class="tab"    id="tab-ingresos"   onclick="switchMainTab('ingresos')"   style="font-size:12px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,0.6);border-bottom:2px solid transparent;flex-shrink:0;">🌾 Ingresos</div>
+  <div class="tab"    id="tab-margenes"   onclick="switchMainTab('margenes')"   style="font-size:12px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,0.6);border-bottom:2px solid transparent;flex-shrink:0;">📊 Márgenes</div>
+  <div class="tab"    id="tab-asignar"    onclick="switchMainTab('asignar')"    style="font-size:12px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,0.6);border-bottom:2px solid transparent;flex-shrink:0;">📎 Asignar</div>
+  <div class="tab"    id="tab-campo"      onclick="switchMainTab('campo')"      style="font-size:12px;padding:10px 16px;cursor:pointer;color:rgba(255,255,255,0.6);border-bottom:2px solid transparent;flex-shrink:0;">🗺 Campo</div>
 </div>
 
 <div class="body">
@@ -973,961 +735,58 @@
 
   <!-- ── CAMPO ───────────────────────────────────────────── -->
 </div>
+
 <div class="main-sec" id="main-sec-labores" style="display:none;">
   <div id="app-labores"><div class="loading pulse">Cargando...</div></div>
 </div>
-<div class="main-sec" id="main-sec-costos" style="display:none;">
-  <div id="app-costos"><div class="loading pulse">Cargando...</div></div>
-</div>
+
 <div class="main-sec" id="main-sec-caja" style="display:none;">
   <div id="app-caja"><div class="loading pulse">Cargando...</div></div>
 </div>
-<div class="main-sec" id="main-sec-ingresos" style="display:none;">
-  <div id="app-ingresos"><div class="loading pulse">Cargando...</div></div>
+
+<div class="main-sec" id="main-sec-costos" style="display:none;">
+  <div id="app-costos"><div class="loading pulse">Cargando...</div></div>
 </div>
-<div class="main-sec" id="main-sec-margenes" style="display:none;">
-  <div id="app-margenes"><div class="loading pulse">Cargando...</div></div>
-</div>
+
 <div class="main-sec" id="main-sec-insumos" style="display:none;">
   <div id="app-insumos"><div class="loading pulse">Cargando...</div></div>
 </div>
+
 <div class="main-sec" id="main-sec-produccion" style="display:none;">
   <div id="app-prod"><div class="loading pulse">Cargando...</div></div>
 </div>
+
+<div class="main-sec" id="main-sec-ingresos" style="display:none;">
+  <div id="app-ingresos"><div class="loading pulse">Cargando...</div></div>
+</div>
+
+<div class="main-sec" id="main-sec-margenes" style="display:none;">
+  <div id="app-margenes"><div class="loading pulse">Cargando...</div></div>
+</div>
+
 <div class="main-sec" id="main-sec-asignar" style="display:none;">
-<div class="hdr">
-  <div class="hdr-logo">Los Crisoles · BData</div>
-  <div class="hdr-title">Asignación de Documentos</div>
-  <div class="hdr-sub">Asigná guías y facturas a sus unidades productivas</div>
-  <div class="metrics">
+  <div class="metrics" style="background:#1a3a0a;padding:14px 20px;">
     <div class="m"><div class="m-val red" id="m-sin">—</div><div class="m-label">Sin asignar</div></div>
     <div class="m"><div class="m-val" id="m-parcial">—</div><div class="m-label">Parcialmente asignados</div></div>
     <div class="m"><div class="m-val" id="m-total-monto">—</div><div class="m-label">Monto sin asignar</div></div>
   </div>
-</div>
-
-<div class="body">
-  <div class="filters-wrap">
-    <div class="filter-label">Mostrar:</div>
-    <button class="fbtn on" id="f-todos"     onclick="setFiltro('todos')">Todos</button>
-    <button class="fbtn"    id="f-guia"      onclick="setFiltro('guia')">Solo guías</button>
-    <button class="fbtn"    id="f-factura"   onclick="setFiltro('factura')">Solo facturas</button>
-    <div style="width:1px;background:#eee;align-self:stretch;"></div>
-    <div style="width:1px;background:#eee;align-self:stretch;"></div>
-    <div class="filter-label">Desde:</div>
-    <input type="date" id="fecha-desde" style="width:140px;" onchange="render()">
-    <div class="filter-label">Usuario:</div>
-    <input type="text" id="usuario-input" placeholder="Tu nombre" style="width:140px;" value="">
+  <div class="body" style="padding-top:14px;">
+    <div class="filters-wrap">
+      <div class="filter-label">Mostrar:</div>
+      <button class="fbtn on" id="f-todos"   onclick="setFiltro('todos')">Todos</button>
+      <button class="fbtn"    id="f-guia"    onclick="setFiltro('guia')">Solo guías</button>
+      <button class="fbtn"    id="f-factura" onclick="setFiltro('factura')">Solo facturas</button>
+      <div style="width:1px;background:#eee;align-self:stretch;"></div>
+      <div class="filter-label">Desde:</div>
+      <input type="date" id="fecha-desde" style="width:140px;" onchange="render()">
+      <div class="filter-label">Usuario:</div>
+      <input type="text" id="usuario-input" placeholder="Tu nombre" style="width:140px;" value="">
+    </div>
+    <div id="app"><div class="loading">Cargando documentos sin asignar...</div></div>
   </div>
-  <div id="app"><div class="loading">Cargando documentos sin asignar...</div></div>
+  <div class="toast" id="toast"></div>
 </div>
 
-<div class="toast" id="toast"></div>
-
-<script>
-const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
-const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
-const WORKER  = "https://round-night-574d.christian-19c.workers.dev";
-
-const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {};
-let DOCS = [], ASIGNADOS = new Set();
-let filtro = "todos";
-// docState[key] = { metodo, filas: [{up_id, monto, pct}], obs }
-const docState = {};
-
-async function fetchSheet(api, sheet) {
-  // Use worker proxy for FIN api to avoid CORS/redirect issues
-  if (api === API_FIN) {
-    const url = api + "?sheet=" + encodeURIComponent(sheet);
-    const res = await fetch(WORKER + "?url=" + encodeURIComponent(url), { redirect:"follow" });
-    return res.json();
-  }
-  const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
-  return res.json();
-}
-
-function fmtPeso(n) { return "$" + Math.round(n).toLocaleString("es-CL"); }
-function fmtPesoK(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
-
-function toggleDocCard(safeKey) {
-  const body  = document.getElementById("doc-body-"  + safeKey);
-  const arrow = document.getElementById("doc-arrow-" + safeKey);
-  if (!body) return;
-  const open = body.style.display === "none";
-  body.style.display    = open ? "block" : "none";
-  arrow.style.transform = open ? "rotate(180deg)" : "";
-  // Store open state
-  const key = Object.keys(docState).find(k => k.replace(/[^a-z0-9]/gi,"_") === safeKey);
-  if (key) docState[key]._open = open;
-}
-
-function setFiltro(f) {
-  filtro = f;
-  ["todos","guia","factura"].forEach(x => {
-    document.getElementById("f-"+x).className = "fbtn" + (x===f?" on":"");
-  });
-  render();
-}
-
-function showToast(msg, ok) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.style.background = ok ? "#1a3a0a" : "#cc2222";
-  t.style.display = "block";
-  setTimeout(()=>{ t.style.display = "none"; }, 3000);
-}
-
-function getDocState(key, montoTotal) {
-  if (!docState[key]) {
-    docState[key] = {
-      metodo: "porcentaje",
-      filas: [{ up_id:"", monto: montoTotal, pct: 100 }],
-      obs: "",
-      _open: false
-    };
-  }
-  return docState[key];
-}
-
-function setMetodo(key, metodo, montoTotal) {
-  const s = docState[key];
-  s.metodo = metodo;
-  if (metodo === "iguales") {
-    const n = s.filas.length || 1;
-    s.filas.forEach(f => { f.monto = Math.round(montoTotal/n); f.pct = Math.round(100/n); });
-  }
-  if (metodo === "hectareas") {
-    distribuirPorHa(key, montoTotal);
-  }
-  render();
-}
-
-function distribuirPorHa(key, montoTotal) {
-  const s = docState[key];
-  const totalHa = s.filas.reduce((sum,f) => sum + (HA_MAP[f.up_id]||0), 0);
-  if (totalHa === 0) return;
-  s.filas.forEach(f => {
-    const ha = HA_MAP[f.up_id]||0;
-    f.pct   = Math.round(ha/totalHa*100);
-    f.monto = Math.round(montoTotal * ha/totalHa);
-  });
-}
-
-function addFila(key, montoTotal) {
-  docState[key].filas.push({ up_id:"", monto:0, pct:0 });
-  recalcMetodo(key, montoTotal);
-  render();
-}
-
-function delFila(key, idx, montoTotal) {
-  docState[key].filas.splice(idx, 1);
-  recalcMetodo(key, montoTotal);
-  render();
-}
-
-function recalcMetodo(key, montoTotal) {
-  const s = docState[key];
-  if (s.metodo === "iguales") {
-    const n = s.filas.length||1;
-    s.filas.forEach(f => { f.monto = Math.round(montoTotal/n); f.pct = Math.round(100/n); });
-  }
-  if (s.metodo === "hectareas") distribuirPorHa(key, montoTotal);
-}
-
-function updateFila(key, idx, campo, valor, montoTotal) {
-  const s = docState[key];
-  const f = s.filas[idx];
-  if (campo === "up_id") {
-    f.up_id = valor;
-    if (s.metodo === "hectareas") distribuirPorHa(key, montoTotal);
-  }
-  if (campo === "monto") {
-    f.monto = Number(valor)||0;
-    f.pct   = montoTotal>0 ? Math.round(f.monto/montoTotal*100) : 0;
-  }
-  if (campo === "pct") {
-    f.pct   = Number(valor)||0;
-    f.monto = Math.round(montoTotal * f.pct/100);
-  }
-  // Re-render just the resumen
-  const resEl = document.getElementById("resumen-"+key.replace(/[^a-z0-9]/gi,"_"));
-  if (resEl) {
-    const totalAsig = s.filas.reduce((sum,ff)=>sum+ff.monto,0);
-    const diff = montoTotal - totalAsig;
-    resEl.innerHTML = buildResumen(totalAsig, diff, montoTotal);
-  }
-}
-
-function buildResumen(totalAsig, diff, montoTotal) {
-  const cls = Math.abs(diff) < 10 ? "resumen-ok" : "resumen-err";
-  return `<span>Asignado: <b>${fmtPeso(totalAsig)}</b></span>
-    <span class="${cls}">Diferencia: <b>${diff >= 0 ? "+" : ""}${fmtPeso(diff)}</b></span>
-    <span>Total doc: <b>${fmtPeso(montoTotal)}</b></span>`;
-}
-
-async function guardar(key, tipo, proveedor, folio, montoTotal, rutEmisor) {
-  const s   = docState[key];
-  const doc = DOCS.find(d => String(d.KEY||"").trim() === key) || {};
-  const user = document.getElementById("usuario-input").value.trim() || "sin usuario";
-
-  if (!s.filas.every(f => f.up_id)) {
-    showToast("Debés seleccionar una UP en cada fila", false);
-    return;
-  }
-  const totalAsig = s.filas.reduce((sum,f)=>sum+f.monto,0);
-  if (Math.abs(totalAsig - montoTotal) > 100) {
-    showToast("El monto asignado no coincide con el total del documento", false);
-    return;
-  }
-
-  const btn = document.getElementById("btn-"+key.replace(/[^a-z0-9]/gi,"_"));
-  if (btn) btn.disabled = true;
-
-  // Base row builder
-  // Get fecha_documento from the doc object
-  const fechaDoc = String(doc?.["Fecha Emisión"]||"").split("T")[0] || "";
-
-  const baseRow = (f) => ({
-    tipo_doc:        tipo,
-    key_documento:   key,
-    proveedor,
-    folio,
-    fecha_documento: fechaDoc,
-    monto_total_doc: montoTotal,
-    up_id:           f.up_id,
-    up_nombre:       CC_MAP[f.up_id]||f.up_id,
-    cc_id:           FUNDO_MAP[f.up_id]||"",
-    cc_nombre:       FUNDO_MAP[f.up_id]||"",
-    metodo:          s.metodo,
-    monto_asignado:  f.monto,
-    porcentaje:      f.pct,
-    observacion:     s.obs,
-    usuario:         user
-  });
-
-  let asignaciones = [];
-
-  if (tipo === "guia" || tipo === "guia-emitida") {
-    // One row per detail line per UP
-    // Both guia and guia-emitida use DET_GUIAS (GuiasDespacho keys)
-    // Fallback: match by RUT+Folio when id_XML differs between tables
-    let dets = window.DET_GUIAS?.[key] || [];
-    if (!dets.length) {
-      const fk = (rutEmisor||"") + "-" + String(folio||"").trim();
-      dets = window.DET_GUIAS_BY_FOLIO?.[fk] || [];
-    }
-
-    if (dets.length > 0) {
-      s.filas.forEach(f => {
-        dets.forEach(d => {
-          const cant = Number(d["Cantidad"]||0);
-          const pctFactor = f.pct / 100;
-          asignaciones.push({
-            ...baseRow(f),
-            nombre_item: String(d["Nombre Item"]||"").trim(),
-            cantidad:    Math.round(cant * pctFactor * 1000) / 1000,
-            unidad:      String(d["um"]||"").trim()
-          });
-        });
-      });
-    } else {
-      // No detail lines — one row per UP without quantity
-      s.filas.forEach(f => asignaciones.push({ ...baseRow(f), nombre_item:"", cantidad:0, unidad:"" }));
-    }
-  } else {
-    // Facturas — one row per UP, no quantity detail
-    s.filas.forEach(f => asignaciones.push({ ...baseRow(f), nombre_item:"", cantidad:0, unidad:"" }));
-  }
-
-  try {
-    const res = await fetch(WORKER, {
-      method:  "POST",
-      headers: {"Content-Type":"application/json"},
-      body:    JSON.stringify({ asignaciones })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      ASIGNADOS.add(key);
-      showToast("✓ Guardado correctamente — " + asignaciones.length + " asignación(es)", true);
-      render();
-    } else {
-      showToast("Error al guardar: " + (data.error||"desconocido"), false);
-      if (btn) btn.disabled = false;
-    }
-  } catch(e) {
-    showToast("Error de conexión", false);
-    if (btn) btn.disabled = false;
-  }
-}
-
-function render() {
-  const sinAsignar = DOCS.filter(d => !ASIGNADOS.has(d.KEY));
-  const fechaDesde = document.getElementById("fecha-desde")?.value;
-  const filtrados  = sinAsignar.filter(d => {
-    if (filtro === "guia"    && d._tipo !== "guia")    return false;
-    if (filtro === "factura" && d._tipo !== "factura") return false;
-    if (fechaDesde) {
-      const fe = String(d["Fecha Emisión"]||"").split("T")[0];
-      if (fe < fechaDesde) return false;
-    }
-    return true;
-  });
-
-  // Metrics
-  const montoSin = sinAsignar.reduce((s,d)=>s+Number(d["Monto Total"]||0),0);
-  document.getElementById("m-sin").textContent     = sinAsignar.length;
-  document.getElementById("m-parcial").textContent = Object.keys(docState).filter(k=>!ASIGNADOS.has(k)&&docState[k].filas.some(f=>f.up_id)).length;
-  document.getElementById("m-total-monto").textContent = fmtPesoK(montoSin);
-
-  if (filtrados.length === 0) {
-    document.getElementById("app").innerHTML = `<div class="empty">🎉 No hay documentos sin asignar${filtro!=="todos"?" en esta categoría":""}.</div>`;
-    return;
-  }
-
-  // Build CC options
-  const ccOpts = Object.entries(CC_MAP).map(([id,nombre])=>{
-    const fundo = FUNDO_MAP[id]||"";
-    const ha    = HA_MAP[id]||0;
-    return `<option value="${id}">${nombre}${fundo?" — "+fundo:""}${ha?" ("+ha+"há)":""}</option>`;
-  }).join("");
-
-  const cards = filtrados.map(doc => {
-    const key      = String(doc.KEY||doc["Folio"]||Math.random()).trim();
-    const safeKey  = key.replace(/[^a-z0-9]/gi,"_");
-    const monto    = Number(doc["Monto Total"]||0);
-    const proveedor= String(doc["Razón Social"]||"").trim();
-    const folio    = doc["Folio"]||"";
-    const fecha    = doc["Fecha Emisión"] ? new Date(doc["Fecha Emisión"]).toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}) : "—";
-    const tipo     = doc._tipo;
-    const s        = getDocState(key, monto);
-
-    const metodoTabs = ["porcentaje","monto","iguales","hectareas"].map(m => {
-      const labels = {porcentaje:"% Porcentaje", monto:"$ Monto fijo", iguales:"÷ Iguales", hectareas:"🌱 Por há"};
-      return `<button class="mtab${s.metodo===m?" on":""}" onclick="setMetodo('${key}','${m}',${monto})">${labels[m]}</button>`;
-    }).join("");
-
-    const filas = s.filas.map((f,i) => {
-      const haInfo = f.up_id && HA_MAP[f.up_id] ? `<div class="ha-info">${HA_MAP[f.up_id]} há</div>` : "";
-      const cantInput = s.metodo === "porcentaje"
-        ? `<input type="number" min="0" max="100" value="${f.pct}" onchange="updateFila('${key}',${i},'pct',this.value,${monto})" placeholder="%">`
-        : s.metodo === "monto"
-        ? `<input type="number" min="0" value="${f.monto}" onchange="updateFila('${key}',${i},'monto',this.value,${monto})" placeholder="$">`
-        : `<input type="number" value="${s.metodo==='iguales'?f.pct:f.pct}" readonly style="background:#f8f8f6;color:#888;">`;
-
-      return `<div class="asig-row">
-        <div>
-          <select onchange="updateFila('${key}',${i},'up_id',this.value,${monto})">
-            <option value="">— Seleccionar UP —</option>${ccOpts.replace(`value="${f.up_id}"`,`value="${f.up_id}" selected`)}
-          </select>
-          ${haInfo}
-          ${f.up_id ? `<div style="font-size:11px;color:#0f6e56;margin-top:2px;">${FUNDO_MAP[f.up_id]||""}</div>` : ""}
-        </div>
-        <div class="hide-mobile" style="font-size:12px;color:#888;padding-top:6px;">${FUNDO_MAP[f.up_id]||""}</div>
-        ${cantInput}
-        <div style="font-size:12px;font-weight:bold;color:#1a3a0a;padding-top:6px;">${fmtPeso(f.monto)}</div>
-        <button class="btn-del" onclick="delFila('${key}',${i},${monto})" ${s.filas.length<=1?"disabled style='opacity:0.3'":""}>✕</button>
-      </div>`;
-    }).join("");
-
-    const totalAsig = s.filas.reduce((sum,f)=>sum+f.monto,0);
-    const diff      = monto - totalAsig;
-
-    return `<div class="doc-card">
-      <div class="doc-head ${tipo==="factura"?"factura":""}"
-        onclick="toggleDocCard('${safeKey}')"
-        style="cursor:pointer;user-select:none;">
-        <div style="flex:1;">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span class="badge-tipo ${tipo==="guia"?"badge-guia":tipo==="guia-emitida"?"badge-asig":"badge-fact"}">${tipo==="guia"?"Guía recibida":tipo==="guia-emitida"?"Guía emitida":"Factura"}</span>
-            <span style="font-size:11px;color:#888;">F:${folio} · ${fecha}</span>
-          </div>
-          <div class="doc-nombre">${proveedor}</div>
-          ${doc["TermPagoGlosa"] ? `<div class="doc-meta">${doc["TermPagoGlosa"]}</div>` : ""}
-          ${(()=>{
-            // For facturas: key matches ID_Factura_Padre
-            // For guias: key from CargaHTML_Demo, try DET_GUIAS with GuiasDespacho KEY format
-            let dets = [];
-            if (tipo==="factura") {
-              dets = window.DET_FACTURAS?.[key] || [];
-            } else {
-              dets = window.DET_GUIAS?.[key] || [];
-              if (!dets.length) {
-                const rut   = String(doc["RUT Emisor"]||"").trim();
-                const folio = String(doc["Folio"]||"").trim();
-                dets = window.DET_GUIAS_BY_FOLIO?.[rut+"-"+folio] || [];
-              }
-            }
-            if (!dets.length) return tipo==="guia" ? '<div style="font-size:11px;color:#bbb;margin-top:6px;padding:6px 8px;">Sin detalle de líneas disponible</div>' : "";
-            const rows = dets.slice(0,5).map(d=>
-              `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:11px;">
-                <span style="color:#555;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${String(d["Nombre Item"]||"").trim()}">${String(d["Nombre Item"]||"").trim()}</span>
-                <span style="color:#888;flex-shrink:0;">${Number(d["Cantidad"]||0).toLocaleString("es-CL")} ${d["um"]||""}</span>
-                <span style="font-weight:600;color:#444;flex-shrink:0;">${fmtPeso(Number(d["Monto Item"]||0))}</span>
-              </div>`
-            ).join("");
-            const extra = dets.length>5 ? `<div style="font-size:10px;color:#aaa;margin-top:4px;">+${dets.length-5} líneas más</div>` : "";
-            return `<div style="margin-top:8px;background:#f8f6f2;border-radius:6px;padding:8px 10px;">
-              <div style="font-size:10px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Detalle ${dets.length} línea${dets.length!==1?"s":""}</div>
-              ${rows}${extra}
-            </div>`;
-          })()}
-        </div>
-        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
-          <div class="doc-monto">${fmtPeso(monto)}</div>
-          <div id="doc-arrow-${safeKey}" style="font-size:13px;color:#aaa;transition:transform 0.2s;">▼</div>
-        </div>
-      </div>
-      <div id="doc-body-${safeKey}" style="display:none;">
-        <div class="doc-body">
-          <div id="ia-box-${safeKey}"></div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
-            <div class="metodo-tabs" style="margin-bottom:0;">${metodoTabs}</div>
-            <button class="btn-ia" id="ia-btn-${safeKey}"
-              onclick="sugerirIA('${key}','${safeKey}','${proveedor.replace(/'/g,"\\'")}','${String(doc["RUT Emisor"]||"").trim()}',${monto})">
-              ✨ Sugerir con IA
-            </button>
-          </div>
-          <div class="asig-row-label">
-            <div>Unidad Productiva</div><div>Centro de Costo</div>
-            <div>${s.metodo==="porcentaje"?"%":"Monto $"}</div>
-            <div>Total</div><div></div>
-          </div>
-          ${filas}
-          <button class="btn-add" onclick="addFila('${key}',${monto})">+ Agregar otra UP</button>
-          <div class="obs-row">
-            <input type="text" placeholder="Observación (opcional)" value="${s.obs}"
-              onchange="docState['${key}'].obs=this.value" style="margin-top:8px;">
-          </div>
-          <div class="resumen" id="resumen-${safeKey}">
-            ${buildResumen(totalAsig, diff, monto)}
-          </div>
-          <div style="text-align:right;margin-top:10px;">
-            <button class="btn-guardar" id="btn-${safeKey}"
-              onclick="guardar('${key}','${tipo}','${proveedor.replace(/'/g,"\'")}','${folio}',${monto},'${String(doc["RUT Emisor"]||"").trim()}')">
-              Guardar asignación
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }).join("");
-
-  document.getElementById("app").innerHTML = cards;
-
-  // Reabrir cards que estaban abiertas
-  Object.keys(docState).forEach(key => {
-    if (docState[key]._open) {
-      const safeKey = key.replace(/[^a-z0-9]/gi,"_");
-      const body  = document.getElementById("doc-body-"  + safeKey);
-      const arrow = document.getElementById("doc-arrow-" + safeKey);
-      if (body)  body.style.display = "block";
-      if (arrow) arrow.style.transform = "rotate(180deg)";
-    }
-  });
-}
-
-async function mainAsignar() {
-  try {
-    const [docs, guias, ccs, asignaciones, detFacturas, detGuias] = await Promise.all([
-      fetchSheet(API_FIN, "CargaHTML_Demo"),
-      fetchSheet(API_FIN, "GuiasDespacho"),
-      fetchSheet(API_CC,  "BD_CC"),
-      fetchSheet(API_FIN, "Asignaciones_U"),
-      fetchSheet(API_FIN, "DetallesFacturas"),
-      fetchSheet(API_FIN, "DetallesGuias")
-    ]);
-
-    // Build CC maps
-    (Array.isArray(ccs)?ccs:[]).forEach(c => {
-      const id = String(c["Id_CC"]||"").trim();
-      if (id) {
-        CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
-        FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
-        HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0)||0;
-      }
-    });
-
-    // Mark already assigned docs
-    (Array.isArray(asignaciones)?asignaciones:[]).forEach(a => {
-      if (a["KEY_Documento"]) ASIGNADOS.add(String(a["KEY_Documento"]).trim());
-    });
-
-    // Filter docs without UP + classify type
-    const RUT_LC = "76099766-8";
-    const sinAsignarFiltro = (arr) => (Array.isArray(arr)?arr:[]).filter(d => {
-      const fundo = String(d["Fundo"]||"").trim();
-      const sinAsig = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO" || fundo === "CC_NO_ENCONTRADO";
-      return sinAsig && d["KEY"];
-    });
-
-    // Facturas: solo de proveedores externos (excluir TODO lo de Los Crisoles)
-    const facturasSin = sinAsignarFiltro(docs)
-      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
-      .map(d => ({ ...d, _tipo: "factura" }));
-
-    // Guías recibidas (insumos de proveedores)
-    const guiasRecibidas = sinAsignarFiltro(guias)
-      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
-      .map(d => ({ ...d, _tipo: "guia" }));
-
-    // Guías emitidas (producción propia sin CC asignado) — vienen de GuiasDespacho
-    const guiasEmitidas = (Array.isArray(guias)?guias:[]).filter(d => {
-      const cc  = String(d["Centro de Costo"]||"").trim();
-      const rut = String(d["RUT Emisor"]||"").trim();
-      const sinCC = cc === "" || cc === "CC_NO_ENCONTRADO";
-      return sinCC && rut === RUT_LC && d["KEY"];
-    }).map(d => ({ ...d, _tipo: "guia-emitida" }));
-
-    // For buildContexto compatibility
-    window.TODOS        = [];
-    window.PROYECCIONES = [];
-    window.DOCUMENTOS   = Array.isArray(docs) ? docs : [];
-    window.ASIGNACIONES = Array.isArray(asignaciones) ? asignaciones : [];
-
-    DOCS = [...facturasSin, ...guiasRecibidas, ...guiasEmitidas]
-      .sort((a,b) => new Date(b["Fecha Emisión"]||0) - new Date(a["Fecha Emisión"]||0));
-
-    // Build detalles lookup: KEY_padre -> [lineas]
-    window.DET_FACTURAS = {};
-    (Array.isArray(detFacturas)?detFacturas:[]).forEach(d => {
-      const key = String(d["ID_Factura_Padre"]||"").trim();
-      if (!key) return;
-      if (!window.DET_FACTURAS[key]) window.DET_FACTURAS[key] = [];
-      window.DET_FACTURAS[key].push(d);
-    });
-    window.DET_GUIAS = {};
-    window.DET_GUIAS_BY_FOLIO = {};
-    (Array.isArray(detGuias)?detGuias:[]).forEach(d => {
-      const key = String(d["ID_Guia_Padre"]||"").trim();
-      if (key) {
-        if (!window.DET_GUIAS[key]) window.DET_GUIAS[key] = [];
-        window.DET_GUIAS[key].push(d);
-      }
-      const rut   = String(d["RUT Emisor"]||"").trim();
-      const folio = String(d["Folio"]||"").trim();
-      if (rut && folio) {
-        const fk = rut + "-" + folio;
-        if (!window.DET_GUIAS_BY_FOLIO[fk]) window.DET_GUIAS_BY_FOLIO[fk] = [];
-        window.DET_GUIAS_BY_FOLIO[fk].push(d);
-      }
-    });
-
-    render();
-  } catch(e) {
-    document.getElementById("app").innerHTML =
-      `<div style="background:#fff8f8;border:1px solid #fca5a5;border-radius:10px;padding:16px;color:#991b1b;font-size:13px;">
-        Error cargando datos: ${e.message}
-      </div>`;
-  }
-}
-
-// Set default date to yesterday
-const ayer = new Date(); ayer.setDate(ayer.getDate()-1);
-document.addEventListener("DOMContentLoaded", () => {
-  const el = document.getElementById("fecha-desde");
-  if (el) el.value = ayer.toISOString().split("T")[0];
-});
-
-main();
-
-
-// ── SUGERENCIA IA ────────────────────────────────────────────────────────
-
-async function sugerirIA(key, safeKey, proveedor, rutEmisor, montoTotal) {
-  const btn = document.getElementById("ia-btn-" + safeKey);
-  const box = document.getElementById("ia-box-" + safeKey);
-  if (!btn || !box) return;
-
-  btn.disabled = true;
-  btn.textContent = "⏳ Analizando historial...";
-
-  // Buscar historial de asignaciones para este RUT
-  const asignaciones = window.ASIGNACIONES || [];
-  const historial = asignaciones.filter(a =>
-    String(a["KEY_Documento"]||"").includes(rutEmisor) ||
-    String(a["Proveedor"]||"").trim() === proveedor.trim()
-  );
-
-  // Construir resumen de UPs disponibles
-  const upsDisponibles = Object.entries(CC_MAP).map(([id, nombre]) =>
-    `${id}: ${nombre} (${FUNDO_MAP[id]||"sin fundo"}, ${HA_MAP[id]||0} há)`
-  ).join("\n");
-
-  // Construir resumen del historial por UP
-  const histPorUP = {};
-  historial.forEach(a => {
-    const up = a["UP_Nombre"] || CC_MAP[a["UP_ID"]] || a["UP_ID"] || "Desconocida";
-    const upId = a["UP_ID"] || "";
-    if (!histPorUP[upId]) histPorUP[upId] = { nombre: up, count: 0, montoTotal: 0 };
-    histPorUP[upId].count++;
-    histPorUP[upId].montoTotal += Number(a["Monto_Asignado"]||0);
-  });
-
-  const histResumen = Object.entries(histPorUP).length > 0
-    ? Object.entries(histPorUP)
-        .sort((a,b) => b[1].count - a[1].count)
-        .map(([id, d]) => `UP_ID: ${id} | Nombre: ${d.nombre} | Veces asignado: ${d.count} | Monto total histórico: $${Math.round(d.montoTotal/1000)}k`)
-        .join("\n")
-    : "Sin historial previo para este proveedor.";
-
-  // Obtener items del documento actual si es guía
-  const doc = DOCS.find(d => String(d.KEY||"").trim() === key) || {};
-  let detalle = "";
-  const dets = window.DET_GUIAS?.[key] || window.DET_FACTURAS?.[key] || [];
-  if (dets.length) {
-    detalle = dets.slice(0,8).map(d =>
-      `${String(d["Nombre Item"]||"").trim()} | Cant: ${d["Cantidad"]||0} ${d["um"]||""} | $${Math.round(Number(d["Monto Item"]||0)/1000)}k`
-    ).join("\n");
-  }
-
-  const prompt = `Eres un asistente experto en gestión agrícola para el campo Los Crisoles.
-
-Tu tarea es sugerir cómo asignar un documento (factura o guía de despacho) a las unidades productivas (UPs) del campo.
-
-DOCUMENTO A ASIGNAR:
-- Proveedor: ${proveedor}
-- RUT: ${rutEmisor}
-- Monto total: $${Math.round(montoTotal).toLocaleString("es-CL")}
-${detalle ? `- Detalle de ítems:\n${detalle}` : ""}
-
-HISTORIAL DE ASIGNACIONES PREVIAS DE ESTE PROVEEDOR:
-${histResumen}
-
-UPs DISPONIBLES:
-${upsDisponibles}
-
-INSTRUCCIONES:
-- Analiza el historial y los ítems del documento para proponer la asignación más lógica
-- Si hay historial claro, sigue el patrón histórico
-- Si no hay historial, usa los ítems del documento para inferir qué UP se beneficia
-- Responde SOLO en JSON válido con este formato exacto:
-{
-  "sugerencia": [
-    { "up_id": "ID_exacto_de_la_UP", "up_nombre": "Nombre UP", "pct": 100, "monto": ${montoTotal} }
-  ],
-  "razon": "Explicación breve en español de por qué se sugiere esta distribución (máx 2 oraciones)"
-}
-- Los porcentajes deben sumar exactamente 100
-- Los montos deben sumar exactamente ${montoTotal}
-- Usa solo UP_IDs que existan en la lista de UPs disponibles`;
-
-  try {
-    const res = await fetch(WORKER, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system: "Eres un asistente agrícola experto. Responde SOLO con JSON válido, sin texto adicional, sin markdown, sin backticks.",
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
-
-    const data = await res.json();
-    let texto = data.content?.[0]?.text || "";
-
-    // Limpiar posibles backticks o markdown
-    texto = texto.replace(/```json|```/g, "").trim();
-
-    let parsed;
-    try { parsed = JSON.parse(texto); } catch(e) {
-      throw new Error("La IA no devolvió un JSON válido");
-    }
-
-    const sug = parsed.sugerencia || [];
-    const razon = parsed.razon || "";
-
-    if (!sug.length) throw new Error("Sin sugerencias");
-
-    // Validar que los UP_IDs existan
-    const sugsValidas = sug.filter(s => CC_MAP[s.up_id]);
-    if (!sugsValidas.length) throw new Error("Las UPs sugeridas no coinciden con las disponibles");
-
-    // Mostrar sugerencia
-    const rowsHtml = sugsValidas.map(s => `
-      <div class="ia-up-row">
-        <div class="ia-up-nombre">${s.up_nombre || CC_MAP[s.up_id]}</div>
-        <div style="font-size:11px;color:#888;">${FUNDO_MAP[s.up_id]||""}</div>
-        <div class="ia-up-pct">${s.pct}%</div>
-        <div class="ia-up-monto">$${Math.round(s.monto/1000)}k</div>
-      </div>`).join("");
-
-    box.innerHTML = `
-      <div class="ia-sugerencia">
-        <div class="ia-sugerencia-title">✨ Sugerencia de la IA</div>
-        ${rowsHtml}
-        <div class="ia-razon">💡 ${razon}</div>
-        <div class="ia-actions">
-          <button class="btn-ia-apply" onclick="aplicarSugerencia('${key}',${montoTotal},${JSON.stringify(sugsValidas).replace(/"/g,'&quot;')})">
-            ✓ Aplicar sugerencia
-          </button>
-          <button class="btn-ia-dismiss" onclick="document.getElementById('ia-box-${safeKey}').innerHTML=''">
-            Descartar
-          </button>
-        </div>
-      </div>`;
-
-  } catch(e) {
-    box.innerHTML = `<div style="background:#fff8f8;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;font-size:12px;color:#991b1b;margin-bottom:10px;">
-      ⚠️ No se pudo generar sugerencia: ${e.message}
-    </div>`;
-  }
-
-  btn.disabled = false;
-  btn.innerHTML = "✨ Sugerir con IA";
-}
-
-function aplicarSugerencia(key, montoTotal, sugs) {
-  // Reemplazar filas del docState con la sugerencia
-  if (!docState[key]) docState[key] = { metodo: "porcentaje", filas: [], obs: "", _open: true };
-  docState[key].metodo = "porcentaje";
-  docState[key].filas = sugs.map(s => ({
-    up_id: s.up_id,
-    monto: Math.round(s.monto),
-    pct:   s.pct
-  }));
-  render();
-}
-
-// ── CHAT IA ──────────────────────────────────────────────────────────────
-let chatHistory = [];
-
-function toggleChat() {
-  const panel = document.getElementById("chat-panel");
-  panel.classList.toggle("open");
-  if (panel.classList.contains("open")) {
-    document.getElementById("chat-input").focus();
-  }
-}
-
-function sendSug(el) {
-  document.getElementById("chat-input").value = el.textContent;
-  chatSend();
-}
-
-function chatKeyDown(e) {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(); }
-}
-
-function parseDate(val) {
-  if (!val) return null;
-  const s = String(val).trim();
-  try {
-    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
-    if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(s)) { const sep=s.includes("-")?"-":"/"; const [d,m,y]=s.split(sep); return new Date(+y,+m-1,+d); }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y,m,d]=s.split("-"); return new Date(+y,+m-1,+d); }
-  } catch(e) {}
-  return null;
-}
-
-function buildContexto() {
-  // Fallbacks for pages that don't have all variables
-  if (typeof ACTIVOS    === "undefined") var ACTIVOS    = (window.TODOS||[]).filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
-  if (typeof TODOS      === "undefined") var TODOS      = window.TODOS||[];
-  if (typeof PROYECCIONES==="undefined") var PROYECCIONES = window.PROYECCIONES||[];
-  if (typeof DOCUMENTOS === "undefined") var DOCUMENTOS = window.DOCUMENTOS||[];
-  if (typeof ASIGNACIONES==="undefined") var ASIGNACIONES = window.ASIGNACIONES||[];
-  if (typeof CC_MAP     === "undefined") var CC_MAP     = {};
-  if (typeof FUNDO_MAP  === "undefined") var FUNDO_MAP  = {};
-  if (typeof ENC_MAP    === "undefined") var ENC_MAP    = {};
-  if (typeof LAB_MAP    === "undefined") var LAB_MAP    = {};
-  if (typeof HA_MAP     === "undefined") var HA_MAP     = {};
-  if (typeof CAJA_ACTUAL=== "undefined") var CAJA_ACTUAL = window.CAJA_ACTUAL||0;
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const RUT_LC = "76099766-8";
-
-  const resolveCC  = function(id) { return CC_MAP[String(id||"").trim()]  || String(id||"").trim(); };
-  const resolveEnc = function(id) { return ENC_MAP[String(id||"").trim()] || String(id||"").trim(); };
-  const resolveLab = function(id) { return LAB_MAP[String(id||"").trim()] || String(id||"").trim(); };
-  const fmtD = function(val) {
-    var d = parseDate(val);
-    return d ? d.toLocaleDateString("es-CL") : "sin fecha";
-  };
-
-  // ── LABORES ──────────────────────────────────────────────────────────────
-  var activos = ACTIVOS || [];
-  var laborResumen = function(r) {
-    return "[" + String(r["Estado Operativo"]||"").trim() + "] " +
-      resolveLab(r["Labor"]) + " | UP: " + resolveCC(r["Centro_Costo"]) +
-      " | Fundo: " + (FUNDO_MAP[String(r["Centro_Costo"]||"").trim()]||"") +
-      " | Encargado: " + resolveEnc(r["Encargado"]) +
-      " | Fecha: " + fmtD(r["Fecha"]) +
-      " | Obs: " + (r["Observaciones"]||"");
-  };
-  var vencidas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; });
-  var hoyL     = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d.getTime()===hoy.getTime(); });
-  var proximas = activos.filter(function(r){ var d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>hoy; });
-
-  // ── COSTOS ───────────────────────────────────────────────────────────────
-  var todos = TODOS || [];
-  var costoTotal = todos.reduce(function(s,r){ return s+Number(r["Costo Total"]||0); },0);
-  var costoPorCC = {};
-  var costoPorEnc = {};
-  var costoPorTipo = {};
-  todos.forEach(function(r){
-    var cc   = resolveCC(r["Centro_Costo"]);
-    var enc  = resolveEnc(r["Encargado"]);
-    var tipo = String(r["Tipo_Labor"]||"—").trim();
-    var c    = Number(r["Costo Total"]||0);
-    costoPorCC[cc]   = (costoPorCC[cc]||0)   + c;
-    costoPorEnc[enc] = (costoPorEnc[enc]||0) + c;
-    costoPorTipo[tipo]=(costoPorTipo[tipo]||0)+ c;
-  });
-  var topCC  = Object.entries(costoPorCC).sort(function(a,b){return b[1]-a[1];}).slice(0,8).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
-  var topEnc = Object.entries(costoPorEnc).sort(function(a,b){return b[1]-a[1];}).slice(0,6).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
-  var topTipo= Object.entries(costoPorTipo).sort(function(a,b){return b[1]-a[1];}).slice(0,5).map(function(e){return e[0]+": $"+Math.round(e[1]/1000)+"k";}).join(", ");
-
-  // Top registros de costo recientes
-  var topCostoReg = todos.filter(function(r){ return Number(r["Costo Total"]||0)>0; })
-    .sort(function(a,b){ return Number(b["Costo Total"]||0)-Number(a["Costo Total"]||0); })
-    .slice(0,20).map(function(r){
-      return fmtD(r["Fecha"]) + " | " + resolveLab(r["Labor"]) + " | " + resolveCC(r["Centro_Costo"]) +
-        " | Enc: " + resolveEnc(r["Encargado"]) + " | Tipo: " + String(r["Tipo_Labor"]||"").trim() +
-        " | $" + Math.round(Number(r["Costo Total"]||0)/1000) + "k";
-    }).join("\n");
-
-  // ── CAJA ─────────────────────────────────────────────────────────────────
-  var docs = DOCUMENTOS || [];
-  var isPend = function(r){ return !["pagado","anulado"].includes(String(r["EstadoPago"]||"").trim().toLowerCase()); };
-  var cobrar = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r); });
-  var pagar  = docs.filter(function(r){ return String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r); });
-  var sumDoc = function(arr){ return arr.reduce(function(s,r){ return s+Number(r["Monto Total"]||r["Monto_Total"]||0); },0); };
-  var en15 = new Date(hoy); en15.setDate(en15.getDate()+15);
-  var cobrar15 = cobrar.filter(function(r){ var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
-  var pagar15  = pagar.filter(function(r){  var d=parseDate(r["Fecha_Real"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; });
-  var saldoProy = CAJA_ACTUAL + sumDoc(cobrar15) - sumDoc(pagar15);
-
-  var docLine = function(r){
-    var d=parseDate(r["Fecha_Real"]);
-    var venc = d && d<hoy ? "[VENCIDO]" : "";
-    return fmtD(r["Fecha_Real"]) + " | " + String(r["Razón Social"]||"").trim() +
-      " | F:" + (r["Folio"]||"") + " | $" + Math.round(Number(r["Monto Total"]||0)/1000) + "k " + venc;
-  };
-  var pagarDetalle  = pagar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,40).map(docLine).join("\n");
-  var cobrarDetalle = cobrar.sort(function(a,b){return (parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0);}).slice(0,20).map(docLine).join("\n");
-
-  // ── INGRESOS / PROYECCIONES ───────────────────────────────────────────────
-  var proy = PROYECCIONES || [];
-  var ingTotal = proy.reduce(function(s,r){ return s+Number(r["Monto_Total"]||0); },0);
-  var proyDetalle = proy.map(function(r){
-    var up = resolveCC(r["Unidad_Productiva"]);
-    return fmtD(r["Fecha_Estimada"]) + " | " + up + " | " +
-      Number(r["Kilos_Estimados"]||0).toLocaleString("es-CL") + " kg | $" +
-      Math.round(Number(r["Monto_Total"]||0)/1000) + "k | " + String(r["Estado"]||"");
-  }).join("\n");
-
-  var lineas = [
-    "Eres un asistente agrícola experto para el campo Los Crisoles (Chile). Respondé en español, de forma concisa y directa usando los datos reales.",
-    "FECHA HOY: " + hoy.toLocaleDateString("es-CL"),
-    "",
-    "=== LABORES ACTIVAS (" + activos.length + " total) ===",
-    "VENCIDAS (" + vencidas.length + "):",
-    vencidas.slice(0,20).map(laborResumen).join("\n"),
-    "VENCEN HOY (" + hoyL.length + "):",
-    hoyL.map(laborResumen).join("\n"),
-    "PROXIMAS (" + proximas.length + "):",
-    proximas.slice(0,15).map(laborResumen).join("\n"),
-    "",
-    "=== COSTOS ===",
-    "Total acumulado: $" + Math.round(costoTotal/1000) + "k",
-    "Por UP: " + topCC,
-    "Por encargado: " + topEnc,
-    "Por tipo: " + topTipo,
-    "Top registros por monto:",
-    topCostoReg,
-    "",
-    "=== CAJA ===",
-    "Saldo actual: $" + Math.round(CAJA_ACTUAL/1000) + "k",
-    "Saldo proyectado 15d: $" + Math.round(saldoProy/1000) + "k",
-    "POR PAGAR (" + pagar.length + " docs):",
-    pagarDetalle,
-    "POR COBRAR (" + cobrar.length + " docs):",
-    cobrarDetalle,
-    "",
-    "=== INGRESOS ESTIMADOS ===",
-    "Total: $" + Math.round(ingTotal/1000) + "k",
-    proyDetalle,
-    "",
-    "=== PRODUCCION REAL (GUIAS ASIGNADAS) ===",
-    (function(){
-      var asig = window.ASIGNACIONES||[];
-      var guias = asig.filter(function(r){ return String(r["Tipo_Doc"]||"").includes("guia"); });
-      var porUP = {};
-      guias.forEach(function(r){
-        var up   = CC_MAP[String(r["UP_ID"]||"").trim()] || String(r["UP_Nombre"]||"").trim();
-        var prod = String(r["Nombre_Item"]||"").trim();
-        var cant = Number(r["Cantidad "]||r["Cantidad"]||0);
-        var und  = String(r["Unidad "]||r["Unidad"]||"kg").trim();
-        if (!up||!prod||!cant) return;
-        if (!porUP[up]) porUP[up] = {};
-        porUP[up][prod] = (porUP[up][prod]||0)+cant;
-      });
-      return Object.entries(porUP).map(function(e){
-        var up = e[0]; var prods = e[1];
-        return up+": "+Object.entries(prods).map(function(p){ return p[1].toLocaleString("es-CL")+" "+p[0]; }).join(", ");
-      }).join("\n") || "Sin producción real registrada";
-    })(),
-    "",
-    "=== ASIGNACIONES DE COSTOS ===",
-    "Total asignaciones: " + (window.ASIGNACIONES||[]).length,
-    "Monto total asignado: $" + Math.round((window.ASIGNACIONES||[]).reduce(function(s,r){return s+Number(r["Monto_Asignado"]||0);},0)/1000) + "k"
-  ];
-  return lineas.join("\n");
-}
-
-async function chatSend() {
-  const input = document.getElementById("chat-input");
-  const msgs  = document.getElementById("chat-msgs");
-  const send  = document.getElementById("chat-send");
-  const texto = input.value.trim();
-  if (!texto) return;
-
-  // Add user message
-  input.value = "";
-  input.style.height = "38px";
-  msgs.innerHTML += `<div class="chat-msg user">${texto}</div>`;
-
-  // Add loading
-  const loadId = "load-" + Date.now();
-  msgs.innerHTML += `<div class="chat-msg ai loading" id="${loadId}">Analizando datos del campo...</div>`;
-  msgs.scrollTop = msgs.scrollHeight;
-  send.disabled = true;
-
-  chatHistory.push({ role:"user", content: texto });
-
-  try {
-    const contexto = buildContexto();
-    const res = await fetch("https://round-night-574d.christian-19c.workers.dev", {
-      method:"POST",
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        system: contexto,
-        messages: chatHistory
-      })
-    });
-
-    const data = await res.json();
-    const respuesta = data.content?.[0]?.text || "No pude obtener una respuesta.";
-
-    chatHistory.push({ role:"assistant", content: respuesta });
-
-    // Keep history short
-    if (chatHistory.length > 20) chatHistory = chatHistory.slice(-20);
-
-    document.getElementById(loadId).className = "chat-msg ai";
-    document.getElementById(loadId).innerHTML = respuesta.replace(/\n/g,"<br>");
-
-  } catch(e) {
-    document.getElementById(loadId).innerHTML = "Error al conectar con la IA. Verificá tu conexión.";
-  }
-
-  msgs.scrollTop = msgs.scrollHeight;
-  send.disabled = false;
-  input.focus();
-}
-</script>
-
-
-</div>
 <div class="main-sec" id="main-sec-campo" style="display:none;">
 <div class="section" id="sec-campo">
     <div class="card" style="margin-bottom:16px;">
@@ -1944,11 +803,39 @@ async function chatSend() {
 
   <!-- ── FINANZAS ───────────────────────────────────────────── -->
 </div>
+
+</div>
+
+
+<button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
+
+<div id="chat-panel">
+  <div id="chat-head">
+    <div>
+      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
+      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
+    </div>
+    <button id="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div id="chat-msgs">
+    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
+  </div>
+  <div class="chat-suggestions">
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
+  </div>
+  <div id="chat-input-wrap">
+    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
+    <button id="chat-send" onclick="chatSend()">Enviar</button>
+  </div>
 </div>
 
 
 
 <script>
+
 const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
 const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
 const API_FIN     = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
@@ -2559,26 +1446,52 @@ async function chatSend() {
   send.disabled = false;
   input.focus();
 }
-</script>
+<\/script>
+
+
+<button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
+
+<div id="chat-panel">
+  <div id="chat-head">
+    <div>
+      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
+      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
+    </div>
+    <button id="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div id="chat-msgs">
+    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
+  </div>
+  <div class="chat-suggestions">
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
+  </div>
+  <div id="chat-input-wrap">
+    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
+    <button id="chat-send" onclick="chatSend()">Enviar</button>
+  </div>
+</div>
+
+</body>
+</html>
+<\/script>
+</body>
+</html>
+<\/script>
+</body>
+</html>
+<\/script>
 
 
 
 </body>
 </html>
-</script>
-</body>
-</html>
-</script>
-</body>
-</html>
-</script>
 
 
+// ── REPORTE JS ──────────────────────────────────────────────
 
-</body>
-</html>
-
-// ── REPORTE JS ───────────────────────────────────────────────
 const API_REGISTRO = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
 
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {}, COORD_MAP = {};
@@ -4062,8 +2975,9 @@ async function mainReporte() {
 
 
 
-// ── PRODUCCION JS ────────────────────────────────────────────
-const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+
+// ── PRODUCCION JS ───────────────────────────────────────────
+
 const MESES   = {"01":"Ene","02":"Feb","03":"Mar","04":"Abr","05":"May","06":"Jun","07":"Jul","08":"Ago","09":"Sep","10":"Oct","11":"Nov","12":"Dic"};
 
 // Global maps
@@ -5055,27 +3969,52 @@ async function mainProduccion() {
 
 
 
-</script>
+<\/script>
+
+
+<button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
+
+<div id="chat-panel">
+  <div id="chat-head">
+    <div>
+      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
+      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
+    </div>
+    <button id="chat-close" onclick="toggleChat()">✕</button>
+  </div>
+  <div id="chat-msgs">
+    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
+  </div>
+  <div class="chat-suggestions">
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
+    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
+  </div>
+  <div id="chat-input-wrap">
+    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
+    <button id="chat-send" onclick="chatSend()">Enviar</button>
+  </div>
+</div>
+
+</body>
+</html>
+<\/script>
+</body>
+</html>
+<\/script>
+</body>
+</html>
+<\/script>
 
 
 
 </body>
 </html>
-</script>
-</body>
-</html>
-</script>
-</body>
-</html>
-</script>
 
 
+// ── ASIGNAR JS ──────────────────────────────────────────────
 
-</body>
-</html>
-
-// ── ASIGNAR JS ───────────────────────────────────────────────
-const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
 
 const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {};
 let DOCS = [], ASIGNADOS = new Set();
@@ -5717,7 +4656,7 @@ function aplicarSugerencia(key, montoTotal, sugs) {
 
 
 
-</script>
+<\/script>
 
 
 <button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
@@ -5747,18 +4686,19 @@ function aplicarSugerencia(key, montoTotal, sugs) {
 
 </body>
 </html>
-</script>
+<\/script>
 </body>
 </html>
-</script>
+<\/script>
 </body>
 </html>
-</script>
+<\/script>
 
 
 
 </body>
 </html>
+
 
 
 // ── UNIFIED TAB SWITCHER ─────────────────────────────────────
@@ -5773,31 +4713,27 @@ function switchMainTab(tab) {
     if (el) el.className = 'tab' + (t === tab ? ' on' : '');
     if (se) se.style.display = t === tab ? '' : 'none';
   });
-  if (tab === 'labores')    typeof renderPageLabores  !== 'undefined' && renderPageLabores();
-  if (tab === 'costos')     typeof renderCostos       !== 'undefined' && renderCostos();
-  if (tab === 'margenes')   typeof renderMargenes     !== 'undefined' && renderMargenes();
-  if (tab === 'ingresos')   typeof renderIngresos     !== 'undefined' && renderIngresos();
-  if (tab === 'caja')       typeof renderCaja         !== 'undefined' && renderCaja();
-  if (tab === 'produccion') typeof renderProd         !== 'undefined' && renderProd();
-  if (tab === 'insumos')    typeof renderInsumos      !== 'undefined' && renderInsumos();
-  if (tab === 'resumen')    typeof renderResumen      !== 'undefined' && renderResumen();
-  if (tab === 'campo')      typeof renderCampo        !== 'undefined' && renderCampo();
+  if (tab === 'labores')    typeof renderPageLabores !== 'undefined' && renderPageLabores();
+  if (tab === 'costos')     typeof renderCostos      !== 'undefined' && renderCostos();
+  if (tab === 'margenes')   typeof renderMargenes    !== 'undefined' && renderMargenes();
+  if (tab === 'ingresos')   typeof renderIngresos    !== 'undefined' && renderIngresos();
+  if (tab === 'caja')       typeof renderCaja        !== 'undefined' && renderCaja();
+  if (tab === 'produccion') typeof renderProd        !== 'undefined' && renderProd();
+  if (tab === 'insumos')    typeof renderInsumos     !== 'undefined' && renderInsumos();
+  if (tab === 'campo')      typeof buildMapa         !== 'undefined' && buildMapa([]);
 }
-
-
 
 // ── UNIFIED MAIN ─────────────────────────────────────────────
 async function main() {
   try {
-    // Run all data loaders in parallel
     await Promise.all([mainHome(), mainReporte(), mainProduccion(), mainAsignar()]);
   } catch(e) {
-    console.error("Main error:", e.message);
+    console.error('Main error:', e.message);
   }
 }
 
-
 main();
+
 </script>
 </body>
 </html>
