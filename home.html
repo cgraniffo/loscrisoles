@@ -476,6 +476,23 @@ const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov"
 
 const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {}, COORD_MAP = {}, LAB_MAP = {}, ENC_MAP = {};
 
+// ── TEMPORADA ────────────────────────────────────────────────────────────────
+const TEMP_MAP = {};
+let TEMPORADA_ACTIVA = null;
+
+function getTemporada(fechaVal, mesInicio) {
+  const raw = String(fechaVal||"");
+  const d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
+  if (isNaN(d)) return null;
+  const y = d.getFullYear(), m = d.getMonth()+1;
+  return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
+}
+
+window.cambiarTemporada = function(temp) {
+  TEMPORADA_ACTIVA = temp || null;
+  if (window._homeData) renderHome(window._homeData);
+};
+
 async function fetchSheet(api, sheet) {
   const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
   const text = await res.text();
@@ -575,6 +592,10 @@ async function main() {
       HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0)||0;
       const coords  = String(c["Coordenadas"]||"").trim();
       if (coords) { const [lat,lng]=coords.split(",").map(s=>parseFloat(s.trim())); if(!isNaN(lat)&&!isNaN(lng)) COORD_MAP[id]={lat,lng}; }
+      // Poblar TEMP_MAP para filtro de temporada
+      const temp = String(c["Temporada"]||"").trim();
+      const mes  = parseInt(c["MES_INICIO_TEMPORADA"]||3)||3;
+      if (temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
     });
 
     // Build LAB_MAP and ENC_MAP
@@ -699,56 +720,92 @@ async function main() {
         </div>
       </div>`;
 
-    // ── COSTOS ──────────────────────────────────────────────────
-    const FECHA_CORTE = "2026-03-30";
-    const costosHist = (Array.isArray(registros)?registros:[]).filter(r => {
-      const raw = String(r["Fecha"]||""); const f = raw.includes("T")?raw.split("T")[0]:raw.slice(0,10);
-      return Number(r["Costo Total"]||0)>0 && (f===""||f<FECHA_CORTE);
-    });
-    const costosNuevos = (Array.isArray(asignaciones)?asignaciones:[]).filter(r => Number(r["Monto_Asignado"]||0)>0);
-    const costoPorCC = {};
-    costosHist.forEach(r => {
-      const id = String(r["Centro_Costo"]||"").trim();
-      costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Costo Total"]||0);
-    });
-    costosNuevos.forEach(r => {
-      const id = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
-      costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Monto_Asignado"]||0);
-    });
-    const costoTotal = Object.values(costoPorCC).reduce((s,v)=>s+v,0);
-    const costoRows = Object.entries(costoPorCC).map(([id,v])=>([CC_MAP[id]||id,v])).sort((a,b)=>b[1]-a[1]).slice(0,6);
-    const costoMax = costoRows[0]?.[1]||1;
+    // ── COSTOS y PRODUCCIÓN → renderHome() ──────────────────────────────────
+    // (se llama aquí y también al cambiar temporada desde el dashboard)
 
-    document.getElementById('h-costos').textContent = fmtPeso(costoTotal);
-    // Calculate period from costosHist
-    const costFechas = costosHist.map(r=>String(r["Fecha"]||"").split("T")[0]).filter(Boolean).sort();
-    const costPeriodo = costFechas.length > 0
-      ? costFechas[0].slice(0,7).replace("-","/") + " — " + costFechas[costFechas.length-1].slice(0,7).replace("-","/")
-      : "";
-    document.getElementById('card-costos').innerHTML = `
-      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-weight:bold;font-size:22px;color:var(--verde);">${fmtPeso(costoTotal)}</div>
-        ${costPeriodo?`<div style="font-size:11px;color:var(--gris);">${costPeriodo}</div>`:""}
-      </div>` + costoRows.map(([nombre,val]) =>
-      `<div class="bar-row">
-        <div class="bar-label" title="${nombre}">${nombre}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/costoMax*100)}%;background:var(--verde2);"></div></div>
-        <div class="bar-val">${fmtPeso(val)}</div>
-      </div>`).join('');
+  } catch(e) {
+    console.error(e);
+    document.getElementById('card-labores').innerHTML = `<div style="color:#ef4444;font-size:13px;">Error: ${e.message}</div>`;
+  }
+}
 
-    // ── PRODUCCION ESTIMADA ──────────────────────────────────────────────────
-    const proy = (Array.isArray(proyecciones)?proyecciones:[]);
-    const ingTotal = proy.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
-    const ingPorUP = {};
-    proy.forEach(r => {
-      const up = CC_MAP[String(r["Unidad_Productiva"]||"").trim()]||String(r["Unidad_Productiva"]||"").trim();
-      ingPorUP[up] = (ingPorUP[up]||0) + Number(r["Monto_Total"]||0);
-    });
-    const ingRows = Object.entries(ingPorUP).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    const ingMax  = ingRows[0]?.[1]||1;
-        // Volumes from Asignaciones_U (guia-emitida)
-    const volPorUP = {};
-    (Array.isArray(asignaciones)?asignaciones:[]).filter(r=>String(r["Tipo_Doc"]||"").includes("guia")).forEach(r=>{
+// ── RENDER COSTOS + PRODUCCIÓN (filtrado por temporada) ─────────────────────
+function renderHome({ registros, asignaciones, proyecciones }) {
+  const FECHA_CORTE = "2026-03-30";
+
+  // Filtro de temporada activa
+  function enTemporada(fechaVal, ccId) {
+    if (!TEMPORADA_ACTIVA) return true; // sin filtro → todo
+    const entry = TEMP_MAP[ccId];
+    if (!entry) return true; // CC sin temporada definida → incluir
+    return getTemporada(fechaVal, entry.mesInicio) === TEMPORADA_ACTIVA;
+  }
+
+  // ── COSTOS ────────────────────────────────────────────────────────────────
+  const costosHist = (Array.isArray(registros)?registros:[]).filter(r => {
+    const raw = String(r["Fecha"]||""); const f = raw.includes("T")?raw.split("T")[0]:raw.slice(0,10);
+    const id  = String(r["Centro_Costo"]||"").trim();
+    return Number(r["Costo Total"]||0)>0 && (f===""||f<FECHA_CORTE) && enTemporada(f, id);
+  });
+  const costosNuevos = (Array.isArray(asignaciones)?asignaciones:[]).filter(r => {
+    const id    = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    return Number(r["Monto_Asignado"]||0)>0 && enTemporada(fecha, id);
+  });
+
+  const costoPorCC = {};
+  costosHist.forEach(r => {
+    const id = String(r["Centro_Costo"]||"").trim();
+    costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Costo Total"]||0);
+  });
+  costosNuevos.forEach(r => {
+    const id = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Monto_Asignado"]||0);
+  });
+  const costoTotal = Object.values(costoPorCC).reduce((s,v)=>s+v,0);
+  const costoRows  = Object.entries(costoPorCC).map(([id,v])=>([CC_MAP[id]||id,v])).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const costoMax   = costoRows[0]?.[1]||1;
+
+  document.getElementById('h-costos').textContent = fmtPeso(costoTotal);
+  const costFechas  = costosHist.map(r=>String(r["Fecha"]||"").split("T")[0]).filter(Boolean).sort();
+  const costPeriodo = costFechas.length > 0
+    ? costFechas[0].slice(0,7).replace("-","/") + " — " + costFechas[costFechas.length-1].slice(0,7).replace("-","/")
+    : (TEMPORADA_ACTIVA || "");
+  document.getElementById('card-costos').innerHTML = `
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-weight:bold;font-size:22px;color:var(--verde);">${fmtPeso(costoTotal)}</div>
+      ${costPeriodo?`<div style="font-size:11px;color:var(--gris);">${costPeriodo}</div>`:""}
+    </div>` + costoRows.map(([nombre,val]) =>
+    `<div class="bar-row">
+      <div class="bar-label" title="${nombre}">${nombre}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/costoMax*100)}%;background:var(--verde2);"></div></div>
+      <div class="bar-val">${fmtPeso(val)}</div>
+    </div>`).join('');
+
+  // ── PRODUCCIÓN ESTIMADA ───────────────────────────────────────────────────
+  const proy = (Array.isArray(proyecciones)?proyecciones:[]).filter(r => {
+    const id    = String(r["Unidad_Productiva"]||"").trim();
+    const fecha = r["Fecha_Estimada"]||"";
+    return enTemporada(fecha, id);
+  });
+  const ingTotal = proy.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
+  const ingPorUP = {};
+  proy.forEach(r => {
+    const up = CC_MAP[String(r["Unidad_Productiva"]||"").trim()]||String(r["Unidad_Productiva"]||"").trim();
+    ingPorUP[up] = (ingPorUP[up]||0) + Number(r["Monto_Total"]||0);
+  });
+  const ingRows = Object.entries(ingPorUP).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const ingMax  = ingRows[0]?.[1]||1;
+
+  // Volúmenes despachados filtrados por temporada
+  const volPorUP = {};
+  (Array.isArray(asignaciones)?asignaciones:[])
+    .filter(r => {
+      const id    = String(r["UP_Nombre"]||"").trim();
+      const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+      return String(r["Tipo_Doc"]||"").includes("guia") && enTemporada(fecha, id);
+    })
+    .forEach(r => {
       const up   = String(r["UP_Nombre"]||"").trim();
       const cant = Number(r["Cantidad "]||r["Cantidad"]||0);
       const und  = String(r["Unidad "]||r["Unidad"]||"").trim()||"kg";
@@ -756,30 +813,29 @@ async function main() {
       if (!volPorUP[up]) volPorUP[up]={};
       volPorUP[up][und] = (volPorUP[up][und]||0)+cant;
     });
-    const volRows = Object.entries(volPorUP).map(([up,units])=>
-      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:12px;">
-        <span style="color:#444;">${up}</span>
-        <span style="font-weight:600;color:#1a3a0a;">${Object.entries(units).map(([u,v])=>v.toLocaleString("es-CL")+" "+u).join(" · ")}</span>
-      </div>`
-    ).join("");
-    document.getElementById('card-prod').innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-        <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;">Ingresos estimados</div>
-        ${(()=>{ const ff=proy.map(r=>String(r["Fecha_Estimada"]||"").split("T")[0]).filter(Boolean).sort(); return ff.length?`<div style="font-size:10px;color:var(--gris);">${ff[0].slice(0,7).replace("-","/")} — ${ff[ff.length-1].slice(0,7).replace("-","/")}</div>`:""; })()}
-      </div>
-      <div style="font-weight:bold;font-size:22px;color:var(--verde);margin-bottom:10px;">${fmtPeso(ingTotal)}</div>
-      ${ingRows.map(([nombre,val]) => `<div class="bar-row">
-        <div class="bar-label" title="${nombre}">${nombre}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/ingMax*100)}%;background:#0f6e56;"></div></div>
-        <div class="bar-val">${fmtPeso(val)}</div>
-      </div>`).join('')}
-      ${volRows?`<div style="margin-top:10px;padding-top:8px;border-top:1px solid #f0ede6;">
-        <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Producción real despachada</div>
-        ${volRows}
-      </div>`:""}`;
-    document.getElementById('nav-prod-badge').textContent = ingRows.length + " UPs con proyección";
-
-    // ── DOCS SIN ASIGNAR ──────────────────────────────────────────────────
+  const volRows = Object.entries(volPorUP).map(([up,units])=>
+    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:12px;">
+      <span style="color:#444;">${up}</span>
+      <span style="font-weight:600;color:#1a3a0a;">${Object.entries(units).map(([u,v])=>v.toLocaleString("es-CL")+" "+u).join(" · ")}</span>
+    </div>`
+  ).join("");
+  document.getElementById('card-prod').innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;">Ingresos estimados</div>
+      ${(()=>{ const ff=proy.map(r=>String(r["Fecha_Estimada"]||"").split("T")[0]).filter(Boolean).sort(); return ff.length?`<div style="font-size:10px;color:var(--gris);">${ff[0].slice(0,7).replace("-","/")} — ${ff[ff.length-1].slice(0,7).replace("-","/")}</div>`:""; })()}
+    </div>
+    <div style="font-weight:bold;font-size:22px;color:var(--verde);margin-bottom:10px;">${fmtPeso(ingTotal)}</div>
+    ${ingRows.map(([nombre,val]) => `<div class="bar-row">
+      <div class="bar-label" title="${nombre}">${nombre}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/ingMax*100)}%;background:#0f6e56;"></div></div>
+      <div class="bar-val">${fmtPeso(val)}</div>
+    </div>`).join('')}
+    ${volRows?`<div style="margin-top:10px;padding-top:8px;border-top:1px solid #f0ede6;">
+      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Producción real despachada</div>
+      ${volRows}
+    </div>`:""}`;
+  document.getElementById('nav-prod-badge').textContent = ingRows.length + " UPs con proyección";
+}
     const CORTE_ASIG = "2026-04-01";
     const sinAsignar = (Array.isArray(docs)?docs:[]).filter(d => {
       const fundo = String(d["Fundo"]||"").trim();
@@ -839,6 +895,10 @@ async function main() {
     window.PROYECCIONES  = Array.isArray(proyecciones) ? proyecciones : [];
     window.DOCUMENTOS    = Array.isArray(docs) ? docs : [];
     window.ASIGNACIONES  = window._asignaciones;
+
+    // Guardar datos crudos para poder re-renderizar al cambiar temporada
+    window._homeData = { registros, asignaciones, proyecciones };
+    renderHome(window._homeData);
     buildMapa(registros);
 
   } catch(e) {
