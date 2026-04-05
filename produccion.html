@@ -207,6 +207,58 @@ let GUIAS = [], DETALLES = [];
 let stateP = { ccs:[], anios:[], meses:[] };
 let stateI = { provs:[], anios:[], meses:[] };
 
+// ── TEMPORADA ────────────────────────────────────────────────────────────────
+// TEMP_MAP[ccId] = { temporada: "2025-2026", mesInicio: 3 }
+const TEMP_MAP = {};
+let TEMPORADA_ACTIVA = null;  // null = sin filtro (mostrar todo)
+
+function getTemporada(fechaVal, mesInicio) {
+  const raw = String(fechaVal||"");
+  const d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
+  if (isNaN(d)) return null;
+  const y = d.getFullYear(), m = d.getMonth()+1;
+  return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
+}
+
+// Devuelve { anios: Set<string>, meses: Set<string> } que abarca la temporada
+function rangoTemporada(temp, mesInicio) {
+  if (!temp) return null;
+  const [yA, yB] = temp.split("-").map(Number);
+  const anios = new Set(), meses = new Set();
+  // Desde mesInicio del año A hasta mesInicio-1 del año B (inclusive)
+  for (let m = mesInicio; m <= 12; m++) { anios.add(String(yA)); meses.add(String(m).padStart(2,"0")); }
+  for (let m = 1; m < mesInicio; m++) { anios.add(String(yB)); meses.add(String(m).padStart(2,"0")); }
+  return { anios, meses };
+}
+
+// Función llamada desde el dashboard padre via iframe postMessage / window ref
+window.cambiarTemporada = function(temp) {
+  TEMPORADA_ACTIVA = temp || null;
+
+  if (!TEMPORADA_ACTIVA) {
+    // Sin filtro: limpiar selección de año/mes
+    stateP.anios = []; stateP.meses = [];
+    stateI.anios = []; stateI.meses = [];
+  } else {
+    // Calcular mes de inicio a partir de cualquier CC en TEMP_MAP
+    // Buscar mesInicio de la temporada activa en TEMP_MAP
+    let mesIni = 3; // default
+    const entry = Object.values(TEMP_MAP).find(e => e.temporada === TEMPORADA_ACTIVA);
+    if (entry) mesIni = entry.mesInicio;
+
+    const rango = rangoTemporada(TEMPORADA_ACTIVA, mesIni);
+    if (rango) {
+      stateP.anios = [...rango.anios];
+      stateP.meses = [...rango.meses];
+      stateI.anios = [...rango.anios];
+      stateI.meses = [...rango.meses];
+    }
+  }
+
+  if (typeof renderProd === 'function') renderProd();
+  if (typeof renderInsumos === 'function') renderInsumos();
+};
+
 async function fetchSheet(api, sheet) {
   const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
   if (!res.ok) throw new Error("HTTP " + res.status + " — " + sheet);
@@ -1188,6 +1240,10 @@ async function main() {
         const [lat,lng] = coords.split(",").map(s=>parseFloat(s.trim()));
         if (!isNaN(lat)&&!isNaN(lng)) COORD_MAP[id] = {lat,lng};
       }
+      // Poblar TEMP_MAP para filtro de temporada
+      const temp = String(c["Temporada"]||"").trim();
+      const mes  = parseInt(c["MES_INICIO_TEMPORADA"]||3)||3;
+      if (temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
     });
 
     const prod = guias.filter(r=>String(r["RUT Emisor"]||"").trim()===RUT_LC);
