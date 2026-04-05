@@ -125,7 +125,7 @@
     </div>
     <div class="kpi">
       <div class="kpi-val" id="k-costos">—</div>
-      <div class="kpi-label">📊 Costos acumulados</div>
+      <div class="kpi-label" id="k-costos-label">📊 Costos acumulados</div>
     </div>
     <div class="kpi">
       <div class="kpi-val amber" id="k-vencidas">—</div>
@@ -322,6 +322,14 @@
   // ── TEMPORADA ────────────────────────────────────────────────
   function onTemporadaChange() {
     temporada = document.getElementById('dash-temporada').value;
+
+    // Recalculate costos KPI for selected temporada
+    if (window._kpiData) {
+      var costoTemp = costosDeLaTemporada(window._kpiData.registros, window._kpiData.asignaciones, temporada);
+      document.getElementById('k-costos').textContent = fmtPeso(costoTemp);
+      document.getElementById('k-costos-label').textContent = '📊 Costos ' + (temporada || '');
+    }
+
     // Push to all loaded iframes that have costos/margenes/ingresos
     ['f-costos','f-ingresos','f-margenes','f-labores','f-caja'].forEach(function(id) {
       var f = document.getElementById(id);
@@ -350,9 +358,32 @@
       document.getElementById("k-caja").className = "kpi-val " + (caja >= 0 ? "green" : "red");
 
       // Costos (BD_Registro + Asignaciones_U)
-      var costoReg  = (Array.isArray(registros) ? registros : []).reduce(function(s,r){ return s+Number(r["Costo Total"]||0); }, 0);
-      var costoAsig = (Array.isArray(asignaciones) ? asignaciones : []).reduce(function(s,r){ return s+Number(r["Monto_Asignado"]||0); }, 0);
-      document.getElementById("k-costos").textContent = fmtPeso(costoReg + costoAsig);
+      // Costos filtrados por temporada activa
+      function costosDeLaTemporada(regs, asigs, temp) {
+        var costoReg = (Array.isArray(regs) ? regs : []).filter(function(r) {
+          var ccId = String(r["Centro_Costo"]||"").trim();
+          var tmp  = TEMP_MAP[ccId];
+          if (!tmp) return false;
+          return getTemporada(r["Fecha"], tmp.mesInicio) === temp;
+        }).reduce(function(s,r){ return s+Number(r["Costo Total"]||0); }, 0);
+
+        var costoAsig = (Array.isArray(asigs) ? asigs : []).filter(function(a) {
+          var ccId = String(a["UP_ID"]||a["UP_Nombre"]||"").trim();
+          var tmp  = TEMP_MAP[ccId];
+          var fecha = a["Fecha_Documento"] || a["Fecha_Asignacion"];
+          if (!tmp) return false;
+          return getTemporada(fecha, tmp.mesInicio) === temp;
+        }).reduce(function(s,a){ return s+Number(a["Monto_Asignado"]||0); }, 0);
+
+        return costoReg + costoAsig;
+      }
+
+      // Store for recalculation on temporada change
+      window._kpiData = { registros: registros, asignaciones: asignaciones };
+
+      var costoTemp = costosDeLaTemporada(registros, asignaciones, temporada);
+      document.getElementById("k-costos").textContent = fmtPeso(costoTemp);
+      document.getElementById("k-costos-label").textContent = "📊 Costos " + (temporada || "");
 
       // Labores vencidas
       var hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -412,7 +443,10 @@
         sel.innerHTML = temps.map(function(t) {
           return '<option value="'+t+'">'+t+'</option>';
         }).join('');
-        temporada = temps[0];
+        // Default: prefer 2026-2027, else most-records
+        temporada = temps.indexOf('2026-2027') !== -1 ? '2026-2027' : temps[0];
+        // Reflect default in selector
+        sel.value = temporada;
       } else {
         sel.innerHTML = '<option value="">Sin datos</option>';
       }
