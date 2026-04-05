@@ -8,35 +8,63 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #1a3a0a; display: flex; flex-direction: column; height: 100vh; }
 
+    /* ── HEADER ── */
+    .dash-header {
+      background: #1a3a0a; padding: 12px 20px 0;
+      flex-shrink: 0;
+    }
+    .dash-top {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+    }
+    .dash-logo { display: flex; align-items: center; gap: 10px; }
+    .dash-logo-icon {
+      width: 32px; height: 32px; background: #86efac; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .dash-logo-name { font-size: 16px; font-weight: 700; color: #fff; }
+    .dash-logo-sub  { font-size: 9px; color: #86efac; letter-spacing: 0.1em; text-transform: uppercase; }
+    .dash-date { font-size: 11px; color: #9fe1cb; text-align: right; }
+
+    /* ── KPIs ── */
+    .dash-kpis {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0;
+    }
+    .kpi {
+      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 8px 12px;
+    }
+    .kpi-val { font-size: 20px; font-weight: 700; color: #fff; line-height: 1; }
+    .kpi-val.green  { color: #86efac; }
+    .kpi-val.red    { color: #fca5a5; }
+    .kpi-val.amber  { color: #fcd34d; }
+    .kpi-label { font-size: 10px; color: #9fe1cb; margin-top: 4px; }
+
+    /* ── TABS ── */
     .tabbar {
       display: flex; align-items: stretch; overflow-x: auto;
       white-space: nowrap; background: #1a3a0a;
       border-bottom: 1px solid rgba(134,239,172,0.15);
       flex-shrink: 0; -webkit-overflow-scrolling: touch;
+      margin-top: 10px;
     }
-    .tab-sep {
-      width: 1px; background: rgba(134,239,172,0.2);
-      margin: 8px 4px; flex-shrink: 0;
-    }
+    .tab-sep { width: 1px; background: rgba(134,239,172,0.2); margin: 8px 4px; flex-shrink: 0; }
     .tab-group-label {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: rgba(134,239,172,0.45);
-      padding: 8px 8px 0 10px; flex-shrink: 0;
-      display: flex; align-items: flex-start;
-      pointer-events: none; user-select: none;
+      font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+      color: rgba(134,239,172,0.45); padding: 8px 8px 0 10px; flex-shrink: 0;
+      display: flex; align-items: flex-start; pointer-events: none; user-select: none;
     }
     .tab {
-      font-size: 12px; font-weight: 600; padding: 14px 15px 10px;
+      font-size: 12px; font-weight: 600; padding: 12px 15px 9px;
       cursor: pointer; color: rgba(255,255,255,0.5);
-      border-bottom: 3px solid transparent;
-      flex-shrink: 0; transition: all 0.15s;
-      user-select: none; display: flex; align-items: center; gap: 5px;
+      border-bottom: 3px solid transparent; flex-shrink: 0;
+      transition: all 0.15s; user-select: none;
     }
     .tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
     .tab.g-resumen.active  { color: #fff; border-bottom-color: #86efac; }
     .tab.g-campo.active    { color: #fff; border-bottom-color: #6ee7b7; }
     .tab.g-finanzas.active { color: #fff; border-bottom-color: #fcd34d; }
 
+    /* ── IFRAME ── */
     .frame-wrap { flex: 1; position: relative; overflow: hidden; }
     iframe {
       position: absolute; inset: 0; width: 100%; height: 100%;
@@ -44,8 +72,10 @@
     }
     iframe.active { display: block; }
 
-    @media (max-width: 600px) {
-      .tab { font-size: 10px; padding: 11px 10px 7px; gap: 3px; }
+    @media (max-width: 768px) {
+      .dash-kpis { grid-template-columns: repeat(2, 1fr); }
+      .kpi-val { font-size: 17px; }
+      .tab { font-size: 10px; padding: 10px 10px 7px; }
       .tab-group-label { display: none; }
       .tab-sep { margin: 6px 2px; }
     }
@@ -53,16 +83,45 @@
 </head>
 <body>
 
+<div class="dash-header">
+  <div class="dash-top">
+    <div class="dash-logo">
+      <div class="dash-logo-icon">🌱</div>
+      <div>
+        <div class="dash-logo-name">Los Crisoles</div>
+        <div class="dash-logo-sub">Dashboard de gestión</div>
+      </div>
+    </div>
+    <div class="dash-date" id="dash-date">—</div>
+  </div>
+
+  <div class="dash-kpis">
+    <div class="kpi">
+      <div class="kpi-val green" id="k-caja">—</div>
+      <div class="kpi-label">💰 Caja actual</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" id="k-costos">—</div>
+      <div class="kpi-label">📊 Costos acumulados</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val amber" id="k-vencidas">—</div>
+      <div class="kpi-label">⚠️ Labores vencidas</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val red" id="k-sinasignar">—</div>
+      <div class="kpi-label">📎 Sin asignar (desde 01-Abr)</div>
+    </div>
+  </div>
+</div>
+
 <div class="tabbar">
-
   <div class="tab g-resumen active" onclick="show('home', this)">🏠 Resumen</div>
-
   <div class="tab-sep"></div>
   <div class="tab-group-label">Campo</div>
   <div class="tab g-campo" onclick="show('labores', this)">📋 Labores</div>
   <div class="tab g-campo" onclick="show('produccion', this)">🌱 Producción</div>
   <div class="tab g-campo" onclick="show('insumos', this)">📦 Insumos</div>
-
   <div class="tab-sep"></div>
   <div class="tab-group-label">Finanzas</div>
   <div class="tab g-finanzas" onclick="show('caja', this)">🏦 Caja</div>
@@ -70,7 +129,6 @@
   <div class="tab g-finanzas" onclick="show('ingresos', this)">🌾 Ingresos</div>
   <div class="tab g-finanzas" onclick="show('margenes', this)">📊 Márgenes</div>
   <div class="tab g-finanzas" onclick="show('asignar', this)">📎 Asignar</div>
-
 </div>
 
 <div class="frame-wrap">
@@ -88,68 +146,119 @@
 <script>
   var loaded = { home: true };
 
-  // CSS to inject into each iframe to hide the internal header and tabs
-  var HIDE_CSS = [
-    '.hdr { display: none !important; }',
-    '.header { display: none !important; }',
-    '.tabs { display: none !important; }',
-    '.metrics-top { display: none !important; }',
-    '.metrics { display: none !important; }',
-    // Give the body content a bit more breathing room at the top
-    '.body { padding-top: 16px !important; }',
-  ].join(' ');
+  // ── APIs ─────────────────────────────────────────────────────
+  var API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
+  var API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+  var API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
+  var RUT_LC  = "76099766-8";
+  var CORTE   = "2026-04-01";
+
+  function fmtPeso(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
+
+  async function fetchSheet(api, sheet) {
+    var res = await fetch(api + "?sheet=" + encodeURIComponent(sheet), { redirect: "follow" });
+    var txt = await res.text();
+    try { return JSON.parse(txt); } catch(e) { return []; }
+  }
+
+  async function loadKPIs() {
+    // Date
+    document.getElementById("dash-date").textContent =
+      new Date().toLocaleDateString("es-CL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
+
+    try {
+      var [banco, registros, docs, asignaciones] = await Promise.all([
+        fetchSheet(API_FIN, "BD_Banco"),
+        fetchSheet(API_REG, "BD_Registro"),
+        fetchSheet(API_FIN, "CargaHTML_Demo"),
+        fetchSheet(API_FIN, "Asignaciones_U"),
+      ]);
+
+      // Caja real desde BD_Banco
+      var caja = (Array.isArray(banco) ? banco : [])
+        .reduce(function(s,r){ return s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0); }, 0);
+      document.getElementById("k-caja").textContent = fmtPeso(caja);
+      document.getElementById("k-caja").className   = "kpi-val " + (caja >= 0 ? "green" : "red");
+
+      // Costos acumulados (BD_Registro + Asignaciones)
+      var costoReg = (Array.isArray(registros) ? registros : [])
+        .reduce(function(s,r){ return s + Number(r["Costo Total"]||0); }, 0);
+      var costoAsig = (Array.isArray(asignaciones) ? asignaciones : [])
+        .reduce(function(s,r){ return s + Number(r["Monto_Asignado"]||0); }, 0);
+      document.getElementById("k-costos").textContent = fmtPeso(costoReg + costoAsig);
+
+      // Labores vencidas
+      var hoy = new Date(); hoy.setHours(0,0,0,0);
+      var vencidas = (Array.isArray(registros) ? registros : []).filter(function(r) {
+        var est = String(r["Estado Operativo"]||"").trim();
+        if (est === "Completado" || est === "Anulado") return false;
+        var d = new Date(String(r["Fecha"]||"").split("T")[0]);
+        return !isNaN(d) && d < hoy;
+      }).length;
+      document.getElementById("k-vencidas").textContent = vencidas;
+      document.getElementById("k-vencidas").className   = "kpi-val " + (vencidas > 0 ? "amber" : "green");
+
+      // Docs sin asignar desde corte
+      var sinAsignar = (Array.isArray(docs) ? docs : []).filter(function(d) {
+        var fundo = String(d["Fundo"]||"").trim();
+        var rut   = String(d["RUT Emisor"]||"").trim();
+        var fecha = String(d["Fecha Emisión"]||"").split("T")[0];
+        return (fundo === "" || fundo === "FUNDO_NO_ENCONTRADO") && rut !== RUT_LC && fecha >= CORTE;
+      }).length;
+      document.getElementById("k-sinasignar").textContent = sinAsignar;
+      document.getElementById("k-sinasignar").className   = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
+
+    } catch(e) {
+      console.error("KPI error:", e);
+    }
+  }
+
+  // ── IFRAME SWITCHER ──────────────────────────────────────────
+  var HIDE_CSS = '.hdr,.header,.tabs,.metrics-top,.metrics{display:none!important}.body{padding-top:16px!important}';
 
   function injectCSS(iframe) {
     try {
       var doc = iframe.contentDocument || iframe.contentWindow.document;
-      var style = doc.createElement('style');
-      style.textContent = HIDE_CSS;
-      doc.head.appendChild(style);
-    } catch(e) {
-      // cross-origin safety — won't happen on same domain
-    }
+      var s = doc.createElement('style');
+      s.textContent = HIDE_CSS;
+      doc.head.appendChild(s);
+    } catch(e) {}
   }
 
   function switchIframeTab(iframe, tab) {
     try {
       var win = iframe.contentWindow;
-      // reporte uses switchTab(tab)
-      if (typeof win.switchTab === 'function') win.switchTab(tab);
-      // produccion uses its own switchTab with different tab names
-      var prodMap = { produccion: 'prod', insumos: 'insumos' };
-      if (prodMap[tab] && typeof win.switchTab === 'function') win.switchTab(prodMap[tab]);
+      if (typeof win.switchTab === 'function') {
+        var map = { produccion:'prod', insumos:'insumos' };
+        win.switchTab(map[tab] || tab);
+      }
     } catch(e) {}
   }
 
   function show(name, el) {
-    // Update tab styles
     document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
     el.classList.add('active');
-
-    // Show correct iframe
     document.querySelectorAll('iframe').forEach(function(f) { f.classList.remove('active'); });
     var frame = document.getElementById('f-' + name);
-
     if (!loaded[name]) {
-      // First time — load the iframe
-      var src = frame.getAttribute('data-src');
       var tab = frame.getAttribute('data-tab');
-      frame.src = src;
+      frame.src = frame.getAttribute('data-src');
       loaded[name] = true;
-
       frame.addEventListener('load', function() {
         injectCSS(frame);
         if (tab) switchIframeTab(frame, tab);
       });
     }
-
     frame.classList.add('active');
   }
 
-  // Inject CSS into home iframe on load too
+  // Inject CSS into home on load
   document.getElementById('f-home').addEventListener('load', function() {
     injectCSS(this);
   });
+
+  // Load KPIs on start
+  loadKPIs();
 </script>
 
 </body>
