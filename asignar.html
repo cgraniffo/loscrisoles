@@ -133,6 +133,59 @@
     .empty { text-align: center; color: #aaa; padding: 40px; font-size: 14px; background: #fff; border-radius: 10px; border: 1px solid #e5e2da; }
     .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a3a0a; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
     .ha-info { font-size: 10px; color: #0f6e56; margin-top: 2px; }
+
+    /* ── AI SUGERENCIA ─────────────────────────────────────── */
+    .btn-ia {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600;
+      padding: 7px 14px; border-radius: 8px;
+      border: 1px solid #2d6a1a;
+      background: linear-gradient(135deg, #eaf3de, #d4edbc);
+      color: #1a3a0a; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-ia:hover { background: linear-gradient(135deg, #d4edbc, #bfe3a0); box-shadow: 0 2px 8px rgba(26,58,10,0.15); }
+    .btn-ia:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ia-sugerencia {
+      background: #f0f7ea;
+      border: 1px solid #b5dca0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    .ia-sugerencia-title {
+      font-size: 11px; font-weight: 700;
+      color: #1a3a0a; letter-spacing: 0.06em;
+      text-transform: uppercase; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ia-razon {
+      font-size: 11px; color: #4a7a30;
+      line-height: 1.5; margin-top: 6px;
+      padding-top: 6px; border-top: 1px solid #c8e6b0;
+    }
+    .ia-up-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 0; border-bottom: 1px solid #dff0d0;
+      gap: 8px;
+    }
+    .ia-up-row:last-of-type { border-bottom: none; }
+    .ia-up-nombre { font-weight: 600; color: #1a3a0a; flex: 1; }
+    .ia-up-pct { color: #2d6a1a; font-weight: 700; min-width: 40px; text-align: right; }
+    .ia-up-monto { color: #555; min-width: 80px; text-align: right; }
+    .ia-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-ia-apply {
+      flex: 1; padding: 7px; border-radius: 7px; border: none;
+      background: #1a3a0a; color: #fff; font-size: 12px;
+      font-weight: 700; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-ia-apply:hover { background: #2d6a1a; }
+    .btn-ia-dismiss {
+      padding: 7px 14px; border-radius: 7px;
+      border: 1px solid #ddd; background: #f8f8f6;
+      color: #888; font-size: 12px; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -521,7 +574,14 @@ function render() {
       </div>
       <div id="doc-body-${safeKey}" style="display:none;">
         <div class="doc-body">
-          <div class="metodo-tabs">${metodoTabs}</div>
+          <div id="ia-box-${safeKey}"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div class="metodo-tabs" style="margin-bottom:0;">${metodoTabs}</div>
+            <button class="btn-ia" id="ia-btn-${safeKey}"
+              onclick="sugerirIA('${key}','${safeKey}','${proveedor.replace(/'/g,"\\'")}','${String(doc["RUT Emisor"]||"").trim()}',${monto})">
+              ✨ Sugerir con IA
+            </button>
+          </div>
           <div class="asig-row-label">
             <div>Unidad Productiva</div><div>Centro de Costo</div>
             <div>${s.metodo==="porcentaje"?"%":"Monto $"}</div>
@@ -548,6 +608,17 @@ function render() {
   }).join("");
 
   document.getElementById("app").innerHTML = cards;
+
+  // Reabrir cards que estaban abiertas
+  Object.keys(docState).forEach(key => {
+    if (docState[key]._open) {
+      const safeKey = key.replace(/[^a-z0-9]/gi,"_");
+      const body  = document.getElementById("doc-body-"  + safeKey);
+      const arrow = document.getElementById("doc-arrow-" + safeKey);
+      if (body)  body.style.display = "block";
+      if (arrow) arrow.style.transform = "rotate(180deg)";
+    }
+  });
 }
 
 async function main() {
@@ -654,6 +725,162 @@ document.addEventListener("DOMContentLoaded", () => {
 
 main();
 
+
+// ── SUGERENCIA IA ────────────────────────────────────────────────────────
+
+async function sugerirIA(key, safeKey, proveedor, rutEmisor, montoTotal) {
+  const btn = document.getElementById("ia-btn-" + safeKey);
+  const box = document.getElementById("ia-box-" + safeKey);
+  if (!btn || !box) return;
+
+  btn.disabled = true;
+  btn.textContent = "⏳ Analizando historial...";
+
+  // Buscar historial de asignaciones para este RUT
+  const asignaciones = window.ASIGNACIONES || [];
+  const historial = asignaciones.filter(a =>
+    String(a["KEY_Documento"]||"").includes(rutEmisor) ||
+    String(a["Proveedor"]||"").trim() === proveedor.trim()
+  );
+
+  // Construir resumen de UPs disponibles
+  const upsDisponibles = Object.entries(CC_MAP).map(([id, nombre]) =>
+    `${id}: ${nombre} (${FUNDO_MAP[id]||"sin fundo"}, ${HA_MAP[id]||0} há)`
+  ).join("\n");
+
+  // Construir resumen del historial por UP
+  const histPorUP = {};
+  historial.forEach(a => {
+    const up = a["UP_Nombre"] || CC_MAP[a["UP_ID"]] || a["UP_ID"] || "Desconocida";
+    const upId = a["UP_ID"] || "";
+    if (!histPorUP[upId]) histPorUP[upId] = { nombre: up, count: 0, montoTotal: 0 };
+    histPorUP[upId].count++;
+    histPorUP[upId].montoTotal += Number(a["Monto_Asignado"]||0);
+  });
+
+  const histResumen = Object.entries(histPorUP).length > 0
+    ? Object.entries(histPorUP)
+        .sort((a,b) => b[1].count - a[1].count)
+        .map(([id, d]) => `UP_ID: ${id} | Nombre: ${d.nombre} | Veces asignado: ${d.count} | Monto total histórico: $${Math.round(d.montoTotal/1000)}k`)
+        .join("\n")
+    : "Sin historial previo para este proveedor.";
+
+  // Obtener items del documento actual si es guía
+  const doc = DOCS.find(d => String(d.KEY||"").trim() === key) || {};
+  let detalle = "";
+  const dets = window.DET_GUIAS?.[key] || window.DET_FACTURAS?.[key] || [];
+  if (dets.length) {
+    detalle = dets.slice(0,8).map(d =>
+      `${String(d["Nombre Item"]||"").trim()} | Cant: ${d["Cantidad"]||0} ${d["um"]||""} | $${Math.round(Number(d["Monto Item"]||0)/1000)}k`
+    ).join("\n");
+  }
+
+  const prompt = `Eres un asistente experto en gestión agrícola para el campo Los Crisoles.
+
+Tu tarea es sugerir cómo asignar un documento (factura o guía de despacho) a las unidades productivas (UPs) del campo.
+
+DOCUMENTO A ASIGNAR:
+- Proveedor: ${proveedor}
+- RUT: ${rutEmisor}
+- Monto total: $${Math.round(montoTotal).toLocaleString("es-CL")}
+${detalle ? `- Detalle de ítems:\n${detalle}` : ""}
+
+HISTORIAL DE ASIGNACIONES PREVIAS DE ESTE PROVEEDOR:
+${histResumen}
+
+UPs DISPONIBLES:
+${upsDisponibles}
+
+INSTRUCCIONES:
+- Analiza el historial y los ítems del documento para proponer la asignación más lógica
+- Si hay historial claro, sigue el patrón histórico
+- Si no hay historial, usa los ítems del documento para inferir qué UP se beneficia
+- Responde SOLO en JSON válido con este formato exacto:
+{
+  "sugerencia": [
+    { "up_id": "ID_exacto_de_la_UP", "up_nombre": "Nombre UP", "pct": 100, "monto": ${montoTotal} }
+  ],
+  "razon": "Explicación breve en español de por qué se sugiere esta distribución (máx 2 oraciones)"
+}
+- Los porcentajes deben sumar exactamente 100
+- Los montos deben sumar exactamente ${montoTotal}
+- Usa solo UP_IDs que existan en la lista de UPs disponibles`;
+
+  try {
+    const res = await fetch(WORKER, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system: "Eres un asistente agrícola experto. Responde SOLO con JSON válido, sin texto adicional, sin markdown, sin backticks.",
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    let texto = data.content?.[0]?.text || "";
+
+    // Limpiar posibles backticks o markdown
+    texto = texto.replace(/```json|```/g, "").trim();
+
+    let parsed;
+    try { parsed = JSON.parse(texto); } catch(e) {
+      throw new Error("La IA no devolvió un JSON válido");
+    }
+
+    const sug = parsed.sugerencia || [];
+    const razon = parsed.razon || "";
+
+    if (!sug.length) throw new Error("Sin sugerencias");
+
+    // Validar que los UP_IDs existan
+    const sugsValidas = sug.filter(s => CC_MAP[s.up_id]);
+    if (!sugsValidas.length) throw new Error("Las UPs sugeridas no coinciden con las disponibles");
+
+    // Mostrar sugerencia
+    const rowsHtml = sugsValidas.map(s => `
+      <div class="ia-up-row">
+        <div class="ia-up-nombre">${s.up_nombre || CC_MAP[s.up_id]}</div>
+        <div style="font-size:11px;color:#888;">${FUNDO_MAP[s.up_id]||""}</div>
+        <div class="ia-up-pct">${s.pct}%</div>
+        <div class="ia-up-monto">$${Math.round(s.monto/1000)}k</div>
+      </div>`).join("");
+
+    box.innerHTML = `
+      <div class="ia-sugerencia">
+        <div class="ia-sugerencia-title">✨ Sugerencia de la IA</div>
+        ${rowsHtml}
+        <div class="ia-razon">💡 ${razon}</div>
+        <div class="ia-actions">
+          <button class="btn-ia-apply" onclick="aplicarSugerencia('${key}',${montoTotal},${JSON.stringify(sugsValidas).replace(/"/g,'&quot;')})">
+            ✓ Aplicar sugerencia
+          </button>
+          <button class="btn-ia-dismiss" onclick="document.getElementById('ia-box-${safeKey}').innerHTML=''">
+            Descartar
+          </button>
+        </div>
+      </div>`;
+
+  } catch(e) {
+    box.innerHTML = `<div style="background:#fff8f8;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;font-size:12px;color:#991b1b;margin-bottom:10px;">
+      ⚠️ No se pudo generar sugerencia: ${e.message}
+    </div>`;
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = "✨ Sugerir con IA";
+}
+
+function aplicarSugerencia(key, montoTotal, sugs) {
+  // Reemplazar filas del docState con la sugerencia
+  if (!docState[key]) docState[key] = { metodo: "porcentaje", filas: [], obs: "", _open: true };
+  docState[key].metodo = "porcentaje";
+  docState[key].filas = sugs.map(s => ({
+    up_id: s.up_id,
+    monto: Math.round(s.monto),
+    pct:   s.pct
+  }));
+  render();
+}
 
 // ── CHAT IA ──────────────────────────────────────────────────────────────
 let chatHistory = [];
