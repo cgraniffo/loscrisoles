@@ -14,51 +14,38 @@
       border-bottom: 1px solid rgba(134,239,172,0.15);
       flex-shrink: 0; -webkit-overflow-scrolling: touch;
     }
-
-    /* Separador entre grupos */
     .tab-sep {
       width: 1px; background: rgba(134,239,172,0.2);
       margin: 8px 4px; flex-shrink: 0;
     }
-
-    /* Etiqueta de grupo */
     .tab-group-label {
       font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
-      text-transform: uppercase; color: rgba(134,239,172,0.5);
-      padding: 8px 10px 0 12px; flex-shrink: 0;
+      text-transform: uppercase; color: rgba(134,239,172,0.45);
+      padding: 8px 8px 0 10px; flex-shrink: 0;
       display: flex; align-items: flex-start;
       pointer-events: none; user-select: none;
     }
-
     .tab {
-      font-size: 12px; font-weight: 600; padding: 14px 16px 10px;
+      font-size: 12px; font-weight: 600; padding: 14px 15px 10px;
       cursor: pointer; color: rgba(255,255,255,0.5);
       border-bottom: 3px solid transparent;
       flex-shrink: 0; transition: all 0.15s;
       user-select: none; display: flex; align-items: center; gap: 5px;
     }
     .tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
-
-    /* Colores por grupo */
-    .tab.g-resumen.active { color: #fff; border-bottom-color: #86efac; }
-    .tab.g-campo.active   { color: #fff; border-bottom-color: #6ee7b7; }
-    .tab.g-finanzas.active{ color: #fff; border-bottom-color: #fcd34d; }
-
-    .tab.g-resumen:hover  { background: rgba(134,239,172,0.08); }
-    .tab.g-campo:hover    { background: rgba(110,231,183,0.08); }
-    .tab.g-finanzas:hover { background: rgba(252,211,77,0.08); }
+    .tab.g-resumen.active  { color: #fff; border-bottom-color: #86efac; }
+    .tab.g-campo.active    { color: #fff; border-bottom-color: #6ee7b7; }
+    .tab.g-finanzas.active { color: #fff; border-bottom-color: #fcd34d; }
 
     .frame-wrap { flex: 1; position: relative; overflow: hidden; }
     iframe {
-      position: absolute; inset: 0;
-      width: 100%; height: 100%;
-      border: none; display: none;
-      background: #f5f0e8;
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      border: none; display: none; background: #f5f0e8;
     }
     iframe.active { display: block; }
 
     @media (max-width: 600px) {
-      .tab { font-size: 10px; padding: 12px 11px 8px; gap: 3px; }
+      .tab { font-size: 10px; padding: 11px 10px 7px; gap: 3px; }
       .tab-group-label { display: none; }
       .tab-sep { margin: 6px 2px; }
     }
@@ -68,21 +55,16 @@
 
 <div class="tabbar">
 
-  <!-- RESUMEN -->
   <div class="tab g-resumen active" onclick="show('home', this)">🏠 Resumen</div>
 
   <div class="tab-sep"></div>
   <div class="tab-group-label">Campo</div>
-
-  <!-- CAMPO -->
   <div class="tab g-campo" onclick="show('labores', this)">📋 Labores</div>
   <div class="tab g-campo" onclick="show('produccion', this)">🌱 Producción</div>
   <div class="tab g-campo" onclick="show('insumos', this)">📦 Insumos</div>
 
   <div class="tab-sep"></div>
   <div class="tab-group-label">Finanzas</div>
-
-  <!-- FINANZAS -->
   <div class="tab g-finanzas" onclick="show('caja', this)">🏦 Caja</div>
   <div class="tab g-finanzas" onclick="show('costos', this)">💰 Costos</div>
   <div class="tab g-finanzas" onclick="show('ingresos', this)">🌾 Ingresos</div>
@@ -92,31 +74,82 @@
 </div>
 
 <div class="frame-wrap">
-  <iframe id="f-home"       class="active" src="home.html"></iframe>
-  <iframe id="f-labores"    data-src="reporte.html#labores"></iframe>
-  <iframe id="f-produccion" data-src="produccion.html#produccion"></iframe>
-  <iframe id="f-insumos"    data-src="produccion.html#insumos"></iframe>
-  <iframe id="f-caja"       data-src="reporte.html#caja"></iframe>
-  <iframe id="f-costos"     data-src="reporte.html#costos"></iframe>
-  <iframe id="f-ingresos"   data-src="reporte.html#ingresos"></iframe>
-  <iframe id="f-margenes"   data-src="reporte.html#margenes"></iframe>
-  <iframe id="f-asignar"    data-src="asignar.html"></iframe>
+  <iframe id="f-home"       class="active" src="/home"></iframe>
+  <iframe id="f-labores"    data-src="/reporte" data-tab="labores"></iframe>
+  <iframe id="f-produccion" data-src="/produccion" data-tab="produccion"></iframe>
+  <iframe id="f-insumos"    data-src="/produccion" data-tab="insumos"></iframe>
+  <iframe id="f-caja"       data-src="/reporte" data-tab="caja"></iframe>
+  <iframe id="f-costos"     data-src="/reporte" data-tab="costos"></iframe>
+  <iframe id="f-ingresos"   data-src="/reporte" data-tab="ingresos"></iframe>
+  <iframe id="f-margenes"   data-src="/reporte" data-tab="margenes"></iframe>
+  <iframe id="f-asignar"    data-src="/asignar"></iframe>
 </div>
 
 <script>
   var loaded = { home: true };
 
+  // CSS to inject into each iframe to hide the internal header and tabs
+  var HIDE_CSS = [
+    '.hdr { display: none !important; }',
+    '.header { display: none !important; }',
+    '.tabs { display: none !important; }',
+    '.metrics-top { display: none !important; }',
+    '.metrics { display: none !important; }',
+    // Give the body content a bit more breathing room at the top
+    '.body { padding-top: 16px !important; }',
+  ].join(' ');
+
+  function injectCSS(iframe) {
+    try {
+      var doc = iframe.contentDocument || iframe.contentWindow.document;
+      var style = doc.createElement('style');
+      style.textContent = HIDE_CSS;
+      doc.head.appendChild(style);
+    } catch(e) {
+      // cross-origin safety — won't happen on same domain
+    }
+  }
+
+  function switchIframeTab(iframe, tab) {
+    try {
+      var win = iframe.contentWindow;
+      // reporte uses switchTab(tab)
+      if (typeof win.switchTab === 'function') win.switchTab(tab);
+      // produccion uses its own switchTab with different tab names
+      var prodMap = { produccion: 'prod', insumos: 'insumos' };
+      if (prodMap[tab] && typeof win.switchTab === 'function') win.switchTab(prodMap[tab]);
+    } catch(e) {}
+  }
+
   function show(name, el) {
+    // Update tab styles
     document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
     el.classList.add('active');
+
+    // Show correct iframe
     document.querySelectorAll('iframe').forEach(function(f) { f.classList.remove('active'); });
     var frame = document.getElementById('f-' + name);
+
     if (!loaded[name]) {
-      frame.src = frame.getAttribute('data-src');
+      // First time — load the iframe
+      var src = frame.getAttribute('data-src');
+      var tab = frame.getAttribute('data-tab');
+      frame.src = src;
       loaded[name] = true;
+
+      frame.addEventListener('load', function() {
+        injectCSS(frame);
+        if (tab) switchIframeTab(frame, tab);
+      });
     }
+
     frame.classList.add('active');
   }
+
+  // Inject CSS into home iframe on load too
+  document.getElementById('f-home').addEventListener('load', function() {
+    injectCSS(this);
+  });
 </script>
 
 </body>
