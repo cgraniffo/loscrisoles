@@ -1927,7 +1927,7 @@ function renderCaja() {
           const d = getFecha(r);
           return `<div class="caja-row">
             <div class="caja-date">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—"}</div>
-            <div class="caja-name">${String(r["Razón Social"]||"—").trim()} <span class="caja-folio">${r["Folio"]?"F:"+r["Folio"]:""}</span></div>
+            <div class="caja-name">${(window.CLIENTE_MAP?.[String(r["KEY"]||"").trim()] || String(r["Razón Social"]||"—")).trim()} <span class="caja-folio">${r["Folio"]?"F:"+r["Folio"]:""}</span></div>
             <div class="caja-monto" style="color:#1a3a0a;">${fmtPesoFull(Number(r["Monto Total"]||r["Monto_Total"]||0))}</div>
           </div>`;
         }).join("");
@@ -2661,7 +2661,7 @@ function toggleCostoMulti(key, val) {
 // ── MAIN ───────────────────────────────────────────────────────────────────
 async function main() {
   try {
-    const [registros, ccs, labores, encargados, proyecciones, documentos, asignaciones, banco] = await Promise.all([
+    const [registros, ccs, labores, encargados, proyecciones, documentos, asignaciones, banco, detFacturas] = await Promise.all([
       fetchSheet(API_REGISTRO, "BD_Registro"),
       fetchSheet(API_CC,       "BD_CC"),
       fetchSheet(API_LABORES,  "BD_Labores"),
@@ -2669,7 +2669,8 @@ async function main() {
       fetchSheet(API_REGISTRO, "Proyecciones_Manuales"),
       fetchSheet(API_FINANZAS, "CargaHTML_Demo"),
       fetchSheet(API_FINANZAS, "Asignaciones_U"),
-      fetchSheet(API_FINANZAS, "BD_Banco")
+      fetchSheet(API_FINANZAS, "BD_Banco"),
+      fetchSheet(API_FINANZAS, "DetallesFacturas")
     ]);
 
     ccs.forEach(c => {
@@ -2705,6 +2706,14 @@ async function main() {
     PROYECCIONES = window.PROYECCIONES = proyecciones;
     DOCUMENTOS   = window.DOCUMENTOS   = documentos;
     ASIGNACIONES = window.ASIGNACIONES = Array.isArray(asignaciones) ? asignaciones : [];
+
+    // Índice KEY → Cliente desde DetallesFacturas
+    window.CLIENTE_MAP = {};
+    (Array.isArray(detFacturas)?detFacturas:[]).forEach(d => {
+      const key = String(d["ID_Factura_Padre"]||"").trim();
+      const cli = String(d["Cliente"]||"").trim();
+      if (key && cli && !window.CLIENTE_MAP[key]) window.CLIENTE_MAP[key] = cli;
+    });
 
     // Saldo real desde BD_Banco
     const bancoDatos = Array.isArray(banco) ? banco : [];
