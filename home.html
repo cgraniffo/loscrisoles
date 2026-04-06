@@ -397,7 +397,7 @@ if (location.search.includes('embed=1')) {
       <div class="card">
         <div class="card-head">
           <div class="card-title">🏦 Flujo de caja</div>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver detalle →</a>
+          <a href="#" onclick="navTo('costos','/reporte');return false;" class="card-link">Ver detalle →</a>
         </div>
         <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
       </div>
@@ -425,15 +425,6 @@ if (location.search.includes('embed=1')) {
   <!-- ── CAMPO ───────────────────────────────────────────── -->
   <div class="section" id="sec-campo">
     <div class="grid-3" id="up-cards"></div>
-    <div class="card" style="margin-top:16px;">
-      <div class="card-head">
-        <div class="card-title">🗺 Mapa de unidades productivas</div>
-        <div style="font-size:11px;color:var(--gris);">Click en marcador para ver detalles</div>
-      </div>
-      <div class="card-body" style="padding:12px;">
-        <div id="mapa-home"></div>
-      </div>
-    </div>
   </div>
 
   <!-- ── FINANZAS ───────────────────────────────────────────── -->
@@ -460,6 +451,15 @@ if (location.search.includes('embed=1')) {
         <a href="#" onclick="navTo('asignar','/asignar');return false;" class="card-link">Asignar →</a>
       </div>
       <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <div class="card-head">
+        <div class="card-title">🗺 Mapa de unidades productivas</div>
+        <div style="font-size:11px;color:var(--gris);">Click en marcador para ver detalles</div>
+      </div>
+      <div class="card-body" style="padding:12px;">
+        <div id="mapa-home"></div>
+      </div>
     </div>
   </div>
 
