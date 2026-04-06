@@ -365,24 +365,24 @@ if (location.search.includes('embed=1')) {
   <div class="section on" id="sec-resumen">
     <!-- Nav cards -->
     <div class="nav-grid" style="margin-bottom:20px;margin-top:4px;">
-      <a class="nav-card verde" href="#" onclick="navTo('labores','/reporte');return false;">
+      <div class="nav-card verde">
         <div class="nav-icon">📋</div>
         <div class="nav-title">Reporte diario</div>
         <div class="nav-desc">Labores, caja, costos, ingresos y márgenes del campo</div>
         <div class="nav-badge badge-verde" id="nav-labores-badge">Cargando...</div>
-      </a>
-      <a class="nav-card azul" href="#" onclick="navTo('produccion','/produccion');return false;">
+      </div>
+      <div class="nav-card azul">
         <div class="nav-icon">🌱</div>
         <div class="nav-title">Producción</div>
         <div class="nav-desc">Guías de despacho emitidas e insumos recibidos por UP</div>
         <div class="nav-badge badge-verde" id="nav-prod-badge">Cargando...</div>
-      </a>
-      <a class="nav-card amber" href="#" onclick="navTo('asignar','/asignar');return false;">
+      </div>
+      <div class="nav-card amber">
         <div class="nav-icon">📎</div>
         <div class="nav-title">Asignar docs</div>
         <div class="nav-desc">Asignar facturas y guías a unidades productivas</div>
         <div class="nav-badge badge-rojo" id="nav-asignar-badge">Cargando...</div>
-      </a>
+      </div>
     </div>
 
     <!-- Labores + Caja -->
@@ -424,7 +424,8 @@ if (location.search.includes('embed=1')) {
 
   <!-- ── CAMPO ───────────────────────────────────────────── -->
   <div class="section" id="sec-campo">
-    <div class="card" style="margin-bottom:16px;">
+    <div class="grid-3" id="up-cards"></div>
+    <div class="card" style="margin-top:16px;">
       <div class="card-head">
         <div class="card-title">🗺 Mapa de unidades productivas</div>
         <div style="font-size:11px;color:var(--gris);">Click en marcador para ver detalles</div>
@@ -433,7 +434,6 @@ if (location.search.includes('embed=1')) {
         <div id="mapa-home"></div>
       </div>
     </div>
-    <div class="grid-3" id="up-cards"></div>
   </div>
 
   <!-- ── FINANZAS ───────────────────────────────────────────── -->
