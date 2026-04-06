@@ -1139,11 +1139,28 @@ function renderResultadoUP() {
   if (!upsTemp.includes(window._resUP)) window._resUP = upsTemp[0];
 
   // ── RENDER SELECTOR ───────────────────────────────────────────────────────
-  const selectorBtns = upsTemp.map(id =>
+  // Filtro por fundo (Centro de Costo)
+  const fundosDisp = [...new Set(upsTemp.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
+  if (!window._resFundo) window._resFundo = "";
+  // UPs filtradas por fundo seleccionado
+  const upsFiltradas = window._resFundo
+    ? upsTemp.filter(id => FUNDO_MAP[id] === window._resFundo)
+    : upsTemp;
+  if (upsFiltradas.length && !upsFiltradas.includes(window._resUP))
+    window._resUP = upsFiltradas[0];
+
+  const selectorBtns = upsFiltradas.map(id =>
     `<button onclick="window._resUP='${id}';renderResultadoUP();"
       style="padding:5px 12px;border-radius:20px;border:1px solid ${id===window._resUP?'#1a3a0a':'#ddd'};
       background:${id===window._resUP?'#1a3a0a':'#fff'};color:${id===window._resUP?'#fff':'#333'};
       font-size:12px;cursor:pointer;margin:2px;">${CC_MAP[id]||id}</button>`
+  ).join("");
+
+  const fundoBtns = ['', ...fundosDisp].map(f =>
+    `<button onclick="window._resFundo='${f}';renderResultadoUP();"
+      style="padding:5px 12px;border-radius:20px;border:1px solid ${f===window._resFundo?'#1a3a0a':'#ddd'};
+      background:${f===window._resFundo?'#1a3a0a':'#fff'};color:${f===window._resFundo?'#fff':'#333'};
+      font-size:12px;cursor:pointer;margin:2px;">${f||'Todos'}</button>`
   ).join("");
 
   // ── RENDER CARD UP ────────────────────────────────────────────────────────
@@ -1283,7 +1300,7 @@ function renderResultadoUP() {
 
   // ── VISTA COMPARATIVA ─────────────────────────────────────────────────────
   function tablaComparativa() {
-    const rows = upsTemp.map(id => {
+    const rows = upsFiltradas.map(id => {
       const nombre  = CC_MAP[id]||id;
       const ha      = HA_MAP[id]||0;
       const tCosto  = (costoRegTotal[id]||0) + (costoAsigTotal[id]||0);
@@ -1315,7 +1332,7 @@ function renderResultadoUP() {
 
     // Totales
     let tTP=0,tTF=0,tTC=0;
-    upsTemp.forEach(id => {
+    upsFiltradas.forEach(id => {
       tTP += ingPpto[id]||0;
       tTF += ingFact[id]||0;
       tTC += (costoRegTotal[id]||0)+(costoAsigTotal[id]||0);
@@ -1357,12 +1374,14 @@ function renderResultadoUP() {
 
   // ── HTML FINAL ────────────────────────────────────────────────────────────
   document.getElementById("app-resultado").innerHTML = `
-    <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">
-        Seleccionar UP
+    <div style="margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Unidad Productiva</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">${selectorBtns}</div>
       </div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px;">
-        ${selectorBtns}
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Centro de Costo</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">${fundoBtns}</div>
       </div>
     </div>
 
@@ -1373,7 +1392,7 @@ function renderResultadoUP() {
     <div style="background:#fff;border:1px solid #e5e2da;border-radius:12px;overflow:hidden;">
       <div style="padding:14px 20px;border-bottom:1px solid #f0ede6;display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:13px;font-weight:700;">Comparativa todas las UPs — ${tempActiva}</div>
-        <div style="font-size:11px;color:#888;">${upsTemp.length} unidades productivas</div>
+        <div style="font-size:11px;color:#888;">${upsFiltradas.length} unidades productivas</div>
       </div>
       <div style="padding:0 8px 8px;">
         ${tablaComparativa()}
