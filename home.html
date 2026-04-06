@@ -583,8 +583,8 @@ async function main() {
     const urgentes = [...vencidas, ...activos.filter(r => { const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; })].slice(0,6);
 
     document.getElementById('h-vencidas').textContent = vencidas.length;
-    document.getElementById('nav-labores-badge').textContent = vencidas.length + " vencidas · " + activos.length + " activas";
-    document.getElementById('nav-labores-badge').className = "nav-badge " + (vencidas.length>0?"badge-rojo":"badge-verde");
+    const _nb1 = document.getElementById('nav-labores-badge'); if(_nb1) _nb1.textContent = vencidas.length + " vencidas · " + activos.length + " activas";
+    if(_nb1) _nb1.className = "nav-badge " + (vencidas.length>0?"badge-rojo":"badge-verde");
 
     const colorEstado = e => e==="Vencido"||parseDate(e)<hoy ? "#ef4444" : "#f59e0b";
     // Group labores by date for calendar view
@@ -813,7 +813,7 @@ function renderHome({ registros, asignaciones, proyecciones }) {
       <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Producción real despachada</div>
       ${volRows}
     </div>`:""}`;
-  document.getElementById('nav-prod-badge').textContent = ingRows.length + " UPs con proyección";
+  const _nb2 = document.getElementById('nav-prod-badge'); if(_nb2) _nb2.textContent = ingRows.length + " UPs con proyección";
 }
     const CORTE_ASIG = "2026-04-01";
     const sinAsignar = (Array.isArray(docs)?docs:[]).filter(d => {
@@ -824,8 +824,8 @@ function renderHome({ registros, asignaciones, proyecciones }) {
     const sinAsigNuevos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] >= CORTE_ASIG);
     const sinAsigViejos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] < CORTE_ASIG);
     document.getElementById('h-sin-asignar').textContent = sinAsigNuevos.length;
-    document.getElementById('nav-asignar-badge').textContent = sinAsigNuevos.length + " nuevos · " + sinAsigViejos.length + " anteriores";
-    document.getElementById('nav-asignar-badge').className = "nav-badge " + (sinAsigNuevos.length>0?"badge-rojo":"badge-verde");
+    const _nb3 = document.getElementById('nav-asignar-badge'); if(_nb3) _nb3.textContent = sinAsigNuevos.length + " nuevos · " + sinAsigViejos.length + " anteriores";
+    if(_nb3) _nb3.className = "nav-badge " + (sinAsigNuevos.length>0?"badge-rojo":"badge-verde");
 
     // Finanzas tab content
     const pagar30HTML = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
