@@ -1135,33 +1135,56 @@ function renderResultadoUP() {
   });
 
   // ── STATE: UP seleccionada ─────────────────────────────────────────────────
-  if (!window._resUP) window._resUP = upsTemp[0];
-  if (!upsTemp.includes(window._resUP)) window._resUP = upsTemp[0];
+  // Multi-select: arrays de seleccionados (vacío = todos)
+  if (!window._resUPs)    window._resUPs    = [];
+  if (!window._resFundos) window._resFundos = [];
 
   // ── RENDER SELECTOR ───────────────────────────────────────────────────────
-  // Filtro por fundo (Centro de Costo)
+  // Filtros multi-select
   const fundosDisp = [...new Set(upsTemp.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
-  if (!window._resFundo) window._resFundo = "";
-  // UPs filtradas por fundo seleccionado
-  const upsFiltradas = window._resFundo
-    ? upsTemp.filter(id => FUNDO_MAP[id] === window._resFundo)
+
+  function toggleResUP(id) {
+    const arr = window._resUPs;
+    const idx = arr.indexOf(id);
+    if (idx===-1) arr.push(id); else arr.splice(idx,1);
+    renderResultadoUP();
+  }
+  function toggleResFundo(f) {
+    const arr = window._resFundos;
+    const idx = arr.indexOf(f);
+    if (idx===-1) arr.push(f); else arr.splice(idx,1);
+    // Limpiar UPs que ya no aplican
+    window._resUPs = window._resUPs.filter(id =>
+      window._resFundos.length===0 || window._resFundos.includes(FUNDO_MAP[id]||"")
+    );
+    renderResultadoUP();
+  }
+
+  // UPs filtradas por fundos seleccionados
+  const upsFiltradas = window._resFundos.length > 0
+    ? upsTemp.filter(id => window._resFundos.includes(FUNDO_MAP[id]||""))
     : upsTemp;
-  if (upsFiltradas.length && !upsFiltradas.includes(window._resUP))
-    window._resUP = upsFiltradas[0];
 
-  const selectorBtns = upsFiltradas.map(id =>
-    `<button onclick="window._resUP='${id}';renderResultadoUP();"
-      style="padding:5px 12px;border-radius:20px;border:1px solid ${id===window._resUP?'#1a3a0a':'#ddd'};
-      background:${id===window._resUP?'#1a3a0a':'#fff'};color:${id===window._resUP?'#fff':'#333'};
-      font-size:12px;cursor:pointer;margin:2px;">${CC_MAP[id]||id}</button>`
-  ).join("");
+  // UPs a mostrar en detalle: las seleccionadas (o todas si no hay selección)
+  const upsDetalle = window._resUPs.length > 0
+    ? upsFiltradas.filter(id => window._resUPs.includes(id))
+    : upsFiltradas;
 
-  const fundoBtns = ['', ...fundosDisp].map(f =>
-    `<button onclick="window._resFundo='${f}';renderResultadoUP();"
-      style="padding:5px 12px;border-radius:20px;border:1px solid ${f===window._resFundo?'#1a3a0a':'#ddd'};
-      background:${f===window._resFundo?'#1a3a0a':'#fff'};color:${f===window._resFundo?'#fff':'#333'};
-      font-size:12px;cursor:pointer;margin:2px;">${f||'Todos'}</button>`
-  ).join("");
+  const selectorBtns = upsFiltradas.map(id => {
+    const on = window._resUPs.includes(id);
+    return `<button onclick="toggleResUP('${id}')"
+      style="padding:5px 12px;border-radius:20px;border:1px solid ${on?'#1a3a0a':'#ddd'};
+      background:${on?'#1a3a0a':'#fff'};color:${on?'#fff':'#333'};
+      font-size:12px;cursor:pointer;margin:2px;">${CC_MAP[id]||id}</button>`;
+  }).join("");
+
+  const fundoBtns = fundosDisp.map(f => {
+    const on = window._resFundos.includes(f);
+    return `<button onclick="toggleResFundo('${f}')"
+      style="padding:5px 12px;border-radius:20px;border:1px solid ${on?'#1a3a0a':'#ddd'};
+      background:${on?'#1a3a0a':'#fff'};color:${on?'#fff':'#333'};
+      font-size:12px;cursor:pointer;margin:2px;">${f}</button>`;
+  }).join("");
 
   // ── RENDER CARD UP ────────────────────────────────────────────────────────
   function cardUP(upId) {
@@ -1385,14 +1408,14 @@ function renderResultadoUP() {
       </div>
     </div>
 
-    <!-- Card detalle UP seleccionada -->
-    ${cardUP(window._resUP)}
+    <!-- Cards detalle UPs seleccionadas -->
+    ${upsDetalle.map(id => cardUP(id)).join('')}
 
     <!-- Tabla comparativa todas las UPs -->
     <div style="background:#fff;border:1px solid #e5e2da;border-radius:12px;overflow:hidden;">
       <div style="padding:14px 20px;border-bottom:1px solid #f0ede6;display:flex;align-items:center;justify-content:space-between;">
         <div style="font-size:13px;font-weight:700;">Comparativa todas las UPs — ${tempActiva}</div>
-        <div style="font-size:11px;color:#888;">${upsFiltradas.length} unidades productivas</div>
+        <div style="font-size:11px;color:#888;">${upsFiltradas.length} UPs${window._resUPs.length>0?" · "+window._resUPs.length+" seleccionadas":""}</div>
       </div>
       <div style="padding:0 8px 8px;">
         ${tablaComparativa()}
