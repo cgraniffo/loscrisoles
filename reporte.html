@@ -1039,6 +1039,27 @@ function renderIngresos() {
 // Determina la temporada de una fecha dado el mes de inicio
 
 // ── RESULTADO POR UP ────────────────────────────────────────────────────────
+function toggleResUP(id) {
+  if (!window._resUPs) window._resUPs = [];
+  const idx = window._resUPs.indexOf(id);
+  if (idx===-1) window._resUPs.push(id); else window._resUPs.splice(idx,1);
+  // La UP activa para el detalle es la última clickeada (o la primera seleccionada)
+  window._resUPActiva = id;
+  renderResultadoUP();
+}
+function toggleResFundo(f) {
+  if (!window._resFundos) window._resFundos = [];
+  const idx = window._resFundos.indexOf(f);
+  if (idx===-1) window._resFundos.push(f); else window._resFundos.splice(idx,1);
+  // Limpiar UPs que ya no aplican al fundo
+  if (window._resUPs) {
+    window._resUPs = window._resUPs.filter(id =>
+      window._resFundos.length===0 || window._resFundos.includes(FUNDO_MAP[id]||"")
+    );
+  }
+  renderResultadoUP();
+}
+
 function renderResultadoUP() {
   const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
   const FECHA_CORTE = FECHA_CORTE_COSTOS;
@@ -1136,45 +1157,36 @@ function renderResultadoUP() {
 
   // ── STATE: UP seleccionada ─────────────────────────────────────────────────
   // Multi-select: arrays de seleccionados (vacío = todos)
-  if (!window._resUPs)    window._resUPs    = [];
-  if (!window._resFundos) window._resFundos = [];
+  if (!window._resUPs)      window._resUPs      = [];
+  if (!window._resFundos)   window._resFundos   = [];
+  if (!window._resUPActiva) window._resUPActiva = upsTemp[0];
 
   // ── RENDER SELECTOR ───────────────────────────────────────────────────────
   // Filtros multi-select
   const fundosDisp = [...new Set(upsTemp.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
-
-  function toggleResUP(id) {
-    const arr = window._resUPs;
-    const idx = arr.indexOf(id);
-    if (idx===-1) arr.push(id); else arr.splice(idx,1);
-    renderResultadoUP();
-  }
-  function toggleResFundo(f) {
-    const arr = window._resFundos;
-    const idx = arr.indexOf(f);
-    if (idx===-1) arr.push(f); else arr.splice(idx,1);
-    // Limpiar UPs que ya no aplican
-    window._resUPs = window._resUPs.filter(id =>
-      window._resFundos.length===0 || window._resFundos.includes(FUNDO_MAP[id]||"")
-    );
-    renderResultadoUP();
-  }
 
   // UPs filtradas por fundos seleccionados
   const upsFiltradas = window._resFundos.length > 0
     ? upsTemp.filter(id => window._resFundos.includes(FUNDO_MAP[id]||""))
     : upsTemp;
 
-  // UPs a mostrar en detalle: las seleccionadas (o todas si no hay selección)
+  // Para la tabla: UPs seleccionadas (o todas del fundo si no hay selección)
   const upsDetalle = window._resUPs.length > 0
     ? upsFiltradas.filter(id => window._resUPs.includes(id))
     : upsFiltradas;
+  // Sincronizar UP activa
+  if (!upsFiltradas.includes(window._resUPActiva))
+    window._resUPActiva = upsFiltradas[0];
 
   const selectorBtns = upsFiltradas.map(id => {
-    const on = window._resUPs.includes(id);
+    const sel    = window._resUPs.includes(id);
+    const activa = id === window._resUPActiva;
+    const bg     = sel ? '#1a3a0a' : activa ? '#eaf3de' : '#fff';
+    const border = sel ? '#1a3a0a' : activa ? '#1a3a0a' : '#ddd';
+    const color  = sel ? '#fff'    : '#333';
     return `<button onclick="toggleResUP('${id}')"
-      style="padding:5px 12px;border-radius:20px;border:1px solid ${on?'#1a3a0a':'#ddd'};
-      background:${on?'#1a3a0a':'#fff'};color:${on?'#fff':'#333'};
+      style="padding:5px 12px;border-radius:20px;border:1px solid ${border};
+      background:${bg};color:${color};
       font-size:12px;cursor:pointer;margin:2px;">${CC_MAP[id]||id}</button>`;
   }).join("");
 
@@ -1408,8 +1420,14 @@ function renderResultadoUP() {
       </div>
     </div>
 
-    <!-- Cards detalle UPs seleccionadas -->
-    ${upsDetalle.map(id => cardUP(id)).join('')}
+    <!-- Card detalle: muestra la UP activa -->
+    ${(()=>{
+      const upCard = (window._resUPs.length>0 && window._resUPs.includes(window._resUPActiva))
+        ? window._resUPActiva
+        : (upsFiltradas.includes(window._resUPActiva) ? window._resUPActiva : upsFiltradas[0]);
+      window._resUPActiva = upCard;
+      return upCard ? cardUP(upCard) : '';
+    })()}
 
     <!-- Tabla comparativa todas las UPs -->
     <div style="background:#fff;border:1px solid #e5e2da;border-radius:12px;overflow:hidden;">
