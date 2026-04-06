@@ -1126,6 +1126,78 @@ function renderResultadoUP() {
     costoAsigTotal[id]          = (costoAsigTotal[id]||0) + m;
   });
 
+  // ── DOCS DETALLE por UP (para expandibles) ──────────────────────────────
+  const docsReg  = {};   // { upId: [{fecha, labor, tipo, monto}] }
+  const docsAsig = {};   // { upId: [{fecha, proveedor, folio, tipo, monto}] }
+  const docsIng  = {};   // { upId: [{fecha, proveedor, folio, tipo, monto}] }
+  const docsProy = {};   // { upId: [{fecha, estado, monto, kilos}] }
+
+  (window.TODOS||[]).filter(r => {
+    const raw = String(r["Fecha"]||"");
+    const f   = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
+    const id  = String(r["Centro_Costo"]||"").trim();
+    return Number(r["Costo Total"]||0) > 0 && (f===""||f<FECHA_CORTE) && passTemp(f,id) && esProd(id);
+  }).forEach(r => {
+    const id = String(r["Centro_Costo"]||"").trim();
+    if (!docsReg[id]) docsReg[id] = [];
+    docsReg[id].push({
+      fecha:  r["Fecha"]||"",
+      labor:  String(r["Tipo_Labor"]||r["Labor"]||"—").trim(),
+      tipo:   String(r["Tipo_Labor"]||"—").trim(),
+      obs:    String(r["Observaciones"]||"").trim().slice(0,40),
+      monto:  Number(r["Costo Total"]||0)
+    });
+  });
+
+  (window.ASIGNACIONES||[]).filter(r => {
+    const id    = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
+    return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha,id) && esProd(id) && !tipo.includes("emit");
+  }).forEach(r => {
+    const id = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
+    if (!docsAsig[id]) docsAsig[id] = [];
+    docsAsig[id].push({
+      fecha:     r["Fecha_Documento"]||r["Fecha_Asignacion"]||"",
+      proveedor: String(r["Proveedor"]||"—").trim().slice(0,30),
+      folio:     String(r["Folio"]||"—").trim(),
+      tipo:      String(r["Tipo_Doc"]||"—").trim(),
+      monto:     Number(r["Monto_Asignado"]||0)
+    });
+  });
+
+  (window.ASIGNACIONES||[]).filter(r => {
+    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
+    const id    = resolveId(r["UP_Nombre"]||r["UP_ID"]||"");
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    return tipo.includes("emit") && Number(r["Monto_Asignado"]||0)>0 && passTemp(fecha,id);
+  }).forEach(r => {
+    const id = resolveId(r["UP_Nombre"]||r["UP_ID"]||"");
+    if (!docsIng[id]) docsIng[id] = [];
+    docsIng[id].push({
+      fecha:     r["Fecha_Documento"]||r["Fecha_Asignacion"]||"",
+      proveedor: String(r["Proveedor"]||"—").trim().slice(0,30),
+      folio:     String(r["Folio"]||"—").trim(),
+      tipo:      String(r["Tipo_Doc"]||"—").trim(),
+      monto:     Number(r["Monto_Asignado"]||0)
+    });
+  });
+
+  (window.PROYECCIONES||[]).filter(r => {
+    const id    = String(r["Unidad_Productiva"]||"").trim();
+    const fecha = r["Fecha_Estimada"]||"";
+    return passTemp(fecha,id) && esProd(id);
+  }).forEach(r => {
+    const id = String(r["Unidad_Productiva"]||"").trim();
+    if (!docsProy[id]) docsProy[id] = [];
+    docsProy[id].push({
+      fecha:  r["Fecha_Estimada"]||"",
+      estado: String(r["Estado"]||"—").trim(),
+      monto:  Number(r["Monto_Total"]||0),
+      kilos:  Number(r["Kilos_Estimados"]||0)
+    });
+  });
+
   // ── INGRESOS por UP ───────────────────────────────────────────────────────
   const NAME_TO_ID = {};
   Object.entries(CC_MAP).forEach(([id,n]) => { NAME_TO_ID[n.trim().toLowerCase()] = id; });
@@ -1329,6 +1401,125 @@ function renderResultadoUP() {
             <div style="font-size:16px;font-weight:700;color:${clsPpto};">${tPpto>0?(mgnPpto/tPpto*100).toFixed(1)+"%":"—"}</div>
           </div>
         </div>
+      </div>
+
+      <!-- Detalle documentos expandible -->
+      <div style="border-top:1px solid #f0ede6;">
+
+        <!-- Costos BD Registro -->
+        <div onclick="toggleBloque('det_reg_${safeId}')"
+          style="cursor:pointer;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;background:#f8faf5;">
+          <span style="font-size:12px;font-weight:600;color:#3b6d11;">📋 Detalle BD Registro (${(docsReg[upId]||[]).length} registros)</span>
+          <span style="font-size:11px;color:#3b6d11;" id="arr-det_reg_${safeId}">▼</span>
+        </div>
+        <div id="body-det_reg_${safeId}" style="display:none;overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead style="background:#f0f7ec;">
+              <tr>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Fecha</th>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Tipo Labor</th>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Observación</th>
+                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(docsReg[upId]||[]).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).map(d => `
+                <tr style="border-bottom:1px solid #f0ede6;">
+                  <td style="padding:5px 12px;color:#888;">${String(d.fecha).split("T")[0]}</td>
+                  <td style="padding:5px 12px;">${d.labor}</td>
+                  <td style="padding:5px 12px;color:#888;">${d.obs||"—"}</td>
+                  <td style="text-align:right;padding:5px 12px;font-weight:600;">${fmtPeso(d.monto)}</td>
+                </tr>`).join("")||'<tr><td colspan="4" style="padding:10px 12px;color:#aaa;text-align:center;">Sin registros</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Costos Asignaciones -->
+        <div onclick="toggleBloque('det_asig_${safeId}')"
+          style="cursor:pointer;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;background:#f5f8ff;border-top:1px solid #f0ede6;">
+          <span style="font-size:12px;font-weight:600;color:#0c447c;">📎 Detalle Asignaciones (${(docsAsig[upId]||[]).length} registros)</span>
+          <span style="font-size:11px;color:#0c447c;" id="arr-det_asig_${safeId}">▼</span>
+        </div>
+        <div id="body-det_asig_${safeId}" style="display:none;overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead style="background:#eef3fc;">
+              <tr>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Fecha</th>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Proveedor</th>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Folio</th>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Tipo</th>
+                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(docsAsig[upId]||[]).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).map(d => `
+                <tr style="border-bottom:1px solid #f0ede6;">
+                  <td style="padding:5px 12px;color:#888;">${String(d.fecha).split("T")[0]}</td>
+                  <td style="padding:5px 12px;">${d.proveedor}</td>
+                  <td style="padding:5px 12px;color:#888;">${d.folio}</td>
+                  <td style="padding:5px 12px;color:#888;">${d.tipo}</td>
+                  <td style="text-align:right;padding:5px 12px;font-weight:600;">${fmtPeso(d.monto)}</td>
+                </tr>`).join("")||'<tr><td colspan="5" style="padding:10px 12px;color:#aaa;text-align:center;">Sin registros</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Ingresos Facturados -->
+        <div onclick="toggleBloque('det_ing_${safeId}')"
+          style="cursor:pointer;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;background:#f3fbf5;border-top:1px solid #f0ede6;">
+          <span style="font-size:12px;font-weight:600;color:#1a6e3a;">🧾 Detalle Facturado (${(docsIng[upId]||[]).length} registros)</span>
+          <span style="font-size:11px;color:#1a6e3a;" id="arr-det_ing_${safeId}">▼</span>
+        </div>
+        <div id="body-det_ing_${safeId}" style="display:none;overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead style="background:#e8f7ec;">
+              <tr>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Fecha</th>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Cliente</th>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Folio</th>
+                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(docsIng[upId]||[]).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).map(d => `
+                <tr style="border-bottom:1px solid #f0ede6;">
+                  <td style="padding:5px 12px;color:#888;">${String(d.fecha).split("T")[0]}</td>
+                  <td style="padding:5px 12px;">${d.proveedor}</td>
+                  <td style="padding:5px 12px;color:#888;">${d.folio}</td>
+                  <td style="text-align:right;padding:5px 12px;font-weight:600;color:#1a6e3a;">${fmtPeso(d.monto)}</td>
+                </tr>`).join("")||'<tr><td colspan="4" style="padding:10px 12px;color:#aaa;text-align:center;">Sin facturas emitidas</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Proyecciones -->
+        <div onclick="toggleBloque('det_proy_${safeId}')"
+          style="cursor:pointer;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;background:#fffbf0;border-top:1px solid #f0ede6;">
+          <span style="font-size:12px;font-weight:600;color:#b45309;">🔮 Detalle Proyecciones (${(docsProy[upId]||[]).length} registros)</span>
+          <span style="font-size:11px;color:#b45309;" id="arr-det_proy_${safeId}">▼</span>
+        </div>
+        <div id="body-det_proy_${safeId}" style="display:none;overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead style="background:#fef9ec;">
+              <tr>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Fecha Est.</th>
+                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Estado</th>
+                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Kilos Est.</th>
+                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Monto</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(docsProy[upId]||[]).sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))).map(d => `
+                <tr style="border-bottom:1px solid #f0ede6;">
+                  <td style="padding:5px 12px;color:#888;">${String(d.fecha).split("T")[0]}</td>
+                  <td style="padding:5px 12px;">${d.estado}</td>
+                  <td style="text-align:right;padding:5px 12px;color:#888;">${d.kilos>0?d.kilos.toLocaleString("es-CL")+" kg":"—"}</td>
+                  <td style="text-align:right;padding:5px 12px;font-weight:600;color:#b45309;">${fmtPeso(d.monto)}</td>
+                </tr>`).join("")||'<tr><td colspan="4" style="padding:10px 12px;color:#aaa;text-align:center;">Sin proyecciones</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
       </div>
     </div>`;
   }
