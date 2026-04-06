@@ -1076,10 +1076,19 @@ function renderResultadoUP() {
     return (HA_MAP[id]||0) > 0 && !FUNDOS_NP.has(FUNDO_MAP[id]||"");
   }
 
+  // Resolver nombre→id para Asignaciones
+  const NAME_TO_ID_R = {};
+  Object.entries(CC_MAP).forEach(([id,n]) => { NAME_TO_ID_R[n.trim().toLowerCase()] = id; });
+  function resolveId(val) {
+    const raw = String(val||"").trim();
+    return CC_MAP[raw] ? raw : (NAME_TO_ID_R[raw.toLowerCase()]||raw);
+  }
+
   // ── UPs productivas de la temporada ──────────────────────────────────────
   const upsTemp = Object.keys(CC_MAP).filter(id => {
     const tmp = TEMP_MAP[id];
-    return tmp && tmp.temporada === tempActiva && esProd(id);
+    if (!tmp || !esProd(id)) return false;
+    return !tempActiva || tmp.temporada === tempActiva;
   }).sort((a,b) => (CC_MAP[a]||a).localeCompare(CC_MAP[b]||b));
 
   if (!upsTemp.length) {
@@ -1199,13 +1208,6 @@ function renderResultadoUP() {
   });
 
   // ── INGRESOS por UP ───────────────────────────────────────────────────────
-  const NAME_TO_ID = {};
-  Object.entries(CC_MAP).forEach(([id,n]) => { NAME_TO_ID[n.trim().toLowerCase()] = id; });
-  function resolveId(val) {
-    const raw = String(val||"").trim();
-    return CC_MAP[raw] ? raw : (NAME_TO_ID[raw.toLowerCase()]||raw);
-  }
-
   const ingFact = {};
   (window.ASIGNACIONES||[]).filter(r => {
     const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
@@ -1672,11 +1674,11 @@ function cambiarTemporada(temp) {
 
 function toggleBloque(id) {
   const body  = document.getElementById("body-"  + id);
-  const arrow = document.getElementById("arrow-" + id);
+  const arrow = document.getElementById("arrow-" + id) || document.getElementById("arr-" + id);
   if (!body) return;
   const open = body.style.display === "none";
-  body.style.display  = open ? "block" : "none";
-  arrow.style.transform = open ? "rotate(180deg)" : "";
+  body.style.display = open ? "block" : "none";
+  if (arrow) arrow.textContent = open ? "▲" : "▼";
 }
 
 function fmtPesoFull(n) {
