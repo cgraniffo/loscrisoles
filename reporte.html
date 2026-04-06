@@ -586,7 +586,7 @@ function renderMargenes() {
     const PAD_L   = 52;   // eje Y
     const SVG_H   = H + PAD_TOP + PAD_BOT;
 
-    const maxVal = Math.max(...filas.map(r => r.ingreso), 1);
+    const maxVal = Math.max(...filas.map(r => r.ingPpto), 1);
 
     const SVG_W = PAD_L + filas.length * GROUP_W + 20;
 
@@ -607,10 +607,10 @@ function renderMargenes() {
       const x0 = PAD_L + i * GROUP_W;
 
       // Alturas proporcionales
-      const hIng  = Math.max(2, Math.round(r.ingreso / maxVal * H));
+      const hIng  = Math.max(2, Math.round(r.ingPpto / maxVal * H));
       const hCost = Math.max(2, Math.round(r.costo   / maxVal * H));
-      const hMarg = Math.abs(Math.round(r.margen      / maxVal * H));
-      const margPos = r.margen >= 0;
+      const hMarg = Math.abs(Math.round(r.margenPpto / maxVal * H));
+      const margPos = r.margenPpto >= 0;
 
       const yIng  = PAD_TOP + H - hIng;
       const yCost = PAD_TOP + H - hCost;
@@ -634,7 +634,7 @@ function renderMargenes() {
                 fill="#1a6e3a" rx="2"/>
           <text x="${xIng + BAR_W/2}" y="${labelY(yIng, hIng)}"
                 text-anchor="middle" font-size="8" fill="#1a6e3a"
-                font-weight="600">${fmtPeso(r.ingreso)}</text>
+                font-weight="600">${fmtPeso(r.ingPpto)}</text>
 
           <!-- Costo -->
           <rect x="${xCost}" y="${yCost}" width="${BAR_W}" height="${hCost}"
@@ -649,7 +649,7 @@ function renderMargenes() {
           <text x="${xMarg + BAR_W/2}" y="${margPos ? labelY(yMarg, hMarg) : yMarg + hMarg + 11}"
                 text-anchor="middle" font-size="8"
                 fill="${margPos ? "#0f6e56" : "#cc2222"}"
-                font-weight="700">${fmtPeso(r.margen)}</text>
+                font-weight="700">${fmtPeso(r.margenPpto)}</text>
 
           <!-- Línea conectora ingreso→costo -->
           <line x1="${xIng + BAR_W}" y1="${yIng}" x2="${xCost}" y2="${yIng}"
@@ -665,7 +665,7 @@ function renderMargenes() {
           <!-- % margen -->
           <text x="${x0 + GROUP_W/2 - 10}" y="${PAD_TOP + H + 30}"
                 text-anchor="middle" font-size="9"
-                fill="${margPos ? "#0f6e56" : "#cc2222"}">${r.pct !== "—" ? r.pct+"%" : "—"}</text>
+                fill="${margPos ? '#0f6e56' : '#cc2222'}">${r.pctPpto !== '—' ? r.pctPpto+'%' : '—'}</text>
         </g>`;
     }).join("");
 
