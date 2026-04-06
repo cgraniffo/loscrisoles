@@ -455,7 +455,13 @@ function renderMargenes() {
   });
 
   // ── FILAS ─────────────────────────────────────────────────────────────────
-  const allUPs = [...new Set([...Object.keys(costosPorUP), ...Object.keys(ingresosPorUP)])].sort();
+  // Solo UPs productivas (con hectáreas, excluyendo GG/Maquinarias/etc)
+  const FUNDOS_NO_PROD_M = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
+  const allUPs = [...new Set([...Object.keys(costosPorUP), ...Object.keys(ingresosPorUP)])].filter(id => {
+    const ha = HA_MAP[id]||0;
+    const fundo = FUNDO_MAP[id]||"";
+    return ha > 0 && !FUNDOS_NO_PROD_M.has(fundo);
+  }).sort();
 
   const filtradas = allUPs.filter(id => {
     if (stateMargenes.ups.length    > 0 && !stateMargenes.ups.includes(id))                   return false;
@@ -823,7 +829,14 @@ function renderIngresos() {
 
   // ── FILTROS UI ────────────────────────────────────────────────────────────
   const allRows = [...facturasAsig, ...proyEstimado];
-  const upOpts  = [...new Set(allRows.map(r=>r.up).filter(Boolean))].sort();
+  // Solo UPs productivas (con hectáreas, excluyendo GG/Maquinarias/etc)
+  const FUNDOS_NO_PROD_I = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
+  const upOpts  = [...new Set(allRows.map(r=>r.up).filter(id => {
+    if (!id) return false;
+    const ha = HA_MAP[id]||0;
+    const fundo = FUNDO_MAP[id]||"";
+    return ha > 0 && !FUNDOS_NO_PROD_I.has(fundo);
+  }))].sort();
   const fundoOptsI = [...new Set(upOpts.map(id=>FUNDO_MAP[id]||"").filter(Boolean))].sort();
   const anioOpts = [...new Set(allRows.map(r=>{ const d=parseDate(r.fecha); return d?String(d.getFullYear()):null; }).filter(Boolean))].sort();
   const mesOpts  = [...new Set(allRows.map(r=>{ const d=parseDate(r.fecha); return d?String(d.getMonth()+1).padStart(2,"0"):null; }).filter(Boolean))].sort();
