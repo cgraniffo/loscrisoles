@@ -740,8 +740,8 @@ function renderMargenes() {
     const avgLng = puntos.reduce((s,p)=>s+p.coord.lng,0)/puntos.length;
     const mapa = L.map(mapaId).setView([avgLat, avgLng], 14);
     window._mapaMargenes = mapa;
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution:"© OpenStreetMap", maxZoom:18
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      attribution: "© Esri", maxZoom: 19
     }).addTo(mapa);
     puntos.forEach(p => {
       const pos   = p.margenPpto >= 0;
