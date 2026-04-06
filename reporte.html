@@ -846,14 +846,7 @@ function renderIngresos() {
 
   // ── FILTROS UI ────────────────────────────────────────────────────────────
   const allRows = [...facturasAsig, ...proyEstimado];
-  // Solo UPs productivas (con hectáreas, excluyendo GG/Maquinarias/etc)
-  const FUNDOS_NO_PROD_I = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
-  const upOpts  = [...new Set(allRows.map(r=>r.up).filter(id => {
-    if (!id) return false;
-    const ha = HA_MAP[id]||0;
-    const fundo = FUNDO_MAP[id]||"";
-    return ha > 0 && !FUNDOS_NO_PROD_I.has(fundo);
-  }))].sort();
+  const upOpts  = [...new Set(allRows.map(r=>r.up).filter(id => id && esProdI(id)))].sort();
   const fundoOptsI = [...new Set(upOpts.map(id=>FUNDO_MAP[id]||"").filter(Boolean))].sort();
   const anioOpts = [...new Set(allRows.map(r=>{ const d=parseDate(r.fecha); return d?String(d.getFullYear()):null; }).filter(Boolean))].sort();
   const mesOpts  = [...new Set(allRows.map(r=>{ const d=parseDate(r.fecha); return d?String(d.getMonth()+1).padStart(2,"0"):null; }).filter(Boolean))].sort();
