@@ -421,8 +421,10 @@ function renderMargenes() {
     const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
     const ha    = HA_MAP[id]||0;
     const fundo = FUNDO_MAP[id]||"";
+    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
+    const esIngreso = tipo.includes("emit") || tipo === "guia-emitida";
     return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id)
-      && ha > 0 && !FUNDOS_NO_PROD_M.has(fundo);
+      && ha > 0 && !FUNDOS_NO_PROD_M.has(fundo) && !esIngreso;
   }).forEach(r => {
     const id = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
     costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
@@ -1747,13 +1749,20 @@ function renderCostos() {
   }));
 
   // Costos nuevos Asignaciones_U (desde el corte)
+  // Excluir facturas emitidas (ingresos) y guías emitidas — solo costos de proveedores
+  const RUT_LC_COSTOS = "76099766-8";
   const costosNuevos = (window.ASIGNACIONES||[]).filter(r => {
     const ccId  = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
     const tmpCC = TEMP_MAP[ccId];
     const fechaAsig = r["Fecha_Documento"] || r["Fecha_Asignacion"];
     const tempR = tmpCC ? getTemporadaDeFecha(fechaAsig, tmpCC.mesInicio) : null;
     const passTemp = !tempActiva || tempR === tempActiva;
-    return Number(r["Monto_Asignado"]||0) > 0 && passTemp;
+    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
+    const rut   = String(r["RUT_Emisor"]||r["Proveedor"]||"").trim();
+    // Excluir: facturas emitidas por Los Crisoles y guías emitidas (son ingresos)
+    const esIngreso = tipo.includes("emit")
+      || (tipo.includes("factura") && rut === RUT_LC_COSTOS);
+    return Number(r["Monto_Asignado"]||0) > 0 && passTemp && !esIngreso;
   }).map(r => ({
     _fuente:      "Asignaciones_U",
     Centro_Costo: String(r["UP_ID"]||r["UP_Nombre"]||"").trim(),
