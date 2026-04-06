@@ -779,6 +779,14 @@ function renderIngresos() {
   const RUT_LC = "76099766-8";
   const tempActiva = TEMPORADA_ACTIVA || getTemporadaActiva();
 
+  // UPs no productivas — excluidas de ingresos
+  const FUNDOS_NO_PROD_I = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
+  function esProdI(id) {
+    const ha    = HA_MAP[id]||0;
+    const fundo = FUNDO_MAP[id]||"";
+    return ha > 0 && !FUNDOS_NO_PROD_I.has(fundo);
+  }
+
   function passTemp(fechaVal, ccId) {
     if (!tempActiva) return true;
     const tmp = TEMP_MAP[ccId];
@@ -803,7 +811,8 @@ function renderIngresos() {
     const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
     const id   = resolveUpId(r["UP_Nombre"]||r["UP_ID"]||"");
     const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    return tipo.includes("factura") && Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id);
+    return tipo.includes("factura") && Number(r["Monto_Asignado"]||0) > 0
+      && passTemp(fecha, id) && esProdI(id);
   }).map(r => ({
     _fuente: "factura",
     up:      resolveUpId(r["UP_Nombre"]||r["UP_ID"]||""),
@@ -820,7 +829,7 @@ function renderIngresos() {
     const id    = String(r["Unidad_Productiva"]||"").trim();
     const est   = String(r["Estado"]||"").trim();
     const fecha = r["Fecha_Estimada"]||"";
-    return (est === "Estimado" || est === "Real") && passTemp(fecha, id);
+    return (est === "Estimado" || est === "Real") && passTemp(fecha, id) && esProdI(id);
   }).map(r => ({
     _fuente: "estimado",
     up:      String(r["Unidad_Productiva"]||"").trim(),
