@@ -717,34 +717,69 @@ function renderMargenes() {
       </div>`;
   }
 
+  // ── MAPA: inicializar o actualizar ───────────────────────────────────────
+  setTimeout(() => {
+    const mapaId = "mapa-margenes";
+    if (window._mapaMargenes) {
+      window._mapaMargenes.remove();
+      window._mapaMargenes = null;
+    }
+    const puntos = filtradas.map(ccId => ({
+      ccId,
+      nombre:     CC_MAP[ccId]||ccId,
+      fundo:      FUNDO_MAP[ccId]||"",
+      ha:         HA_MAP[ccId]||0,
+      coord:      COORD_MAP[ccId],
+      mgnPptoHa:  rows.find(r=>r.nombre===(CC_MAP[ccId]||ccId))?.mgnPptoHa || 0,
+      mgnPptoTon: rows.find(r=>r.nombre===(CC_MAP[ccId]||ccId))?.mgnPptoTon || 0,
+      margenPpto: rows.find(r=>r.nombre===(CC_MAP[ccId]||ccId))?.margenPpto || 0,
+    })).filter(p => p.coord);
+
+    if (!puntos.length) return;
+    const avgLat = puntos.reduce((s,p)=>s+p.coord.lat,0)/puntos.length;
+    const avgLng = puntos.reduce((s,p)=>s+p.coord.lng,0)/puntos.length;
+    const mapa = L.map(mapaId).setView([avgLat, avgLng], 14);
+    window._mapaMargenes = mapa;
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution:"© OpenStreetMap", maxZoom:18
+    }).addTo(mapa);
+    puntos.forEach(p => {
+      const pos   = p.margenPpto >= 0;
+      const color = pos ? "#1a6e3a" : "#cc2222";
+      const lbl   = p.ha > 0 ? p.ha + "há" : "—";
+      const iconHtml = '<div style="width:34px;height:34px;border-radius:50%;background:' + color +
+        ';border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;' +
+        'justify-content:center;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:1.1;">' +
+        lbl + '</div>';
+      const icon = L.divIcon({ className:"", html: iconHtml, iconSize:[34,34], iconAnchor:[17,17] });
+      const mgnHaStr  = p.ha > 0 ? fmtPeso(p.mgnPptoHa) + "/há" : "—";
+      const mgnTonStr = p.mgnPptoTon ? fmtPeso(p.mgnPptoTon) + "/t" : "—";
+      const popup = '<div style="min-width:160px;">' +
+        '<div style="font-weight:700;font-size:13px;margin-bottom:4px;">' + p.nombre + '</div>' +
+        '<div style="font-size:11px;color:#888;margin-bottom:6px;">' + p.fundo + ' · ' + p.ha + 'há</div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">' +
+          '<span>Margen Ppto</span><span style="font-weight:700;color:' + color + ';">' + fmtPeso(p.margenPpto) + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">' +
+          '<span>Margen/há</span><span style="font-weight:700;color:' + color + ';">' + mgnHaStr + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:12px;">' +
+          '<span>Margen/ton</span><span style="font-weight:700;color:' + color + ';">' + mgnTonStr + '</span></div>' +
+        '</div>';
+      L.marker(p.coord, {icon}).addTo(mapa).bindPopup(popup);
+    });
+  }, 100);
+
+  // Ordenar tablas
+  const rowsConKilosOrd = [...rowsConKilos].sort((a,b) => b.toneladas - a.toneladas);
+  const rowsConHaOrd    = [...rowsConHa].sort((a,b) => b.ha - a.ha);
+
   document.getElementById("app-margenes").innerHTML = `
 
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Ppto Ingresos</div>
-        <div style="font-size:20px;font-weight:700;color:#b45309;line-height:1;">${fmtPeso(totalIng)}</div>
-        <div style="font-size:10px;color:#d97706;margin-top:4px;">Proyecciones_Manuales</div>
+    <div class="stat-card" style="margin-bottom:14px;padding:0;overflow:hidden;">
+      <div style="padding:12px 16px;border-bottom:1px solid #f0ede6;">
+        <div class="stat-title">Márgenes por Unidad Productiva · ${tempActiva||""}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px;">Click en marcador para ver detalle · Verde = margen positivo · Rojo = margen negativo</div>
       </div>
-      <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado</div>
-        <div style="font-size:20px;font-weight:700;color:#1a6e3a;line-height:1;">${totalFact>0?fmtPeso(totalFact):"—"}</div>
-        <div style="font-size:10px;color:#3b6d11;margin-top:4px;">${totalIng>0?Math.round(totalFact/totalIng*100)+"% del ppto":"Sin facturar"}</div>
-      </div>
-      <div style="background:#fff5f5;border:1px solid #fca5a5;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#cc2222;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">📊 Costos</div>
-        <div style="font-size:20px;font-weight:700;color:#cc2222;line-height:1;">${fmtPeso(totalCost)}</div>
-        <div style="font-size:10px;color:#e05555;margin-top:4px;">BD Registro + Asignaciones</div>
-      </div>
-      <div style="background:${margenTotalPpto>=0?"#eaf3de":"#fff5f5"};border:1px solid ${margenTotalPpto>=0?"#c3e0a0":"#fca5a5"};border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:${clsTotal};letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">${margenTotalPpto>=0?"✅":"⚠️"} Margen Ppto</div>
-        <div style="font-size:20px;font-weight:700;color:${clsTotal};line-height:1;">${fmtPeso(margenTotalPpto)}</div>
-        ${totalFact>0?`<div style="font-size:10px;color:${margenTotalReal>=0?"#3b6d11":"#cc2222"};margin-top:4px;">Real: ${fmtPeso(margenTotalReal)}</div>`:""}
-      </div>
-    </div>
-
-    <div class="stat-card" style="margin-bottom:14px;overflow:hidden;">
-      <div class="stat-title" style="margin-bottom:10px;">Ingreso · Costo · Margen por UP</div>
-      ${buildWaterfall(rows)}
+      <div id="mapa-margenes" style="height:340px;z-index:0;"></div>
     </div>
 
     <div class="filters-wrap" style="margin-bottom:12px;">
@@ -762,11 +797,11 @@ function renderMargenes() {
 
     <div class="stat-card" style="margin-bottom:12px;">
       <div class="stat-title">Margen por tonelada</div>
-      ${buildTable(rowsConKilos, "ton")}
+      ${buildTable(rowsConKilosOrd, "ton")}
     </div>
     <div class="stat-card" style="margin-bottom:12px;">
       <div class="stat-title">Margen por hectárea</div>
-      ${buildTable(rowsConHa, "ha")}
+      ${buildTable(rowsConHaOrd, "ha")}
     </div>
     <div class="footer">Ingresos: Facturado + Proyecciones · Costos: BD Registro + Asignaciones · Los Crisoles · BData</div>`;
 }
