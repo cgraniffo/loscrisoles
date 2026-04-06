@@ -533,7 +533,7 @@ async function main() {
   const en60 = new Date(hoy); en60.setDate(hoy.getDate()+60);
 
   try {
-    const [registros, ccs, docs, proyecciones, asignaciones, banco, labores, encargados] = await Promise.all([
+    const [registros, ccs, docs, proyecciones, asignaciones, banco, labores, encargados, detFacturas] = await Promise.all([
       fetchSheet(API_REG, "BD_Registro"),
       fetchSheet(API_CC,  "BD_CC"),
       fetchSheet(API_FIN, "CargaHTML_Demo"),
@@ -541,7 +541,8 @@ async function main() {
       fetchSheet(API_FIN, "Asignaciones_U"),
       fetchSheet(API_FIN, "BD_Banco"),
       fetchSheet(API_LABORES, "BD_Labores"),
-      fetchSheet(API_REG, "Encargados")
+      fetchSheet(API_REG, "Encargados"),
+      fetchSheet(API_FIN, "DetallesFacturas")
     ]);
 
     // Saldo real desde BD_Banco
@@ -629,6 +630,14 @@ async function main() {
         }).join('');
 
     // ── CAJA ──────────────────────────────────────────────────
+    // Índice KEY → Cliente desde DetallesFacturas
+    const CLIENTE_MAP = {};
+    (Array.isArray(detFacturas)?detFacturas:[]).forEach(d => {
+      const key = String(d["ID_Factura_Padre"]||"").trim();
+      const cli = String(d["Cliente"]||"").trim();
+      if (key && cli && !CLIENTE_MAP[key]) CLIENTE_MAP[key] = cli;
+    });
+
     const isPend = r => !["pagado","anulado"].includes(String(r["EstadoPago"]||"").toLowerCase());
     const cobrar = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r));
     const pagar  = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r));
@@ -843,7 +852,7 @@ function renderHome({ registros, asignaciones, proyecciones }) {
       .map(r => {
         const d = parseDate(r["Fecha_Real"]);
         return `<tr><td style="color:var(--gris);">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"}):"—"}</td>
-          <td>${String(r["RznSocRecep"]||r["Razón Social"]||"").trim().slice(0,25)}</td>
+          <td>${(CLIENTE_MAP[String(r["KEY"]||"").trim()] || String(r["RznSocRecep"]||r["Razón Social"]||"")).trim().slice(0,25)}</td>
           <td style="text-align:right;font-weight:600;color:var(--verde2);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
       }).join('');
     document.getElementById('card-cobrar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${cobrar30HTML}</tbody></table>`;
