@@ -397,7 +397,7 @@ if (location.search.includes('embed=1')) {
       <div class="card">
         <div class="card-head">
           <div class="card-title">🏦 Flujo de caja</div>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver detalle →</a>
+          <a href="#" onclick="navTo('costos','/reporte');return false;" class="card-link">Ver detalle →</a>
         </div>
         <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
       </div>
@@ -574,6 +574,7 @@ async function main() {
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const en15 = new Date(hoy); en15.setDate(hoy.getDate()+15);
   const en30 = new Date(hoy); en30.setDate(hoy.getDate()+30);
+  const en60 = new Date(hoy); en60.setDate(hoy.getDate()+60);
 
   try {
     const [registros, ccs, docs, proyecciones, asignaciones, banco, labores, encargados] = await Promise.all([
@@ -680,10 +681,16 @@ async function main() {
     const cobrar15 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en15;});
     const pagar30  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
     const cobrar30 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
-    const pagarVenc  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
-    const cobrarVenc = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
-    const saldo15 = CAJA_ACTUAL + sumD(cobrar15) + sumD(cobrarVenc) - sumD(pagar15) - sumD(pagarVenc);
-    const saldo30 = CAJA_ACTUAL + sumD(cobrar30) + sumD(cobrarVenc) - sumD(pagar30) - sumD(pagarVenc);
+    const pagarVenc   = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
+    const cobrarVenc  = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
+    const pagar60     = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en60;});
+    const cobrar60    = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en60;});
+    const pagarMas60  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>en60;});
+    const cobrarMas60 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>en60;});
+    const saldo15  = CAJA_ACTUAL + sumD(cobrar15)  + sumD(cobrarVenc) - sumD(pagar15)  - sumD(pagarVenc);
+    const saldo30  = CAJA_ACTUAL + sumD(cobrar30)  + sumD(cobrarVenc) - sumD(pagar30)  - sumD(pagarVenc);
+    const saldo60  = CAJA_ACTUAL + sumD(cobrar60)  + sumD(cobrarVenc) - sumD(pagar60)  - sumD(pagarVenc);
+    const saldoM60 = CAJA_ACTUAL + sumD(cobrarMas60) + sumD(cobrar60) + sumD(cobrarVenc) - sumD(pagarMas60) - sumD(pagar60) - sumD(pagarVenc);
 
     document.getElementById('h-caja').textContent = fmtPeso(CAJA_ACTUAL);
     document.getElementById('card-caja').innerHTML = `
@@ -713,7 +720,7 @@ async function main() {
         </div>
       </div>
       <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Próximos 30 días</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
         <div class="caja-item">
           <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagar30))}</div>
           <div class="caja-lbl">Por pagar 30d</div>
@@ -725,6 +732,36 @@ async function main() {
         <div class="caja-item" style="background:${saldo30>=0?"#eaf3de":"#fff8f8"};">
           <div class="caja-val" style="color:${saldo30>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldo30)}</div>
           <div class="caja-lbl">Proyectado 30d</div>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Próximos 60 días</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div class="caja-item">
+          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagar60))}</div>
+          <div class="caja-lbl">Por pagar 60d</div>
+        </div>
+        <div class="caja-item">
+          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrar60))}</div>
+          <div class="caja-lbl">Por cobrar 60d</div>
+        </div>
+        <div class="caja-item" style="background:${saldo60>=0?"#eaf3de":"#fff8f8"};">
+          <div class="caja-val" style="color:${saldo60>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldo60)}</div>
+          <div class="caja-lbl">Proyectado 60d</div>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Más de 60 días</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div class="caja-item">
+          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagarMas60))}</div>
+          <div class="caja-lbl">Por pagar +60d</div>
+        </div>
+        <div class="caja-item">
+          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrarMas60))}</div>
+          <div class="caja-lbl">Por cobrar +60d</div>
+        </div>
+        <div class="caja-item" style="background:${saldoM60>=0?"#eaf3de":"#fff8f8"};">
+          <div class="caja-val" style="color:${saldoM60>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldoM60)}</div>
+          <div class="caja-lbl">Proyectado +60d</div>
         </div>
       </div>`;
 
