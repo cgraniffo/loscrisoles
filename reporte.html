@@ -396,7 +396,7 @@ function renderMargenes() {
     if (!tempActiva) return true;
     const tmp = TEMP_MAP[ccId];
     if (!tmp) return true;
-    return getTemporadaDeFecha(fechaVal, tmp.mesInicio) === tempActiva;
+    return tmp.temporada === tempActiva;  // Opción A: por temporada de UP, no por fecha
   }
 
   // ── COSTOS (misma lógica que renderCostos) ────────────────────────────────
@@ -743,7 +743,7 @@ function renderIngresos() {
     if (!tempActiva) return true;
     const tmp = TEMP_MAP[ccId];
     if (!tmp) return true;
-    return getTemporadaDeFecha(fechaVal, tmp.mesInicio) === tempActiva;
+    return tmp.temporada === tempActiva;  // Opción A: por temporada de UP, no por fecha
   }
 
   // ── FUENTE 1: Facturas emitidas asignadas (Real Facturado) ────────────────
