@@ -351,41 +351,14 @@ if (location.search.includes('embed=1')) {
       </div>
     </div>
   </div>
-
-  <div class="nav-tabs">
-    <div class="ntab on" onclick="switchTab('resumen')">🏠 Resumen</div>
-    <div class="ntab" onclick="switchTab('finanzas')">💰 Finanzas</div>
-    <div class="ntab" onclick="switchTab('campo')">🗺 Campo</div>
-  </div>
 </div>
 
 <div class="body">
 
   <!-- ── RESUMEN ───────────────────────────────────────────── -->
   <div class="section on" id="sec-resumen">
-    <!-- Nav cards -->
-    <div class="nav-grid" style="margin-bottom:20px;margin-top:4px;">
-      <div class="nav-card verde">
-        <div class="nav-icon">📋</div>
-        <div class="nav-title">Reporte diario</div>
-        <div class="nav-desc">Labores, caja, costos, ingresos y márgenes del campo</div>
-        <div class="nav-badge badge-verde" id="nav-labores-badge">Cargando...</div>
-      </div>
-      <div class="nav-card azul">
-        <div class="nav-icon">🌱</div>
-        <div class="nav-title">Producción</div>
-        <div class="nav-desc">Guías de despacho emitidas e insumos recibidos por UP</div>
-        <div class="nav-badge badge-verde" id="nav-prod-badge">Cargando...</div>
-      </div>
-      <div class="nav-card amber">
-        <div class="nav-icon">📎</div>
-        <div class="nav-title">Asignar docs</div>
-        <div class="nav-desc">Asignar facturas y guías a unidades productivas</div>
-        <div class="nav-badge badge-rojo" id="nav-asignar-badge">Cargando...</div>
-      </div>
-    </div>
 
-    <!-- Labores + Caja -->
+    <!-- Fila 1: Labores urgentes + Flujo de caja (15/30d) -->
     <div class="grid-2">
       <div class="card">
         <div class="card-head">
@@ -397,38 +370,13 @@ if (location.search.includes('embed=1')) {
       <div class="card">
         <div class="card-head">
           <div class="card-title">🏦 Flujo de caja</div>
-          <a href="#" onclick="navTo('costos','/reporte');return false;" class="card-link">Ver detalle →</a>
+          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver detalle →</a>
         </div>
         <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
       </div>
     </div>
 
-    <!-- Costos + Produccion estimada -->
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">💰 Costos por UP</div>
-          <a href="#" onclick="navTo('costos','/reporte');return false;" class="card-link">Ver detalle →</a>
-        </div>
-        <div class="card-body" id="card-costos"><div class="loading pulse">Cargando...</div></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">📈 Ingresos y producción estimada</div>
-          <a href="#" onclick="navTo('ingresos','/reporte');return false;" class="card-link">Ver ingresos →</a>
-        </div>
-        <div class="card-body" id="card-prod"><div class="loading pulse">Cargando...</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── CAMPO ───────────────────────────────────────────── -->
-  <div class="section" id="sec-campo">
-    <div class="grid-3" id="up-cards"></div>
-  </div>
-
-  <!-- ── FINANZAS ───────────────────────────────────────────── -->
-  <div class="section" id="sec-finanzas">
+    <!-- Fila 2: Por pagar + Por cobrar -->
     <div class="grid-2">
       <div class="card">
         <div class="card-head">
@@ -445,14 +393,18 @@ if (location.search.includes('embed=1')) {
         <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
       </div>
     </div>
-    <div class="card">
+
+    <!-- Fila 3: Documentos sin asignar -->
+    <div class="card" style="margin-bottom:16px;">
       <div class="card-head">
         <div class="card-title">📎 Documentos sin asignar</div>
         <a href="#" onclick="navTo('asignar','/asignar');return false;" class="card-link">Asignar →</a>
       </div>
       <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
     </div>
-    <div class="card" style="margin-top:16px;">
+
+    <!-- Mapa al final -->
+    <div class="card">
       <div class="card-head">
         <div class="card-title">🗺 Mapa de unidades productivas</div>
         <div style="font-size:11px;color:var(--gris);">Click en marcador para ver detalles</div>
@@ -461,7 +413,11 @@ if (location.search.includes('embed=1')) {
         <div id="mapa-home"></div>
       </div>
     </div>
+
   </div>
+
+  <!-- contenedor oculto para JS de UPs -->
+  <div style="display:none;" id="sec-campo"><div id="up-cards"></div></div>
 
 </div>
 
@@ -746,9 +702,7 @@ async function main() {
         '<div class="caja-item" style="background:#fff8f8;"><div class="caja-val" style="color:#ef4444;font-size:18px;">-' + fmtPeso(sumD(pagarVenc)) + '</div><div class="caja-lbl">⚠️ Por pagar vencido</div></div>' +
       '</div>' +
       fila('Próximos 15 días',  pagar15,   cobrar15,   ing15,  saldo15)  +
-      fila('Próximos 30 días',  pagar30,   cobrar30,   ing30,  saldo30)  +
-      fila('Próximos 60 días',  pagar60,   cobrar60,   ing60,  saldo60)  +
-      fila('Más de 60 días',    pagarMas60,cobrarMas60,ingM60, saldoM60);
+      fila('Próximos 30 días',  pagar30,   cobrar30,   ing30,  saldo30);
 
     // ── COSTOS y PRODUCCIÓN → renderHome() ──────────────────────────────────
     // (se llama aquí y también al cambiar temporada desde el dashboard)
