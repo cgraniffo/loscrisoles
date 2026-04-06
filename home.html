@@ -365,19 +365,19 @@ if (location.search.includes('embed=1')) {
   <div class="section on" id="sec-resumen">
     <!-- Nav cards -->
     <div class="nav-grid" style="margin-bottom:20px;margin-top:4px;">
-      <a class="nav-card verde" href="/reporte" target="_blank">
+      <a class="nav-card verde" href="#" onclick="navTo('labores','/reporte');return false;">
         <div class="nav-icon">📋</div>
         <div class="nav-title">Reporte diario</div>
         <div class="nav-desc">Labores, caja, costos, ingresos y márgenes del campo</div>
         <div class="nav-badge badge-verde" id="nav-labores-badge">Cargando...</div>
       </a>
-      <a class="nav-card azul" href="/produccion" target="_blank">
+      <a class="nav-card azul" href="#" onclick="navTo('produccion','/produccion');return false;">
         <div class="nav-icon">🌱</div>
         <div class="nav-title">Producción</div>
         <div class="nav-desc">Guías de despacho emitidas e insumos recibidos por UP</div>
         <div class="nav-badge badge-verde" id="nav-prod-badge">Cargando...</div>
       </a>
-      <a class="nav-card amber" href="/asignar" target="_blank">
+      <a class="nav-card amber" href="#" onclick="navTo('asignar','/asignar');return false;">
         <div class="nav-icon">📎</div>
         <div class="nav-title">Asignar docs</div>
         <div class="nav-desc">Asignar facturas y guías a unidades productivas</div>
@@ -390,14 +390,14 @@ if (location.search.includes('embed=1')) {
       <div class="card">
         <div class="card-head">
           <div class="card-title">⚠️ Labores urgentes</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver todas →</a>
+          <a href="#" onclick="navTo('labores','/reporte');return false;" class="card-link">Ver todas →</a>
         </div>
         <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
       </div>
       <div class="card">
         <div class="card-head">
           <div class="card-title">🏦 Flujo de caja</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver detalle →</a>
+          <a href="#" onclick="navTo('costos','/reporte');return false;" class="card-link">Ver detalle →</a>
         </div>
         <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
       </div>
@@ -408,14 +408,14 @@ if (location.search.includes('embed=1')) {
       <div class="card">
         <div class="card-head">
           <div class="card-title">💰 Costos por UP</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver detalle →</a>
+          <a href="#" onclick="navTo('costos','/reporte');return false;" class="card-link">Ver detalle →</a>
         </div>
         <div class="card-body" id="card-costos"><div class="loading pulse">Cargando...</div></div>
       </div>
       <div class="card">
         <div class="card-head">
           <div class="card-title">📈 Ingresos y producción estimada</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver ingresos →</a>
+          <a href="#" onclick="navTo('ingresos','/reporte');return false;" class="card-link">Ver ingresos →</a>
         </div>
         <div class="card-body" id="card-prod"><div class="loading pulse">Cargando...</div></div>
       </div>
@@ -442,14 +442,14 @@ if (location.search.includes('embed=1')) {
       <div class="card">
         <div class="card-head">
           <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver caja →</a>
+          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
         </div>
         <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
       </div>
       <div class="card">
         <div class="card-head">
           <div class="card-title">⬇️ Por cobrar — próximos 30 días</div>
-          <a href="/reporte" target="_blank" class="card-link">Ver caja →</a>
+          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
         </div>
         <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
       </div>
@@ -457,7 +457,7 @@ if (location.search.includes('embed=1')) {
     <div class="card">
       <div class="card-head">
         <div class="card-title">📎 Documentos sin asignar</div>
-        <a href="/asignar" target="_blank" class="card-link">Asignar →</a>
+        <a href="#" onclick="navTo('asignar','/asignar');return false;" class="card-link">Asignar →</a>
       </div>
       <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
     </div>
@@ -556,6 +556,23 @@ function buildMapa(registros) {
       </div>
     </div>`).join('');
   document.getElementById('up-cards').innerHTML = upHTML;
+}
+
+
+// ── NAVEGACIÓN INTELIGENTE ────────────────────────────────────────────────
+// Si estamos dentro del dashboard (iframe), navega via window.parent.show()
+// Si estamos solos, abre la URL directamente
+function navTo(tab, fallbackUrl) {
+  try {
+    if (window.parent && window.parent !== window && typeof window.parent.show === 'function') {
+      // Estamos dentro del dashboard — buscar el tab element correcto
+      var tabEl = window.parent.document.querySelector('.tab[onclick*=\'' + tab + '\']');
+      window.parent.show(tab, tabEl || { classList: { add: function(){}, remove: function(){} } });
+      return;
+    }
+  } catch(e) {}
+  // Estamos solos — navegar normalmente
+  window.location.href = fallbackUrl || '/';
 }
 
 async function main() {
