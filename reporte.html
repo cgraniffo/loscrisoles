@@ -291,6 +291,7 @@ if (location.search.includes('embed=1')) {
       <div class="tab" id="tab-costos" onclick="switchTab('costos')">💰 Costos</div>
       <div class="tab" id="tab-ingresos" onclick="switchTab('ingresos')">🌾 Ingresos</div>
       <div class="tab" id="tab-margenes" onclick="switchTab('margenes')">📊 Márgenes</div>
+      <div class="tab" id="tab-resultado" onclick="switchTab('resultado')">📋 Resultado UP</div>
     </div>
     <div style="padding:0 12px 4px;display:flex;align-items:center;gap:8px;">
       <span style="font-size:11px;color:#9fe1cb;">Temporada:</span>
@@ -307,6 +308,7 @@ if (location.search.includes('embed=1')) {
   <div id="app-margenes" style="display:none;"><div class="loading">Cargando márgenes...</div></div>
   <div id="app-caja" style="display:none;"><div class="loading">Cargando caja...</div></div>
   <div id="app-ingresos" style="display:none;"><div class="loading">Cargando ingresos...</div></div>
+  <div id="app-resultado" style="display:none;"><div class="loading">Cargando...</div></div>
 </div>
 
 <script>
@@ -1035,6 +1037,351 @@ function renderIngresos() {
 
 
 // Determina la temporada de una fecha dado el mes de inicio
+
+// ── RESULTADO POR UP ────────────────────────────────────────────────────────
+function renderResultadoUP() {
+  const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
+  const FECHA_CORTE = FECHA_CORTE_COSTOS;
+  const RUT_LC      = "76099766-8";
+  const FUNDOS_NP   = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
+
+  function passTemp(fechaVal, ccId) {
+    if (!tempActiva) return true;
+    const tmp = TEMP_MAP[ccId];
+    if (!tmp) return false;
+    return tmp.temporada === tempActiva;
+  }
+  function esProd(id) {
+    return (HA_MAP[id]||0) > 0 && !FUNDOS_NP.has(FUNDO_MAP[id]||"");
+  }
+
+  // ── UPs productivas de la temporada ──────────────────────────────────────
+  const upsTemp = Object.keys(CC_MAP).filter(id => {
+    const tmp = TEMP_MAP[id];
+    return tmp && tmp.temporada === tempActiva && esProd(id);
+  }).sort((a,b) => (CC_MAP[a]||a).localeCompare(CC_MAP[b]||b));
+
+  if (!upsTemp.length) {
+    document.getElementById("app-resultado").innerHTML =
+      `<div style="text-align:center;padding:40px;color:#aaa;">Sin UPs para la temporada ${tempActiva}</div>`;
+    return;
+  }
+
+  // ── COSTOS por UP ─────────────────────────────────────────────────────────
+  // BD_Registro — desglose por tipo
+  const costoReg = {};   // { upId: { tipoLabor: monto } }
+  const costoRegTotal = {};
+  (window.TODOS||[]).filter(r => {
+    const raw = String(r["Fecha"]||"");
+    const f   = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
+    const id  = String(r["Centro_Costo"]||"").trim();
+    return Number(r["Costo Total"]||0) > 0 && (f===""||f<FECHA_CORTE) && passTemp(f,id) && esProd(id);
+  }).forEach(r => {
+    const id   = String(r["Centro_Costo"]||"").trim();
+    const tipo = String(r["Tipo_Labor"]||"Sin tipo").trim() || "Sin tipo";
+    const m    = Number(r["Costo Total"]||0);
+    if (!costoReg[id])          costoReg[id] = {};
+    if (!costoReg[id][tipo])    costoReg[id][tipo] = 0;
+    costoReg[id][tipo]         += m;
+    costoRegTotal[id]           = (costoRegTotal[id]||0) + m;
+  });
+
+  // Asignaciones_U — desglose por tipo doc
+  const costoAsig = {};
+  const costoAsigTotal = {};
+  (window.ASIGNACIONES||[]).filter(r => {
+    const id    = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
+    return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha,id) && esProd(id)
+      && !tipo.includes("emit");
+  }).forEach(r => {
+    const id   = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
+    const tipo = String(r["Tipo_Doc"]||"Sin tipo").trim() || "Sin tipo";
+    const m    = Number(r["Monto_Asignado"]||0);
+    if (!costoAsig[id])         costoAsig[id] = {};
+    if (!costoAsig[id][tipo])   costoAsig[id][tipo] = 0;
+    costoAsig[id][tipo]        += m;
+    costoAsigTotal[id]          = (costoAsigTotal[id]||0) + m;
+  });
+
+  // ── INGRESOS por UP ───────────────────────────────────────────────────────
+  const NAME_TO_ID = {};
+  Object.entries(CC_MAP).forEach(([id,n]) => { NAME_TO_ID[n.trim().toLowerCase()] = id; });
+  function resolveId(val) {
+    const raw = String(val||"").trim();
+    return CC_MAP[raw] ? raw : (NAME_TO_ID[raw.toLowerCase()]||raw);
+  }
+
+  const ingFact = {};
+  (window.ASIGNACIONES||[]).filter(r => {
+    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
+    const id    = resolveId(r["UP_Nombre"]||r["UP_ID"]||"");
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    return tipo.includes("factura") && tipo.includes("emit") && Number(r["Monto_Asignado"]||0)>0 && passTemp(fecha,id);
+  }).forEach(r => {
+    const id = resolveId(r["UP_Nombre"]||r["UP_ID"]||"");
+    ingFact[id] = (ingFact[id]||0) + Number(r["Monto_Asignado"]||0);
+  });
+
+  const ingPpto = {};
+  (window.PROYECCIONES||[]).filter(r => {
+    const id    = String(r["Unidad_Productiva"]||"").trim();
+    const fecha = r["Fecha_Estimada"]||"";
+    return passTemp(fecha,id) && esProd(id);
+  }).forEach(r => {
+    const id = String(r["Unidad_Productiva"]||"").trim();
+    ingPpto[id] = (ingPpto[id]||0) + Number(r["Monto_Total"]||0);
+  });
+
+  // ── STATE: UP seleccionada ─────────────────────────────────────────────────
+  if (!window._resUP) window._resUP = upsTemp[0];
+  if (!upsTemp.includes(window._resUP)) window._resUP = upsTemp[0];
+
+  // ── RENDER SELECTOR ───────────────────────────────────────────────────────
+  const selectorBtns = upsTemp.map(id =>
+    `<button onclick="window._resUP='${id}';renderResultadoUP();"
+      style="padding:5px 12px;border-radius:20px;border:1px solid ${id===window._resUP?'#1a3a0a':'#ddd'};
+      background:${id===window._resUP?'#1a3a0a':'#fff'};color:${id===window._resUP?'#fff':'#333'};
+      font-size:12px;cursor:pointer;margin:2px;">${CC_MAP[id]||id}</button>`
+  ).join("");
+
+  // ── RENDER CARD UP ────────────────────────────────────────────────────────
+  function cardUP(upId) {
+    const nombre  = CC_MAP[upId]||upId;
+    const fundo   = FUNDO_MAP[upId]||"";
+    const ha      = HA_MAP[upId]||0;
+    const tReg    = costoRegTotal[upId]||0;
+    const tAsig   = costoAsigTotal[upId]||0;
+    const tCosto  = tReg + tAsig;
+    const tPpto   = ingPpto[upId]||0;
+    const tFact   = ingFact[upId]||0;
+    const tPend   = Math.max(0, tPpto - tFact);
+    const pctAv   = tPpto>0 ? Math.round(tFact/tPpto*100) : 0;
+    const mgnPpto = tPpto  - tCosto;
+    const mgnReal = tFact  - tCosto;
+    const mgnHaPpto = ha>0 ? mgnPpto/ha : 0;
+    const mgnHaReal = ha>0 ? mgnReal/ha : 0;
+    const avColor = pctAv>=100?"#1a6e3a":pctAv>=50?"#d97706":"#888";
+    const clsPpto = mgnPpto>=0?"#1a6e3a":"#cc2222";
+    const clsReal = mgnReal>=0?"#1a6e3a":"#cc2222";
+
+    // Detalle costos BD_Registro
+    const tiposReg = Object.entries(costoReg[upId]||{}).sort((a,b)=>b[1]-a[1]);
+    const rowsReg  = tiposReg.map(([tipo,m]) =>
+      `<tr><td style="padding:4px 8px;font-size:12px;color:#555;">${tipo}</td>
+       <td style="text-align:right;padding:4px 8px;font-size:12px;">${fmtPeso(m)}</td></tr>`
+    ).join("");
+
+    // Detalle costos Asignaciones
+    const tiposAsig = Object.entries(costoAsig[upId]||{}).sort((a,b)=>b[1]-a[1]);
+    const rowsAsig  = tiposAsig.map(([tipo,m]) =>
+      `<tr><td style="padding:4px 8px;font-size:12px;color:#555;">${tipo}</td>
+       <td style="text-align:right;padding:4px 8px;font-size:12px;">${fmtPeso(m)}</td></tr>`
+    ).join("");
+
+    const safeId = upId.replace(/[^a-z0-9]/gi,"_");
+
+    return `
+    <div style="background:#fff;border:1px solid #e5e2da;border-radius:12px;overflow:hidden;margin-bottom:16px;">
+
+      <!-- Header -->
+      <div style="background:#1a3a0a;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:#fff;">${nombre}</div>
+          <div style="font-size:11px;color:#86efac;margin-top:2px;">${fundo} · ${ha}há · ${tempActiva}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:#9fe1cb;text-transform:uppercase;letter-spacing:0.08em;">Margen Ppto</div>
+          <div style="font-size:22px;font-weight:700;color:${clsPpto};">${fmtPeso(mgnPpto)}</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid #f0ede6;">
+
+        <!-- INGRESOS -->
+        <div style="padding:16px;border-right:1px solid #f0ede6;">
+          <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">🌾 Ingresos</div>
+          <div style="margin-bottom:8px;">
+            <div style="font-size:11px;color:#888;">Presupuesto</div>
+            <div style="font-size:20px;font-weight:700;color:#b45309;">${fmtPeso(tPpto)}</div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="font-size:11px;color:#888;">Facturado</div>
+            <div style="font-size:18px;font-weight:700;color:#1a6e3a;">${tFact>0?fmtPeso(tFact):"—"}</div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <div style="font-size:11px;color:#888;">Pendiente</div>
+            <div style="font-size:14px;color:#888;">${tPend>0?fmtPeso(tPend):"—"}</div>
+          </div>
+          <!-- Barra de avance -->
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#888;margin-bottom:3px;">
+              <span>Avance</span><span style="color:${avColor};font-weight:700;">${pctAv}%</span>
+            </div>
+            <div style="height:6px;background:#f0ede6;border-radius:3px;">
+              <div style="height:6px;background:${avColor};border-radius:3px;width:${Math.min(100,pctAv)}%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COSTOS -->
+        <div style="padding:16px;border-right:1px solid #f0ede6;">
+          <div style="font-size:10px;font-weight:700;color:#cc2222;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">💰 Costos</div>
+          <div style="margin-bottom:8px;">
+            <div style="font-size:11px;color:#888;">Total</div>
+            <div style="font-size:20px;font-weight:700;color:#cc2222;">${fmtPeso(tCosto)}</div>
+          </div>
+          ${ha>0?`<div style="font-size:12px;color:#888;margin-bottom:8px;">$${Math.round(tCosto/ha).toLocaleString("es-CL")}/há</div>`:""}
+
+          <!-- Toggle BD Registro -->
+          <div onclick="toggleBloque('reg_${safeId}')"
+            style="cursor:pointer;background:#f8faf5;border:1px solid #e0edda;border-radius:6px;padding:7px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:11px;font-weight:600;color:#3b6d11;">📋 BD Registro</span>
+            <span style="font-size:12px;font-weight:700;color:#3b6d11;">${fmtPeso(tReg)}</span>
+          </div>
+          <div id="body-reg_${safeId}" style="display:none;margin-bottom:8px;">
+            <table style="width:100%;border-collapse:collapse;">
+              ${rowsReg||'<tr><td colspan="2" style="font-size:12px;color:#aaa;padding:4px 8px;">Sin registros</td></tr>'}
+            </table>
+          </div>
+
+          <!-- Toggle Asignaciones -->
+          <div onclick="toggleBloque('asig_${safeId}')"
+            style="cursor:pointer;background:#f5f8ff;border:1px solid #d5e4f5;border-radius:6px;padding:7px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:11px;font-weight:600;color:#0c447c;">📎 Asignaciones</span>
+            <span style="font-size:12px;font-weight:700;color:#0c447c;">${fmtPeso(tAsig)}</span>
+          </div>
+          <div id="body-asig_${safeId}" style="display:none;">
+            <table style="width:100%;border-collapse:collapse;">
+              ${rowsAsig||'<tr><td colspan="2" style="font-size:12px;color:#aaa;padding:4px 8px;">Sin registros</td></tr>'}
+            </table>
+          </div>
+        </div>
+
+        <!-- MARGEN -->
+        <div style="padding:16px;">
+          <div style="font-size:10px;font-weight:700;color:#1a3a0a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">📊 Margen</div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px;color:#888;">Margen Ppto</div>
+            <div style="font-size:20px;font-weight:700;color:${clsPpto};">${fmtPeso(mgnPpto)}</div>
+            ${ha>0?`<div style="font-size:11px;color:${clsPpto};">$${Math.round(mgnHaPpto).toLocaleString("es-CL")}/há</div>`:""}
+          </div>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:11px;color:#888;">Margen Real</div>
+            <div style="font-size:18px;font-weight:700;color:${clsReal};">${tFact>0?fmtPeso(mgnReal):"—"}</div>
+            ${(ha>0&&tFact>0)?`<div style="font-size:11px;color:${clsReal};">$${Math.round(mgnHaReal).toLocaleString("es-CL")}/há</div>`:""}
+          </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f0ede6;">
+            <div style="font-size:11px;color:#888;">% Margen Ppto</div>
+            <div style="font-size:16px;font-weight:700;color:${clsPpto};">${tPpto>0?(mgnPpto/tPpto*100).toFixed(1)+"%":"—"}</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── VISTA COMPARATIVA ─────────────────────────────────────────────────────
+  function tablaComparativa() {
+    const rows = upsTemp.map(id => {
+      const nombre  = CC_MAP[id]||id;
+      const ha      = HA_MAP[id]||0;
+      const tCosto  = (costoRegTotal[id]||0) + (costoAsigTotal[id]||0);
+      const tPpto   = ingPpto[id]||0;
+      const tFact   = ingFact[id]||0;
+      const mgnPpto = tPpto - tCosto;
+      const mgnReal = tFact - tCosto;
+      const pctAv   = tPpto>0 ? Math.round(tFact/tPpto*100) : 0;
+      const clsP    = mgnPpto>=0?"color:#1a6e3a":"color:#cc2222";
+      const clsR    = mgnReal>=0?"color:#1a6e3a":"color:#cc2222";
+      const avC     = pctAv>=100?"#1a6e3a":pctAv>=50?"#d97706":"#888";
+      return `<tr style="border-bottom:1px solid #f0ede6;">
+        <td style="padding:8px 10px;font-weight:600;">${nombre}<br><span style="font-size:10px;color:#888;font-weight:400;">${ha}há</span></td>
+        <td style="text-align:right;padding:8px 10px;color:#b45309;font-weight:600;">${fmtPeso(tPpto)}</td>
+        <td style="text-align:right;padding:8px 10px;color:#1a6e3a;font-weight:600;">${tFact>0?fmtPeso(tFact):"—"}</td>
+        <td style="text-align:right;padding:8px 10px;color:#cc2222;font-weight:600;">${fmtPeso(tCosto)}</td>
+        <td style="text-align:right;padding:8px 10px;font-weight:700;${clsP}">${fmtPeso(mgnPpto)}</td>
+        <td style="text-align:right;padding:8px 10px;font-weight:700;${clsR}">${tFact>0?fmtPeso(mgnReal):"—"}</td>
+        <td style="padding:8px 10px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="height:6px;background:#f0ede6;border-radius:3px;width:60px;">
+              <div style="height:6px;background:${avC};border-radius:3px;width:${Math.min(100,pctAv)*0.6}px;"></div>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:${avC};">${pctAv>0?pctAv+"%":"—"}</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+
+    // Totales
+    let tTP=0,tTF=0,tTC=0;
+    upsTemp.forEach(id => {
+      tTP += ingPpto[id]||0;
+      tTF += ingFact[id]||0;
+      tTC += (costoRegTotal[id]||0)+(costoAsigTotal[id]||0);
+    });
+    const tMP = tTP-tTC, tMR = tTF-tTC;
+    const tAv = tTP>0?Math.round(tTF/tTP*100):0;
+    const tAvC = tAv>=100?"#1a6e3a":tAv>=50?"#d97706":"#888";
+
+    return `<div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead style="background:#f8f8f6;">
+          <tr>
+            <th style="text-align:left;padding:8px 10px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;">UP</th>
+            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#b45309;border-bottom:2px solid #e5e2da;">🔮 Ppto</th>
+            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#1a6e3a;border-bottom:2px solid #e5e2da;">🧾 Fact.</th>
+            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#cc2222;border-bottom:2px solid #e5e2da;">💰 Costos</th>
+            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;">Mgn Ppto</th>
+            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;">Mgn Real</th>
+            <th style="padding:8px 10px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;">% Avance</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="background:#f8f8f6;font-weight:700;border-top:2px solid #e5e2da;">
+            <td style="padding:8px 10px;">Total</td>
+            <td style="text-align:right;padding:8px 10px;color:#b45309;">${fmtPeso(tTP)}</td>
+            <td style="text-align:right;padding:8px 10px;color:#1a6e3a;">${tTF>0?fmtPeso(tTF):"—"}</td>
+            <td style="text-align:right;padding:8px 10px;color:#cc2222;">${fmtPeso(tTC)}</td>
+            <td style="text-align:right;padding:8px 10px;color:${tMP>=0?"#1a6e3a":"#cc2222"};">${fmtPeso(tMP)}</td>
+            <td style="text-align:right;padding:8px 10px;color:${tMR>=0?"#1a6e3a":"#cc2222"};">${tTF>0?fmtPeso(tMR):"—"}</td>
+            <td style="padding:8px 10px;">
+              <span style="font-weight:700;color:${tAvC};">${tAv>0?tAv+"%":"—"}</span>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  }
+
+  // ── HTML FINAL ────────────────────────────────────────────────────────────
+  document.getElementById("app-resultado").innerHTML = `
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">
+        Seleccionar UP
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;">
+        ${selectorBtns}
+      </div>
+    </div>
+
+    <!-- Card detalle UP seleccionada -->
+    ${cardUP(window._resUP)}
+
+    <!-- Tabla comparativa todas las UPs -->
+    <div style="background:#fff;border:1px solid #e5e2da;border-radius:12px;overflow:hidden;">
+      <div style="padding:14px 20px;border-bottom:1px solid #f0ede6;display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:13px;font-weight:700;">Comparativa todas las UPs — ${tempActiva}</div>
+        <div style="font-size:11px;color:#888;">${upsTemp.length} unidades productivas</div>
+      </div>
+      <div style="padding:0 8px 8px;">
+        ${tablaComparativa()}
+      </div>
+    </div>
+    <div class="footer">Estado de Resultado por UP · ${tempActiva} · Los Crisoles · BData</div>`;
+}
+
 function getTemporadaDeFecha(fecha, mesInicio) {
   const d = typeof fecha === "string" ? new Date(fecha) : fecha;
   if (!d || isNaN(d)) return null;
@@ -1069,6 +1416,7 @@ function cambiarTemporada(temp) {
   renderCostos();
   renderMargenes();
   renderIngresos();
+  renderResultadoUP();
 }
 
 function toggleBloque(id) {
@@ -1400,7 +1748,7 @@ function renderCaja() {
 
 function switchTab(tab) {
   currentTab = tab;
-  ["labores","costos","margenes","ingresos","caja"].forEach(t => {
+  ["labores","costos","margenes","ingresos","caja","resultado"].forEach(t => {
     document.getElementById("tab-"+t).className = "tab" + (tab===t?" on":"");
     document.getElementById("app-"+t).style.display      = tab===t ? "" : "none";
     document.getElementById("metrics-"+t).style.display  = tab===t ? "" : "none";
