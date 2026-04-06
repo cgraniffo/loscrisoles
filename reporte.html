@@ -392,6 +392,9 @@ function renderMargenes() {
   const FECHA_CORTE = FECHA_CORTE_COSTOS;
   const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
 
+  // UPs no productivas — excluidas de costos, ingresos y márgenes
+  const FUNDOS_NO_PROD_M = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
+
   function passTemp(fechaVal, ccId) {
     if (!tempActiva) return true;
     const tmp = TEMP_MAP[ccId];
@@ -405,7 +408,10 @@ function renderMargenes() {
     const raw  = String(r["Fecha"]||"");
     const f    = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
     const ccId = String(r["Centro_Costo"]||"").trim();
-    return Number(r["Costo Total"]||0) > 0 && (f===""||f<FECHA_CORTE) && passTemp(f, ccId);
+    const ha   = HA_MAP[ccId]||0;
+    const fundo = FUNDO_MAP[ccId]||"";
+    return Number(r["Costo Total"]||0) > 0 && (f===""||f<FECHA_CORTE) && passTemp(f, ccId)
+      && ha > 0 && !FUNDOS_NO_PROD_M.has(fundo);
   }).forEach(r => {
     const id = String(r["Centro_Costo"]||"").trim();
     costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Costo Total"]||0);
@@ -413,7 +419,10 @@ function renderMargenes() {
   (window.ASIGNACIONES||[]).filter(r => {
     const id    = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
     const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id);
+    const ha    = HA_MAP[id]||0;
+    const fundo = FUNDO_MAP[id]||"";
+    return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id)
+      && ha > 0 && !FUNDOS_NO_PROD_M.has(fundo);
   }).forEach(r => {
     const id = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
     costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
@@ -455,13 +464,12 @@ function renderMargenes() {
   });
 
   // ── FILAS ─────────────────────────────────────────────────────────────────
-  // Solo UPs productivas (con hectáreas, excluyendo GG/Maquinarias/etc)
-  const FUNDOS_NO_PROD_M = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
-  const allUPs = [...new Set([...Object.keys(costosPorUP), ...Object.keys(ingresosPorUP)])].filter(id => {
-    const ha = HA_MAP[id]||0;
+  function esProdUP(id) {
+    const ha    = HA_MAP[id]||0;
     const fundo = FUNDO_MAP[id]||"";
     return ha > 0 && !FUNDOS_NO_PROD_M.has(fundo);
-  }).sort();
+  }
+  const allUPs = [...new Set([...Object.keys(costosPorUP), ...Object.keys(ingresosPorUP)])].filter(esProdUP).sort();
 
   const filtradas = allUPs.filter(id => {
     if (stateMargenes.ups.length    > 0 && !stateMargenes.ups.includes(id))                   return false;
