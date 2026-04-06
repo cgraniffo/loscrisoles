@@ -351,7 +351,8 @@
       var pptoIng = (Array.isArray(window._kpiData.proyecciones) ? window._kpiData.proyecciones : []).filter(function(r) {
         var id  = String(r['Unidad_Productiva']||'').trim();
         var tmp = TEMP_MAP[id];
-        return tmp ? tmp.temporada === temporada : true;
+        if (!tmp) return false;
+        return tmp.temporada === temporada;
       }).reduce(function(s,r){ return s + Number(r['Monto_Total']||0); }, 0);
       document.getElementById('k-ppto').textContent = fmtPeso(pptoIng);
       document.getElementById('k-ppto-label').textContent = '🌾 Ppto ' + (temporada || '');
@@ -393,7 +394,9 @@
       var ccId  = String(a["UP_ID"]||a["UP_Nombre"]||"").trim();
       var tmp   = TEMP_MAP[ccId];
       var fecha = a["Fecha_Documento"] || a["Fecha_Asignacion"];
+      var tipo  = String(a["Tipo_Doc"]||"").toLowerCase();
       if (!tmp) return false;
+      if (tipo.includes("emit")) return false;  // excluir ingresos (facturas/guías emitidas)
       return getTemporada(fecha, tmp.mesInicio) === temp;
     }).reduce(function(s,a){ return s+Number(a["Monto_Asignado"]||0); }, 0);
     return costoReg + costoAsig;
@@ -464,7 +467,8 @@
       var pptoIng = (Array.isArray(proyecciones) ? proyecciones : []).filter(function(r) {
         var id  = String(r["Unidad_Productiva"]||"").trim();
         var tmp = TEMP_MAP[id];
-        return tmp ? tmp.temporada === temporada : true;
+        if (!tmp) return false;  // excluir UPs sin temporada definida
+        return tmp.temporada === temporada;
       }).reduce(function(s,r){ return s + Number(r["Monto_Total"]||0); }, 0);
       document.getElementById("k-ppto").textContent = fmtPeso(pptoIng);
       document.getElementById("k-ppto").className = "kpi-val amber";
