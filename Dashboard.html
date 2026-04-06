@@ -29,7 +29,7 @@
     #dash-temporada option { background: #1a3a0a; color: #fff; }
 
     /* ── KPIs ── */
-    .dash-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 0; }
+    .dash-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 0; }
     .kpi { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 12px; }
     .kpi-val { font-size: 20px; font-weight: 700; color: #fff; line-height: 1; }
     .kpi-val.green { color: #86efac; }
@@ -87,7 +87,7 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     @media (max-width: 768px) {
-      .dash-kpis { grid-template-columns: repeat(2, 1fr); }
+      .dash-kpis { grid-template-columns: repeat(3, 1fr); }
       .kpi-val { font-size: 17px; }
       .tab { font-size: 10px; padding: 10px 10px 7px; }
       .tab-group-label { display: none; }
@@ -119,21 +119,29 @@
   </div>
 
   <div class="dash-kpis">
-    <div class="kpi">
+    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('caja',null)">
       <div class="kpi-val green" id="k-caja">—</div>
-      <div class="kpi-label">💰 Caja actual</div>
+      <div class="kpi-label">🏦 Caja actual</div>
     </div>
-    <div class="kpi">
+    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('costos',null)">
       <div class="kpi-val" id="k-costos">—</div>
-      <div class="kpi-label" id="k-costos-label">📊 Costos acumulados</div>
+      <div class="kpi-label" id="k-costos-label">💰 Costos acumulados</div>
     </div>
-    <div class="kpi">
+    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('ingresos',null)">
+      <div class="kpi-val amber" id="k-ppto">—</div>
+      <div class="kpi-label" id="k-ppto-label">🌾 Ppto ingresos</div>
+    </div>
+    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('margenes',null)">
+      <div class="kpi-val" id="k-margen">—</div>
+      <div class="kpi-label" id="k-margen-label">📊 Margen ppto</div>
+    </div>
+    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('labores',null)">
       <div class="kpi-val amber" id="k-vencidas">—</div>
       <div class="kpi-label">⚠️ Labores vencidas</div>
     </div>
-    <div class="kpi">
+    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('asignar',null)">
       <div class="kpi-val red" id="k-sinasignar">—</div>
-      <div class="kpi-label">📎 Sin asignar (desde 01-Abr)</div>
+      <div class="kpi-label">📎 Sin asignar</div>
     </div>
   </div>
 </div>
@@ -289,7 +297,12 @@
 
     // Update tab styles
     document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-    el.classList.add('active');
+    if (el && el.classList) el.classList.add('active');
+
+    // Activar visualmente el tab correcto si no se pasó el elemento
+    var tabEl = document.querySelector('.tab[onclick*=\'"' + name + '"\']') ||
+                document.querySelector('.tab[onclick*="' + "'" + name + "'" + '"]');
+    if (tabEl) tabEl.classList.add('active');
 
     // Hide all iframes
     document.querySelectorAll('iframe').forEach(function(f) {
@@ -298,6 +311,7 @@
     });
 
     var frame = document.getElementById('f-' + name);
+    if (!frame) return;
     frame.classList.remove('hidden');
 
     if (!loaded[name]) {
@@ -312,6 +326,8 @@
       hideLoader();
     }
   }
+  // Exponer globalmente para que los iframes puedan navegar
+  window.show = show;
 
   // Mark home as loaded on its first load
   loaded['home'] = true;
@@ -323,11 +339,26 @@
   function onTemporadaChange() {
     temporada = document.getElementById('dash-temporada').value;
 
-    // Recalculate costos KPI for selected temporada
+    // Recalculate KPIs for selected temporada
     if (window._kpiData) {
       var costoTemp = costosDeLaTemporada(window._kpiData.registros, window._kpiData.asignaciones, temporada);
       document.getElementById('k-costos').textContent = fmtPeso(costoTemp);
-      document.getElementById('k-costos-label').textContent = '📊 Costos ' + (temporada || '');
+      document.getElementById('k-costos-label').textContent = '💰 Costos ' + (temporada || '');
+
+      // Ppto ingresos
+      var pptoIng = (Array.isArray(window._kpiData.proyecciones) ? window._kpiData.proyecciones : []).filter(function(r) {
+        var id  = String(r['Unidad_Productiva']||'').trim();
+        var tmp = TEMP_MAP[id];
+        return tmp ? tmp.temporada === temporada : true;
+      }).reduce(function(s,r){ return s + Number(r['Monto_Total']||0); }, 0);
+      document.getElementById('k-ppto').textContent = fmtPeso(pptoIng);
+      document.getElementById('k-ppto-label').textContent = '🌾 Ppto ' + (temporada || '');
+
+      // Margen ppto
+      var margenPpto = pptoIng - costoTemp;
+      document.getElementById('k-margen').textContent = fmtPeso(margenPpto);
+      document.getElementById('k-margen').className = 'kpi-val ' + (margenPpto >= 0 ? 'green' : 'red');
+      document.getElementById('k-margen-label').textContent = '📊 Margen ' + (temporada || '');
     }
 
     // Push to all loaded iframes
@@ -371,12 +402,13 @@
       new Date().toLocaleDateString("es-CL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
 
     try {
-      var [banco, registros, docs, asignaciones, ccs] = await Promise.all([
+      var [banco, registros, docs, asignaciones, ccs, proyecciones] = await Promise.all([
         fetchSheet(API_FIN, "BD_Banco"),
         fetchSheet(API_REG, "BD_Registro"),
         fetchSheet(API_FIN, "CargaHTML_Demo"),
         fetchSheet(API_FIN, "Asignaciones_U"),
-        fetchSheet(API_CC,  "BD_CC"),  // for temporada options
+        fetchSheet(API_CC,  "BD_CC"),
+        fetchSheet(API_REG, "Proyecciones_Manuales"),
       ]);
 
       // Caja
@@ -420,11 +452,27 @@
       }
 
       // Store for recalculation on temporada change
-      window._kpiData = { registros: registros, asignaciones: asignaciones };
+      window._kpiData = { registros: registros, asignaciones: asignaciones, proyecciones: proyecciones };
 
       var costoTemp = costosDeLaTemporada(registros, asignaciones, temporada);
       document.getElementById("k-costos").textContent = fmtPeso(costoTemp);
-      document.getElementById("k-costos-label").textContent = "📊 Costos " + (temporada || "");
+      document.getElementById("k-costos-label").textContent = "💰 Costos " + (temporada || "");
+
+      // Ppto ingresos (Proyecciones_Manuales filtrado por temporada)
+      var pptoIng = (Array.isArray(proyecciones) ? proyecciones : []).filter(function(r) {
+        var id  = String(r["Unidad_Productiva"]||"").trim();
+        var tmp = TEMP_MAP[id];
+        return tmp ? tmp.temporada === temporada : true;
+      }).reduce(function(s,r){ return s + Number(r["Monto_Total"]||0); }, 0);
+      document.getElementById("k-ppto").textContent = fmtPeso(pptoIng);
+      document.getElementById("k-ppto").className = "kpi-val amber";
+      document.getElementById("k-ppto-label").textContent = "🌾 Ppto " + (temporada || "");
+
+      // Margen ppto = Ppto ingresos - Costos
+      var margenPpto = pptoIng - costoTemp;
+      document.getElementById("k-margen").textContent = fmtPeso(margenPpto);
+      document.getElementById("k-margen").className = "kpi-val " + (margenPpto >= 0 ? "green" : "red");
+      document.getElementById("k-margen-label").textContent = "📊 Margen " + (temporada || "");
 
       // Labores vencidas
       var hoy = new Date(); hoy.setHours(0,0,0,0);
