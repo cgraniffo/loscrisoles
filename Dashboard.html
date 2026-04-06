@@ -160,6 +160,7 @@
   <div class="tab g-finanzas" onclick="show('ingresos', this)">🌾 Ingresos</div>
   <div class="tab g-finanzas" onclick="show('margenes', this)">📊 Márgenes</div>
   <div class="tab g-finanzas" onclick="show('asignar', this)">📎 Asignar</div>
+  <div class="tab g-finanzas" onclick="show('resultado', this)">📋 Resultado UP</div>
 </div>
 
 <div class="frame-wrap">
@@ -175,6 +176,7 @@
   <iframe id="f-ingresos"   src=""  data-src="/reporte"    data-tab="ingresos"   class="hidden"></iframe>
   <iframe id="f-margenes"   src=""  data-src="/reporte"    data-tab="margenes"   class="hidden"></iframe>
   <iframe id="f-asignar"    src=""  data-src="/asignar"    data-tab=""           class="hidden"></iframe>
+  <iframe id="f-resultado"  src=""  data-src="/reporte"   data-tab="resultado"  class="hidden"></iframe>
 </div>
 
 <script>
@@ -362,7 +364,7 @@
     }
 
     // Push to all loaded iframes
-    ['f-home','f-costos','f-ingresos','f-margenes','f-labores','f-caja','f-produccion','f-insumos'].forEach(function(id) {
+    ['f-home','f-costos','f-ingresos','f-margenes','f-labores','f-caja','f-produccion','f-insumos','f-resultado'].forEach(function(id) {
       var f = document.getElementById(id);
       if (loaded[id.replace('f-','')] && f.contentWindow) pushTemporada(f);
     });
