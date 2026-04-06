@@ -677,93 +677,78 @@ async function main() {
     const cobrar = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r));
     const pagar  = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r));
     const sumD   = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
-    const pagar15  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en15;});
-    const cobrar15 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en15;});
-    const pagar30  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
-    const cobrar30 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
-    const pagarVenc   = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
-    const cobrarVenc  = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d<hoy;});
-    const pagar60     = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en60;});
-    const cobrar60    = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en60;});
-    const pagarMas60  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>en60;});
+    const sumP   = arr => arr.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
+
+    // Buckets incrementales (igual que pestaña Caja)
+    const bucket = (lista, desde, hasta) => lista.filter(r => {
+      const d = parseDate(r["Fecha_Real"]); if (!d) return false; d.setHours(0,0,0,0);
+      return hasta===null ? d<desde : d>=desde && d<=hasta;
+    });
+    const en15p1 = new Date(en15.getTime()+86400000);
+    const en30p1 = new Date(en30.getTime()+86400000);
+    const en60p1 = new Date(en60.getTime()+86400000);
+
+    const cobrarVenc  = bucket(cobrar, hoy, null);
+    const pagarVenc   = bucket(pagar,  hoy, null);
+    const cobrar15    = bucket(cobrar, hoy, en15);
+    const pagar15     = bucket(pagar,  hoy, en15);
+    const cobrar30    = bucket(cobrar, en15p1, en30);
+    const pagar30     = bucket(pagar,  en15p1, en30);
+    const cobrar60    = bucket(cobrar, en30p1, en60);
+    const pagar60     = bucket(pagar,  en30p1, en60);
     const cobrarMas60 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>en60;});
-    const saldo15  = CAJA_ACTUAL + sumD(cobrar15)  + sumD(cobrarVenc) - sumD(pagar15)  - sumD(pagarVenc);
-    const saldo30  = CAJA_ACTUAL + sumD(cobrar30)  + sumD(cobrarVenc) - sumD(pagar30)  - sumD(pagarVenc);
-    const saldo60  = CAJA_ACTUAL + sumD(cobrar60)  + sumD(cobrarVenc) - sumD(pagar60)  - sumD(pagarVenc);
-    const saldoM60 = CAJA_ACTUAL + sumD(cobrarMas60) + sumD(cobrar60) + sumD(cobrarVenc) - sumD(pagarMas60) - sumD(pagar60) - sumD(pagarVenc);
+    const pagarMas60  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>en60;});
+
+    // Proyecciones estimadas por período (igual que pestaña Caja)
+    const proy = Array.isArray(proyecciones) ? proyecciones : [];
+    const ingPeriodo = (desde, hasta) => proy.filter(r => {
+      const d = parseDate(r["Fecha_Estimada"]); if (!d) return false; d.setHours(0,0,0,0);
+      return hasta===null ? d>=desde : d>=desde && d<=hasta;
+    });
+    const ing15  = sumP(ingPeriodo(hoy,    en15));
+    const ing30  = sumP(ingPeriodo(en15p1, en30));
+    const ing60  = sumP(ingPeriodo(en30p1, en60));
+    const ingM60 = sumP(ingPeriodo(en60p1, null));
+
+    // Saldos acumulados en cascada
+    const netoVenc = sumD(cobrarVenc) - sumD(pagarVenc);
+    const neto15   = sumD(cobrar15)   - sumD(pagar15)   + ing15;
+    const neto30   = sumD(cobrar30)   - sumD(pagar30)   + ing30;
+    const neto60   = sumD(cobrar60)   - sumD(pagar60)   + ing60;
+    const netoM60  = sumD(cobrarMas60)- sumD(pagarMas60)+ ingM60;
+    const saldoVenc = CAJA_ACTUAL + netoVenc;
+    const saldo15   = saldoVenc + neto15;
+    const saldo30   = saldo15   + neto30;
+    const saldo60   = saldo30   + neto60;
+    const saldoM60  = saldo60   + netoM60;
 
     document.getElementById('h-caja').textContent = fmtPeso(CAJA_ACTUAL);
-    document.getElementById('card-caja').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-        <div class="caja-item" style="background:#eaf3de;">
-          <div class="caja-val" style="color:var(--verde);font-size:22px;">${fmtPeso(CAJA_ACTUAL)}</div>
-          <div class="caja-lbl">💰 Caja Hoy</div>
-        </div>
-        <div class="caja-item" style="background:#fff8f8;">
-          <div class="caja-val" style="color:#ef4444;font-size:18px;">-${fmtPeso(sumD(pagarVenc))}</div>
-          <div class="caja-lbl">⚠️ Por pagar vencido</div>
-        </div>
-      </div>
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Próximos 15 días</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-        <div class="caja-item">
-          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagar15))}</div>
-          <div class="caja-lbl">Por pagar 15d</div>
-        </div>
-        <div class="caja-item">
-          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrar15))}</div>
-          <div class="caja-lbl">Por cobrar 15d</div>
-        </div>
-        <div class="caja-item" style="background:${saldo15>=0?"#eaf3de":"#fff8f8"};">
-          <div class="caja-val" style="color:${saldo15>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldo15)}</div>
-          <div class="caja-lbl">Proyectado 15d</div>
-        </div>
-      </div>
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Próximos 30 días</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-        <div class="caja-item">
-          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagar30))}</div>
-          <div class="caja-lbl">Por pagar 30d</div>
-        </div>
-        <div class="caja-item">
-          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrar30))}</div>
-          <div class="caja-lbl">Por cobrar 30d</div>
-        </div>
-        <div class="caja-item" style="background:${saldo30>=0?"#eaf3de":"#fff8f8"};">
-          <div class="caja-val" style="color:${saldo30>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldo30)}</div>
-          <div class="caja-lbl">Proyectado 30d</div>
-        </div>
-      </div>
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Próximos 60 días</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
-        <div class="caja-item">
-          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagar60))}</div>
-          <div class="caja-lbl">Por pagar 60d</div>
-        </div>
-        <div class="caja-item">
-          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrar60))}</div>
-          <div class="caja-lbl">Por cobrar 60d</div>
-        </div>
-        <div class="caja-item" style="background:${saldo60>=0?"#eaf3de":"#fff8f8"};">
-          <div class="caja-val" style="color:${saldo60>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldo60)}</div>
-          <div class="caja-lbl">Proyectado 60d</div>
-        </div>
-      </div>
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">Más de 60 días</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div class="caja-item">
-          <div class="caja-val" style="color:#ef4444;font-size:16px;">-${fmtPeso(sumD(pagarMas60))}</div>
-          <div class="caja-lbl">Por pagar +60d</div>
-        </div>
-        <div class="caja-item">
-          <div class="caja-val" style="color:var(--verde2);font-size:16px;">+${fmtPeso(sumD(cobrarMas60))}</div>
-          <div class="caja-lbl">Por cobrar +60d</div>
-        </div>
-        <div class="caja-item" style="background:${saldoM60>=0?"#eaf3de":"#fff8f8"};">
-          <div class="caja-val" style="color:${saldoM60>=0?"var(--verde)":"#ef4444"};font-size:16px;">${fmtPeso(saldoM60)}</div>
-          <div class="caja-lbl">Proyectado +60d</div>
-        </div>
-      </div>`;
+
+    const fila = (label, pagar, cobrar, ingProy, saldo) => {
+      const cP = fmtPeso(sumD(pagar));
+      const cC = fmtPeso(sumD(cobrar));
+      const cI = ingProy > 0 ? '+' + fmtPeso(ingProy) : null;
+      const cS = fmtPeso(saldo);
+      const clsS = saldo >= 0 ? 'var(--verde)' : '#ef4444';
+      const bgS  = saldo >= 0 ? '#eaf3de' : '#fff8f8';
+      return '<div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">' + label + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr ' + (cI?'1fr ':'') + '1fr;gap:8px;margin-bottom:12px;">' +
+        '<div class="caja-item"><div class="caja-val" style="color:#ef4444;font-size:15px;">-' + cP + '</div><div class="caja-lbl">Por pagar</div></div>' +
+        '<div class="caja-item"><div class="caja-val" style="color:var(--verde2);font-size:15px;">+' + cC + '</div><div class="caja-lbl">Por cobrar</div></div>' +
+        (cI ? '<div class="caja-item" style="background:#fff8f0;"><div class="caja-val" style="color:#b45309;font-size:15px;">' + cI + '</div><div class="caja-lbl">🔮 Ing. proy.</div></div>' : '') +
+        '<div class="caja-item" style="background:' + bgS + ';"><div class="caja-val" style="color:' + clsS + ';font-size:15px;">' + cS + '</div><div class="caja-lbl">Proyectado</div></div>' +
+        '</div>';
+    };
+
+    document.getElementById('card-caja').innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">' +
+        '<div class="caja-item" style="background:#eaf3de;"><div class="caja-val" style="color:var(--verde);font-size:22px;">' + fmtPeso(CAJA_ACTUAL) + '</div><div class="caja-lbl">💰 Caja Hoy</div></div>' +
+        '<div class="caja-item" style="background:#fff8f8;"><div class="caja-val" style="color:#ef4444;font-size:18px;">-' + fmtPeso(sumD(pagarVenc)) + '</div><div class="caja-lbl">⚠️ Por pagar vencido</div></div>' +
+      '</div>' +
+      fila('Próximos 15 días',  pagar15,   cobrar15,   ing15,  saldo15)  +
+      fila('Próximos 30 días',  pagar30,   cobrar30,   ing30,  saldo30)  +
+      fila('Próximos 60 días',  pagar60,   cobrar60,   ing60,  saldo60)  +
+      fila('Más de 60 días',    pagarMas60,cobrarMas60,ingM60, saldoM60);
 
     // ── COSTOS y PRODUCCIÓN → renderHome() ──────────────────────────────────
     // (se llama aquí y también al cambiar temporada desde el dashboard)
