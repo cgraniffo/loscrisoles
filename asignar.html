@@ -551,6 +551,12 @@ function render() {
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
             <span class="badge-tipo ${tipo==="guia"?"badge-guia":tipo==="guia-emitida"?"badge-asig":"badge-fact"}">${tipo==="guia"?"Guía recibida":tipo==="guia-emitida"?"Guía emitida":"Factura"}</span>
             <span style="font-size:11px;color:#888;">F:${folio} · ${fecha}</span>
+            <a href="https://cgraniffo.pythonanywhere.com/ver_documento/LOS%20CRISOLES/${encodeURIComponent(String(doc['RUT Emisor']||'').trim())}/${encodeURIComponent(String(folio||'').trim())}"
+               target="_blank"
+               onclick="event.stopPropagation()"
+               style="font-size:10px;color:#888;text-decoration:none;border:1px solid #ddd;padding:1px 7px;border-radius:4px;background:#fff;white-space:nowrap;">
+              📄 Ver XML
+            </a>
           </div>
           <div class="doc-nombre">${proveedor}${tipo==="factura-emitida"?' <span style="font-size:10px;background:#1a3a0a;color:#86efac;padding:1px 6px;border-radius:3px;margin-left:4px;">🌾 INGRESO</span>':""}</div>
           ${doc["TermPagoGlosa"] ? `<div class="doc-meta">${doc["TermPagoGlosa"]}</div>` : ""}
