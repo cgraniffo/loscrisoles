@@ -2189,16 +2189,47 @@ function renderLabores() {
         const encNombre   = ENC_MAP[String(r["Encargado"]||"").trim()]||String(r["Encargado"]||"").trim();
         const obs  = String(r["Observaciones"]||"").trim();
         const tipo = String(r["Tipo_Labor"]||"").trim();
+        const idReg  = String(r["ID_Registro"]||"").trim();
+        const estAct = String(r["Estado Operativo"]||"Pendiente").trim();
+        const ESTADOS = ["Pendiente","En Proceso","Completado"];
+        const EST_COLORS = {"Pendiente":"#888","En Proceso":"#b45309","Completado":"#1a6e3a"};
+        const estBtns = ESTADOS.map(est => {
+          const activo = est === estAct;
+          const col    = EST_COLORS[est];
+          return `<button
+            onclick="updateLabor('${idReg}','estado','${est}',this)"
+            style="padding:3px 10px;border-radius:12px;border:1px solid ${col};
+              background:${activo?col:'#fff'};color:${activo?'#fff':col};
+              font-size:11px;font-weight:600;cursor:pointer;"
+            ${!idReg?'disabled':''}>
+            ${est}
+          </button>`;
+        }).join("");
+        const obsId  = "obs-" + idReg.replace(/[^a-z0-9]/gi,"_");
+        const btnId  = "btn-obs-" + idReg.replace(/[^a-z0-9]/gi,"_");
         return `<div class="labor">
           <div class="labor-bar" style="background:${c.bar};"></div>
           <div class="labor-inner">
             <div class="labor-date" style="color:${c.date};">${fmtDate(r["Fecha"])}</div>
             <div style="flex:1;">
               <div class="labor-name">${laborNombre}</div>
-              ${obs?`<div class="labor-obs">${obs}</div>`:""}
+              <div class="labor-row" style="margin:4px 0;display:flex;gap:4px;flex-wrap:wrap;">
+                ${estBtns}
+              </div>
               <div class="labor-meta">
                 ${encNombre?`<span>👤 ${encNombre}</span>`:""}
                 ${tipo?`<span>🏷 ${tipo}</span>`:""}
+              </div>
+              <div style="margin-top:6px;display:flex;gap:6px;align-items:flex-start;">
+                <textarea id="${obsId}"
+                  style="flex:1;font-size:11px;border:1px solid #e5e2da;border-radius:6px;
+                    padding:5px 8px;resize:vertical;min-height:40px;font-family:inherit;"
+                  placeholder="Observaciones...">${obs}</textarea>
+                <button id="${btnId}"
+                  onclick="updateLabor('${idReg}','observacion',document.getElementById('${obsId}').value,this)"
+                  style="padding:5px 10px;border-radius:6px;border:none;background:#1a3a0a;
+                    color:#fff;font-size:11px;cursor:pointer;white-space:nowrap;"
+                  ${!idReg?'disabled':''}>Guardar</button>
               </div>
             </div>
           </div>
@@ -2217,6 +2248,46 @@ function renderLabores() {
     </div>${cards}`;
   };
   return seccion(enProceso,"En Proceso") + seccion(pendientes,"Pendiente");
+}
+
+
+// ── ACTUALIZAR LABOR (Estado Operativo + Observaciones) ──────────────────────
+async function updateLabor(idRegistro, campo, valor, btnEl) {
+  if (btnEl) {
+    btnEl.disabled = true;
+    btnEl.textContent = "⏳";
+  }
+  try {
+    const body = { action: "update_labor", id_registro: idRegistro };
+    if (campo === "estado")     body.estado     = valor;
+    if (campo === "observacion") body.observacion = valor;
+
+    const res  = await fetch(API_REGISTRO, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(body)
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      // Actualizar en memoria
+      const reg = TODOS.find(r => String(r["ID_Registro"]||"").trim() === idRegistro);
+      if (reg) {
+        if (campo === "estado")      reg["Estado Operativo"] = valor;
+        if (campo === "observacion") reg["Observaciones"]    = valor;
+      }
+      if (btnEl) { btnEl.textContent = "✓"; btnEl.style.background = "#1a6e3a"; }
+      setTimeout(() => {
+        if (campo === "estado") renderPageLabores(); // re-render para mover entre secciones
+      }, 600);
+    } else {
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = "Guardar"; }
+      alert("Error: " + (data.error||"desconocido"));
+    }
+  } catch(e) {
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = "Guardar"; }
+    alert("Error de conexión: " + e.message);
+  }
 }
 
 function renderPageLabores() {
