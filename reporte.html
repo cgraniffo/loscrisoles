@@ -2262,7 +2262,7 @@ async function updateLabor(idRegistro, campo, valor, btnEl) {
     if (campo === "estado")     body.estado     = valor;
     if (campo === "observacion") body.observacion = valor;
 
-    const res  = await fetch(API_REGISTRO, {
+    const res  = await fetch("https://round-night-574d.christian-19c.workers.dev", {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify(body)
