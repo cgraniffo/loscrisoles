@@ -2478,14 +2478,6 @@ function initMap() {
     const nombre   = CC_MAP[id] || id;
     const fundo    = FUNDO_MAP[id] || "";
     const ha       = HA_MAP[id] || 0;
-    const cultivo  = CULTIVO_MAP[id] || "";
-    const tempInfo = TEMP_MAP[id] || {};
-    const tempLabel = tempInfo.temporada
-      ? tempInfo.temporada.replace("20","").replace("/","–")
-      : "";
-    // Label: cultivo si existe, si no NOMBRE CC; + temporada abreviada
-    const displayLabel = (cultivo || nombre) + (tempLabel ? " " + tempLabel : "");
-
     // Usar TODOS para detectar labores (no filtrar por temporada activa)
     const laboresCC = TODOS.filter(r => String(r["Centro_Costo"]||"").trim() === id);
     const activas   = laboresCC.filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
@@ -2498,7 +2490,7 @@ function initMap() {
       else if (hoy > 0) color = "#b45309";
       else color = "#1a3a0a";
     }
-    return { id, nombre, displayLabel, fundo, ha, total, vencidas, hoy, color, lat: coord.lat, lng: coord.lng, laboresCC: activas };
+    return { id, nombre, fundo, ha, total, vencidas, hoy, color, lat: coord.lat, lng: coord.lng, laboresCC: activas };
   });
 
   if (puntos.length === 0) return;
@@ -2598,7 +2590,7 @@ function initMap() {
 
     marker.bindPopup(popupHTML);
 
-    const labelNom = p.displayLabel || p.nombre.replace("Pivote","Piv").replace("Potrero","Pot").replace("Nogales","NOG").replace("Vega","VEGA").replace("Parcela","PAR");
+    const labelNom = (p.fundo || p.nombre).replace("Pivote","Piv").replace("Potrero","Pot").replace("Nogales","NOG").replace("Vega","VEGA").replace("Parcela","PAR");
     const icon = L.divIcon({
       className: "",
       html: `<div style="
