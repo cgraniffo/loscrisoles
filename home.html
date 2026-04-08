@@ -478,17 +478,13 @@ if (location.search.includes('embed=1')) {
     </div>
 
     <!-- Mapa al final -->
-    <div class="mapa-dark-wrap-h" id="mapa-dark-card">
-      <div class="mapa-dark-header-h">
-        <span class="mapa-dark-title-h">🗺 Mapa del Campo</span>
-        <div class="mapa-live-badge-h">
-          <div class="mapa-live-dot-h"></div>
-          <span class="mapa-live-text-h" id="mapa-hora-h">EN VIVO</span>
-        </div>
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">🗺 Mapa de unidades productivas</div>
+        <div style="font-size:11px;color:var(--gris);">Click en marcador para ver detalles</div>
       </div>
-      <div id="mapa-home"></div>
-      <div class="mapa-panel-h" id="mapa-panel-home">
-        <div style="text-align:center;font-size:11px;color:#6b9e7a;padding:8px 0;">Cargando datos del campo...</div>
+      <div class="card-body" style="padding:12px;">
+        <div id="mapa-home"></div>
       </div>
     </div>
 
