@@ -2418,10 +2418,11 @@ function buildMapaPanel() {
   if (!panel) return;
 
   // Calcular KPIs desde ACTIVOS
-  const encs = [...new Set(ACTIVOS.map(r=>String(r["Encargado"]||"").trim()).filter(Boolean))];
-  const upsConLabor = [...new Set(ACTIVOS.map(r=>String(r["Centro_Costo"]||"").trim()).filter(Boolean))];
-  const vencidas = ACTIVOS.filter(r=>dateStatus(r["Fecha"])==="venc");
-  const enProceso = ACTIVOS.filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
+  const _act = window.ACTIVOS||[];
+  const encs = [...new Set(_act.map(r=>String(r["Encargado"]||"").trim()).filter(Boolean))];
+  const upsConLabor = [...new Set(_act.map(r=>String(r["Centro_Costo"]||"").trim()).filter(Boolean))];
+  const vencidas = _act.filter(r=>dateStatus(r["Fecha"])==="venc");
+  const enProceso = _act.filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
   const avancePct = enProceso.length > 0
     ? Math.round(enProceso.reduce((s,r)=>s+parseFloat(r["Avance_%"]||r["Avance"]||0),0)/enProceso.length)
     : 0;
@@ -2478,8 +2479,8 @@ function initMap() {
     const nombre   = CC_MAP[id] || id;
     const fundo    = FUNDO_MAP[id] || "";
     const ha       = HA_MAP[id] || 0;
-    // Usar TODOS para detectar labores (no filtrar por temporada activa)
-    const laboresCC = TODOS.filter(r => String(r["Centro_Costo"]||"").trim() === id);
+    // Usar window.TODOS directamente para evitar stale reference del var inicial
+    const laboresCC = (window.TODOS||[]).filter(r => String(r["Centro_Costo"]||"").trim() === id);
     const activas   = laboresCC.filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
     const vencidas  = activas.filter(r => dateStatus(r["Fecha"]) === "venc").length;
     const hoy       = activas.filter(r => dateStatus(r["Fecha"]) === "hoy").length;
