@@ -2485,7 +2485,7 @@ function initMap() {
       else if (hoy > 0) color = "#b45309";
       else color = "#1a3a0a";
     }
-    return { id, nombre, fundo, ha, total, vencidas, hoy, color, lat: coord.lat, lng: coord.lng };
+    return { id, nombre, fundo, ha, total, vencidas, hoy, color, lat: coord.lat, lng: coord.lng, laboresCC };
   });
 
   if (puntos.length === 0) return;
