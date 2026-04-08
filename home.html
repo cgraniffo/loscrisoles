@@ -3,90 +3,7 @@
 <head>
 <script>
 if (location.search.includes('embed=1')) {
-  document.write('<style>.hdr,.header,.tabs,.hdr-top,.hdr-logo,.hdr-date,.hdr-refresh,.metrics-top,.metrics{display:none!important}
-    /* ── MAPA DARK home ─────────────────────────────────── */
-    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
-    #mapa-home { height: 320px; border-radius: 0; margin-bottom: 0; z-index: 0; }
-    .mapa-dark-wrap-h {
-      border-radius: 12px; overflow: hidden;
-      border: 1px solid #2a4a35;
-    }
-    .mapa-dark-header-h {
-      background: #162a1e; padding: 10px 16px 9px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid #2a4a35;
-    }
-    .mapa-dark-title-h { font-size: 11px; font-weight: 700; color: #52b788; letter-spacing: 0.08em; text-transform: uppercase; font-family: 'DM Mono', monospace; }
-    .mapa-live-badge-h {
-      display: flex; align-items: center; gap: 5px;
-      background: #1a3d1a; border: 1px solid #2d6a2d;
-      border-radius: 20px; padding: 3px 9px;
-    }
-    .mapa-live-dot-h {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.2);
-      animation: mapaLivePulseH 2s infinite;
-    }
-    @keyframes mapaLivePulseH {
-      0%,100% { box-shadow: 0 0 0 3px rgba(74,222,128,0.2); }
-      50% { box-shadow: 0 0 0 6px rgba(74,222,128,0.04); }
-    }
-    .mapa-live-text-h { font-size: 9.5px; font-weight: 600; color: #4ade80; font-family: 'DM Mono', monospace; }
-    .mapa-panel-h {
-      background: #0f1f16; border-top: 1px solid #2a4a35;
-      padding: 10px 14px 12px;
-    }
-    .mapa-stats-row-h {
-      display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 10px;
-    }
-    .mapa-stat-h {
-      background: rgba(255,255,255,0.03); border: 1px solid #2a4a35;
-      border-radius: 8px; padding: 7px 8px; text-align: center;
-    }
-    .mapa-stat-icon-h { font-size: 13px; margin-bottom: 1px; }
-    .mapa-stat-val-h { font-size: 15px; font-weight: 800; color: #e8f5ee; font-family: 'DM Mono', monospace; line-height: 1.1; }
-    .mapa-stat-label-h { font-size: 8px; color: #6b9e7a; margin-top: 1px; }
-    .mapa-labores-title-h {
-      font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
-      text-transform: uppercase; color: #6b9e7a;
-      font-family: 'DM Mono', monospace; margin-bottom: 7px;
-    }
-    .mapa-labor-row-h {
-      display: flex; align-items: center; gap: 7px;
-      background: rgba(255,255,255,0.02); border: 1px solid #2a4a35;
-      border-radius: 6px; padding: 5px 9px; margin-bottom: 4px;
-    }
-    .mapa-labor-row-h:last-child { margin-bottom: 0; }
-    .mapa-labor-dot-h { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-    .mapa-labor-up-h { font-size: 8.5px; font-weight: 700; font-family: 'DM Mono', monospace; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
-    .mapa-labor-desc-h { flex: 1; font-size: 10.5px; color: #c8e6d4; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .mapa-enc-chip-h { width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7.5px; font-weight: 700; color: #fff; flex-shrink: 0; }
-    .mapa-labor-enc-h { font-size: 9.5px; color: #6b9e7a; white-space: nowrap; }
-    .mapa-labor-pct-h { font-size: 9px; font-weight: 700; font-family: 'DM Mono', monospace; padding: 1px 5px; border-radius: 8px; flex-shrink: 0; }
-    .mpct-ok  { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
-    .mpct-mid { background: rgba(244,162,97,0.1); color: #f4a261; border: 1px solid rgba(244,162,97,0.2); }
-    .mpct-low { background: rgba(231,111,81,0.1); color: #e76f51; border: 1px solid rgba(231,111,81,0.2); }
-    /* Popup dark para home */
-    #mapa-home .leaflet-popup-content-wrapper,
-    .leaflet-popup-content-wrapper.dark-popup {
-      background: #0f1f16ee !important; border: 1px solid #2a4a35 !important;
-      border-radius: 11px !important; box-shadow: 0 6px 24px rgba(0,0,0,0.6) !important;
-      backdrop-filter: blur(8px); color: #e8f5ee !important;
-      font-family: Arial, sans-serif !important; padding: 0 !important;
-    }
-    .leaflet-popup-tip-container { display: none; }
-    .popup-inner-h { padding: 10px 12px; min-width: 160px; }
-    .popup-top-h { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-    .popup-tag-h { font-size: 9px; font-weight: 700; font-family: 'DM Mono', monospace; padding: 2px 6px; border-radius: 4px; }
-    .popup-ha-h { font-size: 10px; color: #6b9e7a; }
-    .popup-labor-h { font-size: 11px; color: #c8e6d4; margin-bottom: 5px; }
-    .popup-prog-bg-h { height: 4px; background: rgba(255,255,255,0.08); border-radius: 3px; margin-bottom: 5px; overflow: hidden; }
-    .popup-prog-fill-h { height: 100%; border-radius: 3px; }
-    .popup-enc-row-h { display: flex; justify-content: space-between; align-items: center; }
-    .popup-enc-h { font-size: 9.5px; color: #6b9e7a; display: flex; align-items: center; gap: 4px; }
-    .enc-av-h { width: 15px; height: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; color: #fff; }
-    .popup-pct-h { font-size: 11px; font-weight: 700; font-family: 'DM Mono', monospace; }
-</style>');
+  document.write('<style>.hdr,.header,.tabs,.hdr-top,.hdr-logo,.hdr-date,.hdr-refresh,.metrics-top,.metrics{display:none!important}</style>');
 }
 </script>
 
@@ -387,7 +304,81 @@ if (location.search.includes('embed=1')) {
       .hkpi-val { font-size: 17px; }
       .caja-flow { grid-template-columns: 1fr 1fr; }
     }
-  </style>
+  
+    /* ── MAPA DARK home ─────────────────────────────────── */
+    #mapa-home { height: 320px; border-radius: 0; margin-bottom: 0; z-index: 0; }
+    .mapa-dark-wrap-h {
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid #2a4a35;
+    }
+    .mapa-dark-header-h {
+      background: #162a1e; padding: 10px 16px 9px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #2a4a35;
+    }
+    .mapa-dark-title-h { font-size: 11px; font-weight: 700; color: #52b788; letter-spacing: 0.08em; text-transform: uppercase; font-family: monospace; }
+    .mapa-live-badge-h {
+      display: flex; align-items: center; gap: 5px;
+      background: #1a3d1a; border: 1px solid #2d6a2d;
+      border-radius: 20px; padding: 3px 9px;
+    }
+    .mapa-live-dot-h {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.2);
+      animation: mapaLivePulseH 2s infinite;
+    }
+    @keyframes mapaLivePulseH {
+      0%,100% { box-shadow: 0 0 0 3px rgba(74,222,128,0.2); }
+      50% { box-shadow: 0 0 0 6px rgba(74,222,128,0.04); }
+    }
+    .mapa-live-text-h { font-size: 9.5px; font-weight: 600; color: #4ade80; font-family: monospace; }
+    .mapa-panel-h {
+      background: #0f1f16; border-top: 1px solid #2a4a35;
+      padding: 10px 14px 12px;
+    }
+    .mapa-stats-row-h {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 6px; margin-bottom: 10px;
+    }
+    .mapa-stat-h {
+      background: rgba(255,255,255,0.03); border: 1px solid #2a4a35;
+      border-radius: 8px; padding: 7px 8px; text-align: center;
+    }
+    .mapa-stat-icon-h { font-size: 13px; margin-bottom: 1px; }
+    .mapa-stat-val-h { font-size: 15px; font-weight: 800; color: #e8f5ee; font-family: monospace; line-height: 1.1; }
+    .mapa-stat-label-h { font-size: 8px; color: #6b9e7a; margin-top: 1px; }
+    .mapa-labores-title-h {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #6b9e7a;
+      font-family: monospace; margin-bottom: 7px;
+    }
+    .mapa-labor-row-h {
+      display: flex; align-items: center; gap: 7px;
+      background: rgba(255,255,255,0.02); border: 1px solid #2a4a35;
+      border-radius: 6px; padding: 5px 9px; margin-bottom: 4px;
+    }
+    .mapa-labor-row-h:last-child { margin-bottom: 0; }
+    .mapa-labor-dot-h { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .mapa-labor-up-h { font-size: 8.5px; font-weight: 700; font-family: monospace; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+    .mapa-labor-desc-h { flex: 1; font-size: 10.5px; color: #c8e6d4; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mapa-enc-chip-h { width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7.5px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .mapa-labor-enc-h { font-size: 9.5px; color: #6b9e7a; white-space: nowrap; }
+    .mapa-labor-pct-h { font-size: 9px; font-weight: 700; font-family: monospace; padding: 1px 5px; border-radius: 8px; flex-shrink: 0; }
+    .mpct-ok  { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+    .mpct-mid { background: rgba(244,162,97,0.1); color: #f4a261; border: 1px solid rgba(244,162,97,0.2); }
+    .mpct-low { background: rgba(231,111,81,0.1); color: #e76f51; border: 1px solid rgba(231,111,81,0.2); }
+    /* Popup dark para home */
+    .popup-inner-h { padding: 10px 12px; min-width: 160px; }
+    .popup-top-h { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .popup-tag-h { font-size: 9px; font-weight: 700; font-family: monospace; padding: 2px 6px; border-radius: 4px; }
+    .popup-ha-h { font-size: 10px; color: #6b9e7a; }
+    .popup-labor-h { font-size: 11px; color: #c8e6d4; margin-bottom: 5px; }
+    .popup-prog-bg-h { height: 4px; background: rgba(255,255,255,0.08); border-radius: 3px; margin-bottom: 5px; overflow: hidden; }
+    .popup-prog-fill-h { height: 100%; border-radius: 3px; }
+    .popup-enc-row-h { display: flex; justify-content: space-between; align-items: center; }
+    .popup-enc-h { font-size: 9.5px; color: #6b9e7a; display: flex; align-items: center; gap: 4px; }
+    .enc-av-h { width: 15px; height: 15px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7px; font-weight: 700; color: #fff; }
+    .popup-pct-h { font-size: 11px; font-weight: 700; font-family: monospace; }
+</style>
 </head>
 <body>
 
@@ -441,7 +432,7 @@ if (location.search.includes('embed=1')) {
   <!-- ── RESUMEN ───────────────────────────────────────────── -->
   <div class="section on" id="sec-resumen">
 
-    <!-- Fila 1: Labores urgentes + Flujo de caja (15/30d) -->
+    <!-- Fila 1: Labores atrasadas + Flujo de caja (15/30d) -->
     <div class="grid-2">
       <div class="card">
         <div class="card-head">
@@ -571,27 +562,25 @@ function buildMapa(registros) {
   const el = document.getElementById('mapa-home');
   if (!el || window._mapa) return;
 
-  // Actualizar hora en header
   const horaEl = document.getElementById('mapa-hora-h');
   if (horaEl) {
     const hhmm = new Date().toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
     horaEl.textContent = "EN VIVO · " + hhmm;
   }
 
+  const todos = window.TODOS || [];
   const puntos = Object.entries(COORD_MAP).map(([id,c],i) => {
-    // Labores activas para esta UP
-    const labsUP = (window.TODOS||[]).filter(r=>String(r["Centro_Costo"]||"").trim()===id && String(r["Estado Operativo"]||"").trim()==="En Proceso");
+    const labsUP = todos.filter(r => String(r["Centro_Costo"]||"").trim()===id && String(r["Estado Operativo"]||"").trim()==="En Proceso");
     const labPrinc = labsUP[0];
-    const labNom = labPrinc ? (LAB_MAP[String(labPrinc["Labor"]||"").trim()]||String(labPrinc["Labor"]||"—")) : null;
+    const labNom = labPrinc ? (LAB_MAP[String(labPrinc["Labor"]||"").trim()] || String(labPrinc["Labor"]||"—")) : null;
     const encId = labPrinc ? String(labPrinc["Encargado"]||"").trim() : "";
-    const encNom = encId ? (ENC_MAP[encId]||encId) : "—";
+    const encNom = encId ? (ENC_MAP[encId] || encId) : "—";
     const avance = labPrinc ? parseFloat(labPrinc["Avance_%"]||labPrinc["Avance"]||0) : 0;
     const ci = i % MAPA_COLORES.length;
-    const dotColor = avance>=65?"#4ade80":avance>=35?"#f4a261":labsUP.length>0?"#e76f51":"#aaa";
+    const dotColor = avance>=65 ? "#4ade80" : avance>=35 ? "#f4a261" : labsUP.length>0 ? "#e76f51" : "#aaa";
     return {
       id, nombre: CC_MAP[id]||id, fundo: FUNDO_MAP[id]||"", ha: HA_MAP[id]||0,
-      lat: c.lat, lng: c.lng, ci,
-      labNom, encNom, avance, totalLabs: labsUP.length, dotColor
+      lat: c.lat, lng: c.lng, ci, labNom, encNom, avance, totalLabs: labsUP.length, dotColor
     };
   });
 
@@ -607,97 +596,91 @@ function buildMapa(registros) {
   puntos.forEach(p => {
     const colHex = MAPA_COLORES[p.ci];
     const colBg  = MAPA_COL_BG[p.ci];
-    const barColor = p.avance>=65?"linear-gradient(90deg,#2d6a4f,#52b788)":p.avance>=35?"linear-gradient(90deg,#c4621a,#f4a261)":"linear-gradient(90deg,#9b3a22,#e76f51)";
+    const barColor = p.avance>=65 ? "linear-gradient(90deg,#2d6a4f,#52b788)" : p.avance>=35 ? "linear-gradient(90deg,#c4621a,#f4a261)" : "linear-gradient(90deg,#9b3a22,#e76f51)";
     const encInic = p.encNom.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    const pctColor = p.avance>=65?"#4ade80":p.avance>=35?"#f4a261":"#e76f51";
+    const pctColor = p.avance>=65 ? "#4ade80" : p.avance>=35 ? "#f4a261" : "#e76f51";
+    const upLabel = p.nombre.replace("Pivote","Piv").replace("Potrero","Pot").replace("Nogales","NOG").replace("Vega","VEGA").replace("Parcela","PAR").slice(0,8);
+
+    const popupHtml = '<div class="popup-inner-h">'
+      + '<div class="popup-top-h">'
+      + '<span class="popup-tag-h" style="color:' + colHex + ';background:' + colBg + '0.15);border:1px solid ' + colBg + '0.35)">' + upLabel + '</span>'
+      + '<span class="popup-ha-h">' + (p.ha ? p.ha + ' há' : '') + '</span>'
+      + '</div>'
+      + '<div class="popup-labor-h">' + (p.labNom || 'Sin labores activas') + '</div>'
+      + (p.avance > 0 ? '<div class="popup-prog-bg-h"><div class="popup-prog-fill-h" style="width:' + p.avance + '%;background:' + barColor + '"></div></div>' : '')
+      + '<div class="popup-enc-row-h">'
+      + '<div class="popup-enc-h"><div class="enc-av-h" style="background:' + colHex + '">' + encInic + '</div>' + p.encNom.split(" ")[0] + '</div>'
+      + (p.avance > 0 ? '<span class="popup-pct-h" style="color:' + pctColor + '">' + p.avance + '%</span>' : '')
+      + '</div>'
+      + '</div>';
 
     L.circleMarker([p.lat,p.lng],{
       radius:11, fillColor:colHex, color:"#0f1f16", weight:2, opacity:1, fillOpacity:0.9
-    }).addTo(mapa).bindPopup(`
-      <div class="popup-inner-h">
-        <div class="popup-top-h">
-          <span class="popup-tag-h" style="color:${colHex};background:${colBg}0.15);border:1px solid ${colBg}0.35)">${p.nombre.replace("Pivote","Piv").replace("Potrero","Pot").slice(0,8)}</span>
-          <span class="popup-ha-h">${p.ha?p.ha+" há":""}</span>
-        </div>
-        <div class="popup-labor-h">${p.labNom||"Sin labores activas"}</div>
-        ${p.avance>0?`<div class="popup-prog-bg-h"><div class="popup-prog-fill-h" style="width:${p.avance}%;background:${barColor}"></div></div>`:""}
-        <div class="popup-enc-row-h">
-          <div class="popup-enc-h">
-            <div class="enc-av-h" style="background:${colHex}">${encInic}</div>
-            ${p.encNom.split(" ")[0]}
-          </div>
-          ${p.avance>0?`<span class="popup-pct-h" style="color:${pctColor}">${p.avance}%</span>`:""}
-        </div>
-      </div>
-    `, {maxWidth:210});
+    }).addTo(mapa).bindPopup(popupHtml, {maxWidth:210});
 
-    // Label flotante
-    const labelNom = p.nombre.replace("Pivote","Piv").replace("Potrero","Pot").replace("Nogales","NOG").replace("Vega","VEGA").replace("Parcela","PAR").slice(0,8);
     L.marker([p.lat,p.lng],{
       icon:L.divIcon({className:"",
-        html:`<div style="background:${colBg}0.18);border:1px solid ${colBg}0.4);border-radius:5px;padding:2px 6px;font-size:9px;font-weight:700;color:${colHex};white-space:nowrap;backdrop-filter:blur(3px);box-shadow:0 1px 5px rgba(0,0,0,0.5);font-family:Arial,sans-serif;">${labelNom}</div>`,
+        html:'<div style="background:' + colBg + '0.18);border:1px solid ' + colBg + '0.4);border-radius:5px;padding:2px 6px;font-size:9px;font-weight:700;color:' + colHex + ';white-space:nowrap;backdrop-filter:blur(3px);box-shadow:0 1px 5px rgba(0,0,0,0.5);font-family:Arial,sans-serif;">' + upLabel + '</div>',
         iconSize:[70,18], iconAnchor:[35,-10]}), interactive:false
     }).addTo(mapa);
   });
 
-  // Construir panel después de renderizar mapa
-  buildMapaPanelHome(puntos);
+  buildMapaPanelHome();
 }
 
-function buildMapaPanelHome(puntos) {
+function buildMapaPanelHome() {
   const panel = document.getElementById('mapa-panel-home');
   if (!panel) return;
 
-  const todos = window.TODOS||[];
-  const enProceso = todos.filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
-  const encActivos = [...new Set(enProceso.map(r=>String(r["Encargado"]||"").trim()).filter(Boolean))];
-  const upsActivas = [...new Set(enProceso.map(r=>String(r["Centro_Costo"]||"").trim()).filter(Boolean))];
-  const vencidas = todos.filter(r=>{
-    const f = r["Fecha"]||""; if(!f) return false;
-    const d = new Date(f); d.setHours(0,0,0,0);
-    const hoy = new Date(); hoy.setHours(0,0,0,0);
-    return d < hoy && String(r["Estado Operativo"]||"").trim()==="Pendiente";
+  const todos = window.TODOS || [];
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const enProceso = todos.filter(r => String(r["Estado Operativo"]||"").trim()==="En Proceso");
+  const encActivos = [...new Set(enProceso.map(r => String(r["Encargado"]||"").trim()).filter(Boolean))];
+  const upsActivas = [...new Set(enProceso.map(r => String(r["Centro_Costo"]||"").trim()).filter(Boolean))];
+  const vencidas = todos.filter(r => {
+    if (String(r["Estado Operativo"]||"").trim() !== "Pendiente") return false;
+    const f = r["Fecha"]||""; if (!f) return false;
+    const d = new Date(f); d.setHours(0,0,0,0); return d < hoy;
   });
-  const avgAvance = enProceso.length>0
-    ? Math.round(enProceso.reduce((s,r)=>s+parseFloat(r["Avance_%"]||r["Avance"]||0),0)/enProceso.length)
+  const avgAvance = enProceso.length > 0
+    ? Math.round(enProceso.reduce((s,r) => s + parseFloat(r["Avance_%"]||r["Avance"]||0), 0) / enProceso.length)
     : 0;
 
   const COLORES = ["#2d6a4f","#1e5fa8","#c4621a","#9b3a22","#5a3e9b","#7a6a1a"];
-  const COL_BG = ["rgba(82,183,136,","rgba(72,149,239,","rgba(244,162,97,","rgba(231,111,81,","rgba(150,120,220,","rgba(200,190,80,"];
+  const COL_BG  = ["rgba(82,183,136,","rgba(72,149,239,","rgba(244,162,97,","rgba(231,111,81,","rgba(150,120,220,","rgba(200,190,80,"];
 
   const laboresHtml = enProceso.slice(0,4).map((r,i) => {
-    const encId = String(r["Encargado"]||"").trim();
-    const encNom = ENC_MAP[encId]||encId||"—";
-    const labId = String(r["Labor"]||"").trim();
-    const labNom = (LAB_MAP[labId])||labId||"—";
-    const upId = String(r["Centro_Costo"]||"").trim();
-    const upNom = (CC_MAP[upId]||upId||"—").replace("Pivote","Piv").replace("Potrero","Pot").slice(0,8);
+    const encId  = String(r["Encargado"]||"").trim();
+    const encNom = ENC_MAP[encId] || encId || "—";
+    const labId  = String(r["Labor"]||"").trim();
+    const labNom = LAB_MAP[labId] || labId || "—";
+    const upId   = String(r["Centro_Costo"]||"").trim();
+    const upNom  = (CC_MAP[upId]||upId||"—").replace("Pivote","Piv").replace("Potrero","Pot").slice(0,8);
     const avance = parseFloat(r["Avance_%"]||r["Avance"]||0);
-    const ci = i%COLORES.length;
-    const pctClass = avance>=65?"mpct-ok":avance>=35?"mpct-mid":"mpct-low";
-    const pctColor = avance>=65?"#4ade80":avance>=35?"#f4a261":"#e76f51";
+    const ci = i % COLORES.length;
+    const pctClass = avance>=65 ? "mpct-ok" : avance>=35 ? "mpct-mid" : "mpct-low";
+    const pctColor = avance>=65 ? "#4ade80" : avance>=35 ? "#f4a261" : "#e76f51";
     const encInic = encNom.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    return `<div class="mapa-labor-row-h">
-      <div class="mapa-labor-dot-h" style="background:${pctColor}"></div>
-      <span class="mapa-labor-up-h" style="color:${COL_BG[ci]}0.9);background:${COL_BG[ci]}0.12);border:1px solid ${COL_BG[ci]}0.3)">${upNom}</span>
-      <span class="mapa-labor-desc-h">${labNom}</span>
-      <div class="mapa-enc-chip-h" style="background:${COLORES[ci]}">${encInic}</div>
-      <span class="mapa-labor-enc-h">${encNom.split(" ")[0]}</span>
-      <span class="mapa-labor-pct-h ${pctClass}">${avance>0?avance+"%":"—"}</span>
-    </div>`;
+    return '<div class="mapa-labor-row-h">'
+      + '<div class="mapa-labor-dot-h" style="background:' + pctColor + '"></div>'
+      + '<span class="mapa-labor-up-h" style="color:' + COL_BG[ci] + '0.9);background:' + COL_BG[ci] + '0.12);border:1px solid ' + COL_BG[ci] + '0.3)">' + upNom + '</span>'
+      + '<span class="mapa-labor-desc-h">' + labNom + '</span>'
+      + '<div class="mapa-enc-chip-h" style="background:' + COLORES[ci] + '">' + encInic + '</div>'
+      + '<span class="mapa-labor-enc-h">' + encNom.split(" ")[0] + '</span>'
+      + '<span class="mapa-labor-pct-h ' + pctClass + '">' + (avance>0 ? avance+'%' : '—') + '</span>'
+      + '</div>';
   }).join("");
 
-  panel.innerHTML = `
-    <div class="mapa-stats-row-h">
-      <div class="mapa-stat-h"><div class="mapa-stat-icon-h">👷</div><div class="mapa-stat-val-h">${encActivos.length}</div><div class="mapa-stat-label-h">Encargados</div></div>
-      <div class="mapa-stat-h"><div class="mapa-stat-icon-h">🌾</div><div class="mapa-stat-val-h">${upsActivas.length}</div><div class="mapa-stat-label-h">UPs activas</div></div>
-      <div class="mapa-stat-h"><div class="mapa-stat-icon-h">✅</div><div class="mapa-stat-val-h">${avgAvance>0?avgAvance+"%":"—"}</div><div class="mapa-stat-label-h">Avance prom.</div></div>
-      <div class="mapa-stat-h"><div class="mapa-stat-icon-h">⚠️</div><div class="mapa-stat-val-h" style="color:${vencidas.length>0?"#e76f51":"#4ade80"}">${vencidas.length}</div><div class="mapa-stat-label-h">Vencidas</div></div>
-    </div>
-    ${enProceso.length>0
-      ? `<div class="mapa-labores-title-h">Labores en proceso</div>${laboresHtml}`
-      : `<div style="text-align:center;font-size:11px;color:#6b9e7a;padding:4px 0;">Sin labores en proceso</div>`}
-  `;
+  panel.innerHTML =
+    '<div class="mapa-stats-row-h">'
+    + '<div class="mapa-stat-h"><div class="mapa-stat-icon-h">👷</div><div class="mapa-stat-val-h">' + encActivos.length + '</div><div class="mapa-stat-label-h">Encargados</div></div>'
+    + '<div class="mapa-stat-h"><div class="mapa-stat-icon-h">🌾</div><div class="mapa-stat-val-h">' + upsActivas.length + '</div><div class="mapa-stat-label-h">UPs activas</div></div>'
+    + '<div class="mapa-stat-h"><div class="mapa-stat-icon-h">✅</div><div class="mapa-stat-val-h">' + (avgAvance>0 ? avgAvance+'%' : '—') + '</div><div class="mapa-stat-label-h">Avance prom.</div></div>'
+    + '<div class="mapa-stat-h"><div class="mapa-stat-icon-h">⚠️</div><div class="mapa-stat-val-h" style="color:' + (vencidas.length>0 ? '#e76f51' : '#4ade80') + '">' + vencidas.length + '</div><div class="mapa-stat-label-h">Vencidas</div></div>'
+    + '</div>'
+    + (enProceso.length > 0
+      ? '<div class="mapa-labores-title-h">Labores en proceso</div>' + laboresHtml
+      : '<div style="text-align:center;font-size:11px;color:#6b9e7a;padding:4px 0;">Sin labores en proceso</div>');
 }
 
 
