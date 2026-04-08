@@ -125,12 +125,110 @@ if (location.search.includes('embed=1')) {
     .up-table tr:last-child td { border-bottom: none; }
     .up-table tr:hover td { background: #fafaf8; }
     .tipo-pill { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px; margin: 2px; }
-    #mapa-campo { height: 420px; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 12px; z-index: 0; }
-    .leaflet-popup-content { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6; min-width: 160px; }
+    /* ── MAPA DARK ─────────────────────────────────────────── */
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap');
+    #mapa-campo { height: 360px; border-radius: 12px; border: none; margin-bottom: 0; z-index: 0; }
+    .mapa-dark-wrap {
+      background: #0f1f16; border-radius: 14px; overflow: hidden;
+      border: 1px solid #2a4a35; margin-bottom: 14px;
+    }
+    .mapa-dark-header {
+      background: #162a1e; padding: 12px 18px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #2a4a35;
+    }
+    .mapa-dark-title { font-size: 12px; font-weight: 700; color: #52b788; letter-spacing: 0.08em; text-transform: uppercase; font-family: 'DM Mono', monospace; }
+    .mapa-live-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: #1a3d1a; border: 1px solid #2d6a2d;
+      border-radius: 20px; padding: 4px 10px;
+    }
+    .mapa-live-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,0.2);
+      animation: mapaLivePulse 2s infinite;
+    }
+    @keyframes mapaLivePulse {
+      0%,100% { box-shadow: 0 0 0 3px rgba(74,222,128,0.2); }
+      50% { box-shadow: 0 0 0 6px rgba(74,222,128,0.04); }
+    }
+    .mapa-live-text { font-size: 10px; font-weight: 600; color: #4ade80; font-family: 'DM Mono', monospace; }
+    /* Panel stats bajo el mapa */
+    .mapa-stats-panel {
+      background: #162a1e; border-top: 1px solid #2a4a35;
+      padding: 12px 16px 14px;
+    }
+    .mapa-stats-row {
+      display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px;
+    }
+    .mapa-stat {
+      background: rgba(255,255,255,0.03); border: 1px solid #2a4a35;
+      border-radius: 9px; padding: 8px 10px; text-align: center;
+    }
+    .mapa-stat-icon { font-size: 14px; margin-bottom: 2px; }
+    .mapa-stat-val { font-size: 16px; font-weight: 800; color: #e8f5ee; font-family: 'DM Mono', monospace; line-height: 1.1; }
+    .mapa-stat-label { font-size: 8.5px; color: #6b9e7a; margin-top: 2px; }
+    .mapa-labores-title {
+      font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #6b9e7a;
+      font-family: 'DM Mono', monospace; margin-bottom: 8px;
+    }
+    .mapa-labor-row {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.02); border: 1px solid #2a4a35;
+      border-radius: 7px; padding: 6px 10px; margin-bottom: 5px;
+    }
+    .mapa-labor-row:last-child { margin-bottom: 0; }
+    .mapa-labor-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .mapa-labor-up {
+      font-size: 9px; font-weight: 700; font-family: 'DM Mono', monospace;
+      padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+    }
+    .mapa-labor-desc { flex: 1; font-size: 11px; color: #c8e6d4; font-weight: 500; }
+    .mapa-enc-chip {
+      width: 18px; height: 18px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 8px; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .mapa-labor-enc { font-size: 10px; color: #6b9e7a; }
+    .mapa-labor-pct {
+      font-size: 9.5px; font-weight: 700; font-family: 'DM Mono', monospace;
+      padding: 2px 6px; border-radius: 10px; flex-shrink: 0;
+    }
+    .mpct-ok  { background: rgba(74,222,128,0.1);  color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+    .mpct-mid { background: rgba(244,162,97,0.1);  color: #f4a261; border: 1px solid rgba(244,162,97,0.2); }
+    .mpct-low { background: rgba(231,111,81,0.1);  color: #e76f51; border: 1px solid rgba(231,111,81,0.2); }
+    /* Popup dark */
+    .leaflet-popup-content-wrapper {
+      background: #0f1f16ee !important; border: 1px solid #2a4a35 !important;
+      border-radius: 12px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
+      backdrop-filter: blur(8px); color: #e8f5ee !important;
+      font-family: 'Outfit', sans-serif !important; padding: 0 !important;
+    }
+    .leaflet-popup-tip { background: #0f1f16 !important; }
+    .leaflet-popup-content { margin: 0 !important; padding: 0 !important; }
+    .popup-inner { padding: 11px 13px; min-width: 170px; }
+    .popup-top { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; }
+    .popup-tag { font-size: 9px; font-weight: 700; font-family: 'DM Mono', monospace; padding: 2px 6px; border-radius: 4px; }
+    .popup-nombre { font-size: 12px; font-weight: 600; color: #e8f5ee; }
+    .popup-labor { font-size: 11px; color: #c8e6d4; margin-bottom: 6px; }
+    .popup-progress-bg { height: 4px; background: rgba(255,255,255,0.08); border-radius: 3px; margin-bottom: 5px; overflow: hidden; }
+    .popup-progress-fill { height: 100%; border-radius: 3px; }
+    .popup-bottom { display: flex; justify-content: space-between; align-items: center; }
+    .popup-enc { font-size: 10px; color: #6b9e7a; display: flex; align-items: center; gap: 4px; }
+    .enc-av { width: 17px; height: 17px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 700; color: #fff; }
+    .popup-pct { font-size: 11px; font-weight: 700; font-family: 'DM Mono', monospace; }
+    .popup-btn-filter {
+      width: 100%; margin-top: 7px; padding: 5px 0;
+      background: rgba(82,183,136,0.15); color: #52b788;
+      border: 1px solid rgba(82,183,136,0.3); border-radius: 6px;
+      font-size: 11px; cursor: pointer; font-family: Arial, sans-serif;
+    }
+    .popup-btn-filter:hover { background: rgba(82,183,136,0.25); }
     .popup-title { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
     .popup-row { display: flex; justify-content: space-between; gap: 12px; }
-    .popup-label { color: #888; }
-    .popup-val { font-weight: bold; }
+    .popup-label { color: #6b9e7a; font-size: 11px; }
+    .popup-val { font-weight: bold; color: #e8f5ee; font-size: 11px; }
     .mg-table { width:100%; border-collapse:collapse; font-size:13px; }
     .mg-table th { text-align:left; font-size:11px; color:#888; font-weight:bold; letter-spacing:0.05em; text-transform:uppercase; padding:6px 8px; border-bottom:2px solid #f0ede6; }
     .mg-table td { padding:8px; border-bottom:1px solid #f5f3ef; vertical-align:middle; }
@@ -2291,18 +2389,77 @@ async function updateLabor(idRegistro, campo, valor, btnEl) {
 }
 
 function renderPageLabores() {
+  const ahora = new Date();
+  const hhmm = ahora.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"});
   document.getElementById("app-labores").innerHTML =
-    `<div id="mapa-campo"></div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;font-size:12px;color:#555;">
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#cc2222;margin-right:4px;"></span>Con labores vencidas</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#b45309;margin-right:4px;"></span>Vence hoy</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1a3a0a;margin-right:4px;"></span>Al día</span>
-      <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#aaa;margin-right:4px;"></span>Sin labores activas</span>
+    `<div class="mapa-dark-wrap">
+      <div class="mapa-dark-header">
+        <span class="mapa-dark-title">🗺 Mapa del Campo · Los Crisoles</span>
+        <div class="mapa-live-badge">
+          <div class="mapa-live-dot"></div>
+          <span class="mapa-live-text">EN VIVO · ${hhmm}</span>
+        </div>
+      </div>
+      <div id="mapa-campo"></div>
+      <div class="mapa-stats-panel" id="mapa-panel-labores"></div>
     </div>` +
     renderStats() +
     renderFilters() + renderLabores() +
     `<div class="footer">Reporte automático · Los Crisoles · BData</div>`;
   initMap();
+  buildMapaPanel();
+}
+
+function buildMapaPanel() {
+  const panel = document.getElementById("mapa-panel-labores");
+  if (!panel) return;
+
+  // Calcular KPIs desde ACTIVOS
+  const encs = [...new Set(ACTIVOS.map(r=>String(r["Encargado"]||"").trim()).filter(Boolean))];
+  const upsConLabor = [...new Set(ACTIVOS.map(r=>String(r["Centro_Costo"]||"").trim()).filter(Boolean))];
+  const vencidas = ACTIVOS.filter(r=>dateStatus(r["Fecha"])==="venc");
+  const enProceso = ACTIVOS.filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
+  const avancePct = enProceso.length > 0
+    ? Math.round(enProceso.reduce((s,r)=>s+parseFloat(r["Avance_%"]||r["Avance"]||0),0)/enProceso.length)
+    : 0;
+
+  // Colores por índice para encargados
+  const COLORES = ["#2d6a4f","#1e5fa8","#c4621a","#9b3a22","#5a3e9b","#7a6a1a"];
+  const COLORES_BORDE = ["rgba(82,183,136,","rgba(72,149,239,","rgba(244,162,97,","rgba(231,111,81,","rgba(150,120,220,","rgba(200,190,80,"];
+
+  // Lista de labores en proceso (max 5)
+  const laboresHtml = enProceso.slice(0,5).map((r,i) => {
+    const encId  = String(r["Encargado"]||"").trim();
+    const encNom = ENC_MAP[encId]||encId||"—";
+    const labId  = String(r["Labor"]||"").trim();
+    const labNom = LAB_MAP[labId]||labId||"—";
+    const upId   = String(r["Centro_Costo"]||"").trim();
+    const upNom  = (CC_MAP[upId]||upId||"—").replace("Pivote","Piv").replace("Potrero","Pot");
+    const avance = parseFloat(r["Avance_%"]||r["Avance"]||0);
+    const ci = i % COLORES.length;
+    const pctClass = avance >= 65 ? "mpct-ok" : avance >= 35 ? "mpct-mid" : "mpct-low";
+    const pctColor = avance >= 65 ? "#4ade80" : avance >= 35 ? "#f4a261" : "#e76f51";
+    const dotColor = pctColor;
+    const encInicial = encNom.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    return `<div class="mapa-labor-row">
+      <div class="mapa-labor-dot" style="background:${dotColor}"></div>
+      <span class="mapa-labor-up" style="color:${COLORES_BORDE[ci]}0.9);background:${COLORES_BORDE[ci]}0.12);border:1px solid ${COLORES_BORDE[ci]}0.3)">${upNom}</span>
+      <span class="mapa-labor-desc">${labNom}</span>
+      <div class="mapa-enc-chip" style="background:${COLORES[ci]}">${encInicial}</div>
+      <span class="mapa-labor-enc">${encNom.split(" ")[0]}</span>
+      <span class="mapa-labor-pct ${pctClass}">${avance>0?avance+"%":"—"}</span>
+    </div>`;
+  }).join("");
+
+  panel.innerHTML = `
+    <div class="mapa-stats-row">
+      <div class="mapa-stat"><div class="mapa-stat-icon">👷</div><div class="mapa-stat-val">${encs.length}</div><div class="mapa-stat-label">Encargados activos</div></div>
+      <div class="mapa-stat"><div class="mapa-stat-icon">🌾</div><div class="mapa-stat-val">${upsConLabor.length}</div><div class="mapa-stat-label">UPs en labor</div></div>
+      <div class="mapa-stat"><div class="mapa-stat-icon">✅</div><div class="mapa-stat-val">${avancePct>0?avancePct+"%":"—"}</div><div class="mapa-stat-label">Avance promedio</div></div>
+      <div class="mapa-stat"><div class="mapa-stat-icon">⚠️</div><div class="mapa-stat-val" style="color:${vencidas.length>0?"#e76f51":"#4ade80"}">${vencidas.length}</div><div class="mapa-stat-label">Labores vencidas</div></div>
+    </div>
+    ${enProceso.length > 0 ? '<div class="mapa-labores-title">Labores en proceso</div>' + laboresHtml : '<div style="font-size:11px;color:#6b9e7a;text-align:center;padding:8px 0;">Sin labores en proceso actualmente</div>'}
+  `;
 }
 
 function initMap() {
@@ -2392,26 +2549,59 @@ function initMap() {
       fillOpacity: isSelected ? 1 : 0.82
     }).addTo(mapa);
 
+    // Calcular labor principal y encargado para el popup
+    const labEnProceso = laboresCC.filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
+    const labPrinc = labEnProceso[0] || laboresCC[0];
+    const labNomPop = labPrinc ? (LAB_MAP[String(labPrinc["Labor"]||"").trim()]||String(labPrinc["Labor"]||"—")) : "Sin labores activas";
+    const encIdPop = labPrinc ? String(labPrinc["Encargado"]||"").trim() : "";
+    const encNomPop = encIdPop ? (ENC_MAP[encIdPop]||encIdPop) : "—";
+    const encInicPop = encNomPop.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    const avancePop = labPrinc ? parseFloat(labPrinc["Avance_%"]||labPrinc["Avance"]||0) : 0;
+    const pctColorPop = avancePop>=65?"#4ade80":avancePop>=35?"#f4a261":"#e76f51";
+    const barColorPop = avancePop>=65?"linear-gradient(90deg,#2d6a4f,#52b788)":avancePop>=35?"linear-gradient(90deg,#c4621a,#f4a261)":"linear-gradient(90deg,#9b3a22,#e76f51)";
+    const tagColor = p.color; const tagBg = p.color+"22"; const tagBorder = p.color+"55";
+    const upLabel = p.nombre.replace("Pivote","Piv").replace("Potrero","Pot").slice(0,8);
+
     const popupHTML = `
-      <div class="popup-title">${p.nombre}</div>
-      <div class="popup-row"><span class="popup-label">Centro de Costo</span><span class="popup-val">${p.fundo||"—"}</span></div>
-      <div class="popup-row"><span class="popup-label">Hectáreas</span><span class="popup-val">${p.ha||"—"}</span></div>
-      <div class="popup-row"><span class="popup-label">Labores activas</span><span class="popup-val">${p.total}</span></div>
-      ${p.vencidas>0?`<div class="popup-row"><span class="popup-label" style="color:#cc2222;">Vencidas</span><span class="popup-val" style="color:#cc2222;">${p.vencidas}</span></div>`:""}
-      ${p.hoy>0?`<div class="popup-row"><span class="popup-label" style="color:#b45309;">Vencen hoy</span><span class="popup-val" style="color:#b45309;">${p.hoy}</span></div>`:""}
-      <div style="margin-top:8px;border-top:1px solid #eee;padding-top:8px;">
-        <button onclick="filtrarPorUP('${p.id}')" style="width:100%;padding:5px 0;background:#1a3a0a;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;">
+      <div class="popup-inner">
+        <div class="popup-top">
+          <span class="popup-tag" style="color:${tagColor};background:${tagBg};border:1px solid ${tagBorder}">${upLabel}</span>
+          <span class="popup-nombre">${p.ha?p.ha+" há":""}</span>
+        </div>
+        <div class="popup-labor">${labNomPop}</div>
+        ${avancePop>0?`<div class="popup-progress-bg"><div class="popup-progress-fill" style="width:${avancePop}%;background:${barColorPop}"></div></div>`:""}
+        <div class="popup-bottom">
+          <div class="popup-enc">
+            <div class="enc-av" style="background:${p.color}">${encInicPop}</div>
+            ${encNomPop.split(" ")[0]}
+          </div>
+          ${avancePop>0?`<span class="popup-pct" style="color:${pctColorPop}">${avancePop}%</span>`:""}
+        </div>
+        ${p.vencidas>0?`<div style="margin-top:6px;font-size:10px;color:#e76f51;font-weight:600;">⚠️ ${p.vencidas} labor${p.vencidas>1?"es":""} vencida${p.vencidas>1?"s":""}</div>`:""}
+        <button class="popup-btn-filter" onclick="filtrarPorUP('${p.id}')">
           ${isSelected ? "✓ Filtrado — clic para quitar" : "🔍 Filtrar por esta UP"}
         </button>
       </div>`;
 
     marker.bindPopup(popupHTML);
 
+    const labelNom = p.nombre.replace("Pivote","Piv").replace("Potrero","Pot").replace("Nogales","NOG").replace("Vega","VEGA").replace("Parcela","PAR");
     const icon = L.divIcon({
       className: "",
-      html: `<div style="font-size:10px;font-weight:bold;color:#fff;text-align:center;line-height:1.2;margin-top:-6px;text-shadow:0 1px 2px rgba(0,0,0,0.8);">${p.nombre.replace("Pivote","Piv").replace("Potrero","Pot")}</div>`,
-      iconSize: [60, 20],
-      iconAnchor: [30, -8]
+      html: `<div style="
+        background:${p.color}22;
+        border:1px solid ${p.color}66;
+        border-radius:6px;
+        padding:2px 7px;
+        font-size:9.5px;font-weight:700;
+        color:${p.color};
+        white-space:nowrap;
+        backdrop-filter:blur(4px);
+        box-shadow:0 1px 6px rgba(0,0,0,0.5);
+        font-family:Arial,sans-serif;
+      ">${labelNom}</div>`,
+      iconSize: [70, 20],
+      iconAnchor: [35, -10]
     });
     L.marker([p.lat, p.lng], { icon, interactive: false }).addTo(mapa);
   });
