@@ -2135,9 +2135,12 @@ function renderCaja() {
 function switchTab(tab) {
   currentTab = tab;
   ["labores","costos","margenes","ingresos","caja","resultado"].forEach(t => {
-    document.getElementById("tab-"+t).className = "tab" + (tab===t?" on":"");
-    document.getElementById("app-"+t).style.display      = tab===t ? "" : "none";
-    document.getElementById("metrics-"+t).style.display  = tab===t ? "" : "none";
+    const elTab     = document.getElementById("tab-"+t);
+    const elApp     = document.getElementById("app-"+t);
+    const elMetrics = document.getElementById("metrics-"+t);
+    if (elTab)     elTab.className         = "tab" + (tab===t?" on":"");
+    if (elApp)     elApp.style.display     = tab===t ? "" : "none";
+    if (elMetrics) elMetrics.style.display = tab===t ? "" : "none";
   });
 }
 
@@ -2550,8 +2553,8 @@ function initMap() {
     }).addTo(mapa);
 
     // Calcular labor principal y encargado para el popup
-    const labEnProceso = laboresCC.filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
-    const labPrinc = labEnProceso[0] || laboresCC[0];
+    const labEnProceso = (p.laboresCC||[]).filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
+    const labPrinc = labEnProceso[0] || (p.laboresCC||[])[0];
     const labNomPop = labPrinc ? (LAB_MAP[String(labPrinc["Labor"]||"").trim()]||String(labPrinc["Labor"]||"—")) : "Sin labores activas";
     const encIdPop = labPrinc ? String(labPrinc["Encargado"]||"").trim() : "";
     const encNomPop = encIdPop ? (ENC_MAP[encIdPop]||encIdPop) : "—";
