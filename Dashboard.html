@@ -216,10 +216,8 @@
 
   async function fetchSheet(api, sheet) {
     var url = api + "?sheet=" + encodeURIComponent(sheet);
-    // API_FIN needs the Worker proxy (CORS); API_REG works direct
-    var fetchUrl = (api === API_FIN)
-      ? WORKER + "?url=" + encodeURIComponent(url)
-      : url;
+    // Todas las APIs pasan por el Worker proxy para evitar CORS
+    var fetchUrl = WORKER + "?url=" + encodeURIComponent(url);
     var res = await fetch(fetchUrl, { redirect:"follow" });
     var txt = await res.text();
     try { return JSON.parse(txt); } catch(e) { return []; }
