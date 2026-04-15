@@ -86,6 +86,24 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── EN CONSTRUCCIÓN OVERLAY ── */
+    .wip-overlay {
+      position: absolute; inset: 0; z-index: 20;
+      background: rgba(245,240,232,0.92);
+      display: none; align-items: center; justify-content: center;
+      flex-direction: column; gap: 12px;
+      backdrop-filter: blur(2px);
+    }
+    .wip-overlay.visible { display: flex; }
+    .wip-box {
+      background: #fff; border: 2px dashed #d4a800;
+      border-radius: 16px; padding: 32px 48px;
+      text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+    .wip-icon { font-size: 40px; margin-bottom: 8px; }
+    .wip-title { font-size: 18px; font-weight: 700; color: #1a3a0a; margin-bottom: 6px; }
+    .wip-sub { font-size: 13px; color: #6b7280; }
+
     @media (max-width: 768px) {
       .dash-kpis { grid-template-columns: repeat(3, 1fr); }
       .kpi-val { font-size: 17px; }
@@ -167,6 +185,15 @@
   <!-- Loading overlay (shared) -->
   <div class="frame-loader" id="loader"><div class="spinner"></div></div>
 
+  <!-- En Construcción overlay -->
+  <div class="wip-overlay" id="wip-overlay">
+    <div class="wip-box">
+      <div class="wip-icon">🚧</div>
+      <div class="wip-title">Módulo en construcción</div>
+      <div class="wip-sub">Esta sección estará disponible próximamente.</div>
+    </div>
+  </div>
+
   <iframe id="f-home"       src="/home"       data-tab=""></iframe>
   <iframe id="f-labores"    src=""  data-src="/reporte"    data-tab="labores"    class="hidden"></iframe>
   <iframe id="f-produccion" src=""  data-src="/produccion" data-tab="produccion" class="hidden"></iframe>
@@ -190,6 +217,7 @@
   var currentTab  = 'home';
   var loaded      = {};
   var temporada   = '';
+  var WIP_TABS    = { ingresos:1, costos:1, resultado:1, margenes:1 };
 
   // CSS injected into every iframe to hide internal header/tabs
   var HIDE_CSS = [
@@ -309,6 +337,14 @@
       f.classList.add('hidden');
       f.classList.remove('ready');
     });
+
+    // WIP overlay
+    var wip = document.getElementById('wip-overlay');
+    if (WIP_TABS[name]) {
+      wip.classList.add('visible');
+    } else {
+      wip.classList.remove('visible');
+    }
 
     var frame = document.getElementById('f-' + name);
     if (!frame) return;
