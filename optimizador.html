@@ -164,7 +164,7 @@
     <button onclick="toggleAllSections(false)">Contraer todo</button>
   </div>
 
-  <details class="card collapsible" id="sec1" >
+  <details class="card collapsible" id="sec1" open>
     <summary>
       <div class="collapsible-head">
         <span class="collapsible-chev">▶</span>
@@ -177,38 +177,80 @@
         <b>¿Qué haces aquí?</b> Le dices al sistema qué vas a plantar, en qué pivote, y cuántas hectáreas.
         Con esta información el programa sabe cuántos nutrientes necesita el cultivo en total.
       </div>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Cultivo</label>
-        <select id="w_cul" class="w-full"></select>
+
+      <!-- Toggle modo BD_CC / Manual -->
+      <div class="flex gap-2 mb-3 items-center">
+        <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Modo:</div>
+        <button type="button" id="btn_mode_bdcc" onclick="setSec1Mode('bdcc')" class="btn-secondary" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:5px 12px;">📊 Datos del fundo (BD_CC)</button>
+        <button type="button" id="btn_mode_manual" onclick="setSec1Mode('manual')" class="btn-secondary" style="font-size:11px;padding:5px 12px;">✏️ Manual</button>
+        <span id="bdcc_status" class="text-xs text-gray-400 ml-auto"></span>
       </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Sector / Pivote</label>
-        <select id="w_sec" class="w-full"></select>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-600 mb-1">Hectáreas: <span id="ha_val" class="text-blue-700 font-semibold">20</span></label>
-        <input type="range" id="w_ha" min="1" max="300" step="1" value="20" class="w-full">
-      </div>
-    </div>
-    <div id="crop_ctrl" class="mt-3"></div>
-    <details class="how-works">
-      <summary>¿Cómo funciona esta sección?</summary>
-      <div class="how-works-content">
-        <p>Cada cultivo tiene una <b>"receta"</b> de cuánto de cada nutriente necesita para producir bien.
-        Por ejemplo, una hectárea de nogal adulto necesita unos <b>240 kg de nitrógeno</b> y <b>280 kg de potasio</b> al año.</p>
-        <p class="mt-2"><b>¿Por qué importa elegir bien el pivote?</b> Porque cada pivote tiene un suelo distinto.
-        El laboratorio IRRIFER ya analizó cada uno y sabe cuánto nutriente aporta naturalmente. Si tu suelo ya tiene
-        mucho potasio, no necesitas comprar fertilizantes con potasio — te ahorras esa plata.</p>
-        <div class="example-box">
-          <b>Ejemplo:</b> Si eliges "Nogal adulto" en el "Pivote 1 y 4" con 20 ha, el sistema calcula que
-          necesitas <b>4.800 kg de nitrógeno totales</b> (240 × 20), de los cuales el suelo aporta <b>1.160 kg</b>
-          y tienes que cubrir los <b>3.640 kg restantes</b> con fertilizantes.
+
+      <!-- MODO BD_CC: selector en cascada -->
+      <div id="mode_bdcc">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Temporada</label>
+            <select id="w_temp" class="w-full"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Cultivo (BD_CC)</label>
+            <select id="w_especie" class="w-full"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Pivote / Potrero</label>
+            <select id="w_cc" class="w-full"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Hectáreas</label>
+            <input type="text" id="w_ha_bdcc" class="w-full" readonly style="background:#f0fdf4;font-weight:600;color:#065f46;">
+          </div>
         </div>
-        <p class="mt-2"><b>Nota:</b> Para el nogal aparece un selector adicional de <b>etapa/edad</b>, porque un nogal joven
-        en formación necesita mucho menos que uno adulto en plena producción.</p>
+        <div id="bdcc_info" class="mt-2"></div>
+        <div class="mt-3">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Cultivo para optimización (requerimientos nutricionales)</label>
+          <select id="w_cul" class="w-full"></select>
+          <div class="text-xs text-gray-400 mt-1">El cultivo BD_CC indica lo que está plantado físicamente. Este selector define qué "receta" nutricional usar para optimizar.</div>
+        </div>
       </div>
-    </details>
+
+      <!-- MODO MANUAL: como antes + info contextual BD_CC -->
+      <div id="mode_manual" class="hidden">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Cultivo</label>
+            <select id="w_cul_m" class="w-full"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Sector / Pivote (IRRIFER)</label>
+            <select id="w_sec" class="w-full"></select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Hectáreas: <span id="ha_val" class="text-blue-700 font-semibold">20</span></label>
+            <input type="range" id="w_ha" min="1" max="300" step="1" value="20" class="w-full">
+          </div>
+        </div>
+        <div id="bdcc_hint" class="mt-2 text-xs"></div>
+      </div>
+
+      <div id="crop_ctrl" class="mt-3"></div>
+
+      <details class="how-works">
+        <summary>¿Cómo funciona esta sección?</summary>
+        <div class="how-works-content">
+          <p><b>Dos modos:</b></p>
+          <ul>
+            <li><b>📊 Datos del fundo (BD_CC)</b>: usa los centros de costo reales registrados en el sistema. Al elegir temporada → cultivo → pivote/potrero, las hectáreas se cargan automáticamente desde BD_CC. <b>Usa este modo para trabajo real.</b></li>
+            <li><b>✏️ Manual</b>: permite simular escenarios con los sectores IRRIFER originales (basados en análisis de suelo físicos), ajustando hectáreas libremente con un slider. Útil para pruebas o cultivos futuros aún no registrados.</li>
+          </ul>
+          <p class="mt-2">Cada cultivo tiene una <b>"receta"</b> de cuánto de cada nutriente necesita para producir bien.
+          Por ejemplo, una hectárea de nogal adulto necesita unos <b>240 kg de nitrógeno</b> y <b>280 kg de potasio</b> al año.</p>
+          <p class="mt-2"><b>¿Por qué el doble selector de cultivo en modo BD_CC?</b> Porque el nombre en BD_CC (ej: "Trigo 26-27") indica qué está plantado físicamente para contabilidad. Pero el optimizador necesita saber la <b>receta nutricional</b> exacta (Trigo candeal, Maíz, Nogal Chandler, etc.) que a veces es más específica.</p>
+          <div class="example-box">
+            <b>Ejemplo:</b> Seleccionas temporada 2026-2027 → cultivo "Trigo 26-27" → pivote "Piv 1" → hectáreas: 24 (auto de BD_CC). Luego eliges receta nutricional "Trigo candeal (durum)" y el sistema calcula exactamente los nutrientes necesarios para esas 24 ha.
+          </div>
+        </div>
+      </details>
     </div>
   </details>
 
@@ -685,17 +727,35 @@ let _provActivos = new Set(); // Set de proveedores activos (checkboxes)
 let _override = {};           // { productoNombre: FERT_ID } — override manual de cotización elegida
 let _modalMode = 'exist';     // 'exist' o 'new' en modal (producto)
 let _provMode  = 'exist';     // 'exist' o 'new' en modal (proveedor)
+let _sec1Mode  = 'bdcc';      // 'bdcc' o 'manual'
+let _bdcc = [];               // Data de BD_CC
 let _lastResult = null;
 
 const $ = (id) => document.getElementById(id);
 const fmt = (n, d=0) => Number(n).toLocaleString('es-CL', { minimumFractionDigits:d, maximumFractionDigits:d });
 
+// Helper: cultivo actual (funciona en ambos modos)
+function getCurrentCultivo() {
+  if (_sec1Mode === 'manual') {
+    return $('w_cul_m') ? $('w_cul_m').value : $('w_cul').value;
+  }
+  return $('w_cul').value;
+}
+
+// Helper: hectáreas actuales (funciona en ambos modos)
+function getCurrentHa() {
+  if (_sec1Mode === 'bdcc') {
+    return parseFloat($('w_ha_bdcc').value) || 0;
+  }
+  return parseFloat($('w_ha').value) || 0;
+}
+
 function rend_kgha() {
-  const data = CULTIVOS[$('w_cul').value];
+  const data = CULTIVOS[getCurrentCultivo()];
   return data.tipo === "etapas" ? ETAPAS_NOGAL[_etapa_sel].rend : data.rend;
 }
 function req_uha() {
-  const data = CULTIVOS[$('w_cul').value];
+  const data = CULTIVOS[getCurrentCultivo()];
   if (data.tipo === "etapas") {
     const e = ETAPAS_NOGAL[_etapa_sel];
     return { N:e.N, P2O5:e.P2O5, K2O:e.K2O, MgO:e.MgO, S:e.S };
@@ -715,10 +775,15 @@ function aporte_uha_sector(sector) {
 
 function init_dropdowns() {
   const sel_cul = $('w_cul');
+  const sel_cul_m = $('w_cul_m');
   for (const c of Object.keys(CULTIVOS)) {
-    const o = document.createElement('option'); o.value = c; o.textContent = c; sel_cul.appendChild(o);
+    const o1 = document.createElement('option'); o1.value = c; o1.textContent = c; sel_cul.appendChild(o1);
+    if (sel_cul_m) {
+      const o2 = document.createElement('option'); o2.value = c; o2.textContent = c; sel_cul_m.appendChild(o2);
+    }
   }
   sel_cul.value = "Nogal (Chandler)";
+  if (sel_cul_m) sel_cul_m.value = "Nogal (Chandler)";
   const sel_sec = $('w_sec');
   for (const s of Object.keys(SUELO)) {
     const o = document.createElement('option'); o.value = s; o.textContent = s; sel_sec.appendChild(o);
@@ -816,14 +881,14 @@ function render_soil() {
 }
 
 function render_balance() {
-  const ha = parseFloat($('w_ha').value);
+  const ha = getCurrentHa();
   const req = req_uha();
   const ap = {
     N: parseFloat($('ws_n').value) || 0, P2O5: parseFloat($('ws_p').value) || 0,
     K2O: parseFloat($('ws_k').value) || 0, MgO: parseFloat($('ws_mg').value) || 0,
     S: parseFloat($('ws_s').value) || 0,
   };
-  const cul = $('w_cul').value;
+  const cul = getCurrentCultivo();
   const rend = rend_kgha();
   const prod = ha * rend / 1000;
   let filas = ''; let tot_req = 0, tot_net = 0;
@@ -850,8 +915,164 @@ function render_balance() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// CATÁLOGO — Carga desde Google Sheets + agrupación
+// MODO BD_CC — Centros de Costo del fundo
 // ═══════════════════════════════════════════════════════════════════
+
+async function loadBDCC() {
+  try {
+    const url = API_REG + "?sheet=BD_CC";
+    const proxyUrl = WORKER + "?url=" + encodeURIComponent(url);
+    const resp = await fetch(proxyUrl);
+    const data = await resp.json();
+    if (!Array.isArray(data)) throw new Error(data.error || "Formato inválido");
+
+    _bdcc = data.map(r => ({
+      id: String(r.Id_CC || '').trim(),
+      nombre: String(r['NOMBRE CC'] || '').trim(),
+      ha: Number(r['HECTÁREAS']) || 0,
+      especie: String(r.Especie || '').trim(),
+      fundo: String(r.FUNDO || '').trim(),
+      temporada: String(r.Temporada || '').trim(),
+      coordenadas: String(r.Coordenadas || '').trim(),
+    })).filter(r => r.id && r.ha > 0);
+
+    $('bdcc_status').textContent = `${_bdcc.length} centros con hectáreas`;
+    populateBDCCSelectors();
+    return true;
+  } catch (ex) {
+    console.error('loadBDCC:', ex);
+    $('bdcc_status').innerHTML = '<span class="text-red-600">Error al cargar BD_CC</span>';
+    return false;
+  }
+}
+
+function populateBDCCSelectors() {
+  // Temporadas únicas ordenadas desc (más reciente primero)
+  const temps = Array.from(new Set(_bdcc.map(r => r.temporada))).sort().reverse();
+  const selTemp = $('w_temp');
+  selTemp.innerHTML = temps.map(t => `<option value="${t}">${t}</option>`).join('');
+  // Default: la más reciente
+  if (temps.length) selTemp.value = temps[0];
+
+  selTemp.onchange = () => { populateEspecieSelector(); };
+  populateEspecieSelector();
+}
+
+function populateEspecieSelector() {
+  const temp = $('w_temp').value;
+  const especies = Array.from(new Set(
+    _bdcc.filter(r => r.temporada === temp).map(r => r.especie).filter(Boolean)
+  )).sort();
+  const sel = $('w_especie');
+  sel.innerHTML = especies.map(e => `<option value="${e}">${e}</option>`).join('');
+  if (!especies.length) sel.innerHTML = `<option value="">Sin cultivos en ${temp}</option>`;
+  sel.onchange = () => { populateCCSelector(); };
+  populateCCSelector();
+}
+
+function populateCCSelector() {
+  const temp = $('w_temp').value;
+  const esp = $('w_especie').value;
+  const ccs = _bdcc.filter(r => r.temporada === temp && r.especie === esp).sort((a,b) => a.nombre.localeCompare(b.nombre));
+  const sel = $('w_cc');
+  sel.innerHTML = ccs.map(c => `<option value="${c.id}">${c.nombre} (${c.ha} ha)</option>`).join('');
+  if (!ccs.length) sel.innerHTML = `<option value="">Sin pivotes para ${esp}</option>`;
+  sel.onchange = () => { updateBDCCHectareas(); };
+  updateBDCCHectareas();
+}
+
+function updateBDCCHectareas() {
+  const ccId = $('w_cc').value;
+  const cc = _bdcc.find(r => r.id === ccId);
+  if (!cc) {
+    $('w_ha_bdcc').value = '';
+    $('bdcc_info').innerHTML = '';
+    return;
+  }
+  $('w_ha_bdcc').value = cc.ha + ' ha';
+
+  // Info contextual: auto-sugerir cultivo para optimización según la Especie
+  const sugerencia = sugerirCultivoOpt(cc.especie);
+  const sugHtml = sugerencia && sugerencia !== $('w_cul').value
+    ? ` · <span style="color:#059669;cursor:pointer;" onclick="$('w_cul').value='${sugerencia}';render_crop_ctrl();upd_all();updateSectionHints();">✨ Sugerir ${sugerencia}</span>`
+    : '';
+
+  $('bdcc_info').innerHTML = `
+    <div class="soil-card" style="font-size:11px;padding:8px 12px;">
+      <b>${cc.nombre}</b> · ${cc.ha} ha · ${cc.especie} · ${cc.fundo} · ${cc.temporada}
+      ${sugHtml}
+    </div>
+  `;
+
+  // Sincronizar mapa de suelo: intentar encontrar sector IRRIFER que haga match con el CC
+  const sectorSugerido = matchCCtoSector(cc.nombre);
+  if (sectorSugerido && SUELO[sectorSugerido]) {
+    $('w_sec').value = sectorSugerido;
+    upd_all();
+  }
+
+  updateSectionHints();
+  render_balance();
+}
+
+// Mapeo heurístico de cultivo BD_CC → cultivo optimizador
+function sugerirCultivoOpt(especieBDCC) {
+  const s = (especieBDCC || '').toLowerCase();
+  if (s.includes('nogal')) return 'Nogal (Chandler)';
+  if (s.includes('ma\u00edz') || s.includes('maiz')) return 'Maíz de grano';
+  if (s.includes('trigo')) return 'Trigo candeal (durum)';
+  if (s.includes('achicoria')) return 'Achicoria (raíz fresca)';
+  if (s.includes('pepino')) return 'Pepino (fruto fresco)';
+  return null;
+}
+
+// Mapeo heurístico de nombre CC → sector IRRIFER
+function matchCCtoSector(nombreCC) {
+  const n = (nombreCC || '').toLowerCase().trim();
+  // Mapeo físico aproximado — ajustable
+  if (n === 'pot 1') return 'Potrero 1';
+  if (n === 'pot 5' || n === 'pot 6') return 'Potrero 5 y 6';
+  if (n === 'piv 1' || n === 'pot 4') return 'Pivote 1 y 4';
+  if (n === 'piv 2' || n === 'piv 3') return 'Pivote 2 y 3';
+  if (n === 'pot 2' || n === 'pot 3') return 'Pivote 3A';
+  return null;
+}
+
+function setSec1Mode(mode) {
+  _sec1Mode = mode;
+  if (mode === 'bdcc') {
+    $('mode_bdcc').classList.remove('hidden');
+    $('mode_manual').classList.add('hidden');
+    $('btn_mode_bdcc').style.cssText = 'background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:5px 12px;';
+    $('btn_mode_manual').style.cssText = 'font-size:11px;padding:5px 12px;';
+  } else {
+    $('mode_bdcc').classList.add('hidden');
+    $('mode_manual').classList.remove('hidden');
+    $('btn_mode_bdcc').style.cssText = 'font-size:11px;padding:5px 12px;';
+    $('btn_mode_manual').style.cssText = 'background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:5px 12px;';
+    // Sincronizar cultivo: el que está en w_cul → w_cul_m
+    if ($('w_cul_m')) $('w_cul_m').value = $('w_cul').value;
+    updateBDCCHint();
+  }
+  render_crop_ctrl();
+  upd_all();
+  updateSectionHints();
+  render_balance();
+}
+
+// En modo manual, muestra info contextual si hay match con BD_CC
+function updateBDCCHint() {
+  if (_sec1Mode !== 'manual' || !_bdcc.length) { if ($('bdcc_hint')) $('bdcc_hint').innerHTML = ''; return; }
+  const sector = $('w_sec').value;
+  // Buscar CCs cuyos nombres matcheen heurísticamente con este sector
+  const matches = _bdcc.filter(r => matchCCtoSector(r.nombre) === sector);
+  if (!matches.length) { $('bdcc_hint').innerHTML = ''; return; }
+  const totalHa = matches.reduce((s,c) => s + c.ha, 0);
+  const detalle = matches.map(m => `${m.nombre} (${m.ha} ha, ${m.especie}, ${m.temporada})`).join(' · ');
+  $('bdcc_hint').innerHTML = `<span class="text-blue-700">💡 Según BD_CC: <b>${fmt(totalHa,1)} ha totales</b> — ${detalle}</span>`;
+}
+
+
 
 async function loadCatalogo() {
   const loader = $('catalogo_loader');
@@ -1274,8 +1495,8 @@ function do_optimize() {
   $('status_lbl').innerHTML = '<span class="text-amber-600">Ejecutando solver...</span>';
   $('log_out').textContent = '';
   try {
-    const ha = parseFloat($('w_ha').value);
-    const cul = $('w_cul').value;
+    const ha = getCurrentHa();
+    const cul = getCurrentCultivo();
     const modo = $('w_modo').value;
     const max_org = parseFloat($('w_maxo').value);
     const mi = parseInt($('w_mini').value);
@@ -1674,10 +1895,17 @@ function toggleAllSections(expand) {
 function updateSectionHints() {
   // Sec 1: cultivo + sector + ha
   try {
-    const cul = $('w_cul').value;
-    const sec = $('w_sec').value;
-    const ha  = $('w_ha').value;
-    $('sec1-hint').textContent = `${cul} · ${sec} · ${ha} ha`;
+    const cul = getCurrentCultivo();
+    const ha  = getCurrentHa();
+    if (_sec1Mode === 'bdcc') {
+      const cc = _bdcc.find(r => r.id === $('w_cc').value);
+      const nomCC = cc ? cc.nombre : '—';
+      const temp = $('w_temp').value || '';
+      $('sec1-hint').textContent = `${cul} · ${nomCC} · ${ha} ha · ${temp}`;
+    } else {
+      const sec = $('w_sec').value;
+      $('sec1-hint').textContent = `${cul} · ${sec} · ${ha} ha`;
+    }
   } catch(e) {}
 
   // Sec 2: modo aplicación
@@ -1716,11 +1944,30 @@ document.addEventListener('DOMContentLoaded', () => {
   render_crop_ctrl();
   render_aplic_info();
   loadCatalogo();
+  loadBDCC();  // Carga BD_CC asincrónicamente
   upd_all();
   updateSectionHints();
-  $('w_cul').addEventListener('change', () => { render_crop_ctrl(); upd_all(); updateSectionHints(); });
-  $('w_sec').addEventListener('change', () => { upd_all(); updateSectionHints(); });
-  $('w_ha').addEventListener('input', () => { $('ha_val').textContent = $('w_ha').value; render_balance(); updateSectionHints(); });
+
+  // Cultivo de optimización — sincronizar entre w_cul y w_cul_m
+  $('w_cul').addEventListener('change', () => {
+    if ($('w_cul_m')) $('w_cul_m').value = $('w_cul').value;
+    render_crop_ctrl(); upd_all(); updateSectionHints();
+  });
+  if ($('w_cul_m')) {
+    $('w_cul_m').addEventListener('change', () => {
+      $('w_cul').value = $('w_cul_m').value;
+      render_crop_ctrl(); upd_all(); updateSectionHints();
+    });
+  }
+
+  // Manual: sector IRRIFER
+  $('w_sec').addEventListener('change', () => { upd_all(); updateBDCCHint(); updateSectionHints(); });
+  $('w_ha').addEventListener('input', () => {
+    $('ha_val').textContent = $('w_ha').value;
+    render_balance();
+    updateSectionHints();
+  });
+
   $('w_aplic_inorg').addEventListener('change', () => { render_aplic_info(); updateSectionHints(); });
   $('w_aplic_org').addEventListener('change', () => { render_aplic_info(); updateSectionHints(); });
   $('w_modo').addEventListener('change', updateSectionHints);
