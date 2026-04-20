@@ -65,6 +65,42 @@
   .quick-guide-step { display:flex; align-items:flex-start; gap:10px; padding:4px 0; font-size:12px; color:#1e3a5f; }
   .quick-guide-num { flex-shrink:0; width:24px; height:24px; background:#3b82f6; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; }
   .glos-term { font-weight:600; color:#1e40af; }
+
+  /* ── CATALOGO V2 ── */
+  .prov-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border:1px solid #d1d5db; border-radius:20px; font-size:12px; cursor:pointer; background:#fff; transition:all .15s; user-select:none; }
+  .prov-chip:hover { border-color:#3b82f6; }
+  .prov-chip.active { background:#eff6ff; border-color:#3b82f6; color:#1e40af; }
+  .prov-chip input { width:13px; height:13px; margin:0; accent-color:#3b82f6; cursor:pointer; }
+  .prov-chip .prov-count { color:#9ca3af; font-size:11px; }
+  .prov-chip.active .prov-count { color:#1e40af; }
+
+  .prod-group { border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; background:#fff; }
+  .prod-head { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:#f9fafb; border-bottom:1px solid #e5e7eb; }
+  .prod-title { display:flex; align-items:center; gap:10px; font-size:13px; font-weight:600; color:#374151; }
+  .prod-comp { font-size:10px; padding:2px 8px; border-radius:10px; background:#dbeafe; color:#1e40af; font-weight:500; }
+  .prod-meta { display:flex; align-items:center; gap:12px; font-size:11px; color:#6b7280; }
+  .prod-ahorro { color:#059669; font-weight:600; }
+  .cotiz-row { display:grid; grid-template-columns:20px 1fr 90px 90px 80px 60px; gap:10px; align-items:center; padding:8px 14px; border-bottom:1px solid #f3f4f6; font-size:12px; }
+  .cotiz-row:last-child { border-bottom:none; }
+  .cotiz-row.best { background:#f0fdf4; }
+  .cotiz-row input[type=radio] { margin:0; accent-color:#059669; cursor:pointer; }
+  .cotiz-prov { font-size:10px; padding:2px 7px; border-radius:10px; font-weight:600; margin-right:6px; }
+  .cotiz-precio { font-weight:600; color:#374151; }
+  .cotiz-row.best .cotiz-precio { color:#059669; }
+  .cotiz-precio-input { width:80px; font-size:11px; padding:2px 4px; border:1px solid #d1d5db; border-radius:3px; }
+  .cotiz-date { color:#9ca3af; font-size:11px; }
+  .cotiz-badge { font-size:10px; padding:2px 7px; border-radius:4px; background:#d1fae5; color:#065f46; font-weight:600; text-align:center; }
+  .cotiz-badge.warn { background:#fef3c7; color:#92400e; }
+  .cotiz-actions { display:flex; gap:4px; justify-content:flex-end; }
+  .cotiz-btn { font-size:10px; padding:2px 6px; border:1px solid #e5e7eb; background:#fff; border-radius:3px; cursor:pointer; color:#6b7280; }
+  .cotiz-btn:hover { border-color:#9ca3af; color:#374151; }
+  .cotiz-btn.danger:hover { border-color:#fca5a5; color:#dc2626; background:#fef2f2; }
+
+  @media (max-width: 768px) {
+    .cotiz-row { grid-template-columns:1fr; gap:4px; padding:10px 14px; }
+    .cotiz-row > * { width:100%; }
+    .prod-meta { display:none; }
+  }
   @media (max-width: 768px) {
     .fert-row { grid-template-columns: 1fr; gap:4px; }
     .metric-value { font-size:18px; }
@@ -287,42 +323,153 @@
   </section>
 
   <section class="card">
-    <div class="section-title">5 · Precios de fertilizantes ($/kg sin IVA)</div>
-    <div class="intro-brief">
-      <b>¿Qué haces aquí?</b> Revisas y actualizas los <b>precios</b> de cada fertilizante. Si tienes cotizaciones nuevas,
-      edítalos aquí para que el cálculo salga con valores al día.
+    <div class="flex items-center justify-between mb-2">
+      <div class="section-title mb-0">5 · Catálogo de fertilizantes y cotizaciones</div>
+      <div id="catalogo_meta" class="text-xs text-gray-400"></div>
     </div>
-    <details open>
-      <summary class="text-xs font-bold text-gray-700 mb-2">Ver / editar precios</summary>
-      <div class="mt-3">
-        <div class="text-xs text-gray-500 mb-2">
-          Precio 0 = sin cotización (entra en <b>modo factibilidad</b>: el sistema lo considera disponible con precio simbólico).
-        </div>
-        <h3 class="text-xs font-bold text-blue-900 mt-3 mb-2">Inorgánicos (químicos)</h3>
-        <div id="ferts_inorg"></div>
-        <h3 class="text-xs font-bold text-green-900 mt-4 mb-2">Orgánicos (guanos y compost)</h3>
-        <div id="ferts_org"></div>
-      </div>
-    </details>
+
+    <div class="intro-brief">
+      <b>¿Qué ves aquí?</b> Todos los productos agrupados con <b>todas sus cotizaciones por proveedor</b>.
+      Por defecto el optimizador usa el más barato. Puedes filtrar proveedores, forzar uno manualmente, o agregar cotizaciones nuevas.
+    </div>
+
+    <!-- Filtro de proveedores activos + botón agregar -->
+    <div class="mb-3">
+      <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Proveedores activos</div>
+      <div id="prov_filter" class="flex flex-wrap gap-2 items-center"></div>
+    </div>
+
+    <div id="catalogo_loader" class="text-center py-8 text-gray-400 text-sm">
+      <div class="animate-pulse">Cargando catálogo desde BD_Fertilizantes...</div>
+    </div>
+
+    <div id="catalogo_list" class="space-y-2 hidden"></div>
+
+    <div id="catalogo_error" class="err-box hidden"></div>
+
     <details class="how-works">
       <summary>¿Cómo funciona esta sección?</summary>
       <div class="how-works-content">
-        <p>Cada fertilizante tiene <b>3 datos importantes</b>:</p>
-        <ul>
-          <li><b>Composición</b> (ej: "N:21% · S:24%"): qué porcentaje del producto es de cada nutriente. Por ejemplo, de cada saco de 25 kg de Sulfato de Amonio, 5,25 kg son nitrógeno puro (21%) y 6 kg son azufre (24%). El resto es agua, cargas y estabilizadores.</li>
-          <li><b>Precio $/kg sin IVA:</b> lo que cuesta 1 kg del <i>producto</i> (no del nutriente). Los precios vienen precalculados dividiendo el precio del saco por kg y sacándole el IVA.</li>
-          <li><b>Tanque original:</b> A, B o AB. Si vas a hacer fertirriego, esto le dice al programa en qué tanque puede ir cada producto para evitar incompatibilidades.</li>
-        </ul>
-        <p class="mt-2"><b>¿Y qué pasa con el modo factibilidad?</b> Si tienes un fertilizante sin cotización
-        (precio = 0), el sistema no lo descarta — lo toma como disponible pero te avisa que el costo total
-        es "aproximado". Útil cuando quieres evaluar si un producto que aún no cotizaste <i>podría</i> entrar al plan.</p>
+        <p><b>Catálogo persistente en Google Sheets.</b> Los productos y cotizaciones viven en la hoja
+        <code>BD_Fertilizantes</code>. Cuando editas precios o agregas cotizaciones aquí, se guardan en la hoja
+        y quedan disponibles para todos los cálculos futuros.</p>
+
+        <p class="mt-2"><b>Un producto, varios proveedores.</b> El mismo producto (ej: Urea) puede tener
+        cotización de COAGRA, COPEVAL y CALS con precios distintos. El sistema muestra todas y usa automáticamente
+        la más barata. Si quieres forzar un proveedor específico, haz click en su radio button.</p>
+
+        <p class="mt-2"><b>Filtro de proveedores.</b> Los chips de arriba te permiten excluir temporalmente
+        proveedores (ej: si Pucalán no tiene stock este mes, desmárcalo y el optimizador ignora sus productos).</p>
+
+        <p class="mt-2"><b>Ahorro potencial.</b> Para cada producto con 2+ cotizaciones, verás cuánto te ahorras
+        eligiendo la más barata vs la más cara. Valida que los precios nuevos no estén inflados.</p>
+
         <div class="example-box">
-          <b>Consejo:</b> Si subes el precio del Nitrato de Potasio y bajas el de la Urea, puede que el plan cambie
-          automáticamente reemplazando uno por otro. Es normal — el sistema busca la mezcla más barata que cubra el requerimiento.
+          <b>Consejo:</b> Agrega cotizaciones apenas recibas una propuesta nueva — aunque no la uses hoy,
+          queda de referencia para comparar en el futuro.
         </div>
       </div>
     </details>
   </section>
+
+  <!-- Modal Agregar Cotización -->
+  <div id="modal_add" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+      <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <h3 class="text-base font-bold text-gray-800">Agregar cotización</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div class="inf-box text-xs">
+          Crea una <b>nueva cotización</b>. Puedes agregar un producto totalmente nuevo, o una nueva cotización
+          de un producto existente con otro proveedor o precio distinto.
+        </div>
+
+        <!-- Selector: producto existente o nuevo -->
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Producto</label>
+          <div class="flex gap-2 mb-2">
+            <button type="button" id="btn_prod_exist" onclick="setProductoMode('exist')" class="btn-secondary flex-1" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;">Producto existente</button>
+            <button type="button" id="btn_prod_new" onclick="setProductoMode('new')" class="btn-secondary flex-1">Producto nuevo</button>
+          </div>
+          <select id="f_producto_existente" class="w-full"></select>
+          <input type="text" id="f_producto_nuevo" class="w-full hidden" placeholder="Ej: Sulfato ferroso">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Proveedor</label>
+            <input type="text" id="f_proveedor" class="w-full" list="prov_list" placeholder="Ej: COPEVAL">
+            <datalist id="prov_list"></datalist>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Tipo</label>
+            <select id="f_tipo" class="w-full">
+              <option value="inorganico">Inorgánico</option>
+              <option value="organico">Orgánico</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Precio $/kg sin IVA</label>
+            <input type="number" id="f_precio" class="w-full" step="0.1" min="0" placeholder="0">
+            <div class="text-xs text-gray-400 mt-1">Desde saco: precio_saco / 1.19 / kg_saco</div>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Formato</label>
+            <input type="text" id="f_formato" class="w-full" placeholder="Ej: Saco 25kg" value="Saco 25kg">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Composición (% p/p del nutriente)</label>
+          <div class="grid grid-cols-6 gap-2">
+            <div><div class="text-xs text-gray-500">N</div><input type="number" id="f_N" class="w-full" step="0.1" min="0" max="100" value="0"></div>
+            <div><div class="text-xs text-gray-500">P₂O₅</div><input type="number" id="f_P" class="w-full" step="0.1" min="0" max="100" value="0"></div>
+            <div><div class="text-xs text-gray-500">K₂O</div><input type="number" id="f_K" class="w-full" step="0.1" min="0" max="100" value="0"></div>
+            <div><div class="text-xs text-gray-500">MgO</div><input type="number" id="f_Mg" class="w-full" step="0.1" min="0" max="100" value="0"></div>
+            <div><div class="text-xs text-gray-500">S</div><input type="number" id="f_S" class="w-full" step="0.1" min="0" max="100" value="0"></div>
+            <div><div class="text-xs text-gray-500">Ca</div><input type="number" id="f_Ca" class="w-full" step="0.1" min="0" max="100" value="0"></div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Tanque <span class="tip" title="A o B para fertirriego. AB = orgánicos / sin restricción.">?</span></label>
+            <select id="f_tanque" class="w-full">
+              <option value="A">A</option>
+              <option value="B">B</option>
+              <option value="AB" selected>AB</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Fecha cotización</label>
+            <input type="date" id="f_fecha" class="w-full">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Solubilidad (g/L)</label>
+            <input type="number" id="f_solub" class="w-full" step="1" min="0" placeholder="0">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Notas</label>
+          <textarea id="f_notas" class="w-full" rows="2" placeholder="Opcional: condiciones, descuento por volumen, etc."></textarea>
+        </div>
+      </div>
+
+      <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-3 flex items-center justify-between gap-3">
+        <div id="modal_status" class="text-xs text-gray-500"></div>
+        <div class="flex gap-2">
+          <button onclick="closeModal()" class="btn-secondary">Cancelar</button>
+          <button onclick="saveFertilizante()" class="btn-primary" id="btn_save">Guardar cotización</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <section class="card flex flex-col md:flex-row items-center justify-between gap-3">
     <div>
@@ -448,24 +595,14 @@ const CULTIVOS = {
   "Pepino (fruto fresco)": { tipo:"fijo", unidad:"fruto fresco", rend:17200, req_ton:{ N:3.0, P2O5:2.2, K2O:4.0, MgO:1.0, S:1.0 }, notas:"Alta demanda K. INM con vermicompost + biofertilizantes mejora P hasta 33%.", fuente_rend:"Sahu et al. 2025 — 17.2 t/ha, INM completo" },
 };
 
-const pn = (saco, kg=25, iva=0.19) => Math.round(saco / (1+iva) / kg * 10)/10;
-
-const FERTS_BASE = [
-  { n:"Sulfato Amonio COPEVAL",      tipo:"inorganico", prov:"COPEVAL", precio:pn(11690), comp:{N:21, S:24},       tanque_orig:"A",  sol:710 },
-  { n:"MAP Monoamónico COPEVAL",     tipo:"inorganico", prov:"COPEVAL", precio:pn(24500), comp:{N:11, P2O5:52},    tanque_orig:"A",  sol:400 },
-  { n:"Sulfato Potasio SOP COPEVAL", tipo:"inorganico", prov:"COPEVAL", precio:pn(29820), comp:{K2O:52, S:18},     tanque_orig:"A",  sol:120 },
-  { n:"Nitrato Potasio COPEVAL",     tipo:"inorganico", prov:"COPEVAL", precio:pn(30805), comp:{N:13, K2O:44},     tanque_orig:"A",  sol:133 },
-  { n:"Sulfato Magnesio COPEVAL",    tipo:"inorganico", prov:"COPEVAL", precio:pn(10000), comp:{MgO:16, S:13},     tanque_orig:"A",  sol:710 },
-  { n:"Nitrato Calcio COPEVAL",      tipo:"inorganico", prov:"COPEVAL", precio:pn(18750), comp:{N:15.5, Ca:26.5},  tanque_orig:"B",  sol:1020 },
-  { n:"Nitrato Magnesio COPEVAL",    tipo:"inorganico", prov:"COPEVAL", precio:pn(16280), comp:{N:11, MgO:9.5},    tanque_orig:"B",  sol:2250 },
-  { n:"Urea COAGRA",                 tipo:"inorganico", prov:"COAGRA",  precio:pn(16250), comp:{N:46},             tanque_orig:"A",  sol:1080 },
-  { n:"Nitrato Potasio CALS",        tipo:"inorganico", prov:"CALS",    precio:0,         comp:{N:13, K2O:44},     tanque_orig:"A",  sol:133 },
-  { n:"Estabilizado Cerdo Pucalán",  tipo:"organico",   prov:"Pucalan", precio:53,        comp:{N:2.6,  P2O5:8.5, K2O:2.1, Ca:4.9,  MgO:2.6}, tanque_orig:"AB", sol:9999 },
-  { n:"Guano Broiler Pucalán",       tipo:"organico",   prov:"Pucalan", precio:39,        comp:{N:3.93, P2O5:3.0, K2O:3.7, Ca:3.4,  MgO:1.1}, tanque_orig:"AB", sol:9999 },
-  { n:"Compost ASF",                 tipo:"organico",   prov:"ASF",     precio:34,        comp:{N:0.97, P2O5:1.3, K2O:0.95,Ca:1.6,  MgO:0.77},tanque_orig:"AB", sol:9999 },
-  { n:"Estabilizado Ave ASF",        tipo:"organico",   prov:"ASF",     precio:39.5,      comp:{N:3.21, P2O5:4.1, K2O:2.5, Ca:13.7, MgO:1.1}, tanque_orig:"AB", sol:9999 },
-  { n:"Estabilizado Vacuno ASF",     tipo:"organico",   prov:"ASF",     precio:36,        comp:{N:1.72, P2O5:2.0, K2O:1.2, Ca:2.5,  MgO:1.2}, tanque_orig:"AB", sol:9999 },
-];
+// ═══════════════════════════════════════════════════════════════════
+// CONFIG — Backend Google Sheets + Cloudflare Worker
+// ═══════════════════════════════════════════════════════════════════
+const API_REG  = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+const WORKER   = "https://round-night-574d.christian-19c.workers.dev";
+// Token embebido. NO confidencial — solo evita bots randoms escriban.
+// Si lo quieres rotar, edita Script Properties > FERT_TOKEN y actualiza aquí.
+const FERT_TOKEN = "6b5bd5d0-6176-4f56-941a-30315b959e60";
 
 const INCOMPATS = [
   ["Nitrato Calcio","MAP",              "Ca+HPO4→CaHPO4"],
@@ -476,7 +613,10 @@ const INCOMPATS = [
 ];
 
 let _etapa_sel = "Año 6+ — Adulto (~7000 kg/ha)";
-let _ferts = JSON.parse(JSON.stringify(FERTS_BASE));
+let _catalogo = [];           // Array completo desde BD_Fertilizantes (incluye inactivos)
+let _provActivos = new Set(); // Set de proveedores activos (checkboxes)
+let _override = {};           // { productoNombre: FERT_ID } — override manual de cotización elegida
+let _modalMode = 'exist';     // 'exist' o 'new' en modal
 let _lastResult = null;
 
 const $ = (id) => document.getElementById(id);
@@ -641,38 +781,395 @@ function render_balance() {
   `;
 }
 
-function render_ferts() {
-  const rowsInorg = _ferts.filter(f => f.tipo === "inorganico");
-  const rowsOrg = _ferts.filter(f => f.tipo === "organico");
-  const render_row = (f, idx) => {
-    const cs = Object.entries(f.comp).filter(([k,v]) => v > 0).map(([k,v]) => `${k}:${v}%`).join(' · ');
+// ═══════════════════════════════════════════════════════════════════
+// CATÁLOGO — Carga desde Google Sheets + agrupación
+// ═══════════════════════════════════════════════════════════════════
+
+async function loadCatalogo() {
+  const loader = $('catalogo_loader');
+  const list = $('catalogo_list');
+  const errBox = $('catalogo_error');
+  loader.classList.remove('hidden');
+  list.classList.add('hidden');
+  errBox.classList.add('hidden');
+
+  try {
+    const url = API_REG + "?sheet=BD_Fertilizantes";
+    const proxyUrl = WORKER + "?url=" + encodeURIComponent(url);
+    const resp = await fetch(proxyUrl);
+    const data = await resp.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error(data.error || "Respuesta inesperada del servidor");
+    }
+
+    // Mapear columnas de Sheets a objeto interno
+    _catalogo = data.map(row => ({
+      id: String(row.ID || '').trim(),
+      n:  String(row.Producto || '').trim(),  // Nombre del producto (no incluye proveedor)
+      tipo: String(row.Tipo || 'inorganico').toLowerCase().trim(),
+      prov: String(row.Proveedor || '').trim(),
+      precio: Number(row.Precio_kg_SIVA) || 0,
+      formato: String(row.Formato || '').trim(),
+      comp: {
+        N:    Number(row.N_pct)    || 0,
+        P2O5: Number(row.P2O5_pct) || 0,
+        K2O:  Number(row.K2O_pct)  || 0,
+        MgO:  Number(row.MgO_pct)  || 0,
+        S:    Number(row.S_pct)    || 0,
+        Ca:   Number(row.Ca_pct)   || 0,
+      },
+      tanque_orig: String(row.Tanque_orig || 'AB').trim(),
+      sol: Number(row.Solubilidad) || 9999,
+      fecha: String(row.Fecha_cotizacion || '').split('T')[0],
+      notas: String(row.Notas || '').trim(),
+      activo: row.Activo === true || String(row.Activo).toUpperCase() === 'TRUE',
+    })).filter(f => f.id && f.activo);
+
+    // Inicializar proveedores activos con todos los que aparezcan
+    _provActivos = new Set(_catalogo.map(f => f.prov));
+
+    $('catalogo_meta').textContent = `${_catalogo.length} cotizaciones · ${_provActivos.size} proveedores`;
+
+    loader.classList.add('hidden');
+    list.classList.remove('hidden');
+    renderProvFilter();
+    renderCatalogo();
+    populateModalDropdowns();
+
+    return true;
+  } catch (ex) {
+    console.error('loadCatalogo:', ex);
+    loader.classList.add('hidden');
+    errBox.classList.remove('hidden');
+    errBox.innerHTML = `<b>Error cargando catálogo:</b> ${ex.message}<br><button onclick="loadCatalogo()" class="btn-secondary mt-2">Reintentar</button>`;
+    return false;
+  }
+}
+
+// Agrupa cotizaciones por nombre de producto
+function groupByProducto(ferts) {
+  const groups = {};
+  for (const f of ferts) {
+    if (!groups[f.n]) groups[f.n] = [];
+    groups[f.n].push(f);
+  }
+  for (const k of Object.keys(groups)) {
+    groups[k].sort((a,b) => a.precio === 0 ? 1 : (b.precio === 0 ? -1 : a.precio - b.precio));
+  }
+  return groups;
+}
+
+// Cotizaciones filtradas por proveedor activo + override resuelto
+function getActiveCotizaciones() {
+  return _catalogo.filter(f => _provActivos.has(f.prov));
+}
+
+// Dado un producto, devuelve la cotización ELEGIDA (override manual o la más barata)
+function getChosenCotiz(productoName, cotizs) {
+  const validas = cotizs.filter(c => _provActivos.has(c.prov));
+  if (validas.length === 0) return null;
+  if (_override[productoName]) {
+    const forced = validas.find(c => c.id === _override[productoName]);
+    if (forced) return forced;
+  }
+  // Default: la más barata (precio > 0 primero, luego cero)
+  const withPrice = validas.filter(c => c.precio > 0);
+  if (withPrice.length > 0) return withPrice[0];  // Ya ordenadas
+  return validas[0];
+}
+
+function renderProvFilter() {
+  const provs = Array.from(new Set(_catalogo.map(f => f.prov))).sort();
+  const counts = {};
+  for (const f of _catalogo) counts[f.prov] = (counts[f.prov] || 0) + 1;
+
+  const chipsHtml = provs.map(pr => {
+    const active = _provActivos.has(pr);
     return `
-      <div class="fert-row">
-        <div>
-          <div class="fert-name"><span class="badge prov-${f.prov}">${f.prov}</span> ${f.n}</div>
-          <div class="fert-comp">${cs}</div>
+      <label class="prov-chip ${active ? 'active' : ''}">
+        <input type="checkbox" ${active ? 'checked' : ''} data-prov="${pr}" onchange="toggleProv('${pr}', this.checked)">
+        ${pr} <span class="prov-count">(${counts[pr]})</span>
+      </label>
+    `;
+  }).join('');
+
+  const btnAdd = `<button class="btn-secondary ml-auto" onclick="openModal()" style="background:#eff6ff;border-color:#bfdbfe;color:#1e40af;font-weight:600;">+ Agregar cotización</button>`;
+
+  $('prov_filter').innerHTML = chipsHtml + btnAdd;
+}
+
+function toggleProv(prov, active) {
+  if (active) _provActivos.add(prov);
+  else _provActivos.delete(prov);
+  // Limpiar overrides cuyo proveedor ya no está activo
+  for (const [prodName, fertId] of Object.entries(_override)) {
+    const fert = _catalogo.find(f => f.id === fertId);
+    if (fert && !_provActivos.has(fert.prov)) delete _override[prodName];
+  }
+  renderProvFilter();
+  renderCatalogo();
+}
+
+function renderCatalogo() {
+  const grupos = groupByProducto(_catalogo);
+  const productos = Object.keys(grupos).sort((a,b) => {
+    // Orden: inorgánicos primero, luego por nombre
+    const ta = grupos[a][0].tipo, tb = grupos[b][0].tipo;
+    if (ta !== tb) return ta === 'inorganico' ? -1 : 1;
+    return a.localeCompare(b);
+  });
+
+  const html = productos.map(prodName => {
+    const cotizs = grupos[prodName];
+    const sample = cotizs[0];
+    const comp = Object.entries(sample.comp).filter(([k,v]) => v > 0).map(([k,v]) => `${k}:${v}%`).join(' · ');
+
+    const precios = cotizs.filter(c => c.precio > 0 && _provActivos.has(c.prov)).map(c => c.precio);
+    let ahorroHtml = '';
+    if (precios.length >= 2) {
+      const min = Math.min(...precios);
+      const max = Math.max(...precios);
+      const ahorro = max - min;
+      const pct = ((ahorro/max)*100).toFixed(1);
+      ahorroHtml = `<span class="prod-ahorro">Ahorro: $${fmt(ahorro,1)}/kg (${pct}%)</span>`;
+    }
+
+    const chosen = getChosenCotiz(prodName, cotizs);
+
+    const filasHtml = cotizs.map(c => {
+      const isActive = _provActivos.has(c.prov);
+      const isChosen = chosen && c.id === chosen.id && isActive;
+      const isBest = precios.length > 0 && c.precio === Math.min(...precios) && c.precio > 0 && isActive;
+      const rowClass = isChosen ? 'cotiz-row best' : 'cotiz-row';
+      const opacity = isActive ? '' : 'opacity:0.4;';
+
+      let badge = '';
+      if (!isActive) badge = `<span class="cotiz-badge warn">Oculto</span>`;
+      else if (c.precio === 0) badge = `<span class="cotiz-badge warn">Sin precio</span>`;
+      else if (isBest && precios.length >= 2) badge = `<span class="cotiz-badge">Más barato</span>`;
+
+      return `
+        <div class="${rowClass}" style="${opacity}">
+          <input type="radio" name="cotiz_${prodName.replace(/\s/g,'_')}" ${isChosen ? 'checked' : ''} ${!isActive ? 'disabled' : ''} onchange="setOverride('${prodName}', '${c.id}')">
+          <div>
+            <span class="cotiz-prov prov-${c.prov}">${c.prov}</span>
+            <span>${c.formato || '—'}</span>
+            ${c.notas ? `<span style="font-size:10px;color:#9ca3af;margin-left:4px;">· ${c.notas}</span>` : ''}
+          </div>
+          <div>
+            <input type="number" class="cotiz-precio-input" value="${c.precio}" min="0" step="0.1" data-id="${c.id}" onblur="updatePrecio('${c.id}', this.value)" title="Editar precio">
+          </div>
+          <span class="cotiz-date">${c.fecha || '—'}</span>
+          ${badge}
+          <div class="cotiz-actions">
+            <button class="cotiz-btn danger" onclick="toggleActivo('${c.id}', false)" title="Archivar">🗑</button>
+          </div>
         </div>
-        <input type="number" data-fidx="${idx}" data-fk="precio" value="${f.precio}" min="0" step="1" title="$/kg sin IVA">
-        <select data-fidx="${idx}" data-fk="tanque_orig" title="Tanque original">
-          <option value="A" ${f.tanque_orig==='A'?'selected':''}>A</option>
-          <option value="B" ${f.tanque_orig==='B'?'selected':''}>B</option>
-          <option value="AB" ${f.tanque_orig==='AB'?'selected':''}>AB</option>
-        </select>
-        <span class="badge tanque-${f.tanque_orig}">Tq ${f.tanque_orig}</span>
+      `;
+    }).join('');
+
+    return `
+      <div class="prod-group">
+        <div class="prod-head">
+          <div class="prod-title">
+            <span>${prodName}</span>
+            ${comp ? `<span class="prod-comp">${comp}</span>` : ''}
+            <span style="font-size:10px;color:#9ca3af;">${sample.tipo}</span>
+          </div>
+          <div class="prod-meta">
+            <span>${cotizs.length} cot.</span>
+            ${ahorroHtml}
+          </div>
+        </div>
+        <div>${filasHtml}</div>
       </div>
     `;
-  };
-  $('ferts_inorg').innerHTML = rowsInorg.map((f) => render_row(f, _ferts.indexOf(f))).join('');
-  $('ferts_org').innerHTML = rowsOrg.map((f) => render_row(f, _ferts.indexOf(f))).join('');
-  document.querySelectorAll('[data-fidx]').forEach(el => {
-    el.addEventListener('change', (e) => {
-      const idx = parseInt(e.target.dataset.fidx);
-      const k = e.target.dataset.fk;
-      const v = e.target.tagName === 'SELECT' ? e.target.value : parseFloat(e.target.value) || 0;
-      _ferts[idx][k] = v;
-      if (k === 'tanque_orig') render_ferts();
+  }).join('');
+
+  $('catalogo_list').innerHTML = html || `<div class="text-center py-6 text-gray-400 text-sm">Sin cotizaciones activas.</div>`;
+}
+
+function setOverride(prodName, fertId) {
+  _override[prodName] = fertId;
+  renderCatalogo();
+}
+
+async function updatePrecio(fertId, nuevoPrecio) {
+  const fert = _catalogo.find(f => f.id === fertId);
+  if (!fert) return;
+  const val = parseFloat(nuevoPrecio) || 0;
+  if (val === fert.precio) return;  // No change
+
+  try {
+    const resp = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_fertilizante',
+        token: FERT_TOKEN,
+        id: fertId,
+        data: { Precio_kg_SIVA: val, Fecha_cotizacion: new Date().toISOString().split('T')[0] },
+        usuario: 'christian@bdata.cl'
+      })
     });
-  });
+    const res = await resp.json();
+    if (res.ok) {
+      fert.precio = val;
+      fert.fecha = new Date().toISOString().split('T')[0];
+      renderCatalogo();
+    } else {
+      alert('Error actualizando precio: ' + (res.error || 'desconocido'));
+    }
+  } catch (ex) {
+    alert('Error de red: ' + ex.message);
+  }
+}
+
+async function toggleActivo(fertId, newState) {
+  if (!confirm('¿Archivar esta cotización? Puedes reactivarla editando la hoja BD_Fertilizantes.')) return;
+  try {
+    const resp = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'toggle_activo',
+        token: FERT_TOKEN,
+        id: fertId,
+        activo: newState,
+        usuario: 'christian@bdata.cl'
+      })
+    });
+    const res = await resp.json();
+    if (res.ok) {
+      _catalogo = _catalogo.filter(f => f.id !== fertId);
+      renderCatalogo();
+      $('catalogo_meta').textContent = `${_catalogo.length} cotizaciones · ${_provActivos.size} proveedores`;
+    } else {
+      alert('Error: ' + (res.error || 'desconocido'));
+    }
+  } catch (ex) {
+    alert('Error de red: ' + ex.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MODAL — Agregar cotización
+// ═══════════════════════════════════════════════════════════════════
+function populateModalDropdowns() {
+  const productos = Array.from(new Set(_catalogo.map(f => f.n))).sort();
+  const sel = $('f_producto_existente');
+  sel.innerHTML = productos.map(p => `<option value="${p}">${p}</option>`).join('');
+
+  const provs = Array.from(new Set(_catalogo.map(f => f.prov))).sort();
+  $('prov_list').innerHTML = provs.map(p => `<option value="${p}">`).join('');
+
+  $('f_fecha').value = new Date().toISOString().split('T')[0];
+}
+
+function openModal() {
+  _modalMode = 'exist';
+  setProductoMode('exist');
+  // Pre-llenar composición cuando cambia el producto existente
+  $('f_producto_existente').onchange = () => {
+    const prodName = $('f_producto_existente').value;
+    const ref = _catalogo.find(f => f.n === prodName);
+    if (ref) {
+      $('f_tipo').value = ref.tipo;
+      $('f_N').value = ref.comp.N || 0;
+      $('f_P').value = ref.comp.P2O5 || 0;
+      $('f_K').value = ref.comp.K2O || 0;
+      $('f_Mg').value = ref.comp.MgO || 0;
+      $('f_S').value = ref.comp.S || 0;
+      $('f_Ca').value = ref.comp.Ca || 0;
+      $('f_tanque').value = ref.tanque_orig;
+      $('f_solub').value = ref.sol;
+    }
+  };
+  $('f_producto_existente').onchange();
+  $('modal_add').classList.remove('hidden');
+}
+
+function closeModal() {
+  $('modal_add').classList.add('hidden');
+  $('modal_status').textContent = '';
+  ['f_producto_nuevo','f_proveedor','f_precio','f_notas','f_formato'].forEach(id => { if ($(id)) $(id).value = $(id).id === 'f_formato' ? 'Saco 25kg' : ''; });
+}
+
+function setProductoMode(mode) {
+  _modalMode = mode;
+  if (mode === 'exist') {
+    $('f_producto_existente').classList.remove('hidden');
+    $('f_producto_nuevo').classList.add('hidden');
+    $('btn_prod_exist').style.cssText = 'background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;';
+    $('btn_prod_new').style.cssText = '';
+  } else {
+    $('f_producto_existente').classList.add('hidden');
+    $('f_producto_nuevo').classList.remove('hidden');
+    $('btn_prod_exist').style.cssText = '';
+    $('btn_prod_new').style.cssText = 'background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;';
+  }
+}
+
+async function saveFertilizante() {
+  const producto = _modalMode === 'exist' ? $('f_producto_existente').value : $('f_producto_nuevo').value.trim();
+  const proveedor = $('f_proveedor').value.trim();
+  const precio = parseFloat($('f_precio').value) || 0;
+  const formato = $('f_formato').value.trim();
+
+  if (!producto || !proveedor || !formato) {
+    $('modal_status').innerHTML = '<span class="text-red-600">Producto, proveedor y formato son obligatorios</span>';
+    return;
+  }
+
+  const btn = $('btn_save');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  $('modal_status').textContent = '';
+
+  try {
+    const payload = {
+      action: 'add_fertilizante',
+      token: FERT_TOKEN,
+      usuario: 'christian@bdata.cl',
+      data: {
+        Producto: producto,
+        Proveedor: proveedor,
+        Tipo: $('f_tipo').value,
+        Precio_kg_SIVA: precio,
+        Formato: formato,
+        N_pct: parseFloat($('f_N').value) || 0,
+        P2O5_pct: parseFloat($('f_P').value) || 0,
+        K2O_pct: parseFloat($('f_K').value) || 0,
+        MgO_pct: parseFloat($('f_Mg').value) || 0,
+        S_pct: parseFloat($('f_S').value) || 0,
+        Ca_pct: parseFloat($('f_Ca').value) || 0,
+        Tanque_orig: $('f_tanque').value,
+        Solubilidad: parseFloat($('f_solub').value) || 0,
+        Fecha_cotizacion: $('f_fecha').value || new Date().toISOString().split('T')[0],
+        Notas: $('f_notas').value.trim(),
+        Activo: true,
+      }
+    };
+
+    const resp = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const res = await resp.json();
+
+    if (res.ok) {
+      $('modal_status').innerHTML = `<span class="text-green-600">✓ Guardado como ${res.id}</span>`;
+      await loadCatalogo();  // Refrescar
+      setTimeout(closeModal, 800);
+    } else {
+      $('modal_status').innerHTML = `<span class="text-red-600">Error: ${res.error}${res.message ? ' — ' + res.message : ''}</span>`;
+    }
+  } catch (ex) {
+    $('modal_status').innerHTML = `<span class="text-red-600">Error de red: ${ex.message}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Guardar cotización';
+  }
 }
 
 function upd_all() {
@@ -710,9 +1207,13 @@ function do_optimize() {
       net_uha[k] = req_n[k] / ha;
     }
     const fval = [];
-    for (const f of _ferts) {
-      if (f.sol < 40) continue;
-      const fc = JSON.parse(JSON.stringify(f));
+    // Construir lista: por producto, usar solo la cotización ELEGIDA (override o más barata)
+    const grupos = groupByProducto(_catalogo);
+    for (const [prodName, cotizs] of Object.entries(grupos)) {
+      const chosen = getChosenCotiz(prodName, cotizs);
+      if (!chosen) continue;  // Sin cotizaciones válidas de proveedores activos
+      if (chosen.sol < 40) continue;
+      const fc = JSON.parse(JSON.stringify(chosen));
       fc.tanque = get_tanque(fc, m_inorg, m_org);
       fval.push(fc);
     }
@@ -869,11 +1370,12 @@ function do_optimize() {
 
     const res = [];
     const prec_orig = {};
-    FERTS_BASE.forEach(f => prec_orig[f.n] = f.precio);
+    _catalogo.forEach(f => prec_orig[f.n + '|' + f.prov] = f.precio);
     const tLabel = (t) => t === "AB" || t === "solo" ? "Suelo directo" : (t === "A" ? "Tanque A" : "Tanque B");
     fvalIdx.forEach(fv => {
       const i = fv._idx;
-      const pr = prec_orig[fv.n] !== undefined ? prec_orig[fv.n] : fv.precio;
+      const key = fv.n + '|' + fv.prov;
+      const pr = prec_orig[key] !== undefined ? prec_orig[key] : fv.precio;
       const t = fv.tanque;
       if (t === "A" || t === "B" || t === "solo") {
         const kg = solution[`k_${t}_${i}`] || 0;
@@ -1072,7 +1574,7 @@ document.addEventListener('DOMContentLoaded', () => {
   init_dropdowns();
   render_crop_ctrl();
   render_aplic_info();
-  render_ferts();
+  loadCatalogo();  // Asíncrono - se renderiza cuando llega
   upd_all();
   $('w_cul').addEventListener('change', () => { render_crop_ctrl(); upd_all(); });
   $('w_sec').addEventListener('change', upd_all);
