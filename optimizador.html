@@ -103,6 +103,38 @@
   .input-new::placeholder { color:#7c9bce; font-weight:400; }
   .input-new:focus { outline:none; border-color:#1d4ed8; background:#fff; box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
 
+  /* ── IA Análisis cards ── */
+  .ia-card { border:1px solid #c7d2fe; background:linear-gradient(135deg,#f5f3ff 0%,#eff6ff 100%); border-radius:10px; padding:14px 16px; margin-top:10px; position:relative; }
+  .ia-card-header { display:flex; align-items:center; gap:8px; margin-bottom:10px; padding-bottom:8px; border-bottom:1px solid #c7d2fe; }
+  .ia-card-badge { display:inline-flex; align-items:center; gap:4px; background:#ede9fe; color:#6d28d9; font-size:10px; font-weight:600; padding:3px 8px; border-radius:10px; text-transform:uppercase; letter-spacing:0.05em; }
+  .ia-card-body { font-size:13px; color:#1e293b; line-height:1.6; white-space:pre-wrap; }
+  .ia-card-body b { color:#1e40af; }
+  .ia-card-body h1, .ia-card-body h2, .ia-card-body h3 { font-size:14px; font-weight:700; color:#1e40af; margin:8px 0 4px; }
+  .ia-card-body ul { list-style-type:disc; margin-left:18px; }
+  .ia-card-body li { margin:3px 0; }
+  .ia-card-footer { display:flex; align-items:center; justify-content:space-between; margin-top:10px; padding-top:8px; border-top:1px solid #c7d2fe; }
+  .ia-disclaimer { font-size:10px; color:#64748b; font-style:italic; flex:1; }
+  .ia-card-loading { display:flex; align-items:center; gap:10px; padding:20px; color:#6d28d9; font-size:13px; }
+  .ia-spinner { width:16px; height:16px; border:2px solid #c7d2fe; border-top-color:#6d28d9; border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── Chat flotante ── */
+  #ia_chat_fab { position:fixed; bottom:24px; right:24px; width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#8b5cf6 0%,#6366f1 100%); color:white; border:none; box-shadow:0 8px 24px rgba(99,102,241,0.35); cursor:pointer; z-index:40; transition:transform .15s; display:flex; align-items:center; justify-content:center; font-size:24px; }
+  #ia_chat_fab:hover { transform:scale(1.08); }
+  #ia_chat_panel { position:fixed; bottom:88px; right:24px; width:380px; max-width:calc(100vw - 48px); height:520px; max-height:calc(100vh - 120px); background:white; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.25); z-index:41; display:flex; flex-direction:column; overflow:hidden; }
+  #ia_chat_header { background:linear-gradient(135deg,#8b5cf6 0%,#6366f1 100%); color:white; padding:12px 16px; font-weight:600; font-size:13px; display:flex; align-items:center; justify-content:space-between; }
+  #ia_chat_messages { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; background:#fafafa; }
+  .ia-msg { max-width:85%; padding:8px 12px; border-radius:12px; font-size:12px; line-height:1.5; white-space:pre-wrap; }
+  .ia-msg-user { align-self:flex-end; background:#6366f1; color:white; border-bottom-right-radius:4px; }
+  .ia-msg-bot  { align-self:flex-start; background:white; color:#1e293b; border:1px solid #e5e7eb; border-bottom-left-radius:4px; }
+  .ia-msg-bot b { color:#6d28d9; }
+  #ia_chat_input_wrap { padding:10px; border-top:1px solid #e5e7eb; display:flex; gap:8px; background:white; }
+  #ia_chat_input { flex:1; padding:8px 12px; border:1px solid #d1d5db; border-radius:8px; font-size:12px; outline:none; }
+  #ia_chat_input:focus { border-color:#8b5cf6; }
+  #ia_chat_send { padding:8px 14px; background:#6366f1; color:white; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:600; }
+  #ia_chat_send:hover { background:#4f46e5; }
+  #ia_chat_send:disabled { background:#cbd5e1; cursor:wait; }
+
   /* ── Secciones colapsables ── */
   .collapsible { padding:0 !important; overflow:hidden; }
   .collapsible > summary { cursor:pointer; list-style:none; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; user-select:none; transition:background .12s; border-radius:10px; }
@@ -397,6 +429,16 @@
       </div>
     </div>
     <div id="balance" class="mt-4"></div>
+
+    <!-- Diagnóstico IA del suelo -->
+    <div class="mt-4 pt-3 border-t border-gray-200">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-sm font-semibold text-gray-700">🌱 Diagnóstico IA del suelo</div>
+        <button class="btn-primary" style="padding:6px 14px;font-size:11px;" onclick="runIADiagnosticoSuelo()">✨ Diagnosticar con IA</button>
+      </div>
+      <div id="ia_suelo_result" class="hidden"></div>
+    </div>
+
     <details class="how-works">
       <summary>¿Cómo funciona esta sección?</summary>
       <div class="how-works-content">
@@ -605,6 +647,15 @@
       <div id="result_metrics" class="grid grid-cols-2 md:grid-cols-5 gap-3"></div>
       <div id="result_plan" class="mt-4"></div>
       <div id="result_nutri" class="mt-4"></div>
+
+      <!-- Analista IA del plan -->
+      <div class="mt-4 pt-4 border-t border-gray-200">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-sm font-semibold text-gray-700">🧠 Analista IA del plan</div>
+          <button id="btn_ia_plan" class="btn-primary" style="padding:7px 16px;font-size:12px;" onclick="runIAAnalistaPlan()">✨ Analizar con IA</button>
+        </div>
+        <div id="ia_plan_result" class="hidden"></div>
+      </div>
       <details class="how-works">
         <summary>¿Cómo leer estos resultados?</summary>
         <div class="how-works-content">
@@ -2506,6 +2557,358 @@ function downloadRFQPDF() {
 }
 
 
+// ═══════════════════════════════════════════════════════════════════
+// IA — Analista del plan, Diagnóstico de suelo, Chat, Historial
+// ═══════════════════════════════════════════════════════════════════
+
+const IA_DISCLAIMER = '⚠️ Análisis generado por IA. Es una guía general — siempre valida con tu agrónomo antes de tomar decisiones de inversión.';
+
+// Llamada genérica a Claude via Worker
+async function callIA({ system, messages, max_tokens = 2000 }) {
+  const resp = await fetch(WORKER, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      action: 'ia_analisis',
+      system, messages, max_tokens
+    })
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error + (data.detail ? ': ' + data.detail : ''));
+  const textBlock = (data.content || []).find(b => b.type === 'text');
+  if (!textBlock) throw new Error('Respuesta sin texto: ' + JSON.stringify(data).slice(0,200));
+  return textBlock.text;
+}
+
+// Renderizado simple markdown-lite → HTML
+function renderIAMarkdown(text) {
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>');
+  const lines = html.split('\n');
+  const out = [];
+  let inList = false;
+  for (const l of lines) {
+    if (/^[-•]\s+/.test(l.trim())) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push('<li>' + l.trim().replace(/^[-•]\s+/, '') + '</li>');
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      out.push(l);
+    }
+  }
+  if (inList) out.push('</ul>');
+  return out.join('\n');
+}
+
+// Guardar análisis en hoja BD_Analisis_IA
+async function saveAnalisisHistorial({ tipo, cultivo, sector, ha, temporada, contexto, analisis }) {
+  try {
+    const resp = await fetch(WORKER, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'save_analisis_ia',
+        token: FERT_TOKEN,
+        usuario: 'christian@bdata.cl',
+        data: {
+          tipo, cultivo, sector, ha, temporada,
+          contexto_json: JSON.stringify(contexto || {}),
+          analisis
+        }
+      })
+    });
+    const data = await resp.json();
+    return data.ok ? data.id : null;
+  } catch (e) {
+    console.warn('saveAnalisisHistorial falló:', e);
+    return null;
+  }
+}
+
+// Estado actual para contexto de Claude
+function getContextoActual() {
+  const ctx = {
+    cultivo: getCurrentCultivo(),
+    ha: getCurrentHa(),
+    modo_sec1: _sec1Mode,
+    sector_irrifer: $('w_sec') ? $('w_sec').value : null,
+    aplicacion: {
+      inorganicos: $('w_aplic_inorg').value,
+      organicos: $('w_aplic_org').value,
+    },
+    preferencias: {
+      modo_mezcla: $('w_modo').value,
+      min_inorg: parseInt($('w_mini').value),
+      min_org: parseInt($('w_mino').value),
+      max_kg_org_ha: parseFloat($('w_maxo').value),
+    },
+    suelo_u_ha: {
+      N: parseFloat($('ws_n').value) || 0,
+      P2O5: parseFloat($('ws_p').value) || 0,
+      K2O: parseFloat($('ws_k').value) || 0,
+      MgO: parseFloat($('ws_mg').value) || 0,
+      S: parseFloat($('ws_s').value) || 0,
+    },
+    requerimiento_u_ha: req_uha(),
+  };
+  if (_sec1Mode === 'bdcc') {
+    const cc = _bdcc.find(r => r.id === $('w_cc').value);
+    if (cc) {
+      ctx.centro_costo = {
+        id: cc.id, nombre: cc.nombre,
+        especie: cc.especie, temporada: cc.temporada,
+      };
+    }
+  }
+  if (_lastResult) {
+    ctx.ultimo_plan = {
+      costo_total: _lastResult.costo_total,
+      costo_ha: _lastResult.costo_total / _lastResult.ha,
+      productos: _lastResult.res.map(r => ({
+        nombre: r.nm, tipo: r.tp, kg_ha: r.kgh, kg_total: r.kgt,
+        costo: r.cost, proveedor: r.prov
+      })),
+    };
+  }
+  return ctx;
+}
+
+// ── Feature B: Analista IA del plan ───────────────────────────
+async function runIAAnalistaPlan() {
+  if (!_lastResult || !_lastResult.res) {
+    alert('Primero ejecuta OPTIMIZAR para generar un plan que analizar.');
+    return;
+  }
+  const btn = $('btn_ia_plan');
+  const resultDiv = $('ia_plan_result');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analizando...';
+  resultDiv.classList.remove('hidden');
+  resultDiv.innerHTML = `<div class="ia-card"><div class="ia-card-loading"><div class="ia-spinner"></div>Claude está analizando tu plan...</div></div>`;
+
+  const ctx = getContextoActual();
+
+  const system = `Eres un asesor agronómico experto chileno especializado en fruticultura y cultivos extensivos del Valle Central. Analizas planes de fertilización en el contexto de agricultura chilena moderna. Tu respuesta debe ser:
+- Concreta y accionable (no genérica)
+- Chilena (usa términos, precios y productos de Chile)
+- Técnica pero entendible para un administrador de fundo
+- Estructurada en secciones claras: Diagnóstico breve / Fortalezas del plan / Riesgos / Recomendaciones`;
+
+  const plan = ctx.ultimo_plan;
+  const userMsg = `Analiza este plan de fertilización optimizado:
+
+**Contexto del cultivo:**
+- Cultivo: ${ctx.cultivo}
+- Superficie: ${ctx.ha} ha
+${ctx.centro_costo ? `- Centro de costo: ${ctx.centro_costo.nombre} (${ctx.centro_costo.especie}, ${ctx.centro_costo.temporada})` : ''}
+- Sector IRRIFER: ${ctx.sector_irrifer}
+
+**Aportes actuales del suelo (u/ha):**
+N=${ctx.suelo_u_ha.N}, P2O5=${ctx.suelo_u_ha.P2O5}, K2O=${ctx.suelo_u_ha.K2O}, MgO=${ctx.suelo_u_ha.MgO}, S=${ctx.suelo_u_ha.S}
+
+**Requerimiento del cultivo (u/ha):**
+N=${ctx.requerimiento_u_ha.N}, P2O5=${ctx.requerimiento_u_ha.P2O5}, K2O=${ctx.requerimiento_u_ha.K2O}, MgO=${ctx.requerimiento_u_ha.MgO}, S=${ctx.requerimiento_u_ha.S}
+
+**Plan óptimo obtenido:**
+- Costo total: $${Math.round(plan.costo_total).toLocaleString('es-CL')}
+- Costo por ha: $${Math.round(plan.costo_ha).toLocaleString('es-CL')}
+- Productos: ${plan.productos.length}
+
+Detalle de productos:
+${plan.productos.map(p => `  - ${p.nombre} (${p.proveedor}): ${Math.round(p.kg_ha)} kg/ha = ${Math.round(p.kg_total)} kg totales → $${Math.round(p.costo).toLocaleString('es-CL')}`).join('\n')}
+
+**Configuración:**
+- Aplicación inorgánicos: ${ctx.aplicacion.inorganicos}
+- Aplicación orgánicos: ${ctx.aplicacion.organicos}
+- Modo de mezcla: ${ctx.preferencias.modo_mezcla}
+
+Analiza el plan considerando: eficiencia nutricional, riesgos de ruptura (concentración en un solo proveedor), oportunidades de mejora, y si hay algo fuera de lo normal para este cultivo en Chile. Máximo 350 palabras.`;
+
+  try {
+    const texto = await callIA({ system, messages: [{ role: 'user', content: userMsg }], max_tokens: 1500 });
+    const savedId = await saveAnalisisHistorial({
+      tipo: 'analisis_plan',
+      cultivo: ctx.cultivo,
+      sector: ctx.sector_irrifer,
+      ha: ctx.ha,
+      temporada: ctx.centro_costo?.temporada || '',
+      contexto: ctx,
+      analisis: texto
+    });
+
+    resultDiv.innerHTML = `
+      <div class="ia-card">
+        <div class="ia-card-header">
+          <span class="ia-card-badge">🧠 Analista IA</span>
+          <span class="text-xs text-gray-500">· Análisis del plan óptimo</span>
+        </div>
+        <div class="ia-card-body">${renderIAMarkdown(texto)}</div>
+        <div class="ia-card-footer">
+          <div class="ia-disclaimer">${IA_DISCLAIMER}</div>
+          ${savedId ? `<span class="text-xs text-gray-400">Guardado: ${savedId}</span>` : ''}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="ia-card"><div class="text-red-600 text-sm">Error: ${e.message}</div></div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Re-analizar';
+  }
+}
+
+// ── Feature C: Diagnóstico de suelo ───────────────────────────
+async function runIADiagnosticoSuelo() {
+  const resultDiv = $('ia_suelo_result');
+  const ctx = getContextoActual();
+
+  resultDiv.classList.remove('hidden');
+  resultDiv.innerHTML = `<div class="ia-card"><div class="ia-card-loading"><div class="ia-spinner"></div>Claude está diagnosticando el suelo...</div></div>`;
+
+  const sectorData = SUELO[ctx.sector_irrifer] || {};
+
+  const system = `Eres un asesor agronómico chileno experto en interpretación de análisis de suelo. Analizas datos IRRIFER/UC Davis para decisiones de fertilización en Valle Central. Tus respuestas son:
+- Específicas al suelo del usuario (no genéricas)
+- Priorizando lo más crítico primero
+- Con recomendaciones concretas (enmiendas, aplicaciones específicas)
+- Estructuradas: Diagnóstico general / Factores limitantes / Recomendaciones priorizadas`;
+
+  const userMsg = `Diagnostica este suelo y dame recomendaciones:
+
+**Cultivo planificado:** ${ctx.cultivo}
+**Sector:** ${ctx.sector_irrifer}
+**Superficie:** ${ctx.ha} ha
+
+**Parámetros del análisis IRRIFER (${ctx.sector_irrifer}):**
+${Object.entries(sectorData).map(([k,v]) => `- ${k}: ${v}`).join('\n')}
+
+**Aportes actuales asignados al suelo (u/ha):**
+- N: ${ctx.suelo_u_ha.N}
+- P2O5: ${ctx.suelo_u_ha.P2O5}
+- K2O: ${ctx.suelo_u_ha.K2O}
+- MgO: ${ctx.suelo_u_ha.MgO}
+- S: ${ctx.suelo_u_ha.S}
+
+**Requerimiento del cultivo (u/ha):**
+- N: ${ctx.requerimiento_u_ha.N}
+- P2O5: ${ctx.requerimiento_u_ha.P2O5}
+- K2O: ${ctx.requerimiento_u_ha.K2O}
+
+Evalúa:
+1. ¿Hay factores limitantes críticos? (pH, CE, toxicidad de algún elemento)
+2. ¿El balance NPK es adecuado o hay desbalances?
+3. ¿Qué enmiendas recomendarías antes/durante de la fertilización?
+4. ¿Hay que ajustar alguna práctica (encalado, yeso, materia orgánica)?
+
+Máximo 300 palabras, prioriza lo accionable.`;
+
+  try {
+    const texto = await callIA({ system, messages: [{ role: 'user', content: userMsg }], max_tokens: 1500 });
+    const savedId = await saveAnalisisHistorial({
+      tipo: 'diagnostico_suelo',
+      cultivo: ctx.cultivo,
+      sector: ctx.sector_irrifer,
+      ha: ctx.ha,
+      temporada: ctx.centro_costo?.temporada || '',
+      contexto: { suelo: sectorData, aportes: ctx.suelo_u_ha },
+      analisis: texto
+    });
+
+    resultDiv.innerHTML = `
+      <div class="ia-card">
+        <div class="ia-card-header">
+          <span class="ia-card-badge">🌱 Diagnóstico IA</span>
+          <span class="text-xs text-gray-500">· Suelo ${ctx.sector_irrifer}</span>
+        </div>
+        <div class="ia-card-body">${renderIAMarkdown(texto)}</div>
+        <div class="ia-card-footer">
+          <div class="ia-disclaimer">${IA_DISCLAIMER}</div>
+          ${savedId ? `<span class="text-xs text-gray-400">Guardado: ${savedId}</span>` : ''}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    resultDiv.innerHTML = `<div class="ia-card"><div class="text-red-600 text-sm">Error: ${e.message}</div></div>`;
+  }
+}
+
+// ── Chat flotante ─────────────────────────────────────────────
+let _chatHistory = [];
+
+function toggleIAChat() {
+  const panel = $('ia_chat_panel');
+  panel.classList.toggle('hidden');
+  if (!panel.classList.contains('hidden')) {
+    if (_chatHistory.length === 0) {
+      addChatMsg('bot', '¡Hola! Soy tu asistente IA del optimizador. Puedo ayudarte con:\n\n• Dudas sobre el plan actual\n• Interpretación de análisis de suelo\n• Comparar alternativas de fertilización\n• Consejos para el cultivo elegido\n\n¿En qué te ayudo?');
+    }
+    $('ia_chat_input').focus();
+  }
+}
+
+function addChatMsg(role, text) {
+  const el = document.createElement('div');
+  el.className = 'ia-msg ' + (role === 'user' ? 'ia-msg-user' : 'ia-msg-bot');
+  el.innerHTML = renderIAMarkdown(text);
+  $('ia_chat_messages').appendChild(el);
+  $('ia_chat_messages').scrollTop = $('ia_chat_messages').scrollHeight;
+}
+
+async function sendIAChat() {
+  const inp = $('ia_chat_input');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  const btn = $('ia_chat_send');
+
+  addChatMsg('user', txt);
+  _chatHistory.push({ role: 'user', content: txt });
+  inp.value = '';
+  btn.disabled = true;
+
+  const loadingMsg = document.createElement('div');
+  loadingMsg.className = 'ia-msg ia-msg-bot';
+  loadingMsg.innerHTML = '<div class="flex items-center gap-2"><div class="ia-spinner"></div>Pensando...</div>';
+  $('ia_chat_messages').appendChild(loadingMsg);
+  $('ia_chat_messages').scrollTop = $('ia_chat_messages').scrollHeight;
+
+  const ctx = getContextoActual();
+  const system = `Eres un asistente agronómico chileno experto que ayuda a un administrador de fundo a usar un optimizador de fertilización.
+
+Contexto actual de la sesión:
+- Cultivo: ${ctx.cultivo} · Superficie: ${ctx.ha} ha
+- Sector: ${ctx.sector_irrifer}
+${ctx.ultimo_plan ? '- Último plan calculado: $' + Math.round(ctx.ultimo_plan.costo_total).toLocaleString('es-CL') + ' total ($' + Math.round(ctx.ultimo_plan.costo_ha).toLocaleString('es-CL') + '/ha) con ' + ctx.ultimo_plan.productos.length + ' productos.' : '- No hay plan optimizado aún.'}
+
+Responde:
+- Breve y conversacional (máximo 150 palabras salvo que pidan detalle)
+- Específico al contexto del usuario (no respuestas genéricas)
+- Honesto si no sabes algo
+- Siempre en chileno/técnico agrícola de Chile`;
+
+  try {
+    const texto = await callIA({
+      system,
+      messages: _chatHistory,
+      max_tokens: 800
+    });
+    _chatHistory.push({ role: 'assistant', content: texto });
+    loadingMsg.remove();
+    addChatMsg('bot', texto);
+  } catch (e) {
+    loadingMsg.remove();
+    addChatMsg('bot', '⚠️ Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    inp.focus();
+  }
+}
+
 function toggleAllSections(expand) {
   ['sec1','sec2','sec3','sec4','sec5'].forEach(id => {
     const el = $(id);
@@ -2602,6 +3005,34 @@ document.addEventListener('DOMContentLoaded', () => {
   $('btn_excel').addEventListener('click', do_excel);
 });
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- CHAT IA FLOTANTE                                                     -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<button id="ia_chat_fab" onclick="toggleIAChat()" title="Pregúntale al asistente IA">🤖</button>
+
+<div id="ia_chat_panel" class="hidden">
+  <div id="ia_chat_header">
+    <span>🤖 Asistente IA del optimizador</span>
+    <button onclick="toggleIAChat()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:0 4px;">×</button>
+  </div>
+  <div id="ia_chat_messages"></div>
+  <div id="ia_chat_input_wrap">
+    <input type="text" id="ia_chat_input" placeholder="¿Cómo mejoro el balance de K?..." onkeydown="if(event.key==='Enter')sendIAChat()">
+    <button id="ia_chat_send" onclick="sendIAChat()">Enviar</button>
+  </div>
+</div>
+
+<!-- Modal historial análisis IA -->
+<div id="modal_historial" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+    <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <h3 class="text-base font-bold text-gray-800">📚 Historial de análisis IA</h3>
+      <button onclick="$('modal_historial').classList.add('hidden')" class="text-gray-400 hover:text-gray-700 text-xl leading-none">×</button>
+    </div>
+    <div id="historial_content" class="p-6"></div>
+  </div>
+</div>
 
 </body>
 </html>
