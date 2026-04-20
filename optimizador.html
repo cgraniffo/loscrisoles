@@ -101,6 +101,23 @@
   .input-new::placeholder { color:#7c9bce; font-weight:400; }
   .input-new:focus { outline:none; border-color:#1d4ed8; background:#fff; box-shadow:0 0 0 3px rgba(59,130,246,0.15); }
 
+  /* ── Secciones colapsables ── */
+  .collapsible { padding:0 !important; overflow:hidden; }
+  .collapsible > summary { cursor:pointer; list-style:none; padding:14px 16px; display:flex; align-items:center; justify-content:space-between; user-select:none; transition:background .12s; border-radius:10px; }
+  .collapsible > summary::-webkit-details-marker { display:none; }
+  .collapsible > summary::before { content:none; }
+  .collapsible > summary:hover { background:#f8fafc; }
+  .collapsible[open] > summary { border-bottom:1px solid #e5e7eb; border-radius:10px 10px 0 0; }
+  .collapsible-head { display:flex; align-items:center; gap:10px; flex:1; min-width:0; }
+  .collapsible-chev { font-size:11px; color:#9ca3af; transition:transform .2s; flex-shrink:0; }
+  .collapsible[open] > summary .collapsible-chev { transform:rotate(90deg); }
+  .collapsible-title { font-size:14px; font-weight:700; color:#1e3a5f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .collapsible-hint { font-size:11px; color:#6b7280; font-weight:400; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .collapsible-body { padding:16px; }
+  .sec-bar { display:flex; justify-content:flex-end; gap:8px; margin-bottom:-8px; }
+  .sec-bar button { font-size:11px; padding:4px 10px; background:transparent; border:1px solid #e5e7eb; color:#6b7280; border-radius:6px; cursor:pointer; }
+  .sec-bar button:hover { border-color:#9ca3af; color:#374151; }
+
   @media (max-width: 768px) {
     .cotiz-row { grid-template-columns:1fr; gap:4px; padding:10px 14px; }
     .cotiz-row > * { width:100%; }
@@ -142,12 +159,24 @@
     <div class="quick-guide-step"><span class="quick-guide-num">5</span><span>Presiona <b>OPTIMIZAR</b> y descarga el Excel para compras</span></div>
   </section>
 
-  <section class="card">
-    <div class="section-title">1 · Cultivo, sector y superficie</div>
-    <div class="intro-brief">
-      <b>¿Qué haces aquí?</b> Le dices al sistema qué vas a plantar, en qué pivote, y cuántas hectáreas.
-      Con esta información el programa sabe cuántos nutrientes necesita el cultivo en total.
-    </div>
+  <div class="sec-bar">
+    <button onclick="toggleAllSections(true)">Expandir todo</button>
+    <button onclick="toggleAllSections(false)">Contraer todo</button>
+  </div>
+
+  <details class="card collapsible" id="sec1" open>
+    <summary>
+      <div class="collapsible-head">
+        <span class="collapsible-chev">▶</span>
+        <span class="collapsible-title">1 · Cultivo, sector y superficie</span>
+      </div>
+      <span class="collapsible-hint" id="sec1-hint"></span>
+    </summary>
+    <div class="collapsible-body">
+      <div class="intro-brief">
+        <b>¿Qué haces aquí?</b> Le dices al sistema qué vas a plantar, en qué pivote, y cuántas hectáreas.
+        Con esta información el programa sabe cuántos nutrientes necesita el cultivo en total.
+      </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div>
         <label class="block text-xs font-medium text-gray-600 mb-1">Cultivo</label>
@@ -180,10 +209,18 @@
         en formación necesita mucho menos que uno adulto en plena producción.</p>
       </div>
     </details>
-  </section>
+    </div>
+  </details>
 
-  <section class="card">
-    <div class="section-title">2 · Modo de aplicación</div>
+  <details class="card collapsible" id="sec2">
+    <summary>
+      <div class="collapsible-head">
+        <span class="collapsible-chev">▶</span>
+        <span class="collapsible-title">2 · Modo de aplicación</span>
+      </div>
+      <span class="collapsible-hint" id="sec2-hint"></span>
+    </summary>
+    <div class="collapsible-body">
     <div class="intro-brief">
       <b>¿Qué haces aquí?</b> Eliges <b>cómo</b> vas a aplicar los fertilizantes: disueltos en el agua de riego
       (fertirriego) o espolvoreados directamente en el suelo.
@@ -228,10 +265,18 @@
         </div>
       </div>
     </details>
-  </section>
+    </div>
+  </details>
 
-  <section class="card">
-    <div class="section-title">3 · Preferencias de mezcla y proveedor</div>
+  <details class="card collapsible" id="sec3">
+    <summary>
+      <div class="collapsible-head">
+        <span class="collapsible-chev">▶</span>
+        <span class="collapsible-title">3 · Preferencias de mezcla y proveedor</span>
+      </div>
+      <span class="collapsible-hint" id="sec3-hint"></span>
+    </summary>
+    <div class="collapsible-body">
     <div class="intro-brief">
       <b>¿Qué haces aquí?</b> Le pones reglas al programa sobre <b>qué tipo de mezcla</b> quieres:
       ¿solo lo más barato? ¿mezclar guanos y químicos? ¿preferir un solo proveedor de guanos?
@@ -280,10 +325,18 @@
         </div>
       </div>
     </details>
-  </section>
+    </div>
+  </details>
 
-  <section class="card">
-    <div class="section-title">4 · Análisis de suelo y balance nutricional</div>
+  <details class="card collapsible" id="sec4">
+    <summary>
+      <div class="collapsible-head">
+        <span class="collapsible-chev">▶</span>
+        <span class="collapsible-title">4 · Análisis de suelo y balance nutricional</span>
+      </div>
+      <span class="collapsible-hint" id="sec4-hint"></span>
+    </summary>
+    <div class="collapsible-body">
     <div class="intro-brief">
       <b>¿Qué haces aquí?</b> Revisas <b>cuánto nutriente ya tiene tu suelo</b> (según el análisis IRRIFER)
       y el programa calcula <b>cuánto falta</b> por fertilizar. Lo que ya tiene el suelo, no se compra.
@@ -325,14 +378,18 @@
         </div>
       </div>
     </details>
-  </section>
-
-  <section class="card">
-    <div class="flex items-center justify-between mb-2">
-      <div class="section-title mb-0">5 · Catálogo de fertilizantes y cotizaciones</div>
-      <div id="catalogo_meta" class="text-xs text-gray-400"></div>
     </div>
+  </details>
 
+  <details class="card collapsible" id="sec5">
+    <summary>
+      <div class="collapsible-head">
+        <span class="collapsible-chev">▶</span>
+        <span class="collapsible-title">5 · Catálogo de fertilizantes y cotizaciones</span>
+      </div>
+      <span class="collapsible-hint" id="catalogo_meta"></span>
+    </summary>
+    <div class="collapsible-body">
     <div class="intro-brief">
       <b>¿Qué ves aquí?</b> Todos los productos agrupados con <b>todas sus cotizaciones por proveedor</b>.
       Por defecto el optimizador usa el más barato. Puedes filtrar proveedores, forzar uno manualmente, o agregar cotizaciones nuevas.
@@ -375,7 +432,8 @@
         </div>
       </div>
     </details>
-  </section>
+    </div>
+  </details>
 
   <!-- Modal Agregar Cotización -->
   <div id="modal_add" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -1600,20 +1658,75 @@ function do_excel() {
   XLSX.writeFile(wb, fname);
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// SECCIONES COLAPSABLES
+// ═══════════════════════════════════════════════════════════════════
+function toggleAllSections(expand) {
+  ['sec1','sec2','sec3','sec4','sec5'].forEach(id => {
+    const el = $(id);
+    if (el) {
+      if (expand) el.setAttribute('open', '');
+      else el.removeAttribute('open');
+    }
+  });
+}
+
+function updateSectionHints() {
+  // Sec 1: cultivo + sector + ha
+  try {
+    const cul = $('w_cul').value;
+    const sec = $('w_sec').value;
+    const ha  = $('w_ha').value;
+    $('sec1-hint').textContent = `${cul} · ${sec} · ${ha} ha`;
+  } catch(e) {}
+
+  // Sec 2: modo aplicación
+  try {
+    const mi = $('w_aplic_inorg').value === 'fertirriego' ? 'Fertirriego' : 'Suelo';
+    const mo = $('w_aplic_org').value === 'fertirriego' ? 'Fertirriego' : 'Suelo';
+    $('sec2-hint').textContent = `Inorg: ${mi} · Org: ${mo}`;
+  } catch(e) {}
+
+  // Sec 3: modo mezcla
+  try {
+    const modo = $('w_modo').value;
+    const modoLabel = { libre:'Libre', pref_org:'1 prov. orgánico', ambos_tipos:'Ambos tipos' }[modo] || modo;
+    const mini = $('w_mini').value;
+    const mino = $('w_mino').value;
+    $('sec3-hint').textContent = `${modoLabel} · min ${mini}+${mino}`;
+  } catch(e) {}
+
+  // Sec 4: balance (a fertilizar neto)
+  try {
+    const req = req_uha();
+    const apN = parseFloat($('ws_n').value) || 0;
+    const apP = parseFloat($('ws_p').value) || 0;
+    const apK = parseFloat($('ws_k').value) || 0;
+    const netN = Math.max(0, req.N - apN);
+    const netP = Math.max(0, req.P2O5 - apP);
+    const netK = Math.max(0, req.K2O - apK);
+    $('sec4-hint').textContent = `A fertilizar: N ${fmt(netN,0)} · P ${fmt(netP,0)} · K ${fmt(netK,0)}`;
+  } catch(e) {}
+
+  // Sec 5: ya lo maneja loadCatalogo (setea el catalogo_meta)
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   init_dropdowns();
   render_crop_ctrl();
   render_aplic_info();
-  loadCatalogo();  // Asíncrono - se renderiza cuando llega
+  loadCatalogo();
   upd_all();
-  $('w_cul').addEventListener('change', () => { render_crop_ctrl(); upd_all(); });
-  $('w_sec').addEventListener('change', upd_all);
-  $('w_ha').addEventListener('input', () => { $('ha_val').textContent = $('w_ha').value; render_balance(); });
-  $('w_aplic_inorg').addEventListener('change', render_aplic_info);
-  $('w_aplic_org').addEventListener('change', render_aplic_info);
-  $('w_mini').addEventListener('input', () => $('mini_val').textContent = $('w_mini').value);
-  $('w_mino').addEventListener('input', () => $('mino_val').textContent = $('w_mino').value);
-  ['ws_n','ws_p','ws_k','ws_mg','ws_s'].forEach(id => $(id).addEventListener('input', render_balance));
+  updateSectionHints();
+  $('w_cul').addEventListener('change', () => { render_crop_ctrl(); upd_all(); updateSectionHints(); });
+  $('w_sec').addEventListener('change', () => { upd_all(); updateSectionHints(); });
+  $('w_ha').addEventListener('input', () => { $('ha_val').textContent = $('w_ha').value; render_balance(); updateSectionHints(); });
+  $('w_aplic_inorg').addEventListener('change', () => { render_aplic_info(); updateSectionHints(); });
+  $('w_aplic_org').addEventListener('change', () => { render_aplic_info(); updateSectionHints(); });
+  $('w_modo').addEventListener('change', updateSectionHints);
+  $('w_mini').addEventListener('input', () => { $('mini_val').textContent = $('w_mini').value; updateSectionHints(); });
+  $('w_mino').addEventListener('input', () => { $('mino_val').textContent = $('w_mino').value; updateSectionHints(); });
+  ['ws_n','ws_p','ws_k','ws_mg','ws_s'].forEach(id => $(id).addEventListener('input', () => { render_balance(); updateSectionHints(); }));
   $('btn_opt').addEventListener('click', do_optimize);
   $('btn_excel').addEventListener('click', do_excel);
 });
