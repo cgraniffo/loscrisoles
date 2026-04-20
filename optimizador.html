@@ -8,6 +8,8 @@
 <script src="https://unpkg.com/javascript-lp-solver@0.4.24/prod/solver.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
   .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; }
@@ -474,6 +476,112 @@
         </div>
       </div>
     </details>
+    </div>
+  </details>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECCION 6: Solicitar cotización                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <details class="card collapsible" id="sec6">
+    <summary>
+      <div class="collapsible-head">
+        <span class="collapsible-chev">▶</span>
+        <span class="collapsible-title">6 · Solicitar cotización a proveedores</span>
+      </div>
+      <span class="collapsible-hint" id="sec6-hint">PDF + email draft</span>
+    </summary>
+    <div class="collapsible-body">
+
+      <div class="intro-brief">
+        <b>¿Qué haces aquí?</b> Armas una solicitud de cotización formal con los productos que necesitas,
+        la descargas como PDF y/o la envías por email a los proveedores que elijas.
+      </div>
+
+      <!-- Selector de productos a cotizar -->
+      <div class="mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Productos a cotizar</div>
+          <div class="flex gap-2">
+            <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="toggleAllProducts(true)">Seleccionar todos</button>
+            <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="toggleAllProducts(false)">Ninguno</button>
+            <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="loadFromLastResult()" title="Tomar productos y cantidades del último plan optimizado">📋 Desde último plan</button>
+          </div>
+        </div>
+        <div id="rfq_products" class="border border-gray-200 rounded-lg p-2 max-h-64 overflow-y-auto bg-gray-50"></div>
+      </div>
+
+      <!-- Agrupación + destinatarios -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+        <div>
+          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Modo de agrupación</div>
+          <div class="flex gap-2">
+            <button type="button" id="btn_rfq_grouped" onclick="setRFQMode('grouped')" class="btn-secondary flex-1" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:6px 10px;">🏢 Por proveedor</button>
+            <button type="button" id="btn_rfq_individual" onclick="setRFQMode('individual')" class="btn-secondary flex-1" style="font-size:11px;padding:6px 10px;">📦 Individual</button>
+          </div>
+          <div class="text-xs text-gray-500 mt-1" id="rfq_mode_hint">Un email por proveedor con todos sus productos</div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Destinatarios</div>
+          <div id="rfq_destinatarios" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+
+      <!-- Datos del solicitante -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Fecha requerida</label>
+          <input type="date" id="rfq_fecha_req" class="w-full">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Contacto Los Crisoles</label>
+          <input type="text" id="rfq_contacto" class="w-full" value="Christian Graniffo — christian@bdata.cl" placeholder="Nombre — email">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Destino entrega</label>
+          <input type="text" id="rfq_destino" class="w-full" value="Fundo Los Crisoles, Rancagua" placeholder="Dirección / ciudad">
+        </div>
+      </div>
+
+      <!-- Mensaje adicional -->
+      <div class="mb-3">
+        <label class="block text-xs font-semibold text-gray-700 mb-1">Mensaje adicional (opcional)</label>
+        <textarea id="rfq_mensaje" class="w-full" rows="2" placeholder="Ej: Requerimos entrega antes del 15 de mayo. Validez mínima de cotización: 30 días."></textarea>
+      </div>
+
+      <!-- Preview -->
+      <div class="mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Vista previa</div>
+          <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="refreshRFQPreview()">🔄 Actualizar</button>
+        </div>
+        <div id="rfq_preview" class="border border-gray-200 rounded-lg p-3 bg-white text-xs font-mono max-h-48 overflow-y-auto" style="white-space:pre-wrap;">Configura productos y destinatarios...</div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex flex-col md:flex-row gap-2 items-center justify-between pt-3 border-t border-gray-200">
+        <div id="rfq_status" class="text-xs text-gray-500"></div>
+        <div class="flex gap-2">
+          <button class="btn-secondary" onclick="downloadRFQPDF()">📄 Descargar PDF</button>
+          <button class="btn-primary" style="padding:8px 18px;font-size:13px;" onclick="openRFQMail()">📧 Abrir en email</button>
+        </div>
+      </div>
+
+      <details class="how-works">
+        <summary>¿Cómo funciona esta sección?</summary>
+        <div class="how-works-content">
+          <p><b>Dos modos de agrupación:</b></p>
+          <ul>
+            <li><b>🏢 Por proveedor:</b> arma un email/PDF por cada proveedor con todos sus productos en una sola solicitud. Útil cuando ya sabes que quieres trabajar con ese proveedor. Se abre un draft por cada uno.</li>
+            <li><b>📦 Individual:</b> arma una solicitud por cada producto, pidiendo cotización a múltiples proveedores en el mismo mensaje. Útil cuando quieres comparar cotizaciones nuevas para productos específicos.</li>
+          </ul>
+          <p class="mt-2"><b>📋 Desde último plan:</b> si ya corriste OPTIMIZAR, este botón precarga los productos del plan con las cantidades calculadas — perfecto para cotizar exactamente lo que necesitas comprar.</p>
+          <p class="mt-2"><b>Destinatarios:</b> el sistema intenta extraer los emails guardados en el catálogo (si agregaste el email del proveedor al crear la cotización). Si no hay email, te deja el campo "Para:" en blanco y tú lo completas antes de enviar.</p>
+          <p class="mt-2"><b>📧 Abrir en email:</b> abre tu cliente de correo (Gmail, Outlook, etc.) con el mensaje ya escrito. Solo revisas, adjuntas el PDF si quieres, y envías.</p>
+          <div class="example-box">
+            <b>Flujo típico:</b> Corres OPTIMIZAR → el plan te dice que necesitas 4.800 kg de Urea. Vienes a sección 6 → "Desde último plan" → se precarga todo → "📄 Descargar PDF" + "📧 Abrir en email" → envías al COAGRA y a COPEVAL en paralelo para comparar.
+          </div>
+        </div>
+      </details>
     </div>
   </details>
 
@@ -1125,6 +1233,7 @@ async function loadCatalogo() {
     renderProvFilter();
     renderCatalogo();
     populateModalDropdowns();
+    initRFQ();  // Inicializar sección 6 cuando el catálogo esté disponible
 
     return true;
   } catch (ex) {
@@ -1880,8 +1989,407 @@ function do_excel() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SECCIONES COLAPSABLES
+// SECCIÓN 6 — Solicitar cotización (RFQ)
 // ═══════════════════════════════════════════════════════════════════
+
+let _rfqMode = 'grouped';  // 'grouped' (por proveedor) o 'individual'
+let _rfqSelected = new Set();  // IDs de fertilizantes seleccionados
+let _rfqDestinatarios = new Set();  // Proveedores elegidos como destino
+let _rfqQuantities = {};  // { fertId: kg } — cantidades sugeridas
+
+function initRFQ() {
+  if (!_catalogo.length) return;
+  // Por defecto, deseleccionar todo
+  _rfqSelected.clear();
+  // Destinatarios: todos los proveedores activos
+  _rfqDestinatarios = new Set(_provActivos);
+  // Fecha requerida default: +15 días
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + 15);
+  $('rfq_fecha_req').value = fecha.toISOString().split('T')[0];
+
+  renderRFQProducts();
+  renderRFQDestinatarios();
+  refreshRFQPreview();
+}
+
+function renderRFQProducts() {
+  if (!_catalogo.length) {
+    $('rfq_products').innerHTML = '<div class="text-center py-4 text-gray-400 text-xs">Sin catálogo cargado</div>';
+    return;
+  }
+  const grupos = groupByProducto(_catalogo);
+  const productos = Object.keys(grupos).sort();
+  const html = productos.map(prodName => {
+    const cotizs = grupos[prodName];
+    const sample = cotizs[0];
+    // Usar el primer fert como ID representativo del producto
+    const repId = sample.id;
+    const comp = Object.entries(sample.comp).filter(([k,v]) => v > 0).map(([k,v]) => `${k}:${v}%`).join(' · ');
+    const checked = _rfqSelected.has(repId) ? 'checked' : '';
+    const qty = _rfqQuantities[repId] || '';
+    const provs = Array.from(new Set(cotizs.map(c => c.prov))).join(', ');
+    return `
+      <div class="flex items-center gap-2 py-1 px-2 hover:bg-white rounded text-xs">
+        <input type="checkbox" ${checked} onchange="toggleRFQProduct('${repId}', this.checked)" style="width:14px;height:14px;accent-color:#059669;">
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-gray-700 truncate">${prodName}</div>
+          <div class="text-gray-400" style="font-size:10px;">${comp} · Proveedores: ${provs}</div>
+        </div>
+        <div class="flex items-center gap-1">
+          <input type="number" placeholder="kg" value="${qty}" min="0" step="1" 
+            onchange="setRFQQuantity('${repId}', this.value)"
+            style="width:70px;font-size:11px;padding:3px 6px;border:1px solid #d1d5db;border-radius:3px;">
+          <span class="text-gray-400" style="font-size:10px;">kg</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+  $('rfq_products').innerHTML = html;
+  updateSec6Hint();
+}
+
+function renderRFQDestinatarios() {
+  const provs = Array.from(new Set(_catalogo.map(f => f.prov))).sort();
+  const html = provs.map(pr => {
+    const active = _rfqDestinatarios.has(pr);
+    return `
+      <label class="prov-chip ${active ? 'active' : ''}" style="font-size:11px;">
+        <input type="checkbox" ${active ? 'checked' : ''} onchange="toggleRFQDestinatario('${pr}', this.checked)">
+        ${pr}
+      </label>
+    `;
+  }).join('');
+  $('rfq_destinatarios').innerHTML = html || '<span class="text-xs text-gray-400">Sin proveedores</span>';
+}
+
+function toggleRFQProduct(fertId, checked) {
+  if (checked) _rfqSelected.add(fertId);
+  else _rfqSelected.delete(fertId);
+  refreshRFQPreview();
+  updateSec6Hint();
+}
+
+function toggleRFQDestinatario(prov, checked) {
+  if (checked) _rfqDestinatarios.add(prov);
+  else _rfqDestinatarios.delete(prov);
+  renderRFQDestinatarios();
+  refreshRFQPreview();
+}
+
+function setRFQQuantity(fertId, qty) {
+  const val = parseFloat(qty) || 0;
+  if (val > 0) _rfqQuantities[fertId] = val;
+  else delete _rfqQuantities[fertId];
+  refreshRFQPreview();
+}
+
+function toggleAllProducts(selectAll) {
+  const grupos = groupByProducto(_catalogo);
+  Object.values(grupos).forEach(cotizs => {
+    const repId = cotizs[0].id;
+    if (selectAll) _rfqSelected.add(repId);
+    else _rfqSelected.delete(repId);
+  });
+  renderRFQProducts();
+  refreshRFQPreview();
+}
+
+function loadFromLastResult() {
+  if (!_lastResult || !_lastResult.res || !_lastResult.res.length) {
+    $('rfq_status').innerHTML = '<span class="text-amber-600">⚠ Primero ejecuta OPTIMIZAR para cargar el último plan</span>';
+    return;
+  }
+  _rfqSelected.clear();
+  _rfqQuantities = {};
+  // Para cada producto del último plan, buscar en _catalogo el fert representativo
+  const grupos = groupByProducto(_catalogo);
+  for (const r of _lastResult.res) {
+    // Buscar el grupo cuyo nombre matchee con r.nm
+    for (const [prodName, cotizs] of Object.entries(grupos)) {
+      if (prodName === r.nm || prodName.toLowerCase() === r.nm.toLowerCase()) {
+        const repId = cotizs[0].id;
+        _rfqSelected.add(repId);
+        // Sumar cantidad: r.kgt viene del plan (kg totales)
+        _rfqQuantities[repId] = Math.round((_rfqQuantities[repId] || 0) + r.kgt);
+        break;
+      }
+    }
+  }
+  renderRFQProducts();
+  refreshRFQPreview();
+  $('rfq_status').innerHTML = `<span class="text-green-600">✓ Cargados ${_rfqSelected.size} productos del último plan</span>`;
+}
+
+function setRFQMode(mode) {
+  _rfqMode = mode;
+  if (mode === 'grouped') {
+    $('btn_rfq_grouped').style.cssText = 'background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:6px 10px;';
+    $('btn_rfq_individual').style.cssText = 'font-size:11px;padding:6px 10px;';
+    $('rfq_mode_hint').textContent = 'Un email por proveedor con todos sus productos';
+  } else {
+    $('btn_rfq_grouped').style.cssText = 'font-size:11px;padding:6px 10px;';
+    $('btn_rfq_individual').style.cssText = 'background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:6px 10px;';
+    $('rfq_mode_hint').textContent = 'Un email por cada producto, enviado a todos los proveedores seleccionados';
+  }
+  refreshRFQPreview();
+}
+
+function updateSec6Hint() {
+  const n = _rfqSelected.size;
+  const d = _rfqDestinatarios.size;
+  $('sec6-hint').textContent = n > 0 ? `${n} productos · ${d} destinatarios` : 'PDF + email draft';
+}
+
+// ── Lógica RFQ: armar las solicitudes ──────────────────────────
+function buildRFQRequests() {
+  // Devuelve array de { destinatario, productos: [{nombre, comp, qty, formato}], ... }
+  const grupos = groupByProducto(_catalogo);
+  const seleccionados = Array.from(_rfqSelected).map(id => {
+    // Recuperar producto por id rep
+    for (const [prodName, cotizs] of Object.entries(grupos)) {
+      if (cotizs[0].id === id) {
+        return { id, nombre: prodName, sample: cotizs[0], cotizs };
+      }
+    }
+    return null;
+  }).filter(Boolean);
+
+  if (_rfqMode === 'grouped') {
+    // Un request por proveedor. Incluye todos los productos seleccionados que el proveedor cotiza
+    const requests = [];
+    for (const prov of _rfqDestinatarios) {
+      const prods = seleccionados.filter(p => p.cotizs.some(c => c.prov === prov));
+      if (!prods.length) continue;
+      requests.push({
+        tipo: 'grouped',
+        destinatarios: [prov],
+        productos: prods.map(p => ({
+          nombre: p.nombre,
+          comp: p.sample.comp,
+          qty: _rfqQuantities[p.id] || 0,
+          formato: p.sample.formato,
+          tipo: p.sample.tipo,
+        })),
+      });
+    }
+    return requests;
+  } else {
+    // Un request por producto a todos los destinatarios
+    const requests = [];
+    for (const p of seleccionados) {
+      requests.push({
+        tipo: 'individual',
+        destinatarios: Array.from(_rfqDestinatarios),
+        productos: [{
+          nombre: p.nombre,
+          comp: p.sample.comp,
+          qty: _rfqQuantities[p.id] || 0,
+          formato: p.sample.formato,
+          tipo: p.sample.tipo,
+        }],
+      });
+    }
+    return requests;
+  }
+}
+
+function buildRFQText(request) {
+  const fecha = $('rfq_fecha_req').value;
+  const contacto = $('rfq_contacto').value.trim();
+  const destino = $('rfq_destino').value.trim();
+  const mensaje = $('rfq_mensaje').value.trim();
+
+  let body = 'Estimados,\n\n';
+  body += `Por la presente solicito cotización de los siguientes fertilizantes para Fundo Los Crisoles:\n\n`;
+
+  for (const p of request.productos) {
+    const compStr = Object.entries(p.comp).filter(([k,v]) => v > 0).map(([k,v]) => `${k} ${v}%`).join(', ');
+    const qtyStr = p.qty > 0 ? ` · Cantidad estimada: ${fmt(p.qty)} kg` : '';
+    body += `  • ${p.nombre}`;
+    if (compStr) body += ` (${compStr})`;
+    if (p.formato) body += ` · Formato: ${p.formato}`;
+    body += qtyStr + '\n';
+  }
+
+  body += '\n';
+  body += 'Requerimos en su cotización:\n';
+  body += '  - Precio por kilo sin IVA\n';
+  body += '  - Formato disponible (saco, big bag, granel)\n';
+  body += '  - Plazo de entrega' + (destino ? ' a ' + destino : '') + '\n';
+  body += '  - Validez de la cotización (mínimo 30 días)\n';
+  if (fecha) body += `  - Fecha requerida: ${fecha}\n`;
+  body += '\n';
+
+  if (mensaje) body += mensaje + '\n\n';
+
+  body += 'Agradezco cotizar a la brevedad.\n\n';
+  body += 'Saludos cordiales,\n';
+  body += contacto || 'Los Crisoles';
+
+  const subject = `Solicitud de cotización fertilizantes - Los Crisoles - ${new Date().toLocaleDateString('es-CL')}`;
+  return { subject, body };
+}
+
+function refreshRFQPreview() {
+  const requests = buildRFQRequests();
+  if (!requests.length) {
+    $('rfq_preview').textContent = 'Selecciona productos y destinatarios para ver la vista previa...';
+    return;
+  }
+  let out = '';
+  requests.forEach((r, i) => {
+    const { subject, body } = buildRFQText(r);
+    out += `━━━ ${i+1}/${requests.length} · Para: ${r.destinatarios.join(', ')} ━━━\n`;
+    out += `Asunto: ${subject}\n\n`;
+    out += body + '\n\n\n';
+  });
+  $('rfq_preview').textContent = out.trim();
+}
+
+// ── Email: abre mailto con primer request (si grouped) o itera ──
+function openRFQMail() {
+  const requests = buildRFQRequests();
+  if (!requests.length) {
+    $('rfq_status').innerHTML = '<span class="text-red-600">⚠ Sin productos o destinatarios seleccionados</span>';
+    return;
+  }
+  // Abrir 1 mailto por request
+  // NOTA: muchos navegadores bloquean múltiples mailto seguidos — se abren con delay
+  requests.forEach((r, i) => {
+    const { subject, body } = buildRFQText(r);
+    // Sin email real → To: en blanco, el usuario lo completa
+    const to = '';  // Podría venir del catálogo si agregamos email por proveedor en el futuro
+    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    setTimeout(() => window.open(mailto, '_blank'), i * 500);
+  });
+  $('rfq_status').innerHTML = `<span class="text-green-600">✓ ${requests.length} draft(s) abiertos en tu cliente de email</span>`;
+}
+
+// ── PDF con jsPDF + autoTable ────────────────────────────────
+function downloadRFQPDF() {
+  const requests = buildRFQRequests();
+  if (!requests.length) {
+    $('rfq_status').innerHTML = '<span class="text-red-600">⚠ Sin productos o destinatarios seleccionados</span>';
+    return;
+  }
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const fecha = $('rfq_fecha_req').value;
+    const contacto = $('rfq_contacto').value.trim();
+    const destino = $('rfq_destino').value.trim();
+    const mensaje = $('rfq_mensaje').value.trim();
+    const hoy = new Date().toLocaleDateString('es-CL');
+
+    requests.forEach((r, idx) => {
+      if (idx > 0) doc.addPage();
+
+      // Header
+      doc.setFillColor(26, 58, 10);  // Verde Los Crisoles
+      doc.rect(0, 0, 210, 22, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('FUNDO LOS CRISOLES', 15, 10);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Solicitud de cotización de fertilizantes', 15, 16);
+      doc.setFontSize(8);
+      doc.text(`Emisión: ${hoy}`, 150, 10);
+      doc.text(`Folio: RFQ-${Date.now().toString().slice(-8)}-${idx+1}`, 150, 16);
+
+      // Contenido
+      doc.setTextColor(0, 0, 0);
+      let y = 32;
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Para: ${r.destinatarios.join(', ')}`, 15, y);
+      y += 7;
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Estimados,', 15, y);
+      y += 6;
+      const intro = 'Por la presente solicito cotización de los siguientes fertilizantes para el fundo:';
+      const lines = doc.splitTextToSize(intro, 180);
+      doc.text(lines, 15, y);
+      y += lines.length * 5 + 3;
+
+      // Tabla productos
+      const tableBody = r.productos.map(p => {
+        const compStr = Object.entries(p.comp).filter(([k,v]) => v > 0).map(([k,v]) => `${k}: ${v}%`).join(' · ');
+        return [
+          p.nombre,
+          p.tipo,
+          compStr || '—',
+          p.formato || '—',
+          p.qty > 0 ? fmt(p.qty) + ' kg' : 'A definir',
+        ];
+      });
+      doc.autoTable({
+        startY: y,
+        head: [['Producto', 'Tipo', 'Composición (%)', 'Formato', 'Cantidad estimada']],
+        body: tableBody,
+        theme: 'grid',
+        headStyles: { fillColor: [26, 58, 10], textColor: 255, fontSize: 9 },
+        bodyStyles: { fontSize: 8 },
+        margin: { left: 15, right: 15 },
+        styles: { cellPadding: 2 },
+      });
+      y = doc.lastAutoTable.finalY + 5;
+
+      // Requerimientos
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Requerimos en su cotización:', 15, y);
+      y += 5;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      const reqs = [
+        '• Precio por kilo sin IVA',
+        '• Formato disponible (saco, big bag, granel)',
+        '• Plazo de entrega' + (destino ? ' a ' + destino : ''),
+        '• Validez de la cotización (mínimo 30 días)',
+      ];
+      if (fecha) reqs.push('• Fecha requerida: ' + fecha);
+      for (const req of reqs) { doc.text(req, 18, y); y += 5; }
+
+      if (mensaje) {
+        y += 3;
+        doc.setFont('helvetica', 'italic');
+        const msgLines = doc.splitTextToSize(mensaje, 180);
+        doc.text(msgLines, 15, y);
+        y += msgLines.length * 5;
+        doc.setFont('helvetica', 'normal');
+      }
+
+      y += 5;
+      doc.text('Agradezco cotizar a la brevedad.', 15, y);
+      y += 10;
+      doc.text('Saludos cordiales,', 15, y);
+      y += 5;
+      doc.setFont('helvetica', 'bold');
+      doc.text(contacto || 'Los Crisoles', 15, y);
+
+      // Footer
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Fundo Los Crisoles · Rancagua · Generado automáticamente', 105, 285, { align: 'center' });
+    });
+
+    const fname = `RFQ_LosCrisoles_${hoy.replace(/\//g,'-')}.pdf`;
+    doc.save(fname);
+    $('rfq_status').innerHTML = `<span class="text-green-600">✓ PDF "${fname}" descargado (${requests.length} páginas)</span>`;
+  } catch (ex) {
+    console.error('PDF error:', ex);
+    $('rfq_status').innerHTML = `<span class="text-red-600">Error generando PDF: ${ex.message}</span>`;
+  }
+}
+
+
 function toggleAllSections(expand) {
   ['sec1','sec2','sec3','sec4','sec5'].forEach(id => {
     const el = $(id);
