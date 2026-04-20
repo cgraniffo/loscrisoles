@@ -183,7 +183,7 @@
       <!-- Toggle modo BD_CC / Manual -->
       <div class="flex gap-2 mb-3 items-center">
         <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Modo:</div>
-        <button type="button" id="btn_mode_bdcc" onclick="setSec1Mode('bdcc')" class="btn-secondary" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:5px 12px;">📊 Datos del fundo (BD_CC)</button>
+        <button type="button" id="btn_mode_bdcc" onclick="setSec1Mode('bdcc')" class="btn-secondary" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:5px 12px;">📊 Datos del Centro de Costos</button>
         <button type="button" id="btn_mode_manual" onclick="setSec1Mode('manual')" class="btn-secondary" style="font-size:11px;padding:5px 12px;">✏️ Manual</button>
         <span id="bdcc_status" class="text-xs text-gray-400 ml-auto"></span>
       </div>
@@ -196,7 +196,7 @@
             <select id="w_temp" class="w-full"></select>
           </div>
           <div>
-            <label class="block text-xs font-medium text-gray-600 mb-1">Cultivo (BD_CC)</label>
+            <label class="block text-xs font-medium text-gray-600 mb-1">Cultivo (Centro de Costo)</label>
             <select id="w_especie" class="w-full"></select>
           </div>
           <div>
@@ -242,7 +242,7 @@
         <div class="how-works-content">
           <p><b>Dos modos:</b></p>
           <ul>
-            <li><b>📊 Datos del fundo (BD_CC)</b>: usa los centros de costo reales registrados en el sistema. Al elegir temporada → cultivo → pivote/potrero, las hectáreas se cargan automáticamente desde BD_CC. <b>Usa este modo para trabajo real.</b></li>
+            <li><b>📊 Datos del Centro de Costos (BD_CC)</b>: usa los centros de costo reales registrados en el sistema. Al elegir temporada → cultivo → pivote/potrero, las hectáreas se cargan automáticamente desde BD_CC. <b>Usa este modo para trabajo real.</b></li>
             <li><b>✏️ Manual</b>: permite simular escenarios con los sectores IRRIFER originales (basados en análisis de suelo físicos), ajustando hectáreas libremente con un slider. Útil para pruebas o cultivos futuros aún no registrados.</li>
           </ul>
           <p class="mt-2">Cada cultivo tiene una <b>"receta"</b> de cuánto de cada nutriente necesita para producir bien.
@@ -479,111 +479,6 @@
     </div>
   </details>
 
-  <!-- ═══════════════════════════════════════════════════════════════════ -->
-  <!-- SECCION 6: Solicitar cotización                                      -->
-  <!-- ═══════════════════════════════════════════════════════════════════ -->
-  <details class="card collapsible" id="sec6">
-    <summary>
-      <div class="collapsible-head">
-        <span class="collapsible-chev">▶</span>
-        <span class="collapsible-title">6 · Solicitar cotización a proveedores</span>
-      </div>
-      <span class="collapsible-hint" id="sec6-hint">PDF + email draft</span>
-    </summary>
-    <div class="collapsible-body">
-
-      <div class="intro-brief">
-        <b>¿Qué haces aquí?</b> Armas una solicitud de cotización formal con los productos que necesitas,
-        la descargas como PDF y/o la envías por email a los proveedores que elijas.
-      </div>
-
-      <!-- Selector de productos a cotizar -->
-      <div class="mb-3">
-        <div class="flex items-center justify-between mb-2">
-          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Productos a cotizar</div>
-          <div class="flex gap-2">
-            <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="toggleAllProducts(true)">Seleccionar todos</button>
-            <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="toggleAllProducts(false)">Ninguno</button>
-            <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="loadFromLastResult()" title="Tomar productos y cantidades del último plan optimizado">📋 Desde último plan</button>
-          </div>
-        </div>
-        <div id="rfq_products" class="border border-gray-200 rounded-lg p-2 max-h-64 overflow-y-auto bg-gray-50"></div>
-      </div>
-
-      <!-- Agrupación + destinatarios -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-        <div>
-          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Modo de agrupación</div>
-          <div class="flex gap-2">
-            <button type="button" id="btn_rfq_grouped" onclick="setRFQMode('grouped')" class="btn-secondary flex-1" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:6px 10px;">🏢 Por proveedor</button>
-            <button type="button" id="btn_rfq_individual" onclick="setRFQMode('individual')" class="btn-secondary flex-1" style="font-size:11px;padding:6px 10px;">📦 Individual</button>
-          </div>
-          <div class="text-xs text-gray-500 mt-1" id="rfq_mode_hint">Un email por proveedor con todos sus productos</div>
-        </div>
-        <div>
-          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Destinatarios</div>
-          <div id="rfq_destinatarios" class="flex flex-wrap gap-2"></div>
-        </div>
-      </div>
-
-      <!-- Datos del solicitante -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-        <div>
-          <label class="block text-xs font-semibold text-gray-700 mb-1">Fecha requerida</label>
-          <input type="date" id="rfq_fecha_req" class="w-full">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-700 mb-1">Contacto Los Crisoles</label>
-          <input type="text" id="rfq_contacto" class="w-full" value="Christian Graniffo — christian@bdata.cl" placeholder="Nombre — email">
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-gray-700 mb-1">Destino entrega</label>
-          <input type="text" id="rfq_destino" class="w-full" value="Fundo Los Crisoles, Rancagua" placeholder="Dirección / ciudad">
-        </div>
-      </div>
-
-      <!-- Mensaje adicional -->
-      <div class="mb-3">
-        <label class="block text-xs font-semibold text-gray-700 mb-1">Mensaje adicional (opcional)</label>
-        <textarea id="rfq_mensaje" class="w-full" rows="2" placeholder="Ej: Requerimos entrega antes del 15 de mayo. Validez mínima de cotización: 30 días."></textarea>
-      </div>
-
-      <!-- Preview -->
-      <div class="mb-3">
-        <div class="flex items-center justify-between mb-2">
-          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Vista previa</div>
-          <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="refreshRFQPreview()">🔄 Actualizar</button>
-        </div>
-        <div id="rfq_preview" class="border border-gray-200 rounded-lg p-3 bg-white text-xs font-mono max-h-48 overflow-y-auto" style="white-space:pre-wrap;">Configura productos y destinatarios...</div>
-      </div>
-
-      <!-- Acciones -->
-      <div class="flex flex-col md:flex-row gap-2 items-center justify-between pt-3 border-t border-gray-200">
-        <div id="rfq_status" class="text-xs text-gray-500"></div>
-        <div class="flex gap-2">
-          <button class="btn-secondary" onclick="downloadRFQPDF()">📄 Descargar PDF</button>
-          <button class="btn-primary" style="padding:8px 18px;font-size:13px;" onclick="openRFQMail()">📧 Abrir en email</button>
-        </div>
-      </div>
-
-      <details class="how-works">
-        <summary>¿Cómo funciona esta sección?</summary>
-        <div class="how-works-content">
-          <p><b>Dos modos de agrupación:</b></p>
-          <ul>
-            <li><b>🏢 Por proveedor:</b> arma un email/PDF por cada proveedor con todos sus productos en una sola solicitud. Útil cuando ya sabes que quieres trabajar con ese proveedor. Se abre un draft por cada uno.</li>
-            <li><b>📦 Individual:</b> arma una solicitud por cada producto, pidiendo cotización a múltiples proveedores en el mismo mensaje. Útil cuando quieres comparar cotizaciones nuevas para productos específicos.</li>
-          </ul>
-          <p class="mt-2"><b>📋 Desde último plan:</b> si ya corriste OPTIMIZAR, este botón precarga los productos del plan con las cantidades calculadas — perfecto para cotizar exactamente lo que necesitas comprar.</p>
-          <p class="mt-2"><b>Destinatarios:</b> el sistema intenta extraer los emails guardados en el catálogo (si agregaste el email del proveedor al crear la cotización). Si no hay email, te deja el campo "Para:" en blanco y tú lo completas antes de enviar.</p>
-          <p class="mt-2"><b>📧 Abrir en email:</b> abre tu cliente de correo (Gmail, Outlook, etc.) con el mensaje ya escrito. Solo revisas, adjuntas el PDF si quieres, y envías.</p>
-          <div class="example-box">
-            <b>Flujo típico:</b> Corres OPTIMIZAR → el plan te dice que necesitas 4.800 kg de Urea. Vienes a sección 6 → "Desde último plan" → se precarga todo → "📄 Descargar PDF" + "📧 Abrir en email" → envías al COAGRA y a COPEVAL en paralelo para comparar.
-          </div>
-        </div>
-      </details>
-    </div>
-  </details>
 
   <!-- Modal Agregar Cotización -->
   <div id="modal_add" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -745,6 +640,113 @@
       </div>
     </div>
   </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- SECCION 6: Solicitar cotización                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <details class="card collapsible" id="sec6">
+    <summary>
+      <div class="collapsible-head">
+        <span class="collapsible-chev">▶</span>
+        <span class="collapsible-title">6 · Solicitar cotización a proveedores</span>
+      </div>
+      <span class="collapsible-hint" id="sec6-hint">PDF + email draft</span>
+    </summary>
+    <div class="collapsible-body">
+
+      <div class="intro-brief">
+        <b>¿Qué haces aquí?</b> Armas una solicitud de cotización formal con los productos que necesitas,
+        la descargas como PDF y/o la envías por email a los proveedores que elijas.
+      </div>
+
+      <!-- Selector de productos a cotizar -->
+      <div class="mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Productos a cotizar</div>
+          <div class="flex gap-2">
+            <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="toggleAllProducts(true)">Seleccionar todos</button>
+            <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="toggleAllProducts(false)">Ninguno</button>
+            <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="loadFromLastResult()" title="Tomar productos y cantidades del último plan optimizado">📋 Desde último plan</button>
+          </div>
+        </div>
+        <div id="rfq_products" class="border border-gray-200 rounded-lg p-2 max-h-64 overflow-y-auto bg-gray-50"></div>
+      </div>
+
+      <!-- Agrupación + destinatarios -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+        <div>
+          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Modo de agrupación</div>
+          <div class="flex gap-2">
+            <button type="button" id="btn_rfq_grouped" onclick="setRFQMode('grouped')" class="btn-secondary flex-1" style="background:#eff6ff;color:#1e40af;border-color:#bfdbfe;font-weight:600;font-size:11px;padding:6px 10px;">🏢 Por proveedor</button>
+            <button type="button" id="btn_rfq_individual" onclick="setRFQMode('individual')" class="btn-secondary flex-1" style="font-size:11px;padding:6px 10px;">📦 Individual</button>
+          </div>
+          <div class="text-xs text-gray-500 mt-1" id="rfq_mode_hint">Un email por proveedor con todos sus productos</div>
+        </div>
+        <div>
+          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">Destinatarios</div>
+          <div id="rfq_destinatarios" class="flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+
+      <!-- Datos del solicitante -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Fecha requerida</label>
+          <input type="date" id="rfq_fecha_req" class="w-full">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Contacto Los Crisoles</label>
+          <input type="text" id="rfq_contacto" class="w-full" value="Christian Graniffo — christian@bdata.cl" placeholder="Nombre — email">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-700 mb-1">Destino entrega</label>
+          <input type="text" id="rfq_destino" class="w-full" value="Fundo Los Crisoles, Rancagua" placeholder="Dirección / ciudad">
+        </div>
+      </div>
+
+      <!-- Mensaje adicional -->
+      <div class="mb-3">
+        <label class="block text-xs font-semibold text-gray-700 mb-1">Mensaje adicional (opcional)</label>
+        <textarea id="rfq_mensaje" class="w-full" rows="2" placeholder="Ej: Requerimos entrega antes del 15 de mayo. Validez mínima de cotización: 30 días."></textarea>
+      </div>
+
+      <!-- Preview -->
+      <div class="mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Vista previa</div>
+          <button class="btn-secondary" style="font-size:11px;padding:3px 10px;" onclick="refreshRFQPreview()">🔄 Actualizar</button>
+        </div>
+        <div id="rfq_preview" class="border border-gray-200 rounded-lg p-3 bg-white text-xs font-mono max-h-48 overflow-y-auto" style="white-space:pre-wrap;">Configura productos y destinatarios...</div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex flex-col md:flex-row gap-2 items-center justify-between pt-3 border-t border-gray-200">
+        <div id="rfq_status" class="text-xs text-gray-500"></div>
+        <div class="flex gap-2">
+          <button class="btn-secondary" onclick="downloadRFQPDF()">📄 Descargar PDF</button>
+          <button class="btn-primary" style="padding:8px 18px;font-size:13px;" onclick="openRFQMail()">📧 Abrir en email</button>
+        </div>
+      </div>
+
+      <details class="how-works">
+        <summary>¿Cómo funciona esta sección?</summary>
+        <div class="how-works-content">
+          <p><b>Dos modos de agrupación:</b></p>
+          <ul>
+            <li><b>🏢 Por proveedor:</b> arma un email/PDF por cada proveedor con todos sus productos en una sola solicitud. Útil cuando ya sabes que quieres trabajar con ese proveedor. Se abre un draft por cada uno.</li>
+            <li><b>📦 Individual:</b> arma una solicitud por cada producto, pidiendo cotización a múltiples proveedores en el mismo mensaje. Útil cuando quieres comparar cotizaciones nuevas para productos específicos.</li>
+          </ul>
+          <p class="mt-2"><b>📋 Desde último plan:</b> si ya corriste OPTIMIZAR, este botón precarga los productos del plan con las cantidades calculadas — perfecto para cotizar exactamente lo que necesitas comprar.</p>
+          <p class="mt-2"><b>Destinatarios:</b> el sistema intenta extraer los emails guardados en el catálogo (si agregaste el email del proveedor al crear la cotización). Si no hay email, te deja el campo "Para:" en blanco y tú lo completas antes de enviar.</p>
+          <p class="mt-2"><b>📧 Abrir en email:</b> abre tu cliente de correo (Gmail, Outlook, etc.) con el mensaje ya escrito. Solo revisas, adjuntas el PDF si quieres, y envías.</p>
+          <div class="example-box">
+            <b>Flujo típico:</b> Corres OPTIMIZAR → el plan te dice que necesitas 4.800 kg de Urea. Vienes a sección 6 → "Desde último plan" → se precarga todo → "📄 Descargar PDF" + "📧 Abrir en email" → envías al COAGRA y a COPEVAL en paralelo para comparar.
+          </div>
+        </div>
+      </details>
+    </div>
+  </details>
+
 
   <section class="card">
     <details>
@@ -1039,7 +1041,8 @@ async function loadBDCC() {
       id: String(r.Id_CC || '').trim(),
       nombre: String(r['NOMBRE CC'] || '').trim(),
       ha: Number(r['HECTÁREAS']) || 0,
-      especie: String(r.Especie || '').trim(),
+      especie: String(r.FUNDO || '').trim(),        // Usar FUNDO: nombre legible (ej: "Pepino 26-27")
+      especie_id: String(r.Especie || '').trim(),   // Código interno por si se necesita
       fundo: String(r.FUNDO || '').trim(),
       temporada: String(r.Temporada || '').trim(),
       coordenadas: String(r.Coordenadas || '').trim(),
@@ -1833,6 +1836,9 @@ function do_optimize() {
 
     _lastResult = { res, cul, sector:$('w_sec').value, ha, rend, prod, req_u, req_n, net_uha, ap_u, ap_r_uha, costo_total, prov_el, m_inorg, m_org, modo_f };
     render_results(_lastResult);
+
+    // Auto-cargar productos y cantidades en sección 6 (RFQ) con el plan recién optimizado
+    autoLoadRFQFromResult();
     $('btn_excel').disabled = false;
     $('status_lbl').innerHTML = `<span class="text-green-600">✓ Listo · $${fmt(costo_total)} total · $${fmt(costo_total/ha)}/ha · ${res.length} productos</span>`;
   } catch (ex) {
@@ -2120,6 +2126,15 @@ function loadFromLastResult() {
   renderRFQProducts();
   refreshRFQPreview();
   $('rfq_status').innerHTML = `<span class="text-green-600">✓ Cargados ${_rfqSelected.size} productos del último plan</span>`;
+}
+
+// Auto-ejecuta loadFromLastResult + abre la sección 6 (llamado al terminar OPTIMIZAR)
+function autoLoadRFQFromResult() {
+  if (!_lastResult || !_lastResult.res || !_lastResult.res.length) return;
+  loadFromLastResult();
+  // Abrir la sección 6 para que el usuario la vea
+  const sec6 = $('sec6');
+  if (sec6) sec6.setAttribute('open', '');
 }
 
 function setRFQMode(mode) {
