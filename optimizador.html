@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Optimizador de Fertilización — Los Crisoles</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/javascript-lp-solver@0.4.24/prod/solver.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  .card { background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; }
+  .section-title { font-size:14px; font-weight:700; color:#1e3a5f; padding-bottom:6px; border-bottom:2px solid #3b82f6; margin-bottom:12px; }
+  .metric { background:#f0f7ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 14px; }
+  .metric-label { font-size:10px; color:#6b7280; text-transform:uppercase; letter-spacing:0.5px; }
+  .metric-value { font-size:22px; font-weight:700; color:#1d4ed8; }
+  .soil-card { background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:12px 14px; font-size:12px; }
+  .warn { background:#fef9c3; border:1px solid #fde047; border-radius:6px; padding:8px 12px; color:#854d0e; font-size:11px; }
+  .err-box { background:#fef2f2; border:1px solid #fca5a5; border-radius:6px; padding:8px 12px; color:#dc2626; font-size:11px; }
+  .inf-box { background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:8px 12px; color:#1e40af; font-size:11px; }
+  .ok-txt { color:#16a34a; font-weight:600; }
+  .bad-txt { color:#dc2626; font-weight:600; }
+  table.data { border-collapse:collapse; font-size:12px; width:100%; }
+  table.data td, table.data th { padding:6px 10px; border-bottom:1px solid #e5e7eb; }
+  table.data th { background:#f1f5f9; font-weight:600; color:#374151; text-align:right; font-size:11px; }
+  table.data th:first-child, table.data td:first-child { text-align:left; }
+  table.data td { text-align:right; }
+  .fert-row { display:grid; grid-template-columns: 1fr 70px 70px auto; gap:8px; align-items:center; padding:6px 8px; border-bottom:1px solid #f3f4f6; font-size:12px; }
+  .fert-row:hover { background:#fafafa; }
+  .fert-name { font-weight:500; color:#374151; font-size:12px; }
+  .fert-comp { font-size:10px; color:#9ca3af; }
+  .tanque-A { background:#dbeafe; color:#1e40af; }
+  .tanque-B { background:#fef3c7; color:#92400e; }
+  .tanque-AB { background:#dcfce7; color:#166534; }
+  .prov-COPEVAL { background:#dbeafe; }
+  .prov-COAGRA { background:#dcfce7; }
+  .prov-CALS { background:#fef9c3; }
+  .prov-Pucalan { background:#ffedd5; }
+  .prov-ASF { background:#fce7f3; }
+  input[type=number] { font-size:12px; padding:4px 6px; border:1px solid #d1d5db; border-radius:4px; width:100%; }
+  select { font-size:12px; padding:5px 8px; border:1px solid #d1d5db; border-radius:4px; background:#fff; }
+  .btn-primary { background:linear-gradient(135deg, #059669, #047857); color:#fff; font-weight:700; padding:12px 24px; border-radius:8px; border:none; cursor:pointer; font-size:14px; letter-spacing:0.5px; transition:all 0.15s; }
+  .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(5,150,105,0.3); }
+  .btn-primary:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+  .btn-secondary { background:#fff; color:#374151; border:1px solid #d1d5db; padding:8px 14px; border-radius:6px; font-size:12px; cursor:pointer; }
+  .btn-secondary:hover { background:#f9fafb; }
+  details > summary { cursor:pointer; list-style:none; }
+  details > summary::-webkit-details-marker { display:none; }
+  details > summary::before { content:"▸"; display:inline-block; margin-right:6px; transition:transform 0.15s; font-size:10px; color:#6b7280; }
+  details[open] > summary::before { transform:rotate(90deg); }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; }
+  .intro-brief { background:#f8fafc; border-left:3px solid #3b82f6; padding:8px 12px; margin-bottom:10px; font-size:12px; color:#475569; border-radius:0 6px 6px 0; }
+  .how-works { margin-top:8px; }
+  .how-works > summary { font-size:11px; color:#6366f1; font-weight:600; padding:4px 0; }
+  .how-works > summary:hover { color:#4338ca; }
+  .how-works-content { background:#fafafa; border:1px solid #e5e7eb; border-radius:6px; padding:12px 14px; margin-top:6px; font-size:12px; color:#374151; line-height:1.55; }
+  .how-works-content b { color:#1e40af; }
+  .how-works-content ul { margin:6px 0 6px 18px; list-style:disc; }
+  .how-works-content ul li { margin:3px 0; }
+  .how-works-content .example-box { background:#fff; border:1px dashed #c7d2fe; border-radius:4px; padding:8px 10px; margin-top:6px; font-size:11px; color:#4b5563; }
+  .tip { display:inline-block; width:14px; height:14px; line-height:14px; text-align:center; font-size:10px; background:#6366f1; color:#fff; border-radius:50%; cursor:help; margin-left:4px; font-weight:700; }
+  .tip:hover { background:#4338ca; }
+  .quick-guide { background:linear-gradient(135deg, #eff6ff, #dbeafe); border:1px solid #93c5fd; border-radius:10px; padding:14px 18px; margin-bottom:16px; }
+  .quick-guide-step { display:flex; align-items:flex-start; gap:10px; padding:4px 0; font-size:12px; color:#1e3a5f; }
+  .quick-guide-num { flex-shrink:0; width:24px; height:24px; background:#3b82f6; color:#fff; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11px; }
+  .glos-term { font-weight:600; color:#1e40af; }
+  @media (max-width: 768px) {
+    .fert-row { grid-template-columns: 1fr; gap:4px; }
+    .metric-value { font-size:18px; }
+  }
+</style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+<header class="bg-white border-b border-gray-200 sticky top-0 z-20 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-green-600 to-emerald-700 flex items-center justify-center text-white font-bold">LC</div>
+      <div>
+        <h1 class="text-base font-bold text-gray-800">Optimizador de Fertilización</h1>
+        <p class="text-xs text-gray-500">Fundo Los Crisoles · Plan de compra al menor costo</p>
+      </div>
+    </div>
+    <a href="/home" class="btn-secondary hidden md:inline-block">← Volver</a>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 py-6 space-y-4">
+
+  <section class="quick-guide">
+    <h2 class="text-sm font-bold text-blue-900 mb-2">🌱 ¿Qué hace esta herramienta?</h2>
+    <p class="text-xs text-blue-900 mb-3">
+      Te calcula <b>qué fertilizantes comprar y cuántos kilos de cada uno</b>, al <b>menor costo posible</b>,
+      para que tu cultivo reciba todos los nutrientes que necesita según el análisis de suelo de tu pivote.
+    </p>
+    <div class="quick-guide-step"><span class="quick-guide-num">1</span><span>Elige <b>cultivo, pivote y hectáreas</b> (Sección 1)</span></div>
+    <div class="quick-guide-step"><span class="quick-guide-num">2</span><span>Define <b>cómo vas a aplicar</b> los fertilizantes — por riego o al suelo (Sección 2 y 3)</span></div>
+    <div class="quick-guide-step"><span class="quick-guide-num">3</span><span>Revisa el <b>balance nutricional</b> — el programa te muestra lo que aporta el suelo y lo que falta (Sección 4)</span></div>
+    <div class="quick-guide-step"><span class="quick-guide-num">4</span><span>Ajusta <b>precios</b> si tienes cotizaciones nuevas (Sección 5)</span></div>
+    <div class="quick-guide-step"><span class="quick-guide-num">5</span><span>Presiona <b>OPTIMIZAR</b> y descarga el Excel para compras</span></div>
+  </section>
+
+  <section class="card">
+    <div class="section-title">1 · Cultivo, sector y superficie</div>
+    <div class="intro-brief">
+      <b>¿Qué haces aquí?</b> Le dices al sistema qué vas a plantar, en qué pivote, y cuántas hectáreas.
+      Con esta información el programa sabe cuántos nutrientes necesita el cultivo en total.
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Cultivo</label>
+        <select id="w_cul" class="w-full"></select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Sector / Pivote</label>
+        <select id="w_sec" class="w-full"></select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Hectáreas: <span id="ha_val" class="text-blue-700 font-semibold">20</span></label>
+        <input type="range" id="w_ha" min="1" max="300" step="1" value="20" class="w-full">
+      </div>
+    </div>
+    <div id="crop_ctrl" class="mt-3"></div>
+    <details class="how-works">
+      <summary>¿Cómo funciona esta sección?</summary>
+      <div class="how-works-content">
+        <p>Cada cultivo tiene una <b>"receta"</b> de cuánto de cada nutriente necesita para producir bien.
+        Por ejemplo, una hectárea de nogal adulto necesita unos <b>240 kg de nitrógeno</b> y <b>280 kg de potasio</b> al año.</p>
+        <p class="mt-2"><b>¿Por qué importa elegir bien el pivote?</b> Porque cada pivote tiene un suelo distinto.
+        El laboratorio IRRIFER ya analizó cada uno y sabe cuánto nutriente aporta naturalmente. Si tu suelo ya tiene
+        mucho potasio, no necesitas comprar fertilizantes con potasio — te ahorras esa plata.</p>
+        <div class="example-box">
+          <b>Ejemplo:</b> Si eliges "Nogal adulto" en el "Pivote 1 y 4" con 20 ha, el sistema calcula que
+          necesitas <b>4.800 kg de nitrógeno totales</b> (240 × 20), de los cuales el suelo aporta <b>1.160 kg</b>
+          y tienes que cubrir los <b>3.640 kg restantes</b> con fertilizantes.
+        </div>
+        <p class="mt-2"><b>Nota:</b> Para el nogal aparece un selector adicional de <b>etapa/edad</b>, porque un nogal joven
+        en formación necesita mucho menos que uno adulto en plena producción.</p>
+      </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="section-title">2 · Modo de aplicación</div>
+    <div class="intro-brief">
+      <b>¿Qué haces aquí?</b> Eliges <b>cómo</b> vas a aplicar los fertilizantes: disueltos en el agua de riego
+      (fertirriego) o espolvoreados directamente en el suelo.
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Inorgánicos <span class="tip" title="Fertilizantes químicos solubles como Urea, MAP, Sulfato de Potasio, etc.">?</span></label>
+        <select id="w_aplic_inorg" class="w-full">
+          <option value="fertirriego">Fertirriego — Tanques A / B (solubles)</option>
+          <option value="suelo">Suelo directo — esparcido / voleo / banda</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Orgánicos <span class="tip" title="Guanos, compost y estabilizados (origen animal o vegetal).">?</span></label>
+        <select id="w_aplic_org" class="w-full">
+          <option value="suelo">Suelo directo — esparcido / incorporado</option>
+          <option value="fertirriego">Fertirriego — slurry / té de compost</option>
+        </select>
+      </div>
+    </div>
+    <div id="aplic_info" class="mt-3 space-y-2"></div>
+    <details class="how-works">
+      <summary>¿Cómo funciona esta sección?</summary>
+      <div class="how-works-content">
+        <p><b>Fertirriego</b> significa que el fertilizante se disuelve en el agua y llega a las plantas junto con el riego.
+        Es más eficiente porque las plantas absorben mejor los nutrientes, pero tiene una limitación importante:
+        <b>no todos los fertilizantes se pueden mezclar en el mismo estanque</b>.</p>
+        <p class="mt-2"><b>¿Por qué los Tanques A y B?</b> Hay fertilizantes que al juntarse en un mismo tanque
+        se convierten en piedras (precipitan) y tapan el riego. Por ejemplo:</p>
+        <ul>
+          <li><b>Nitrato de Calcio + Sulfato de Amonio</b> → forman yeso (CaSO₄) y se solidifican</li>
+          <li><b>Nitrato de Calcio + MAP</b> → forman fosfato de calcio que tapa goteros</li>
+        </ul>
+        <p class="mt-2">Por eso se separan en <b>Tanque A</b> (sulfatos, fosfatos, potásicos) y <b>Tanque B</b>
+        (nitratos de calcio y magnesio). El sistema respeta automáticamente estas incompatibilidades si eliges fertirriego.</p>
+        <p class="mt-2"><b>Suelo directo</b> es la forma tradicional: esparces el fertilizante en el terreno, lo incorporas con arado,
+        o lo aplicas en banda. Aquí no hay problema de mezclas porque no están juntos en agua.
+        Es más sencillo y conveniente para los guanos y compost (que no se disuelven bien).</p>
+        <div class="example-box">
+          <b>Recomendación típica:</b> Inorgánicos por fertirriego (son solubles y baratos de aplicar así),
+          orgánicos al suelo directo (son pesados y se incorporan mejor).
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="section-title">3 · Preferencias de mezcla y proveedor</div>
+    <div class="intro-brief">
+      <b>¿Qué haces aquí?</b> Le pones reglas al programa sobre <b>qué tipo de mezcla</b> quieres:
+      ¿solo lo más barato? ¿mezclar guanos y químicos? ¿preferir un solo proveedor de guanos?
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="md:col-span-2">
+        <label class="block text-xs font-medium text-gray-600 mb-1">Modo</label>
+        <select id="w_modo" class="w-full">
+          <option value="libre">Libre (menor costo)</option>
+          <option value="pref_org" selected>Preferir 1 proveedor orgánico</option>
+          <option value="ambos_tipos">Usar ambos tipos sí o sí</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Mín. inorgánicos: <span id="mini_val" class="text-blue-700 font-semibold">1</span></label>
+        <input type="range" id="w_mini" min="0" max="8" step="1" value="1" class="w-full">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Mín. orgánicos: <span id="mino_val" class="text-blue-700 font-semibold">1</span></label>
+        <input type="range" id="w_mino" min="0" max="6" step="1" value="1" class="w-full">
+      </div>
+    </div>
+    <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-xs font-medium text-gray-600 mb-1">Máx. orgánicos (kg/ha) <span class="tip" title="Tope de kilos de guano/compost por hectárea. Evita sobredosis y pérdida por lixiviación.">?</span></label>
+        <input type="number" id="w_maxo" value="3000" min="0" step="100" class="w-full">
+      </div>
+    </div>
+    <details class="how-works">
+      <summary>¿Cómo funciona esta sección?</summary>
+      <div class="how-works-content">
+        <p><b>Los 3 modos:</b></p>
+        <ul>
+          <li><b>Libre:</b> el programa elige lo más barato sin mirar tipos. Puede ser que use solo guanos, solo químicos, o una mezcla — lo que salga más económico.</li>
+          <li><b>Preferir 1 proveedor orgánico:</b> el programa elige <b>un solo proveedor de guanos/compost</b> (Pucalán, ASF, etc.). Útil cuando quieres simplificar la logística de despacho a una sola empresa.</li>
+          <li><b>Usar ambos tipos sí o sí:</b> obliga a que el plan incluya al menos 1 químico + 1 orgánico. Útil cuando sabes que quieres mantener materia orgánica en el suelo.</li>
+        </ul>
+        <p class="mt-2"><b>Mín. inorgánicos / orgánicos:</b> cuántos productos distintos quieres que use como mínimo.
+        Por ejemplo, si pones mín. inorgánicos = 2, el plan te obliga a comprar al menos 2 fertilizantes químicos distintos.</p>
+        <p class="mt-2"><b>Máx. orgánicos kg/ha:</b> es un tope de seguridad. Los guanos tienen mucho nitrógeno
+        pero aplicarlos en exceso puede contaminar las napas o causar desbalances. Por defecto dejamos 3000 kg/ha,
+        que es un valor conservador para nogal.</p>
+        <div class="example-box">
+          <b>Consejo:</b> Si no estás seguro, deja los valores por defecto ("Preferir 1 proveedor orgánico" + mín. 1 + 1 + máx. 3000).
+          Es una buena configuración base para la mayoría de los cultivos del fundo.
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="section-title">4 · Análisis de suelo y balance nutricional</div>
+    <div class="intro-brief">
+      <b>¿Qué haces aquí?</b> Revisas <b>cuánto nutriente ya tiene tu suelo</b> (según el análisis IRRIFER)
+      y el programa calcula <b>cuánto falta</b> por fertilizar. Lo que ya tiene el suelo, no se compra.
+    </div>
+    <div id="soil_info"></div>
+    <div class="mt-3">
+      <div class="text-xs text-gray-500 mb-2">Aporte del suelo (u/ha) — valores IRRIFER, editables:</div>
+      <div class="grid grid-cols-5 gap-2">
+        <div><label class="block text-xs text-gray-600">N <span class="tip" title="Nitrógeno — hace crecer hojas y brotes">?</span></label><input type="number" id="ws_n" value="0" step="1"></div>
+        <div><label class="block text-xs text-gray-600">P₂O₅ <span class="tip" title="Fósforo — desarrollo de raíces y floración">?</span></label><input type="number" id="ws_p" value="0" step="1"></div>
+        <div><label class="block text-xs text-gray-600">K₂O <span class="tip" title="Potasio — calidad y tamaño del fruto">?</span></label><input type="number" id="ws_k" value="0" step="1"></div>
+        <div><label class="block text-xs text-gray-600">MgO <span class="tip" title="Magnesio — núcleo de la clorofila, verdor de hojas">?</span></label><input type="number" id="ws_mg" value="0" step="1"></div>
+        <div><label class="block text-xs text-gray-600">S <span class="tip" title="Azufre — formación de proteínas">?</span></label><input type="number" id="ws_s" value="0" step="1"></div>
+      </div>
+    </div>
+    <div id="balance" class="mt-4"></div>
+    <details class="how-works">
+      <summary>¿Cómo funciona esta sección?</summary>
+      <div class="how-works-content">
+        <p><b>Los 5 nutrientes principales:</b></p>
+        <ul>
+          <li><b>N (Nitrógeno):</b> es el que más demanda el cultivo. Hace crecer hojas, brotes y frutos. Se lava con la lluvia.</li>
+          <li><b>P₂O₅ (Fósforo):</b> importante para raíces y floración. Queda fijo en el suelo (no se lava).</li>
+          <li><b>K₂O (Potasio):</b> clave para el tamaño y calidad del fruto. Los nogales adultos consumen muchísimo.</li>
+          <li><b>MgO (Magnesio):</b> forma la clorofila. Si falta, las hojas se ponen amarillas entre las nervaduras.</li>
+          <li><b>S (Azufre):</b> se necesita menos cantidad, pero es clave para formar proteínas.</li>
+        </ul>
+        <p class="mt-2"><b>¿Qué son las "u/ha"?</b> Significa "unidades por hectárea", que es lo mismo que <b>kilos de nutriente puro
+        por hectárea</b>. No son kilos de producto — son kilos del nutriente mismo. Por ejemplo, 240 u/ha de N = 240 kg de nitrógeno
+        puro por hectárea.</p>
+        <p class="mt-2"><b>¿Por qué son editables los aportes del suelo?</b> Porque si tú tienes un análisis más reciente
+        de un laboratorio distinto, o quieres simular un escenario ("¿qué pasa si mi suelo aporta menos N?"), puedes sobrescribir
+        los valores. El balance se recalcula al instante.</p>
+        <p class="mt-2"><b>pH del suelo:</b> si aparece en rojo (&lt;6.0) el suelo está ácido. Eso bloquea la absorción
+        de fósforo y calcio. Se arregla con enmiendas calcáreas (encalado) antes de fertilizar.</p>
+        <div class="example-box">
+          <b>Cómo leer la tabla de balance:</b> La columna "A fertilizar" en verde significa que el suelo ya cubre ese nutriente (no compras nada).
+          En rojo significa que hay que comprar fertilizante para cubrirlo.
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="card">
+    <div class="section-title">5 · Precios de fertilizantes ($/kg sin IVA)</div>
+    <div class="intro-brief">
+      <b>¿Qué haces aquí?</b> Revisas y actualizas los <b>precios</b> de cada fertilizante. Si tienes cotizaciones nuevas,
+      edítalos aquí para que el cálculo salga con valores al día.
+    </div>
+    <details open>
+      <summary class="text-xs font-bold text-gray-700 mb-2">Ver / editar precios</summary>
+      <div class="mt-3">
+        <div class="text-xs text-gray-500 mb-2">
+          Precio 0 = sin cotización (entra en <b>modo factibilidad</b>: el sistema lo considera disponible con precio simbólico).
+        </div>
+        <h3 class="text-xs font-bold text-blue-900 mt-3 mb-2">Inorgánicos (químicos)</h3>
+        <div id="ferts_inorg"></div>
+        <h3 class="text-xs font-bold text-green-900 mt-4 mb-2">Orgánicos (guanos y compost)</h3>
+        <div id="ferts_org"></div>
+      </div>
+    </details>
+    <details class="how-works">
+      <summary>¿Cómo funciona esta sección?</summary>
+      <div class="how-works-content">
+        <p>Cada fertilizante tiene <b>3 datos importantes</b>:</p>
+        <ul>
+          <li><b>Composición</b> (ej: "N:21% · S:24%"): qué porcentaje del producto es de cada nutriente. Por ejemplo, de cada saco de 25 kg de Sulfato de Amonio, 5,25 kg son nitrógeno puro (21%) y 6 kg son azufre (24%). El resto es agua, cargas y estabilizadores.</li>
+          <li><b>Precio $/kg sin IVA:</b> lo que cuesta 1 kg del <i>producto</i> (no del nutriente). Los precios vienen precalculados dividiendo el precio del saco por kg y sacándole el IVA.</li>
+          <li><b>Tanque original:</b> A, B o AB. Si vas a hacer fertirriego, esto le dice al programa en qué tanque puede ir cada producto para evitar incompatibilidades.</li>
+        </ul>
+        <p class="mt-2"><b>¿Y qué pasa con el modo factibilidad?</b> Si tienes un fertilizante sin cotización
+        (precio = 0), el sistema no lo descarta — lo toma como disponible pero te avisa que el costo total
+        es "aproximado". Útil cuando quieres evaluar si un producto que aún no cotizaste <i>podría</i> entrar al plan.</p>
+        <div class="example-box">
+          <b>Consejo:</b> Si subes el precio del Nitrato de Potasio y bajas el de la Urea, puede que el plan cambie
+          automáticamente reemplazando uno por otro. Es normal — el sistema busca la mezcla más barata que cubra el requerimiento.
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <section class="card flex flex-col md:flex-row items-center justify-between gap-3">
+    <div>
+      <div class="text-sm font-semibold text-gray-800">Listo para calcular el plan óptimo</div>
+      <div id="status_lbl" class="text-xs text-gray-500 mt-1">Configura los parámetros y presiona OPTIMIZAR</div>
+    </div>
+    <div class="flex gap-2">
+      <button id="btn_opt" class="btn-primary">⚡ OPTIMIZAR</button>
+      <button id="btn_excel" class="btn-secondary" disabled>📥 Excel</button>
+    </div>
+  </section>
+
+  <section id="results_wrap" class="space-y-4 hidden">
+    <div class="card">
+      <div class="section-title">Resultado óptimo</div>
+      <div class="intro-brief">
+        <b>¿Qué estás viendo?</b> El <b>plan más económico</b> que cubre todos los nutrientes que necesita tu cultivo,
+        respetando las reglas que configuraste (modo de aplicación, mezcla, tanques, etc.).
+      </div>
+      <div id="result_interpretation" class="mb-3"></div>
+      <div id="result_metrics" class="grid grid-cols-2 md:grid-cols-5 gap-3"></div>
+      <div id="result_plan" class="mt-4"></div>
+      <div id="result_nutri" class="mt-4"></div>
+      <details class="how-works">
+        <summary>¿Cómo leer estos resultados?</summary>
+        <div class="how-works-content">
+          <p><b>Métricas principales:</b></p>
+          <ul>
+            <li><b>Costo total:</b> lo que gastas en fertilizantes para toda la superficie.</li>
+            <li><b>Costo/ha:</b> lo que gastas por hectárea. Útil para comparar temporadas o pivotes.</li>
+            <li><b>Productos:</b> cuántos fertilizantes distintos tienes que comprar.</li>
+          </ul>
+          <p class="mt-2"><b>Tabla "Plan de compras":</b> aparece dividida por modo de aplicación:</p>
+          <ul>
+            <li>🔵 <b>Tanque A:</b> fertilizantes que van disueltos en el tanque A del fertirriego</li>
+            <li>🟡 <b>Tanque B:</b> fertilizantes que van en el tanque B</li>
+            <li>🟢 <b>Suelo directo:</b> fertilizantes que se esparcen o incorporan al suelo</li>
+          </ul>
+          <p class="mt-2">Para cada producto ves: <b>kg/ha</b> (cuánto aplicar por hectárea),
+          <b>kg total</b> (cuánto comprar para toda la superficie), y <b>costo</b>.</p>
+          <p class="mt-2"><b>Verificación nutricional:</b> confirma que el plan cubre todos los requerimientos.
+          Si ves un 100%+ en verde, perfecto. Si ves rojo (&lt;100%), algo salió mal y conviene revisar el log.</p>
+          <div class="example-box">
+            <b>Importante:</b> A veces la cobertura sale en 150% o 300% para algún nutriente. No es un error —
+            es que para cubrir el nutriente crítico (ej: N), el fertilizante elegido trae de "regalo" exceso
+            de otros nutrientes. Esto es inevitable con fertilizantes compuestos.
+          </div>
+        </div>
+      </details>
+    </div>
+    <div class="card">
+      <div class="section-title">Gráficos</div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div><canvas id="chart_cost" height="250"></canvas></div>
+        <div><canvas id="chart_nutri" height="250"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary class="text-xs font-semibold text-gray-600">Log de cálculo (para revisión técnica)</summary>
+      <pre id="log_out" class="mt-2 text-xs bg-gray-50 p-3 rounded font-mono whitespace-pre-wrap"></pre>
+    </details>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary class="text-sm font-semibold text-blue-900">📖 Glosario — ¿Qué significa cada término?</summary>
+      <div class="mt-3 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-xs text-gray-700">
+        <div><span class="glos-term">u/ha (unidades por hectárea):</span> kilos de nutriente puro por hectárea. No es lo mismo que kilos de producto.</div>
+        <div><span class="glos-term">N, P₂O₅, K₂O, MgO, S:</span> los 5 nutrientes principales. Nitrógeno, Fósforo, Potasio, Magnesio, Azufre.</div>
+        <div><span class="glos-term">MO (materia orgánica):</span> porcentaje de restos vegetales y animales descompuestos en el suelo. Indica fertilidad.</div>
+        <div><span class="glos-term">CE (conductividad eléctrica):</span> mide la cantidad de sales en el suelo. &gt;2 dS/m puede ser problemático.</div>
+        <div><span class="glos-term">pH:</span> acidez del suelo. Lo ideal para frutales y cultivos es entre 6.0 y 7.0.</div>
+        <div><span class="glos-term">Fertirriego:</span> aplicar fertilizante disuelto en el agua de riego.</div>
+        <div><span class="glos-term">Tanque A / Tanque B:</span> estanques separados para evitar mezclas incompatibles en fertirriego.</div>
+        <div><span class="glos-term">IRRIFER:</span> laboratorio chileno que hace los análisis de suelo.</div>
+        <div><span class="glos-term">Fertilizante inorgánico:</span> químico sintético (Urea, MAP, Nitrato de Potasio, etc.).</div>
+        <div><span class="glos-term">Fertilizante orgánico:</span> de origen animal o vegetal (guano, compost, estabilizados).</div>
+        <div><span class="glos-term">Optimización:</span> calcular la combinación más barata que cubra todos los requerimientos.</div>
+        <div><span class="glos-term">Modo factibilidad:</span> el sistema busca una solución aunque falten precios (los asume como $1/kg simbólico).</div>
+        <div><span class="glos-term">Incompatibilidad:</span> dos fertilizantes que al mezclarse forman sólidos que tapan el riego.</div>
+        <div><span class="glos-term">Rendimiento referencial:</span> cuántos kg de producto esperas cosechar por hectárea.</div>
+        <div><span class="glos-term">Cobertura %:</span> qué porcentaje del requerimiento del cultivo está cubierto por los fertilizantes del plan.</div>
+        <div><span class="glos-term">Estabilizado:</span> guano procesado (secado, molido) para reducir olor y volumen.</div>
+      </div>
+    </details>
+  </section>
+
+</main>
+
+<footer class="max-w-7xl mx-auto px-4 py-6 text-center text-xs text-gray-400">
+  Los Crisoles · BData AgTech — Optimización con programación lineal
+</footer>
+
+<script>
+const NUTS = ["N","P2O5","K2O","MgO","S"];
+
+const SUELO = {
+  "Potrero 1":     { muestra:"111151", pH:6.0, MO:10.3, CE:1.11, N:122, P2O5:82, K2O:562, MgO:701, S:37,  B:2.8, Zn:1.0, Mn:0.8,  Cu:2.0, Fe:31.8, nota:"pH bajo-medio | MO muy alta | K alto | S bajo", acid:false },
+  "Pivote 1 y 4":  { muestra:"111153", pH:6.2, MO:10.0, CE:0.76, N:58,  P2O5:78, K2O:329, MgO:721, S:46,  B:2.4, Zn:1.2, Mn:2.4,  Cu:2.0, Fe:53.4, nota:"pH neutro | MO muy alta | K medio-bajo | N bajo", acid:false },
+  "Pivote 2 y 3":  { muestra:"111154", pH:6.4, MO:9.8,  CE:0.65, N:22,  P2O5:69, K2O:242, MgO:705, S:52,  B:2.0, Zn:1.2, Mn:3.8,  Cu:2.0, Fe:40.4, nota:"pH neutro | N muy bajo | K bajo", acid:false },
+  "Pivote 3A":     { muestra:"111155", pH:6.4, MO:9.3,  CE:0.72, N:62,  P2O5:78, K2O:271, MgO:614, S:56,  B:1.0, Zn:0.8, Mn:12.8, Cu:2.2, Fe:60.2, nota:"ATENCIÓN: Mn alto (12.8) | B bajo | K bajo", acid:false },
+  "Potrero 5 y 6": { muestra:"111156", pH:6.1, MO:11.6, CE:0.67, N:58,  P2O5:69, K2O:403, MgO:454, S:90,  B:1.8, Zn:1.0, Mn:5.0,  Cu:1.8, Fe:57.6, nota:"MO muy alta | S alto | Mg bajo relativo", acid:false },
+  "Pivote 3B":     { muestra:"111157", pH:5.7, MO:10.5, CE:0.80, N:86,  P2O5:50, K2O:516, MgO:335, S:85,  B:2.2, Zn:0.8, Mn:5.4,  Cu:2.4, Fe:45.8, nota:"ATENCIÓN: pH ácido 5.7 | Al elevado | Mg bajo", acid:true },
+};
+
+const ETAPAS_NOGAL = {
+  "Año 1 — Formación (0 kg/ha)":       { rend:0,    N:80,  P2O5:20, K2O:40,  MgO:10, S:5,  info:"Solo formación estructural. Sin producción comercial." },
+  "Año 2 — Formación (~50 kg/ha)":     { rend:50,   N:100, P2O5:30, K2O:60,  MgO:12, S:6,  info:"Inicio de producción muy bajo. Alta demanda estructural." },
+  "Año 3 — Form.+Prod. (~1000 kg/ha)": { rend:1000, N:140, P2O5:40, K2O:100, MgO:16, S:8,  info:"Alta demanda N por formación estructural y producción temprana." },
+  "Año 4 — Form.+Prod. (~3000 kg/ha)": { rend:3000, N:180, P2O5:50, K2O:150, MgO:20, S:10, info:"Aumento fuerte extracción K durante crecimiento de fruto." },
+  "Año 5 — Form.+Prod. (~5000 kg/ha)": { rend:5000, N:220, P2O5:70, K2O:200, MgO:24, S:12, info:"Alta demanda total. Mayor extracción en diciembre-enero." },
+  "Año 6+ — Adulto (~7000 kg/ha)":     { rend:7000, N:240, P2O5:90, K2O:280, MgO:28, S:14, info:"Plena producción. K>300 u/ha en huertos sobre 7 ton/ha. Evitar KCl." },
+};
+
+const CULTIVOS = {
+  "Nogal (Chandler)":      { tipo:"etapas", unidad:"nuez con cáscara", notas:"Sensible al Cl⁻: evitar KCl. Fuentes K: nitrato o sulfato de potasio.", fuente_rend:"Manual INIA (Lara, M.A.)" },
+  "Maíz de grano":         { tipo:"fijo", unidad:"grano seco (14% hum.)", rend:14000, req_ton:{ N:22, P2O5:9, K2O:18, MgO:5, S:3 }, notas:"Alta demanda N. Fraccionar: ~30% siembra, ~70% en V6-V8.", fuente_rend:"Ref. INIA Chile — máx. irrigado zona sur" },
+  "Trigo candeal (durum)": { tipo:"fijo", unidad:"grano seco (12% hum.)", rend:8260, req_ton:{ N:28, P2O5:14, K2O:15, MgO:5, S:4 }, notas:"Calidad pasta requiere GPC>12.5%. Aplicar N en primer nudo.", fuente_rend:"Grahmann et al. 2014 — 8.26 t/ha, 300 kg N, 1er nudo" },
+  "Achicoria (raíz fresca)": { tipo:"fijo", unidad:"raíz fresca", rend:83000, req_ton:{ N:1.8, P2O5:1.5, K2O:2.3, MgO:0.5, S:0.5 }, notas:"ATENCIÓN: Exceso de N puede REDUCIR el rendimiento radicular. N óptimo: 80-120 u/ha máximos.", fuente_rend:"Cwalina-Ambroziak et al. 2022 — 83 Mg/ha, cv. Chrysolite" },
+  "Pepino (fruto fresco)": { tipo:"fijo", unidad:"fruto fresco", rend:17200, req_ton:{ N:3.0, P2O5:2.2, K2O:4.0, MgO:1.0, S:1.0 }, notas:"Alta demanda K. INM con vermicompost + biofertilizantes mejora P hasta 33%.", fuente_rend:"Sahu et al. 2025 — 17.2 t/ha, INM completo" },
+};
+
+const pn = (saco, kg=25, iva=0.19) => Math.round(saco / (1+iva) / kg * 10)/10;
+
+const FERTS_BASE = [
+  { n:"Sulfato Amonio COPEVAL",      tipo:"inorganico", prov:"COPEVAL", precio:pn(11690), comp:{N:21, S:24},       tanque_orig:"A",  sol:710 },
+  { n:"MAP Monoamónico COPEVAL",     tipo:"inorganico", prov:"COPEVAL", precio:pn(24500), comp:{N:11, P2O5:52},    tanque_orig:"A",  sol:400 },
+  { n:"Sulfato Potasio SOP COPEVAL", tipo:"inorganico", prov:"COPEVAL", precio:pn(29820), comp:{K2O:52, S:18},     tanque_orig:"A",  sol:120 },
+  { n:"Nitrato Potasio COPEVAL",     tipo:"inorganico", prov:"COPEVAL", precio:pn(30805), comp:{N:13, K2O:44},     tanque_orig:"A",  sol:133 },
+  { n:"Sulfato Magnesio COPEVAL",    tipo:"inorganico", prov:"COPEVAL", precio:pn(10000), comp:{MgO:16, S:13},     tanque_orig:"A",  sol:710 },
+  { n:"Nitrato Calcio COPEVAL",      tipo:"inorganico", prov:"COPEVAL", precio:pn(18750), comp:{N:15.5, Ca:26.5},  tanque_orig:"B",  sol:1020 },
+  { n:"Nitrato Magnesio COPEVAL",    tipo:"inorganico", prov:"COPEVAL", precio:pn(16280), comp:{N:11, MgO:9.5},    tanque_orig:"B",  sol:2250 },
+  { n:"Urea COAGRA",                 tipo:"inorganico", prov:"COAGRA",  precio:pn(16250), comp:{N:46},             tanque_orig:"A",  sol:1080 },
+  { n:"Nitrato Potasio CALS",        tipo:"inorganico", prov:"CALS",    precio:0,         comp:{N:13, K2O:44},     tanque_orig:"A",  sol:133 },
+  { n:"Estabilizado Cerdo Pucalán",  tipo:"organico",   prov:"Pucalan", precio:53,        comp:{N:2.6,  P2O5:8.5, K2O:2.1, Ca:4.9,  MgO:2.6}, tanque_orig:"AB", sol:9999 },
+  { n:"Guano Broiler Pucalán",       tipo:"organico",   prov:"Pucalan", precio:39,        comp:{N:3.93, P2O5:3.0, K2O:3.7, Ca:3.4,  MgO:1.1}, tanque_orig:"AB", sol:9999 },
+  { n:"Compost ASF",                 tipo:"organico",   prov:"ASF",     precio:34,        comp:{N:0.97, P2O5:1.3, K2O:0.95,Ca:1.6,  MgO:0.77},tanque_orig:"AB", sol:9999 },
+  { n:"Estabilizado Ave ASF",        tipo:"organico",   prov:"ASF",     precio:39.5,      comp:{N:3.21, P2O5:4.1, K2O:2.5, Ca:13.7, MgO:1.1}, tanque_orig:"AB", sol:9999 },
+  { n:"Estabilizado Vacuno ASF",     tipo:"organico",   prov:"ASF",     precio:36,        comp:{N:1.72, P2O5:2.0, K2O:1.2, Ca:2.5,  MgO:1.2}, tanque_orig:"AB", sol:9999 },
+];
+
+const INCOMPATS = [
+  ["Nitrato Calcio","MAP",              "Ca+HPO4→CaHPO4"],
+  ["Nitrato Calcio","Sulfato Potasio",  "Ca+SO4→CaSO4"],
+  ["Nitrato Calcio","Sulfato Amonio",   "Ca+SO4→CaSO4"],
+  ["Nitrato Calcio","Sulfato Magnesio", "Ca+SO4→CaSO4"],
+  ["Nitrato Magnesio","MAP",            "Mg+HPO4→precipitado"],
+];
+
+let _etapa_sel = "Año 6+ — Adulto (~7000 kg/ha)";
+let _ferts = JSON.parse(JSON.stringify(FERTS_BASE));
+let _lastResult = null;
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n, d=0) => Number(n).toLocaleString('es-CL', { minimumFractionDigits:d, maximumFractionDigits:d });
+
+function rend_kgha() {
+  const data = CULTIVOS[$('w_cul').value];
+  return data.tipo === "etapas" ? ETAPAS_NOGAL[_etapa_sel].rend : data.rend;
+}
+function req_uha() {
+  const data = CULTIVOS[$('w_cul').value];
+  if (data.tipo === "etapas") {
+    const e = ETAPAS_NOGAL[_etapa_sel];
+    return { N:e.N, P2O5:e.P2O5, K2O:e.K2O, MgO:e.MgO, S:e.S };
+  }
+  const out = {};
+  for (const k of NUTS) out[k] = Math.round((data.req_ton[k]||0) * data.rend / 1000 * 10)/10;
+  return out;
+}
+function get_tanque(f, modo_inorg, modo_org) {
+  if (f.tipo === "inorganico") return modo_inorg === "fertirriego" ? f.tanque_orig : "AB";
+  return modo_org === "fertirriego" ? f.tanque_orig : "AB";
+}
+function aporte_uha_sector(sector) {
+  const s = SUELO[sector];
+  return { N:s.N, P2O5:s.P2O5, K2O:s.K2O, MgO:s.MgO, S:s.S };
+}
+
+function init_dropdowns() {
+  const sel_cul = $('w_cul');
+  for (const c of Object.keys(CULTIVOS)) {
+    const o = document.createElement('option'); o.value = c; o.textContent = c; sel_cul.appendChild(o);
+  }
+  sel_cul.value = "Nogal (Chandler)";
+  const sel_sec = $('w_sec');
+  for (const s of Object.keys(SUELO)) {
+    const o = document.createElement('option'); o.value = s; o.textContent = s; sel_sec.appendChild(o);
+  }
+  sel_sec.value = "Pivote 1 y 4";
+}
+
+function render_crop_ctrl() {
+  const data = CULTIVOS[$('w_cul').value];
+  const c = $('crop_ctrl'); c.innerHTML = '';
+  if (data.tipo === "etapas") {
+    const label = document.createElement('label');
+    label.className = "block text-xs font-medium text-gray-600 mb-1";
+    label.textContent = "Etapa / edad";
+    c.appendChild(label);
+    const sel = document.createElement('select');
+    sel.className = "w-full md:w-auto";
+    for (const k of Object.keys(ETAPAS_NOGAL)) {
+      const o = document.createElement('option'); o.value = k; o.textContent = k; sel.appendChild(o);
+    }
+    sel.value = _etapa_sel;
+    sel.onchange = () => { _etapa_sel = sel.value; render_crop_info(); upd_all(); };
+    c.appendChild(sel);
+    const infoDiv = document.createElement('div');
+    infoDiv.id = 'crop_info_inner'; infoDiv.className = 'mt-3';
+    c.appendChild(infoDiv);
+  }
+  render_crop_info();
+}
+
+function render_crop_info() {
+  const data = CULTIVOS[$('w_cul').value];
+  let target = $('crop_info_inner');
+  if (!target) {
+    const c = $('crop_ctrl'); c.innerHTML = '';
+    target = document.createElement('div'); target.id = 'crop_info_inner';
+    c.appendChild(target);
+  }
+  let rend, req, info = "", unidad = data.unidad, fuente = data.fuente_rend;
+  if (data.tipo === "etapas") {
+    const e = ETAPAS_NOGAL[_etapa_sel];
+    rend = e.rend;
+    req = { N:e.N, P2O5:e.P2O5, K2O:e.K2O, MgO:e.MgO, S:e.S };
+    info = e.info;
+  } else {
+    rend = data.rend;
+    req = {};
+    for (const k of NUTS) req[k] = Math.round((data.req_ton[k]||0) * rend / 1000 * 10)/10;
+  }
+  target.innerHTML = `
+    <div class="soil-card">
+      <b>Rendimiento referencial: ${fmt(rend)} kg/ha</b> ${unidad ? `&nbsp;·&nbsp; ${unidad}` : ''}<br>
+      <b>Requerimiento (u/ha):</b>
+      N=${req.N} · P₂O₅=${req.P2O5} · K₂O=${req.K2O} · MgO=${req.MgO} · S=${req.S}<br>
+      <span class="text-gray-500 text-xs">Fuente: ${fuente}</span>
+    </div>
+    ${info ? `<div class="inf-box mt-2">${info}</div>` : ''}
+    ${data.notas ? `<div class="warn mt-2">${data.notas}</div>` : ''}
+  `;
+}
+
+function render_aplic_info() {
+  const mi = $('w_aplic_inorg').value, mo = $('w_aplic_org').value;
+  const msgs = [];
+  msgs.push(mi === "fertirriego"
+    ? "Inorgánicos vía riego: se respetan incompatibilidades de tanque (A vs B)."
+    : "Inorgánicos suelo directo: sin restricción de tanques. Aplicar en distintos momentos si hay incompatibilidades.");
+  msgs.push(mo === "fertirriego"
+    ? "Orgánicos vía riego: aplicación como slurry o té de compost."
+    : "Orgánicos suelo directo: incorporados o en superficie antes de riego.");
+  $('aplic_info').innerHTML = msgs.map(m => `<div class="inf-box">${m}</div>`).join('');
+}
+
+function render_soil() {
+  const sector = $('w_sec').value;
+  const s = SUELO[sector];
+  const ap = aporte_uha_sector(sector);
+  const phc = s.pH < 6.0 ? "#dc2626" : (s.pH < 6.3 ? "#b45309" : "#15803d");
+  let filas = '';
+  for (const nut of NUTS) {
+    filas += `<tr><td><b>${nut}</b></td><td>${s[nut]}</td><td>${fmt(ap[nut],1)}</td></tr>`;
+  }
+  $('soil_info').innerHTML = `
+    <div class="soil-card">
+      <b>${sector}</b> · Muestra ${s.muestra} · pH <b style="color:${phc}">${s.pH}</b> · MO ${s.MO}% · CE ${s.CE} dS/m<br>
+      <span class="text-gray-600 text-xs">${s.nota}</span>
+    </div>
+    ${s.acid ? `<div class="err-box mt-2">pH ácido detectado (&lt;6.0). Considerar encalado previo a la fertilización.</div>` : ''}
+    <table class="data mt-3">
+      <tr><th>Nutriente</th><th>Suelo (u/ha)</th><th>Disponible (u/ha)</th></tr>
+      ${filas}
+    </table>
+    <div class="text-xs text-gray-400 mt-1">Valores calculados por IRRIFER. N, P = disponibles; K, Mg = intercambiables; S = disponible.</div>
+  `;
+}
+
+function render_balance() {
+  const ha = parseFloat($('w_ha').value);
+  const req = req_uha();
+  const ap = {
+    N: parseFloat($('ws_n').value) || 0, P2O5: parseFloat($('ws_p').value) || 0,
+    K2O: parseFloat($('ws_k').value) || 0, MgO: parseFloat($('ws_mg').value) || 0,
+    S: parseFloat($('ws_s').value) || 0,
+  };
+  const cul = $('w_cul').value;
+  const rend = rend_kgha();
+  const prod = ha * rend / 1000;
+  let filas = ''; let tot_req = 0, tot_net = 0;
+  for (const nut of NUTS) {
+    const r = req[nut], a = ap[nut] || 0;
+    const net = Math.max(0, r - a);
+    const pct = r > 0 ? Math.round(a / r * 100) : 100;
+    const cls = net > 0 ? 'bad-txt' : 'ok-txt';
+    const val = net === 0 ? `— (${pct}%)` : `${fmt(net,1)} (${pct}%)`;
+    filas += `<tr><td><b>${nut}</b></td><td>${fmt(r,1)}</td><td>${fmt(a,1)}</td><td class="${cls}">${val}</td></tr>`;
+    tot_req += r; tot_net += net;
+  }
+  filas += `<tr style="background:#f1f5f9;font-weight:600"><td>TOTAL</td><td>${fmt(tot_req,1)}</td><td>${fmt(tot_req-tot_net,1)}</td><td class="${tot_net>0?'bad-txt':'ok-txt'}">${fmt(tot_net,1)}</td></tr>`;
+  $('balance').innerHTML = `
+    <div class="text-sm font-semibold text-gray-800">
+      ${cul} · ${fmt(rend)} kg/ha · ${Math.round(ha)} ha · Prod.: ${fmt(prod,1)} ton
+    </div>
+    <table class="data mt-2">
+      <tr><th>Nutriente</th><th>Requerimiento (u/ha)</th><th>Aporte suelo (u/ha)</th><th>A fertilizar (u/ha)</th></tr>
+      ${filas}
+    </table>
+    <div class="text-xs text-gray-400 mt-1">u/ha = kg de nutriente por hectárea</div>
+  `;
+}
+
+function render_ferts() {
+  const rowsInorg = _ferts.filter(f => f.tipo === "inorganico");
+  const rowsOrg = _ferts.filter(f => f.tipo === "organico");
+  const render_row = (f, idx) => {
+    const cs = Object.entries(f.comp).filter(([k,v]) => v > 0).map(([k,v]) => `${k}:${v}%`).join(' · ');
+    return `
+      <div class="fert-row">
+        <div>
+          <div class="fert-name"><span class="badge prov-${f.prov}">${f.prov}</span> ${f.n}</div>
+          <div class="fert-comp">${cs}</div>
+        </div>
+        <input type="number" data-fidx="${idx}" data-fk="precio" value="${f.precio}" min="0" step="1" title="$/kg sin IVA">
+        <select data-fidx="${idx}" data-fk="tanque_orig" title="Tanque original">
+          <option value="A" ${f.tanque_orig==='A'?'selected':''}>A</option>
+          <option value="B" ${f.tanque_orig==='B'?'selected':''}>B</option>
+          <option value="AB" ${f.tanque_orig==='AB'?'selected':''}>AB</option>
+        </select>
+        <span class="badge tanque-${f.tanque_orig}">Tq ${f.tanque_orig}</span>
+      </div>
+    `;
+  };
+  $('ferts_inorg').innerHTML = rowsInorg.map((f) => render_row(f, _ferts.indexOf(f))).join('');
+  $('ferts_org').innerHTML = rowsOrg.map((f) => render_row(f, _ferts.indexOf(f))).join('');
+  document.querySelectorAll('[data-fidx]').forEach(el => {
+    el.addEventListener('change', (e) => {
+      const idx = parseInt(e.target.dataset.fidx);
+      const k = e.target.dataset.fk;
+      const v = e.target.tagName === 'SELECT' ? e.target.value : parseFloat(e.target.value) || 0;
+      _ferts[idx][k] = v;
+      if (k === 'tanque_orig') render_ferts();
+    });
+  });
+}
+
+function upd_all() {
+  const sector = $('w_sec').value;
+  const ap = aporte_uha_sector(sector);
+  $('ws_n').value = ap.N; $('ws_p').value = ap.P2O5; $('ws_k').value = ap.K2O;
+  $('ws_mg').value = ap.MgO; $('ws_s').value = ap.S;
+  render_soil(); render_balance(); render_crop_info();
+}
+
+function do_optimize() {
+  const btn = $('btn_opt');
+  btn.disabled = true; btn.textContent = 'Calculando...';
+  $('status_lbl').innerHTML = '<span class="text-amber-600">Ejecutando solver...</span>';
+  $('log_out').textContent = '';
+  try {
+    const ha = parseFloat($('w_ha').value);
+    const cul = $('w_cul').value;
+    const modo = $('w_modo').value;
+    const max_org = parseFloat($('w_maxo').value);
+    const mi = parseInt($('w_mini').value);
+    const mo_v = parseInt($('w_mino').value);
+    const m_inorg = $('w_aplic_inorg').value;
+    const m_org = $('w_aplic_org').value;
+    const req_u = req_uha();
+    const ap_u = {
+      N: parseFloat($('ws_n').value) || 0, P2O5: parseFloat($('ws_p').value) || 0,
+      K2O: parseFloat($('ws_k').value) || 0, MgO: parseFloat($('ws_mg').value) || 0,
+      S: parseFloat($('ws_s').value) || 0,
+    };
+    const req_b = {}, req_n = {}, net_uha = {};
+    for (const k of NUTS) {
+      req_b[k] = req_u[k] * ha;
+      req_n[k] = Math.max(0, req_b[k] - ap_u[k] * ha);
+      net_uha[k] = req_n[k] / ha;
+    }
+    const fval = [];
+    for (const f of _ferts) {
+      if (f.sol < 40) continue;
+      const fc = JSON.parse(JSON.stringify(f));
+      fc.tanque = get_tanque(fc, m_inorg, m_org);
+      fval.push(fc);
+    }
+    const sin_p = fval.filter(f => f.precio <= 0).map(f => f.n);
+    const modo_f = sin_p.length > 0;
+    if (modo_f) for (const fv of fval) if (fv.precio <= 0) fv.precio = 1;
+    const errs = [];
+    if (m_inorg === "fertirriego") {
+      for (const [fa, fb] of INCOMPATS) {
+        const mas = fval.filter(x => x.n.toLowerCase().includes(fa.toLowerCase()));
+        const mbs = fval.filter(x => x.n.toLowerCase().includes(fb.toLowerCase()));
+        for (const a of mas) for (const b of mbs) {
+          if (a.tanque === b.tanque && (a.tanque === 'A' || a.tanque === 'B')) {
+            errs.push(`Conflicto tanque ${a.tanque}: ${a.n.slice(0,28)} ↔ ${b.n.slice(0,28)}`);
+          }
+        }
+      }
+    }
+    for (const nut of NUTS) {
+      if (req_n[nut] <= 0) continue;
+      const total = fval.reduce((s, f) => s + (f.comp[nut] || 0), 0);
+      if (total === 0) errs.push(`Sin fuente para ${nut} (${fmt(net_uha[nut],1)} u/ha)`);
+    }
+    const nin = fval.filter(f => f.tipo === "inorganico").length;
+    const nor = fval.filter(f => f.tipo === "organico").length;
+    if (nin < mi) errs.push(`Inorgánicos disp.(${nin}) < mínimo(${mi})`);
+    if (nor < mo_v) errs.push(`Orgánicos disp.(${nor}) < mínimo(${mo_v})`);
+
+    const rend = rend_kgha();
+    const prod = ha * rend / 1000;
+
+    let logTxt = '';
+    if (modo_f) logTxt += `AVISO: ${sin_p.length} producto(s) sin precio → modo factibilidad\n`;
+    logTxt += `Cultivo: ${cul} | ${fmt(rend)} kg/ha | ${Math.round(ha)} ha | ${fmt(prod,1)} ton\n`;
+    logTxt += `Aplicación: inorg=${m_inorg} | org=${m_org}\n\n`;
+    logTxt += 'Nut.     Req(u/ha)   Suelo(u/ha)   Neto(u/ha)   Total(kg)\n' + '─'.repeat(62) + '\n';
+    for (const nut of NUTS) {
+      logTxt += `${nut.padEnd(8)} ${fmt(req_u[nut],1).padStart(10)}  ${fmt(ap_u[nut]||0,1).padStart(12)}  ${fmt(net_uha[nut],1).padStart(12)}  ${fmt(req_n[nut],1).padStart(12)}\n`;
+    }
+    if (errs.length) { logTxt += '\nERRORES:\n'; for (const e of errs) logTxt += '  · ' + e + '\n'; }
+    $('log_out').textContent = logTxt;
+    if (errs.length) {
+      $('status_lbl').innerHTML = '<span class="text-red-600">Errores detectados. Revisa el log.</span>';
+      return;
+    }
+
+    const BM = 1_000_000;
+    const tqf_set = new Set(fval.filter(f => f.tanque !== "AB").map(f => f.tanque));
+    const tqf = Array.from(tqf_set).sort();
+    if (tqf.length === 0) tqf.push("solo");
+    const model = { optimize:"cost", opType:"min", constraints:{}, variables:{}, ints:{}, binaries:{} };
+    const regVar = (name, contribs) => { model.variables[name] = contribs; };
+    const regBin = (name, contribs) => { model.variables[name] = contribs; model.binaries[name] = 1; };
+    for (const nut of NUTS) {
+      if (req_n[nut] <= 0) continue;
+      const hasSource = fval.some(f => (f.comp[nut] || 0) > 0);
+      if (hasSource) model.constraints[`nut_${nut}`] = { min: req_n[nut] };
+    }
+    const fvalIdx = fval.map((fv, i) => ({ ...fv, _idx: i }));
+    fvalIdx.forEach((fv, i) => {
+      const t = fv.tanque;
+      const uname = `u_${i}`;
+      regBin(uname, { cost: 0 });
+      if (t === "A" || t === "B" || t === "solo") {
+        const vname = `k_${t}_${i}`;
+        const contribs = { cost: fv.precio };
+        for (const nut of NUTS) {
+          if ((fv.comp[nut] || 0) > 0 && req_n[nut] > 0) contribs[`nut_${nut}`] = fv.comp[nut] / 100;
+        }
+        contribs[`bigM_${i}`] = 1;
+        regVar(vname, contribs);
+        model.variables[uname][`bigM_${i}`] = -BM;
+        model.constraints[`bigM_${i}`] = { max: 0 };
+        contribs[`minkg_${i}`] = 1;
+        model.variables[uname][`minkg_${i}`] = -1;
+        model.constraints[`minkg_${i}`] = { min: 0 };
+      } else if (t === "AB") {
+        const in_t_names = [];
+        tqf.forEach((tt) => {
+          const vname = `ab_${tt}_${i}`;
+          const inname = `it_${tt}_${i}`;
+          in_t_names.push(inname);
+          const contribs = { cost: fv.precio };
+          for (const nut of NUTS) {
+            if ((fv.comp[nut] || 0) > 0 && req_n[nut] > 0) contribs[`nut_${nut}`] = fv.comp[nut] / 100;
+          }
+          contribs[`bigM_ab_${tt}_${i}`] = 1;
+          regVar(vname, contribs);
+          regBin(inname, { cost: 0 });
+          model.variables[inname][`bigM_ab_${tt}_${i}`] = -BM;
+          model.constraints[`bigM_ab_${tt}_${i}`] = { max: 0 };
+        });
+        const sumKey = `sum_in_${i}`;
+        model.constraints[sumKey] = { max: 1 };
+        for (const inname of in_t_names) model.variables[inname][sumKey] = 1;
+        const eqKey = `eq_in_${i}`;
+        model.constraints[eqKey] = { equal: 0 };
+        for (const inname of in_t_names) model.variables[inname][eqKey] = 1;
+        model.variables[uname][eqKey] = -1;
+        const minKey = `minab_${i}`;
+        model.constraints[minKey] = { min: 0 };
+        tqf.forEach((tt) => { model.variables[`ab_${tt}_${i}`][minKey] = 1; });
+        model.variables[uname][minKey] = -1;
+        if (fv.tipo === "organico") {
+          const maxKey = `maxorg_${i}`;
+          model.constraints[maxKey] = { max: max_org * ha };
+          tqf.forEach((tt) => { model.variables[`ab_${tt}_${i}`][maxKey] = 1; });
+        }
+      }
+    });
+    if (mi > 0) {
+      model.constraints['min_inorg'] = { min: mi };
+      fvalIdx.filter(f => f.tipo === "inorganico").forEach(f => { model.variables[`u_${f._idx}`]['min_inorg'] = 1; });
+    }
+    if (mo_v > 0) {
+      model.constraints['min_org'] = { min: mo_v };
+      fvalIdx.filter(f => f.tipo === "organico").forEach(f => { model.variables[`u_${f._idx}`]['min_org'] = 1; });
+    }
+    const org_list = fvalIdx.filter(f => f.tipo === "organico");
+    const inorg_list = fvalIdx.filter(f => f.tipo === "inorganico");
+    const sp = {};
+    if ((modo === "pref_org" || modo === "ambos_tipos") && org_list.length > 0) {
+      const provs = Array.from(new Set(org_list.map(f => f.prov))).sort();
+      provs.forEach((pr, pi) => {
+        const spname = `sp_${pi}`;
+        sp[pr] = spname;
+        regBin(spname, { cost: 0 });
+      });
+      org_list.forEach(f => {
+        const i = f._idx; const pr = f.prov;
+        const spKey = `sppref_${i}`;
+        model.constraints[spKey] = { max: 0 };
+        if (f.tanque === "A" || f.tanque === "B" || f.tanque === "solo") model.variables[`k_${f.tanque}_${i}`][spKey] = 1;
+        else if (f.tanque === "AB") tqf.forEach(tt => { model.variables[`ab_${tt}_${i}`][spKey] = 1; });
+        model.variables[sp[pr]][spKey] = -BM;
+      });
+      model.constraints['at_least_1_org'] = { min: 1 };
+      org_list.forEach(f => { model.variables[`u_${f._idx}`]['at_least_1_org'] = 1; });
+    }
+    if (modo === "ambos_tipos" && inorg_list.length > 0) {
+      model.constraints['at_least_1_inorg'] = { min: 1 };
+      inorg_list.forEach(f => { model.variables[`u_${f._idx}`]['at_least_1_inorg'] = 1; });
+    }
+
+    const t0 = performance.now();
+    const solution = solver.Solve(model);
+    const t1 = performance.now();
+    logTxt += `\nSolver: ${solution.feasible ? 'OPTIMAL' : 'INFEASIBLE'} · ${Math.round(t1-t0)}ms\n`;
+    $('log_out').textContent = logTxt;
+    if (!solution.feasible) {
+      $('status_lbl').innerHTML = '<span class="text-red-600">Sin solución factible. Revisa restricciones.</span>';
+      return;
+    }
+
+    const res = [];
+    const prec_orig = {};
+    FERTS_BASE.forEach(f => prec_orig[f.n] = f.precio);
+    const tLabel = (t) => t === "AB" || t === "solo" ? "Suelo directo" : (t === "A" ? "Tanque A" : "Tanque B");
+    fvalIdx.forEach(fv => {
+      const i = fv._idx;
+      const pr = prec_orig[fv.n] !== undefined ? prec_orig[fv.n] : fv.precio;
+      const t = fv.tanque;
+      if (t === "A" || t === "B" || t === "solo") {
+        const kg = solution[`k_${t}_${i}`] || 0;
+        if (kg >= 0.01) {
+          res.push({
+            nm:fv.n, tipo:fv.tipo, prov:fv.prov, aplic:t==="solo"?"Suelo directo":tLabel(t),
+            pkg:pr, kgha:kg/ha, kgt:kg,
+            cha:pr>0?Math.round(kg*pr/ha):0, ct:pr>0?Math.round(kg*pr):0,
+          });
+        }
+      } else if (t === "AB") {
+        for (const tt of tqf) {
+          const kg = solution[`ab_${tt}_${i}`] || 0;
+          if (kg >= 0.01) {
+            res.push({
+              nm:fv.n, tipo:fv.tipo, prov:fv.prov, aplic:tt==="solo"?"Suelo directo":tLabel(tt),
+              pkg:pr, kgha:kg/ha, kgt:kg,
+              cha:pr>0?Math.round(kg*pr/ha):0, ct:pr>0?Math.round(kg*pr):0,
+            });
+          }
+        }
+      }
+    });
+    const ap_r_kg = { N:0, P2O5:0, K2O:0, MgO:0, S:0 };
+    fvalIdx.forEach(fv => {
+      const i = fv._idx; let kg = 0;
+      if (fv.tanque === "A" || fv.tanque === "B" || fv.tanque === "solo") kg = solution[`k_${fv.tanque}_${i}`] || 0;
+      else if (fv.tanque === "AB") for (const tt of tqf) kg += solution[`ab_${tt}_${i}`] || 0;
+      for (const [nut, pct] of Object.entries(fv.comp)) if (nut in ap_r_kg) ap_r_kg[nut] += kg * pct / 100;
+    });
+    const ap_r_uha = {};
+    for (const n of NUTS) ap_r_uha[n] = ap_r_kg[n] / ha;
+    const prov_el = [];
+    for (const [pr, spname] of Object.entries(sp)) if ((solution[spname] || 0) > 0.5) prov_el.push(pr);
+    const costo_total = res.reduce((s, r) => s + r.ct, 0);
+
+    _lastResult = { res, cul, sector:$('w_sec').value, ha, rend, prod, req_u, req_n, net_uha, ap_u, ap_r_uha, costo_total, prov_el, m_inorg, m_org, modo_f };
+    render_results(_lastResult);
+    $('btn_excel').disabled = false;
+    $('status_lbl').innerHTML = `<span class="text-green-600">✓ Listo · $${fmt(costo_total)} total · $${fmt(costo_total/ha)}/ha · ${res.length} productos</span>`;
+  } catch (ex) {
+    console.error(ex);
+    $('log_out').textContent += '\nERROR: ' + ex.message + '\n' + (ex.stack || '');
+    $('status_lbl').innerHTML = `<span class="text-red-600">Error: ${ex.message}</span>`;
+  } finally {
+    btn.disabled = false; btn.textContent = '⚡ OPTIMIZAR';
+  }
+}
+
+function build_interpretation(R) {
+  const { res, cul, ha, costo_total, prov_el, modo_f } = R;
+  if (!res.length) return '';
+  const sorted = [...res].sort((a, b) => b.ct - a.ct);
+  const principal = sorted[0];
+  const segundo = sorted[1];
+  const tipos = Array.from(new Set(res.map(r => r.tipo)));
+  const mezcla_desc = tipos.length === 2 ? "combina <b>fertilizantes químicos y orgánicos</b>"
+    : (tipos[0] === "inorganico" ? "usa solo <b>fertilizantes químicos</b>" : "usa solo <b>guanos/compost</b>");
+  let prov_txt = '';
+  if (prov_el.length === 1) prov_txt = ` Los orgánicos vienen todos de <b>${prov_el[0]}</b> para simplificar el despacho.`;
+  let warn_txt = '';
+  if (modo_f) warn_txt = ` <span class="text-amber-700"><b>Aviso:</b> hay productos sin precio cotizado, el costo es aproximado.</span>`;
+  return `
+    <div class="inf-box" style="font-size:12px;line-height:1.5">
+      <b>📋 En simple:</b> Tu plan más económico ${mezcla_desc} por un total de
+      <b>$${fmt(costo_total)}</b> (~$${fmt(costo_total/ha)}/ha en ${Math.round(ha)} ha de ${cul}).
+      El producto que más aporta al costo es <b>${principal.nm}</b>
+      (${fmt(principal.kgt,0)} kg, $${fmt(principal.ct)})${segundo ? `, seguido por ${segundo.nm}` : ''}.${prov_txt}${warn_txt}
+    </div>
+  `;
+}
+
+function render_results(R) {
+  const { res, cul, sector, ha, rend, prod, req_u, net_uha, ap_u, ap_r_uha, costo_total, prov_el, m_inorg, m_org, modo_f } = R;
+  $('results_wrap').classList.remove('hidden');
+  const aplic_str = `${m_inorg === 'fertirriego' ? 'Fertirriego' : 'Suelo'} inorg / ${m_org === 'fertirriego' ? 'Fertirriego' : 'Suelo'} org`;
+  const ps = prov_el.length ? prov_el.join(', ') : '—';
+  $('result_interpretation').innerHTML = build_interpretation(R);
+  $('result_metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Costo total</div><div class="metric-value">$${fmt(costo_total)}</div>${modo_f?'<div class="text-xs text-amber-600">modo factibilidad</div>':''}</div>
+    <div class="metric"><div class="metric-label">Costo / ha</div><div class="metric-value" style="color:#059669">$${fmt(costo_total/ha)}</div></div>
+    <div class="metric"><div class="metric-label">Cultivo</div><div class="text-xs font-bold text-teal-700">${cul}</div><div class="text-xs text-gray-500">${fmt(rend)} kg/ha · ${fmt(prod,1)} ton</div></div>
+    <div class="metric"><div class="metric-label">Aplicación</div><div class="text-xs font-semibold text-gray-700">${aplic_str}</div><div class="text-xs text-gray-500">${sector}</div></div>
+    <div class="metric"><div class="metric-label">Productos · Prov. org.</div><div class="metric-value" style="color:#b45309">${res.length}</div><div class="text-xs text-purple-700 font-semibold">${ps}</div></div>
+  `;
+  const grupos = Array.from(new Set(res.map(r => r.aplic))).sort();
+  let planHtml = '';
+  for (const g of grupos) {
+    const icon = g.includes('A') ? '🔵' : (g.includes('B') ? '🟡' : '🟢');
+    const filas = res.filter(r => r.aplic === g).map(r => `
+      <tr>
+        <td><span class="badge prov-${r.prov}">${r.prov}</span> ${r.nm}</td>
+        <td>${fmt(r.pkg,1)}</td><td>${fmt(r.kgha,1)}</td><td>${fmt(r.kgt,1)}</td>
+        <td>$${fmt(r.cha)}</td><td>$${fmt(r.ct)}</td>
+      </tr>
+    `).join('');
+    planHtml += `
+      <div class="mt-3">
+        <div class="text-xs font-bold text-gray-700 mb-1">${icon} ${g}</div>
+        <table class="data">
+          <tr><th>Fertilizante</th><th>$/kg</th><th>kg/ha</th><th>kg total</th><th>Costo $/ha</th><th>Costo total</th></tr>
+          ${filas}
+        </table>
+      </div>
+    `;
+  }
+  $('result_plan').innerHTML = planHtml;
+  let vnFilas = '';
+  for (const nut of NUTS) {
+    const rq = req_u[nut], apS = ap_u[nut] || 0, apF = ap_r_uha[nut] || 0;
+    const net = net_uha[nut], total = apS + apF;
+    const cb = net > 0 ? Math.round(apF / net * 1000)/10 : 100;
+    const cls = cb >= 100 ? 'ok-txt' : 'bad-txt';
+    vnFilas += `
+      <tr>
+        <td><b>${nut}</b></td><td>${fmt(rq,1)}</td><td>${fmt(apS,1)}</td>
+        <td>${fmt(net,1)}</td><td class="${cls}">${fmt(apF,1)}</td>
+        <td>${fmt(total,1)}</td><td class="${cls}">${cb}%</td>
+      </tr>
+    `;
+  }
+  $('result_nutri').innerHTML = `
+    <div class="text-xs font-bold text-gray-700 mb-1">Verificación nutricional (u/ha)</div>
+    <table class="data">
+      <tr>
+        <th>Nutriente</th><th>Req. cultivo</th><th>Suelo</th><th>A fertilizar</th>
+        <th>Aporta fert.</th><th>Total cubierto</th><th>Cobertura %</th>
+      </tr>
+      ${vnFilas}
+    </table>
+  `;
+  render_charts(R);
+  $('results_wrap').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+let _chartCost = null, _chartNutri = null;
+function render_charts(R) {
+  const { res, net_uha, ap_r_uha } = R;
+  const tc = { "Tanque A":"#3b82f6", "Tanque B":"#f59e0b", "Suelo directo":"#22c55e" };
+  const labels = res.map(r => r.nm.length > 28 ? r.nm.slice(0,26) + '…' : r.nm);
+  const colors = res.map(r => tc[r.aplic] || "#9ca3af");
+  if (_chartCost) _chartCost.destroy();
+  if (_chartNutri) _chartNutri.destroy();
+  _chartCost = new Chart($('chart_cost').getContext('2d'), {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Costo $/ha', data:res.map(r => r.cha), backgroundColor:colors }] },
+    options:{ indexAxis:'y', plugins:{ title:{ display:true, text:'Costo $/ha por producto' }, legend:{ display:false } },
+      scales:{ x:{ ticks:{ callback:v => '$' + fmt(v) } } }, responsive:true, maintainAspectRatio:false },
+  });
+  const nuts_p = NUTS.filter(n => (net_uha[n] || 0) > 0);
+  _chartNutri = new Chart($('chart_nutri').getContext('2d'), {
+    type:'bar',
+    data:{ labels:nuts_p, datasets:[
+      { label:'Requerido (u/ha)', data:nuts_p.map(n => net_uha[n]), backgroundColor:'#93c5fd' },
+      { label:'Aportado fert. (u/ha)', data:nuts_p.map(n => ap_r_uha[n] || 0), backgroundColor:'#16a34a' },
+    ]},
+    options:{ plugins:{ title:{ display:true, text:'Cobertura nutricional (u/ha)' } }, responsive:true, maintainAspectRatio:false },
+  });
+  const cvs = $('chart_cost');
+  cvs.parentElement.style.height = Math.max(250, res.length * 28 + 60) + 'px';
+}
+
+function do_excel() {
+  if (!_lastResult) return;
+  const R = _lastResult;
+  const sd = SUELO[R.sector];
+  const wb = XLSX.utils.book_new();
+  const planRows = R.res.map(r => ({
+    Fertilizante:r.nm, Tipo:r.tipo, Proveedor:r.prov, Aplicación:r.aplic,
+    "$/kg prod.":r.pkg, "kg/ha prod.":+r.kgha.toFixed(1), "kg total prod.":+r.kgt.toFixed(1),
+    "Costo $/ha":r.cha, "Costo $ total":r.ct,
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(planRows), "Plan de compras");
+  const balRows = NUTS.map(nut => {
+    const rq = R.req_u[nut], apo = R.ap_u[nut] || 0, net = Math.max(0, rq - apo);
+    return { Nutriente:nut, "Req. cultivo (u/ha)":+rq.toFixed(1),
+      "Disponible suelo (u/ha)":+apo.toFixed(1), "A fertilizar (u/ha)":+net.toFixed(1),
+      "A fertilizar total (kg)":+(net * R.ha).toFixed(1) };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(balRows), "Balance (u-ha)");
+  const resRows = [
+    { Param:'Cultivo', Valor:R.cul }, { Param:'Sector', Valor:R.sector },
+    { Param:'Hectáreas', Valor:R.ha }, { Param:'Rendimiento kg/ha', Valor:R.rend },
+    { Param:'Producción ton', Valor:+R.prod.toFixed(1) },
+    { Param:'Aplic. inorgánicos', Valor:R.m_inorg }, { Param:'Aplic. orgánicos', Valor:R.m_org },
+    { Param:'pH suelo', Valor:sd.pH }, { Param:'Muestra', Valor:sd.muestra },
+    { Param:'Lab', Valor:'IRRIFER Ltda.' }, { Param:'Costo total', Valor:R.costo_total },
+    { Param:'Costo $/ha', Valor:Math.round(R.costo_total/R.ha) },
+  ];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resRows), "Resumen");
+  const fname = `plan_${R.cul.replace(/[^\w]/g,'_').slice(0,18)}_${R.sector.replace(/\s/g,'_').slice(0,14)}.xlsx`;
+  XLSX.writeFile(wb, fname);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  init_dropdowns();
+  render_crop_ctrl();
+  render_aplic_info();
+  render_ferts();
+  upd_all();
+  $('w_cul').addEventListener('change', () => { render_crop_ctrl(); upd_all(); });
+  $('w_sec').addEventListener('change', upd_all);
+  $('w_ha').addEventListener('input', () => { $('ha_val').textContent = $('w_ha').value; render_balance(); });
+  $('w_aplic_inorg').addEventListener('change', render_aplic_info);
+  $('w_aplic_org').addEventListener('change', render_aplic_info);
+  $('w_mini').addEventListener('input', () => $('mini_val').textContent = $('w_mini').value);
+  $('w_mino').addEventListener('input', () => $('mino_val').textContent = $('w_mino').value);
+  ['ws_n','ws_p','ws_k','ws_mg','ws_s'].forEach(id => $(id).addEventListener('input', render_balance));
+  $('btn_opt').addEventListener('click', do_optimize);
+  $('btn_excel').addEventListener('click', do_excel);
+});
+</script>
+
+</body>
+</html>
