@@ -721,7 +721,15 @@
 
       <!-- Acciones -->
       <div class="flex flex-col md:flex-row gap-2 items-center justify-between pt-3 border-t border-gray-200">
-        <div id="rfq_status" class="text-xs text-gray-500"></div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-gray-500">Cliente email:</label>
+          <select id="rfq_client" class="text-xs" style="font-size:11px;padding:3px 8px;" onchange="setMailClient(this.value)">
+            <option value="gmail">Gmail (web)</option>
+            <option value="outlook_web">Outlook (web)</option>
+            <option value="mailto">Sistema (Outlook/Thunderbird)</option>
+          </select>
+          <span id="rfq_status" class="text-xs text-gray-500 ml-2"></span>
+        </div>
         <div class="flex gap-2">
           <button class="btn-secondary" onclick="downloadRFQPDF()">📄 Descargar PDF</button>
           <button class="btn-primary" style="padding:8px 18px;font-size:13px;" onclick="openRFQMail()">📧 Abrir en email</button>
@@ -2015,6 +2023,10 @@ function initRFQ() {
   fecha.setDate(fecha.getDate() + 15);
   $('rfq_fecha_req').value = fecha.toISOString().split('T')[0];
 
+  // Restaurar cliente de email guardado
+  const clientSel = $('rfq_client');
+  if (clientSel) clientSel.value = getMailClient();
+
   renderRFQProducts();
   renderRFQDestinatarios();
   refreshRFQPreview();
@@ -2263,7 +2275,36 @@ function refreshRFQPreview() {
   $('rfq_preview').textContent = out.trim();
 }
 
-// ── Email: abre mailto con delay entre cada uno (Chrome bloquea múltiples seguidos) ──
+// ── Cliente de email (persiste en localStorage) ──────────────
+function getMailClient() {
+  try { return localStorage.getItem('rfq_mail_client') || 'gmail'; }
+  catch (e) { return 'gmail'; }
+}
+
+function setMailClient(v) {
+  try { localStorage.setItem('rfq_mail_client', v); } catch (e) {}
+}
+
+// Construye URL para abrir draft según cliente elegido
+function buildMailUrl(subject, body, to = '') {
+  const client = getMailClient();
+  const s = encodeURIComponent(subject);
+  const b = encodeURIComponent(body);
+  const t = encodeURIComponent(to);
+
+  if (client === 'gmail') {
+    // Gmail web compose: abre ventana/tab nueva con draft
+    return `https://mail.google.com/mail/?view=cm&fs=1&to=${t}&su=${s}&body=${b}`;
+  }
+  if (client === 'outlook_web') {
+    // Outlook web compose
+    return `https://outlook.office.com/mail/deeplink/compose?to=${t}&subject=${s}&body=${b}`;
+  }
+  // Por defecto mailto: (sistema)
+  return `mailto:${t}?subject=${s}&body=${b}`;
+}
+
+// ── Email: abre según cliente elegido (Gmail/Outlook web abren ventana, mailto navega) ──
 function openRFQMail() {
   const requests = buildRFQRequests();
   if (!requests.length) {
@@ -2271,36 +2312,64 @@ function openRFQMail() {
     return;
   }
 
+  const client = getMailClient();
+
   if (requests.length === 1) {
-    // Un solo draft: abrir directo
+    // Un solo draft
     const { subject, body } = buildRFQText(requests[0]);
-    const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
-    $('rfq_status').innerHTML = `<span class="text-green-600">✓ Draft abierto en tu cliente de email. Si no se abrió automáticamente, revisa si Chrome bloqueó un popup.</span>`;
+    const url = buildMailUrl(subject, body);
+    if (client === 'mailto') {
+      window.location.href = url;
+    } else {
+      window.open(url, '_blank');
+    }
+    $('rfq_status').innerHTML = `<span class="text-green-600">✓ Draft abierto en ${clientName(client)}. Si no se abrió, revisa si el navegador bloqueó popups.</span>`;
     return;
   }
 
-  // Múltiples: ofrecer botones "Siguiente" para que el usuario los abra 1 por 1
-  // (Chrome bloquea window.open() seguidos sin interacción del usuario)
-  let idx = 0;
-  const total = requests.length;
-
-  const renderNextBtn = () => {
-    if (idx >= total) {
-      $('rfq_status').innerHTML = `<span class="text-green-600">✓ Todos los ${total} drafts abiertos</span>`;
-      return;
+  // Múltiples: para Gmail/Outlook web abrimos todos (window.open respeta popup rules)
+  // Para mailto: usamos secuencia con botón siguiente para evitar bloqueos de Chrome
+  if (client === 'gmail' || client === 'outlook_web') {
+    let opened = 0, blocked = 0;
+    requests.forEach(r => {
+      const { subject, body } = buildRFQText(r);
+      const url = buildMailUrl(subject, body);
+      const w = window.open(url, '_blank');
+      if (w) opened++;
+      else blocked++;
+    });
+    if (blocked > 0) {
+      $('rfq_status').innerHTML = `<span class="text-amber-700">⚠ ${opened} drafts abiertos, ${blocked} bloqueados por el navegador. Permite popups en este sitio y reintenta, o usa el cliente "Sistema" para abrirlos uno por uno.</span>`;
+    } else {
+      $('rfq_status').innerHTML = `<span class="text-green-600">✓ ${opened} drafts abiertos en ${clientName(client)}</span>`;
     }
-    const r = requests[idx];
-    $('rfq_status').innerHTML = `
-      <span class="text-amber-700">
-        Abriendo ${idx+1}/${total} — <b>${r.destinatarios.join(', ')}</b>
-      </span>
-      <button class="btn-primary" style="padding:6px 14px;font-size:12px;margin-left:10px;" onclick="openNextRFQMail()">Abrir siguiente draft →</button>
-    `;
-  };
+    return;
+  }
 
-  window._rfqQueue = { requests, idx: 0, total, renderNextBtn };
+  // mailto: secuencial con botón "Siguiente"
+  window._rfqQueue = {
+    requests,
+    idx: 0,
+    total: requests.length,
+    renderNextBtn: function() {
+      if (this.idx >= this.total) {
+        $('rfq_status').innerHTML = `<span class="text-green-600">✓ Todos los ${this.total} drafts abiertos</span>`;
+        return;
+      }
+      const r = this.requests[this.idx];
+      $('rfq_status').innerHTML = `
+        <span class="text-amber-700">
+          Abriendo ${this.idx+1}/${this.total} — <b>${r.destinatarios.join(', ')}</b>
+        </span>
+        <button class="btn-primary" style="padding:6px 14px;font-size:12px;margin-left:10px;" onclick="openNextRFQMail()">Abrir siguiente draft →</button>
+      `;
+    }
+  };
   openNextRFQMail();
+}
+
+function clientName(c) {
+  return ({ gmail: 'Gmail', outlook_web: 'Outlook Web', mailto: 'tu cliente de email' })[c] || c;
 }
 
 function openNextRFQMail() {
@@ -2308,10 +2377,8 @@ function openNextRFQMail() {
   if (!q || q.idx >= q.total) return;
   const r = q.requests[q.idx];
   const { subject, body } = buildRFQText(r);
-  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.location.href = mailto;
+  window.location.href = buildMailUrl(subject, body);
   q.idx++;
-  // Actualizar UI con botón para el siguiente
   setTimeout(() => q.renderNextBtn(), 300);
 }
 
