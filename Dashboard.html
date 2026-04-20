@@ -172,6 +172,7 @@
   <div class="tab g-campo" onclick="show('labores', this)">📋 Labores</div>
   <div class="tab g-campo" onclick="show('produccion', this)">🌱 Producción</div>
   <div class="tab g-campo" onclick="show('insumos', this)">📦 Insumos</div>
+  <div class="tab g-campo" onclick="show('optimizador', this)">🧪 Optimizador</div>
   <div class="tab-sep"></div>
   <div class="tab-group-label">Finanzas</div>
   <div class="tab g-finanzas" onclick="show('caja', this)">🏦 Caja</div>
@@ -201,6 +202,7 @@
   <iframe id="f-labores"    src=""  data-src="/reporte"    data-tab="labores"    class="hidden"></iframe>
   <iframe id="f-produccion" src=""  data-src="/produccion" data-tab="produccion" class="hidden"></iframe>
   <iframe id="f-insumos"    src=""  data-src="/produccion" data-tab="insumos"    class="hidden"></iframe>
+  <iframe id="f-optimizador" src=""  data-src="/optimizador" data-tab=""         class="hidden"></iframe>
   <iframe id="f-caja"       src=""  data-src="/reporte"    data-tab="caja"       class="hidden"></iframe>
   <iframe id="f-costos"     src=""  data-src="/reporte"    data-tab="costos"     class="hidden"></iframe>
   <iframe id="f-ingresos"   src=""  data-src="/reporte"    data-tab="ingresos"   class="hidden"></iframe>
@@ -234,8 +236,11 @@
     '.ntab { display: none !important; }',
     /* home: hide the section tabs (Resumen/Finanzas/Campo) */
     '.nav-tabs { display: none !important; }',
+    /* optimizador: hide the sticky header (uses <header> tag) */
+    'body > header { display: none !important; }',
     /* show only the active section, remove top padding */
     '.body { padding-top: 8px !important; }',
+    'main { padding-top: 8px !important; }',
     /* home: make sure resumen section is visible */
     '.section { display: block !important; }',
   ].join(' ');
