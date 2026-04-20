@@ -816,6 +816,7 @@ const CULTIVOS = {
 // CONFIG — Backend Google Sheets + Cloudflare Worker
 // ═══════════════════════════════════════════════════════════════════
 const API_REG  = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+const API_CC   = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
 const WORKER   = "https://round-night-574d.christian-19c.workers.dev";
 // Token embebido. NO confidencial — solo evita bots randoms escriban.
 // Si lo quieres rotar, edita Script Properties > FERT_TOKEN y actualiza aquí.
@@ -1028,7 +1029,7 @@ function render_balance() {
 
 async function loadBDCC() {
   try {
-    const url = API_REG + "?sheet=BD_CC";
+    const url = API_CC + "?sheet=BD_CC";
     const proxyUrl = WORKER + "?url=" + encodeURIComponent(url);
     const resp = await fetch(proxyUrl);
     const data = await resp.json();
@@ -2247,23 +2248,56 @@ function refreshRFQPreview() {
   $('rfq_preview').textContent = out.trim();
 }
 
-// ── Email: abre mailto con primer request (si grouped) o itera ──
+// ── Email: abre mailto con delay entre cada uno (Chrome bloquea múltiples seguidos) ──
 function openRFQMail() {
   const requests = buildRFQRequests();
   if (!requests.length) {
     $('rfq_status').innerHTML = '<span class="text-red-600">⚠ Sin productos o destinatarios seleccionados</span>';
     return;
   }
-  // Abrir 1 mailto por request
-  // NOTA: muchos navegadores bloquean múltiples mailto seguidos — se abren con delay
-  requests.forEach((r, i) => {
-    const { subject, body } = buildRFQText(r);
-    // Sin email real → To: en blanco, el usuario lo completa
-    const to = '';  // Podría venir del catálogo si agregamos email por proveedor en el futuro
-    const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    setTimeout(() => window.open(mailto, '_blank'), i * 500);
-  });
-  $('rfq_status').innerHTML = `<span class="text-green-600">✓ ${requests.length} draft(s) abiertos en tu cliente de email</span>`;
+
+  if (requests.length === 1) {
+    // Un solo draft: abrir directo
+    const { subject, body } = buildRFQText(requests[0]);
+    const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailto;
+    $('rfq_status').innerHTML = `<span class="text-green-600">✓ Draft abierto en tu cliente de email. Si no se abrió automáticamente, revisa si Chrome bloqueó un popup.</span>`;
+    return;
+  }
+
+  // Múltiples: ofrecer botones "Siguiente" para que el usuario los abra 1 por 1
+  // (Chrome bloquea window.open() seguidos sin interacción del usuario)
+  let idx = 0;
+  const total = requests.length;
+
+  const renderNextBtn = () => {
+    if (idx >= total) {
+      $('rfq_status').innerHTML = `<span class="text-green-600">✓ Todos los ${total} drafts abiertos</span>`;
+      return;
+    }
+    const r = requests[idx];
+    $('rfq_status').innerHTML = `
+      <span class="text-amber-700">
+        Abriendo ${idx+1}/${total} — <b>${r.destinatarios.join(', ')}</b>
+      </span>
+      <button class="btn-primary" style="padding:6px 14px;font-size:12px;margin-left:10px;" onclick="openNextRFQMail()">Abrir siguiente draft →</button>
+    `;
+  };
+
+  window._rfqQueue = { requests, idx: 0, total, renderNextBtn };
+  openNextRFQMail();
+}
+
+function openNextRFQMail() {
+  const q = window._rfqQueue;
+  if (!q || q.idx >= q.total) return;
+  const r = q.requests[q.idx];
+  const { subject, body } = buildRFQText(r);
+  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailto;
+  q.idx++;
+  // Actualizar UI con botón para el siguiente
+  setTimeout(() => q.renderNextBtn(), 300);
 }
 
 // ── PDF con jsPDF + autoTable ────────────────────────────────
