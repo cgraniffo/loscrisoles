@@ -122,6 +122,7 @@
   #ia_chat_fab { position:fixed; bottom:24px; right:24px; width:56px; height:56px; border-radius:50%; background:linear-gradient(135deg,#8b5cf6 0%,#6366f1 100%); color:white; border:none; box-shadow:0 8px 24px rgba(99,102,241,0.35); cursor:pointer; z-index:40; transition:transform .15s; display:flex; align-items:center; justify-content:center; font-size:24px; }
   #ia_chat_fab:hover { transform:scale(1.08); }
   #ia_chat_panel { position:fixed; bottom:88px; right:24px; width:380px; max-width:calc(100vw - 48px); height:520px; max-height:calc(100vh - 120px); background:white; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.25); z-index:41; display:flex; flex-direction:column; overflow:hidden; }
+  #ia_chat_panel.hidden { display:none !important; }
   #ia_chat_header { background:linear-gradient(135deg,#8b5cf6 0%,#6366f1 100%); color:white; padding:12px 16px; font-weight:600; font-size:13px; display:flex; align-items:center; justify-content:space-between; }
   #ia_chat_messages { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px; background:#fafafa; }
   .ia-msg { max-width:85%; padding:8px 12px; border-radius:12px; font-size:12px; line-height:1.5; white-space:pre-wrap; }
@@ -2671,8 +2672,15 @@ function getContextoActual() {
       costo_total: _lastResult.costo_total,
       costo_ha: _lastResult.costo_total / _lastResult.ha,
       productos: _lastResult.res.map(r => ({
-        nombre: r.nm, tipo: r.tp, kg_ha: r.kgh, kg_total: r.kgt,
-        costo: r.cost, proveedor: r.prov
+        nombre: r.nm,
+        tipo: r.tipo,
+        kg_ha: Number(r.kgha) || 0,
+        kg_total: Number(r.kgt) || 0,
+        costo: Number(r.ct) || 0,
+        costo_ha: Number(r.cha) || 0,
+        proveedor: r.prov,
+        aplicacion: r.aplic,
+        precio_kg: Number(r.pkg) || 0,
       })),
     };
   }
@@ -2840,22 +2848,65 @@ Máximo 300 palabras, prioriza lo accionable.`;
 
 // ── Chat flotante ─────────────────────────────────────────────
 let _chatHistory = [];
+let _chatAttachment = null;  // { name, mime, base64, kind: 'image'|'document' }
+
+function onChatFileSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  // Límite 5MB para evitar problemas de tamaño
+  if (file.size > 5 * 1024 * 1024) {
+    alert('Archivo muy grande. Máximo 5 MB.');
+    input.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const base64 = dataUrl.split(',')[1];
+    const mime = file.type || 'application/octet-stream';
+    const kind = mime.startsWith('image/') ? 'image' : 'document';
+
+    _chatAttachment = { name: file.name, mime, base64, kind };
+    $('ia_chat_attach_preview').classList.remove('hidden');
+    $('ia_chat_attach_name').textContent = `📎 ${file.name} (${Math.round(file.size/1024)} KB)`;
+
+    // Placeholder del input sugiere una pregunta
+    $('ia_chat_input').placeholder = kind === 'image'
+      ? '¿Qué observas en esta imagen?'
+      : '¿Qué te parece este análisis/cotización?';
+    $('ia_chat_input').focus();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearChatAttachment() {
+  _chatAttachment = null;
+  $('ia_chat_attach_preview').classList.add('hidden');
+  $('ia_chat_file').value = '';
+  $('ia_chat_input').placeholder = '¿Cómo mejoro el balance de K?...';
+}
 
 function toggleIAChat() {
   const panel = $('ia_chat_panel');
   panel.classList.toggle('hidden');
   if (!panel.classList.contains('hidden')) {
     if (_chatHistory.length === 0) {
-      addChatMsg('bot', '¡Hola! Soy tu asistente IA del optimizador. Puedo ayudarte con:\n\n• Dudas sobre el plan actual\n• Interpretación de análisis de suelo\n• Comparar alternativas de fertilización\n• Consejos para el cultivo elegido\n\n¿En qué te ayudo?');
+      addChatMsg('bot', '¡Hola! Soy tu asistente IA del optimizador. Puedo ayudarte con:\n\n• Dudas sobre el plan actual\n• Interpretación de análisis de suelo\n• Comparar alternativas de fertilización\n• Consejos para el cultivo elegido\n• **📎 Adjuntar PDFs (análisis de suelo, cotizaciones) o fotos (hojas, suelo) para que los revise**\n\n¿En qué te ayudo?');
     }
     $('ia_chat_input').focus();
   }
 }
 
-function addChatMsg(role, text) {
+function addChatMsg(role, text, attachInfo) {
   const el = document.createElement('div');
   el.className = 'ia-msg ' + (role === 'user' ? 'ia-msg-user' : 'ia-msg-bot');
-  el.innerHTML = renderIAMarkdown(text);
+  let html = renderIAMarkdown(text);
+  if (attachInfo) {
+    html = `<div style="font-size:10px; opacity:0.8; margin-bottom:4px;">📎 ${attachInfo}</div>` + html;
+  }
+  el.innerHTML = html;
   $('ia_chat_messages').appendChild(el);
   $('ia_chat_messages').scrollTop = $('ia_chat_messages').scrollHeight;
 }
@@ -2863,12 +2914,36 @@ function addChatMsg(role, text) {
 async function sendIAChat() {
   const inp = $('ia_chat_input');
   const txt = inp.value.trim();
-  if (!txt) return;
+  if (!txt && !_chatAttachment) return;
   const btn = $('ia_chat_send');
 
-  addChatMsg('user', txt);
-  _chatHistory.push({ role: 'user', content: txt });
+  const attachment = _chatAttachment;
+  const displayText = txt || (attachment ? 'Analiza este documento' : '');
+
+  // Construir mensaje para Claude: si hay adjunto, es un mensaje multiparte
+  let userContent;
+  if (attachment) {
+    userContent = [];
+    if (attachment.kind === 'image') {
+      userContent.push({
+        type: 'image',
+        source: { type: 'base64', media_type: attachment.mime, data: attachment.base64 }
+      });
+    } else {
+      userContent.push({
+        type: 'document',
+        source: { type: 'base64', media_type: attachment.mime, data: attachment.base64 }
+      });
+    }
+    userContent.push({ type: 'text', text: displayText });
+  } else {
+    userContent = displayText;
+  }
+
+  addChatMsg('user', displayText, attachment?.name);
+  _chatHistory.push({ role: 'user', content: userContent });
   inp.value = '';
+  clearChatAttachment();
   btn.disabled = true;
 
   const loadingMsg = document.createElement('div');
@@ -2885,8 +2960,13 @@ Contexto actual de la sesión:
 - Sector: ${ctx.sector_irrifer}
 ${ctx.ultimo_plan ? '- Último plan calculado: $' + Math.round(ctx.ultimo_plan.costo_total).toLocaleString('es-CL') + ' total ($' + Math.round(ctx.ultimo_plan.costo_ha).toLocaleString('es-CL') + '/ha) con ' + ctx.ultimo_plan.productos.length + ' productos.' : '- No hay plan optimizado aún.'}
 
+Si el usuario adjunta un documento PDF (análisis de suelo, cotización) o imagen (foto de hojas, suelo, fruto):
+- Analízalo con detalle
+- Extrae datos relevantes
+- Da recomendaciones específicas
+
 Responde:
-- Breve y conversacional (máximo 150 palabras salvo que pidan detalle)
+- Breve y conversacional (máximo 200 palabras salvo que pidan detalle o adjunten algo)
 - Específico al contexto del usuario (no respuestas genéricas)
 - Honesto si no sabes algo
 - Siempre en chileno/técnico agrícola de Chile`;
@@ -2895,7 +2975,7 @@ Responde:
     const texto = await callIA({
       system,
       messages: _chatHistory,
-      max_tokens: 800
+      max_tokens: 1500
     });
     _chatHistory.push({ role: 'assistant', content: texto });
     loadingMsg.remove();
@@ -3017,7 +3097,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <button onclick="toggleIAChat()" style="background:none;border:none;color:white;font-size:18px;cursor:pointer;padding:0 4px;">×</button>
   </div>
   <div id="ia_chat_messages"></div>
+  <div id="ia_chat_attach_preview" class="hidden" style="padding:6px 10px; background:#f3f4f6; border-top:1px solid #e5e7eb; font-size:11px; display:flex; align-items:center; gap:8px;">
+    <span id="ia_chat_attach_name" class="flex-1 truncate"></span>
+    <button onclick="clearChatAttachment()" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;">×</button>
+  </div>
   <div id="ia_chat_input_wrap">
+    <label for="ia_chat_file" title="Adjuntar análisis de suelo, cotización PDF, foto de hojas..."
+           style="cursor:pointer; padding:8px 10px; background:#f3f4f6; border-radius:8px; font-size:14px;">📎</label>
+    <input type="file" id="ia_chat_file" accept=".pdf,.png,.jpg,.jpeg,.webp" style="display:none;" onchange="onChatFileSelected(this)">
     <input type="text" id="ia_chat_input" placeholder="¿Cómo mejoro el balance de K?..." onkeydown="if(event.key==='Enter')sendIAChat()">
     <button id="ia_chat_send" onclick="sendIAChat()">Enviar</button>
   </div>
