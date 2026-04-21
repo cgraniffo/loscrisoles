@@ -1159,18 +1159,20 @@ function renderIngresos() {
 
   const cobradoContratos = getCobradoContratos();
   const pptoContratos = getPptoContratos();
-  const tFactCombinado = tFact + cobradoContratos;
-  const pFactCombinado = tEst>0 ? Math.round(tFactCombinado/tEst*100) : (tFactCombinado>0?100:0);
+  const tFactF = sumF(filtFact);
+  const tEstF  = sumF(filtEst);
+  const tFactCombinado = tFactF + cobradoContratos;
+  const pFactCombinado = tEstF>0 ? Math.round(tFactCombinado/tEstF*100) : (tFactCombinado>0?100:0);
 
   const cultivoRows = {};
-  (facturasAsig || []).forEach(r => {
+  (filtFact || []).forEach(r => {
     const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
     if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {} };
     cultivoRows[cultivo].fact += r.monto;
     if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
     cultivoRows[cultivo].ups[r.up].fact += r.monto;
   });
-  (proyEstimado || []).forEach(r => {
+  (filtEst || []).forEach(r => {
     const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
     if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {} };
     cultivoRows[cultivo].ppto += r.monto;
@@ -1286,14 +1288,14 @@ function renderIngresos() {
 
       <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;">
         <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Presupuesto total</div>
-        <div style="font-size:22px;font-weight:700;color:#b45309;line-height:1;">${fmtPeso(tEst)}</div>
-        <div style="font-size:11px;color:#b45309;margin-top:4px;">${proyEstimado.length} registros · Proyecciones_Manuales</div>
+        <div style="font-size:22px;font-weight:700;color:#b45309;line-height:1;">${fmtPeso(tEstF)}</div>
+        <div style="font-size:11px;color:#b45309;margin-top:4px;">${filtEst.length} registros · Proyecciones_Manuales</div>
       </div>
 
       <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
         <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real)</div>
         <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado)}</div>
-        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${facturasAsig.length} facturas${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
+        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.length} facturas${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
       </div>
 
     </div>
