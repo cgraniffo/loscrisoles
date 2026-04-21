@@ -45,9 +45,29 @@
   }
   .container { max-width: 1200px; margin: 0 auto; }
   h1 { font-size: 22px; font-weight: 500; margin: 0 0 4px; }
-  .subtitle { font-size: 13px; color: var(--text-2); margin: 0 0 1.5rem; }
+  .subtitle { font-size: 13px; color: var(--text-2); margin: 0 0 1rem; }
 
-  /* Controls bar */
+  .sync-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    font-weight: 500;
+  }
+  .sync-status .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .sync-status.ok { background: var(--ok-bg); color: var(--ok); }
+  .sync-status.ok .dot { background: var(--ok); }
+  .sync-status.warn { background: var(--warn-bg); color: var(--warn); }
+  .sync-status.warn .dot { background: var(--warn); }
+  .sync-status.err { background: var(--danger-bg); color: var(--danger); }
+  .sync-status.err .dot { background: var(--danger); }
+  .sync-status.syncing { background: var(--accent-bg); color: var(--accent); }
+  .sync-status.syncing .dot { background: var(--accent); animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
   .controls {
     background: var(--surface);
     border: 0.5px solid var(--border);
@@ -94,13 +114,8 @@
     color: var(--accent);
     font-weight: 500;
   }
-  .ctrl-hint {
-    font-size: 11px;
-    color: var(--text-3);
-    font-style: italic;
-  }
+  .ctrl-hint { font-size: 11px; color: var(--text-3); font-style: italic; }
 
-  /* KPIs */
   .kpi-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -113,15 +128,10 @@
     padding: 14px 16px;
   }
   .kpi-label { font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
-  .kpi-val {
-    font-size: 22px;
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-  }
+  .kpi-val { font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
   .kpi-val.small { font-size: 18px; }
   .kpi-hint { font-size: 11px; color: var(--text-3); margin-top: 3px; }
 
-  /* Gantt */
   .gantt {
     background: var(--surface);
     border: 0.5px solid var(--border);
@@ -136,18 +146,12 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
-  .gantt-legend {
-    font-size: 11px;
-    color: var(--text-2);
-    display: flex;
-    gap: 14px;
     flex-wrap: wrap;
+    gap: 10px;
   }
-  .gantt-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .gantt-legend { font-size: 11px; color: var(--text-2); display: flex; gap: 14px; flex-wrap: wrap; }
   .gantt-svg-wrap { overflow-x: auto; }
 
-  /* Cards */
   .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -182,12 +186,7 @@
   .chip-vk  { background: var(--vk-bg);  color: var(--vk); }
   .chip-neutral { background: var(--neutral-bg); color: var(--neutral); }
 
-  .card-meta {
-    font-size: 12px;
-    color: var(--text-2);
-    line-height: 1.7;
-    margin-bottom: 12px;
-  }
+  .card-meta { font-size: 12px; color: var(--text-2); line-height: 1.7; margin-bottom: 12px; }
   .card-meta b { color: var(--text); font-weight: 500; }
 
   .milestone-list {
@@ -206,7 +205,7 @@
     border-bottom: 0.5px solid var(--border);
   }
   .milestone:last-child { border-bottom: none; }
-  .milestone.received { opacity: 0.7; }
+  .milestone.received { opacity: 0.75; }
   .milestone.received .milestone-date { text-decoration: line-through; }
   .milestone-date { color: var(--text-2); }
   .milestone-amt {
@@ -234,6 +233,7 @@
     padding: 4px 0 0 16px;
     font-size: 11px;
     color: var(--text-2);
+    flex-wrap: wrap;
   }
   .milestone-real input {
     padding: 3px 6px;
@@ -244,10 +244,7 @@
     width: 110px;
     font-variant-numeric: tabular-nums;
   }
-  .milestone-real .delta {
-    font-variant-numeric: tabular-nums;
-    font-weight: 500;
-  }
+  .milestone-real .delta { font-variant-numeric: tabular-nums; font-weight: 500; }
   .delta.pos { color: var(--ok); }
   .delta.neg { color: var(--danger); }
 
@@ -261,7 +258,6 @@
   }
   .card-total b { font-weight: 500; }
 
-  /* Reset button */
   .reset-btn {
     background: transparent;
     border: 0.5px solid var(--border);
@@ -283,7 +279,11 @@
   <h1>Contratos nueces · temporada 2026</h1>
   <p class="subtitle">Calendario de anticipos y liquidaciones · Los Crisoles</p>
 
-  <!-- Controls -->
+  <div class="sync-status" id="syncStatus">
+    <span class="dot"></span>
+    <span id="syncMsg">Iniciando...</span>
+  </div>
+
   <div class="controls">
     <div class="ctrl-group">
       <span class="ctrl-label">TC USD→CLP</span>
@@ -305,16 +305,15 @@
       </div>
     </div>
     <div class="ctrl-group" style="margin-left: auto;">
-      <button class="reset-btn" id="resetBtn" title="Borrar datos de recibidos guardados localmente">Reset datos locales</button>
+      <button class="reset-btn" id="refreshBtn" title="Recargar desde el Sheet">⟳ Recargar</button>
     </div>
   </div>
 
-  <!-- KPIs -->
   <div class="kpi-row">
     <div class="kpi">
       <div class="kpi-label">Kg comprometidos</div>
-      <div class="kpi-val">190.000</div>
-      <div class="kpi-hint">NDS 60k · PN 40k secos · VK 50k</div>
+      <div class="kpi-val" id="kpiKg">190.000</div>
+      <div class="kpi-hint" id="kpiKgHint">NDS · PN · VK</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Total anticipos proyectado</div>
@@ -333,7 +332,6 @@
     </div>
   </div>
 
-  <!-- Gantt -->
   <div class="gantt">
     <div class="gantt-title">
       <span>Calendario anual de cobros 2026</span>
@@ -349,254 +347,324 @@
     </div>
   </div>
 
-  <!-- Cards -->
   <div class="cards" id="cardsContainer"></div>
 
 </div>
 
 <script>
-// ============ DATA MODEL ============
+// ============================================================
+// CONFIG — ACTUALIZAR CON LA URL DE LA API COBROS DESPUÉS DE DEPLOYAR
+// ============================================================
 
-const STORAGE_KEY = 'loscrisoles_nueces_2026';
+// Pegar acá la URL del web app de Apps Script (doGet/doPost) después de publicar
+// Ejemplo: 'https://script.google.com/macros/s/AKfycb.../exec'
+// Si queda vacío, el dashboard funciona solo con localStorage (sin sync)
+const API_COBROS_URL = 'https://script.google.com/macros/s/AKfycbzMmNMiEWjxKxg_dcTI45WXjTKZ3RvUU8apNLpETqW6lMskyXgYei3YaDLLlvwkovngbQ/exec';
 
-const KG = {
-  NDS: 60000,
-  PN: 40000,  // kg secos estimados (50% de 80.000 recepción)
-  VK: 50000
-};
+// Proxy Cloudflare (para evitar CORS). Si está vacío, llama directo.
+// Ejemplo: 'https://round-night-574d.christian-19c.workers.dev?url='
+const CF_PROXY_PREFIX = 'https://round-night-574d.christian-19c.workers.dev?url=';
 
-// Pacific Nut escenarios
-const PN_SCENARIOS = {
-  opt: {  // sobre 48% rendimiento
-    label: 'Sobre 48%',
-    total_usd_kg: 2.10,
-    milestones: [
-      { id: 'pn_mar', date: '2026-03-20', label: 'Marzo (vie 20)', usd_kg: 1.00 },
-      { id: 'pn_abr', date: '2026-04-24', label: 'Abril (vie 24)', usd_kg: 0.50 },
-      { id: 'pn_jun', date: '2026-06-26', label: 'Junio (vie 26)', usd_kg: 0.40 },
-      { id: 'pn_ago', date: '2026-08-21', label: 'Agosto (vie 21)', usd_kg: 0.20 }
-    ]
-  },
-  con: {  // bajo 48%
-    label: 'Bajo 48%',
-    total_usd_kg: 1.80,
-    milestones: [
-      { id: 'pn_mar', date: '2026-03-20', label: 'Marzo (vie 20)', usd_kg: 1.00 },
-      { id: 'pn_abr', date: '2026-04-24', label: 'Abril (vie 24)', usd_kg: 0.30 },
-      { id: 'pn_jun', date: '2026-06-26', label: 'Junio (vie 26)', usd_kg: 0.30 },
-      { id: 'pn_ago', date: '2026-08-21', label: 'Agosto (vie 21)', usd_kg: 0.20 }
-    ]
+// ============================================================
+// STORAGE LAYER — localStorage primario + sync a Sheet background
+// ============================================================
+
+const LS_STATE_KEY = 'loscrisoles_nueces_2026_state';
+const LS_CACHE_KEY = 'loscrisoles_nueces_2026_cache';
+const LS_PENDING_KEY = 'loscrisoles_nueces_2026_pending';
+
+function apiUrl() {
+  if (!API_COBROS_URL) return null;
+  if (CF_PROXY_PREFIX) return CF_PROXY_PREFIX + encodeURIComponent(API_COBROS_URL);
+  return API_COBROS_URL;
+}
+
+function setSync(type, msg) {
+  const el = document.getElementById('syncStatus');
+  el.className = 'sync-status ' + type;
+  document.getElementById('syncMsg').textContent = msg;
+}
+
+async function apiGet(action) {
+  const base = apiUrl();
+  if (!base) throw new Error('API_COBROS_URL no configurada');
+  const sep = base.includes('?url=') ? '&' : (base.includes('?') ? '&' : '?');
+  const url = base + sep + 'action=' + action;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.json();
+}
+
+async function apiPost(body) {
+  const base = apiUrl();
+  if (!base) throw new Error('API_COBROS_URL no configurada');
+  const res = await fetch(base, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.json();
+}
+
+// Cola de sync: acciones pendientes de enviar al Sheet
+function getPendingQueue() {
+  try { return JSON.parse(localStorage.getItem(LS_PENDING_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+function setPendingQueue(q) { localStorage.setItem(LS_PENDING_KEY, JSON.stringify(q)); }
+function enqueuePending(action) {
+  const q = getPendingQueue();
+  q.push({ ...action, queuedAt: Date.now() });
+  setPendingQueue(q);
+}
+
+async function flushPendingQueue() {
+  if (!API_COBROS_URL) return;
+  const q = getPendingQueue();
+  if (q.length === 0) return;
+
+  setSync('syncing', `Sincronizando ${q.length} cambio${q.length > 1 ? 's' : ''}...`);
+  const remaining = [];
+  for (const action of q) {
+    try {
+      await apiPost(action);
+    } catch (e) {
+      console.warn('Fallo al enviar acción:', e);
+      remaining.push(action);
+    }
   }
-};
-
-// Clientes
-const CLIENTES = [
-  {
-    id: 'NDS',
-    nombre: 'NDS · Nueces del Sur',
-    chipClass: 'chip-nds',
-    color: '#534AB7',
-    bgColor: '#EEEDFE',
-    kg: KG.NDS,
-    variedad: 'Chandler',
-    modalidad: 'Consignación · comisión 8%',
-    extras: 'Secado USD 0,28/kg (descuento)',
-    total_usd_kg: 1.80,
-    milestones: [
-      { id: 'nds_firma', date: '2026-01-30', label: 'Firma (30 ene)', usd_kg: 1.00, ganttMonth: 1, ganttDay: 30 },
-      { id: 'nds_may',   date: '2026-05-31', label: '31 mayo 2026', usd_kg: 0.40, ganttMonth: 5, ganttDay: 31 },
-      { id: 'nds_jul',   date: '2026-07-30', label: '30 julio 2026', usd_kg: 0.40, ganttMonth: 7, ganttDay: 30 },
-      { id: 'nds_liq',   date: '2026-12-20', label: '3ra sem dic (liq.)', usd_kg: null, isLiq: true, ganttMonth: 12, ganttDay: 20 }
-    ]
-  },
-  {
-    id: 'PN',
-    nombre: 'Pacific Nut',
-    chipClass: 'chip-pn',
-    color: '#0F6E56',
-    bgColor: '#E1F5EE',
-    kg: KG.PN,
-    variedad: 'Chandler · ~40.000 kg secos',
-    modalidad: 'Consignación · comisión 8%',
-    extras: 'Descuentos: secado USD 0,14/kg · análisis 5 UF · proceso USD 0,49/kg (cáscara)',
-    isDynamic: true,  // se recalcula según escenario
-  },
-  {
-    id: 'VK',
-    nombre: 'Vitakai',
-    chipClass: 'chip-vk',
-    color: '#BA7517',
-    bgColor: '#FAEEDA',
-    kg: KG.VK,
-    variedad: 'Chandler',
-    modalidad: 'Compraventa · comisión 8%',
-    extras: 'Bonificación 50% flete campo-planta',
-    total_usd_kg: 1.80,
-    milestones: [
-      { id: 'vk_mar', date: '2026-03-15', label: 'Marzo 2026',  usd_kg: 0.50, ganttMonth: 3, ganttDay: 15 },
-      { id: 'vk_may', date: '2026-05-15', label: 'Mayo 2026',   usd_kg: 0.50, ganttMonth: 5, ganttDay: 15 },
-      { id: 'vk_jul', date: '2026-07-15', label: 'Julio 2026',  usd_kg: 0.80, ganttMonth: 7, ganttDay: 15 },
-      { id: 'vk_liq', date: '2026-12-30', label: '30 dic 2026 (liq.)', usd_kg: null, isLiq: true, ganttMonth: 12, ganttDay: 30 }
-    ]
-  },
-  {
-    id: 'VV',
-    nombre: 'Vista Volcán',
-    chipClass: 'chip-neutral',
-    color: '#8a8a85',
-    bgColor: '#F1EFE8',
-    placeholder: true,
-    placeholderText: 'Cliente histórico sin contrato cargado. Completar con fechas y montos al recibir documento.'
-  },
-  {
-    id: '2N',
-    nombre: 'Inversiones 2N',
-    chipClass: 'chip-neutral',
-    color: '#8a8a85',
-    bgColor: '#F1EFE8',
-    placeholder: true,
-    placeholderText: 'Cliente histórico sin contrato cargado. Completar con fechas y montos al recibir documento.'
+  setPendingQueue(remaining);
+  if (remaining.length === 0) {
+    setSync('ok', 'Sincronizado con Google Sheet');
+  } else {
+    setSync('warn', `${remaining.length} pendiente${remaining.length > 1 ? 's' : ''} de sincronizar`);
   }
+}
+
+// ============================================================
+// MILESTONES CATÁLOGO — fallback hardcoded si no hay API
+// ============================================================
+
+const MILESTONES_FALLBACK = [
+  { milestone_id: 'nds_firma', cliente: 'NDS', kg: 60000, fecha_prog: '2026-01-30', usd_kg_opt: 1.00, usd_kg_con: 1.00, tipo: 'anticipo', label: 'Firma (30 ene)' },
+  { milestone_id: 'nds_may',   cliente: 'NDS', kg: 60000, fecha_prog: '2026-05-31', usd_kg_opt: 0.40, usd_kg_con: 0.40, tipo: 'anticipo', label: '31 mayo 2026' },
+  { milestone_id: 'nds_jul',   cliente: 'NDS', kg: 60000, fecha_prog: '2026-07-30', usd_kg_opt: 0.40, usd_kg_con: 0.40, tipo: 'anticipo', label: '30 julio 2026' },
+  { milestone_id: 'nds_liq',   cliente: 'NDS', kg: 60000, fecha_prog: '2026-12-20', usd_kg_opt: null, usd_kg_con: null, tipo: 'liquidacion', label: '3ra sem dic (liq.)' },
+  { milestone_id: 'pn_mar',    cliente: 'PN',  kg: 40000, fecha_prog: '2026-03-20', usd_kg_opt: 1.00, usd_kg_con: 1.00, tipo: 'anticipo', label: 'Marzo (vie 20)' },
+  { milestone_id: 'pn_abr',    cliente: 'PN',  kg: 40000, fecha_prog: '2026-04-24', usd_kg_opt: 0.50, usd_kg_con: 0.30, tipo: 'anticipo', label: 'Abril (vie 24)' },
+  { milestone_id: 'pn_jun',    cliente: 'PN',  kg: 40000, fecha_prog: '2026-06-26', usd_kg_opt: 0.40, usd_kg_con: 0.30, tipo: 'anticipo', label: 'Junio (vie 26)' },
+  { milestone_id: 'pn_ago',    cliente: 'PN',  kg: 40000, fecha_prog: '2026-08-21', usd_kg_opt: 0.20, usd_kg_con: 0.20, tipo: 'anticipo', label: 'Agosto (vie 21)' },
+  { milestone_id: 'pn_pmg',    cliente: 'PN',  kg: 40000, fecha_prog: '2026-10-15', usd_kg_opt: null, usd_kg_con: null, tipo: 'pmg', label: 'Oct (PMG informado)' },
+  { milestone_id: 'pn_liq',    cliente: 'PN',  kg: 40000, fecha_prog: '2026-12-20', usd_kg_opt: null, usd_kg_con: null, tipo: 'liquidacion', label: 'Dic 2026 (liq.)' },
+  { milestone_id: 'vk_mar',    cliente: 'VK',  kg: 50000, fecha_prog: '2026-03-15', usd_kg_opt: 0.50, usd_kg_con: 0.50, tipo: 'anticipo', label: 'Marzo 2026' },
+  { milestone_id: 'vk_may',    cliente: 'VK',  kg: 50000, fecha_prog: '2026-05-15', usd_kg_opt: 0.50, usd_kg_con: 0.50, tipo: 'anticipo', label: 'Mayo 2026' },
+  { milestone_id: 'vk_jul',    cliente: 'VK',  kg: 50000, fecha_prog: '2026-07-15', usd_kg_opt: 0.80, usd_kg_con: 0.80, tipo: 'anticipo', label: 'Julio 2026' },
+  { milestone_id: 'vk_liq',    cliente: 'VK',  kg: 50000, fecha_prog: '2026-12-30', usd_kg_opt: null, usd_kg_con: null, tipo: 'liquidacion', label: '30 dic 2026 (liq.)' }
 ];
 
-// ============ STATE ============
+const CLIENTES_META = {
+  NDS: { nombre: 'NDS · Nueces del Sur', chipClass: 'chip-nds', color: '#534AB7', bgColor: '#EEEDFE', modalidad: 'Consignación · comisión 8%', extras: 'Secado USD 0,28/kg (descuento)' },
+  PN:  { nombre: 'Pacific Nut',          chipClass: 'chip-pn',  color: '#0F6E56', bgColor: '#E1F5EE', modalidad: 'Consignación · comisión 8%', extras: 'Descuentos: secado USD 0,14/kg · análisis 5 UF · proceso USD 0,49/kg (cáscara)' },
+  VK:  { nombre: 'Vitakai',              chipClass: 'chip-vk',  color: '#BA7517', bgColor: '#FAEEDA', modalidad: 'Compraventa · comisión 8%',   extras: 'Bonificación 50% flete campo-planta' }
+};
+
+const PLACEHOLDERS = [
+  { id: 'VV', nombre: 'Vista Volcán',     texto: 'Cliente histórico sin contrato cargado. Completar con fechas y montos al recibir documento.' },
+  { id: '2N', nombre: 'Inversiones 2N',   texto: 'Cliente histórico sin contrato cargado. Completar con fechas y montos al recibir documento.' }
+];
+
+// ============================================================
+// STATE
+// ============================================================
 
 let state = {
   tc: 820,
   currency: 'CLP',
-  scenario: 'opt',
-  received: {}  // { milestone_id: { received: true, realAmount: number_clp_or_null } }
+  scenario: 'opt'
 };
 
-function loadState() {
+let milestones = [];       // catálogo cargado
+let pagos = {};            // { milestone_id: { received: bool, realAmount, moneda, tc_usado, timestamp } }
+
+function loadLocalState() {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      state = { ...state, ...parsed };
+    const s = localStorage.getItem(LS_STATE_KEY);
+    if (s) state = { ...state, ...JSON.parse(s) };
+  } catch(e) {}
+}
+function saveLocalState() {
+  localStorage.setItem(LS_STATE_KEY, JSON.stringify(state));
+}
+
+function loadLocalCache() {
+  try {
+    const c = localStorage.getItem(LS_CACHE_KEY);
+    if (c) {
+      const parsed = JSON.parse(c);
+      if (parsed.milestones) milestones = parsed.milestones;
+      if (parsed.pagos) pagos = parsed.pagos;
+      return true;
     }
-  } catch(e) { console.warn('No se pudo cargar state:', e); }
+  } catch(e) {}
+  return false;
+}
+function saveLocalCache() {
+  localStorage.setItem(LS_CACHE_KEY, JSON.stringify({
+    milestones, pagos, cachedAt: Date.now()
+  }));
 }
 
-function saveState() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      tc: state.tc,
-      currency: state.currency,
-      scenario: state.scenario,
-      received: state.received
-    }));
-  } catch(e) { console.warn('No se pudo guardar state:', e); }
-}
+// ============================================================
+// BOOTSTRAP — cargar datos al inicio
+// ============================================================
 
-// ============ HELPERS ============
+async function bootstrap() {
+  loadLocalState();
+  applyStateToUI();
 
-function fmtMoney(amount, currency) {
-  if (amount === null || amount === undefined) return '—';
-  if (currency === 'USD') {
-    return 'USD ' + Math.round(amount).toLocaleString('en-US');
+  // 1. Intentar cargar desde cache local (instant render)
+  const hasCache = loadLocalCache();
+  if (!hasCache || milestones.length === 0) {
+    milestones = MILESTONES_FALLBACK;
   }
-  return '$' + Math.round(amount).toLocaleString('es-CL');
+  renderAll();
+
+  // 2. Si hay API, tratar de sincronizar en background
+  if (!API_COBROS_URL) {
+    setSync('warn', 'Sin sync · solo localStorage (API no configurada)');
+    return;
+  }
+
+  try {
+    setSync('syncing', 'Cargando desde Google Sheet...');
+    const data = await apiGet('all');
+    if (data.milestones && data.milestones.length > 0) {
+      milestones = data.milestones;
+    }
+    if (data.pagos) {
+      // Convertir formato Sheet → formato local
+      pagos = {};
+      Object.keys(data.pagos).forEach(id => {
+        const p = data.pagos[id];
+        pagos[id] = {
+          received: true,
+          realAmount: p.monto_real_clp, // asumimos CLP como moneda canónica
+          realAmountUsd: p.monto_real_usd,
+          tc_usado: p.tc_usado,
+          timestamp: p.timestamp,
+          observacion: p.observacion
+        };
+      });
+    }
+    saveLocalCache();
+    setSync('ok', 'Sincronizado con Google Sheet');
+    renderAll();
+
+    // 3. Flush pending queue
+    await flushPendingQueue();
+  } catch (e) {
+    console.error('Error cargando desde API:', e);
+    setSync('err', 'Sin conexión · trabajando con cache local');
+  }
+}
+
+// ============================================================
+// ACTIONS — mark received / unmark / update real amount
+// ============================================================
+
+function markReceived(milestone_id, checked) {
+  if (checked) {
+    pagos[milestone_id] = {
+      received: true,
+      realAmount: null,
+      timestamp: new Date().toISOString()
+    };
+  } else {
+    delete pagos[milestone_id];
+    enqueuePending({ action: 'eliminar', milestone_id });
+  }
+  saveLocalCache();
+  renderAll();
+
+  if (checked) {
+    // Registrar vacío primero (placeholder)
+    enqueuePending({
+      action: 'registrar',
+      milestone_id,
+      monto_real: null,
+      moneda: state.currency,
+      tc: state.tc,
+      observacion: 'marcado recibido (sin monto real aún)'
+    });
+  }
+  flushPendingQueue();
+}
+
+function updateRealAmount(milestone_id, value) {
+  if (!pagos[milestone_id]) pagos[milestone_id] = { received: true };
+  pagos[milestone_id].realAmount = isNaN(value) ? null : value;
+  pagos[milestone_id].timestamp = new Date().toISOString();
+  saveLocalCache();
+  renderKPIs();
+  updateCardTotals();
+
+  // Debounce el sync (esperar 1s sin cambios antes de enviar)
+  clearTimeout(window._realAmountTimer);
+  window._realAmountTimer = setTimeout(() => {
+    enqueuePending({
+      action: 'registrar',
+      milestone_id,
+      monto_real: value,
+      moneda: state.currency,
+      tc: state.tc,
+      observacion: 'monto real actualizado desde dashboard'
+    });
+    flushPendingQueue();
+  }, 1000);
+}
+
+// ============================================================
+// DATA HELPERS
+// ============================================================
+
+function getMilestonesForClient(clienteId) {
+  return milestones
+    .filter(m => m.cliente === clienteId)
+    .map(m => {
+      const usd_kg = state.scenario === 'opt' ? m.usd_kg_opt : m.usd_kg_con;
+      const dateParts = (m.fecha_prog || '').split('-');
+      return {
+        ...m,
+        usd_kg: usd_kg,
+        ganttMonth: dateParts.length >= 2 ? parseInt(dateParts[1]) : 1,
+        ganttDay: dateParts.length >= 3 ? parseInt(dateParts[2]) : 1,
+        isLiq: m.tipo === 'liquidacion',
+        isPMG: m.tipo === 'pmg'
+      };
+    });
+}
+
+function getClientTotalUsdKg(clienteId) {
+  const ms = getMilestonesForClient(clienteId);
+  return ms.reduce((sum, m) => sum + (m.usd_kg || 0), 0);
+}
+
+function getClientKg(clienteId) {
+  const first = milestones.find(m => m.cliente === clienteId);
+  return first ? first.kg : 0;
 }
 
 function computeAmount(usd_kg, kg, currency) {
   if (usd_kg === null || usd_kg === undefined) return null;
   const usd = usd_kg * kg;
-  if (currency === 'USD') return usd;
-  return usd * state.tc;
+  return currency === 'USD' ? usd : usd * state.tc;
 }
 
-function getClientMilestones(client) {
-  if (client.placeholder) return [];
-  if (client.isDynamic && client.id === 'PN') {
-    return PN_SCENARIOS[state.scenario].milestones.map(m => ({
-      ...m,
-      ganttMonth: parseInt(m.date.split('-')[1]),
-      ganttDay: parseInt(m.date.split('-')[2])
-    })).concat([
-      { id: 'pn_pmg', date: '2026-10-15', label: 'Oct (PMG informado)', usd_kg: null, isPMG: true, ganttMonth: 10, ganttDay: 15 },
-      { id: 'pn_liq', date: '2026-12-20', label: 'Dic 2026 (liq.)',     usd_kg: null, isLiq: true, ganttMonth: 12, ganttDay: 20 }
-    ]);
-  }
-  return client.milestones || [];
-}
-
-function getClientTotalUsdKg(client) {
-  if (client.isDynamic && client.id === 'PN') return PN_SCENARIOS[state.scenario].total_usd_kg;
-  return client.total_usd_kg || 0;
-}
-
-// ============ RENDER: GANTT ============
-
-function renderGantt() {
-  const svg = document.getElementById('ganttSvg');
-  const width = 900;
-  const height = 300;
-  const leftPad = 90;
-  const topPad = 40;
-  const rowHeight = 55;
-  const monthWidth = (width - leftPad - 20) / 12;
-
-  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const rows = CLIENTES.filter(c => !c.placeholder);
-
-  let html = '';
-
-  // Month headers
-  months.forEach((m, i) => {
-    const x = leftPad + i * monthWidth + monthWidth / 2;
-    html += `<text x="${x}" y="25" text-anchor="middle" font-size="11" fill="#5f5e5a" font-family="inherit">${m}</text>`;
-  });
-
-  // Vertical gridlines
-  for (let i = 0; i <= 12; i++) {
-    const x = leftPad + i * monthWidth;
-    html += `<line x1="${x}" y1="${topPad-5}" x2="${x}" y2="${topPad + rows.length * rowHeight + 10}" stroke="rgba(0,0,0,0.08)" stroke-width="0.5"/>`;
-  }
-
-  // Row backgrounds + labels + milestones
-  rows.forEach((client, idx) => {
-    const rowY = topPad + idx * rowHeight;
-    const rowMidY = rowY + rowHeight / 2;
-
-    // Label
-    html += `<text x="${leftPad - 12}" y="${rowMidY + 4}" text-anchor="end" font-size="12" font-weight="500" fill="#1c1c1a" font-family="inherit">${client.id === 'NDS' ? 'NDS' : client.id === 'PN' ? 'Pacific Nut' : 'Vitakai'}</text>`;
-
-    // Row bg
-    html += `<rect x="${leftPad}" y="${rowY + 8}" width="${width - leftPad - 20}" height="${rowHeight - 16}" rx="4" fill="${client.bgColor}" opacity="0.35"/>`;
-
-    // Milestones
-    const milestones = getClientMilestones(client);
-    milestones.forEach(m => {
-      const x = leftPad + (m.ganttMonth - 1) * monthWidth + (m.ganttDay / 31) * monthWidth;
-      const isReceived = state.received[m.id]?.received;
-      const usd_kg = m.usd_kg;
-      const amount = usd_kg !== null ? computeAmount(usd_kg, client.kg, state.currency) : null;
-
-      if (m.isLiq) {
-        // Square for liquidation
-        html += `<rect x="${x-6}" y="${rowMidY-6}" width="12" height="12" rx="2" fill="${isReceived ? '#3B6D11' : client.color}" stroke="${client.color}" stroke-width="0.5"/>`;
-        html += `<text x="${x}" y="${rowMidY + 24}" text-anchor="middle" font-size="10" fill="${client.color}" font-family="inherit">Liq.</text>`;
-      } else if (m.isPMG) {
-        // Diamond for PMG
-        html += `<polygon points="${x},${rowMidY-6} ${x+6},${rowMidY} ${x},${rowMidY+6} ${x-6},${rowMidY}" fill="${client.color}"/>`;
-        html += `<text x="${x}" y="${rowMidY + 24}" text-anchor="middle" font-size="10" fill="${client.color}" font-family="inherit">PMG</text>`;
-      } else {
-        // Circle for anticipo
-        const fillColor = isReceived ? '#3B6D11' : client.color;
-        html += `<circle cx="${x}" cy="${rowMidY}" r="6" fill="${fillColor}" stroke="${isReceived ? '#3B6D11' : client.color}" stroke-width="0.5"/>`;
-        const amtStr = amount !== null ? shortMoney(amount, state.currency) : '';
-        html += `<text x="${x}" y="${rowMidY + 24}" text-anchor="middle" font-size="10" fill="${client.color}" font-family="inherit">${amtStr}</text>`;
-      }
-    });
-  });
-
-  // Placeholder row at bottom
-  const placeY = topPad + rows.length * rowHeight + 15;
-  html += `<text x="${width/2}" y="${placeY}" text-anchor="middle" font-size="11" fill="#8a8a85" font-style="italic" font-family="inherit">Vista Volcán · Inversiones 2N — sin contrato cargado</text>`;
-
-  svg.setAttribute('viewBox', `0 0 ${width} ${placeY + 20}`);
-  svg.innerHTML = html;
+function fmtMoney(amount, currency) {
+  if (amount === null || amount === undefined) return '—';
+  if (currency === 'USD') return 'USD ' + Math.round(amount).toLocaleString('en-US');
+  return '$' + Math.round(amount).toLocaleString('es-CL');
 }
 
 function shortMoney(amount, currency) {
@@ -609,52 +677,119 @@ function shortMoney(amount, currency) {
   return '$' + Math.round(amount);
 }
 
-// ============ RENDER: CARDS ============
+// ============================================================
+// RENDER: GANTT
+// ============================================================
+
+function renderGantt() {
+  const svg = document.getElementById('ganttSvg');
+  const width = 900;
+  const leftPad = 90;
+  const topPad = 40;
+  const rowHeight = 55;
+  const monthWidth = (width - leftPad - 20) / 12;
+
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const clientesActivos = ['NDS', 'PN', 'VK'];
+
+  let html = '';
+
+  months.forEach((m, i) => {
+    const x = leftPad + i * monthWidth + monthWidth / 2;
+    html += `<text x="${x}" y="25" text-anchor="middle" font-size="11" fill="#5f5e5a" font-family="inherit">${m}</text>`;
+  });
+
+  for (let i = 0; i <= 12; i++) {
+    const x = leftPad + i * monthWidth;
+    html += `<line x1="${x}" y1="${topPad-5}" x2="${x}" y2="${topPad + clientesActivos.length * rowHeight + 10}" stroke="rgba(0,0,0,0.08)" stroke-width="0.5"/>`;
+  }
+
+  clientesActivos.forEach((clienteId, idx) => {
+    const meta = CLIENTES_META[clienteId];
+    const rowY = topPad + idx * rowHeight;
+    const rowMidY = rowY + rowHeight / 2;
+
+    const label = clienteId === 'NDS' ? 'NDS' : clienteId === 'PN' ? 'Pacific Nut' : 'Vitakai';
+    html += `<text x="${leftPad - 12}" y="${rowMidY + 4}" text-anchor="end" font-size="12" font-weight="500" fill="#1c1c1a" font-family="inherit">${label}</text>`;
+    html += `<rect x="${leftPad}" y="${rowY + 8}" width="${width - leftPad - 20}" height="${rowHeight - 16}" rx="4" fill="${meta.bgColor}" opacity="0.35"/>`;
+
+    const ms = getMilestonesForClient(clienteId);
+    const kg = getClientKg(clienteId);
+
+    ms.forEach(m => {
+      const x = leftPad + (m.ganttMonth - 1) * monthWidth + (m.ganttDay / 31) * monthWidth;
+      const isReceived = pagos[m.milestone_id]?.received;
+      const amount = m.usd_kg !== null ? computeAmount(m.usd_kg, kg, state.currency) : null;
+
+      if (m.isLiq) {
+        html += `<rect x="${x-6}" y="${rowMidY-6}" width="12" height="12" rx="2" fill="${isReceived ? '#3B6D11' : meta.color}" stroke="${meta.color}" stroke-width="0.5"/>`;
+        html += `<text x="${x}" y="${rowMidY + 24}" text-anchor="middle" font-size="10" fill="${meta.color}" font-family="inherit">Liq.</text>`;
+      } else if (m.isPMG) {
+        html += `<polygon points="${x},${rowMidY-6} ${x+6},${rowMidY} ${x},${rowMidY+6} ${x-6},${rowMidY}" fill="${meta.color}"/>`;
+        html += `<text x="${x}" y="${rowMidY + 24}" text-anchor="middle" font-size="10" fill="${meta.color}" font-family="inherit">PMG</text>`;
+      } else {
+        const fillColor = isReceived ? '#3B6D11' : meta.color;
+        html += `<circle cx="${x}" cy="${rowMidY}" r="6" fill="${fillColor}" stroke="${fillColor}" stroke-width="0.5"/>`;
+        const amtStr = amount !== null ? shortMoney(amount, state.currency) : '';
+        html += `<text x="${x}" y="${rowMidY + 24}" text-anchor="middle" font-size="10" fill="${meta.color}" font-family="inherit">${amtStr}</text>`;
+      }
+    });
+  });
+
+  const placeY = topPad + clientesActivos.length * rowHeight + 15;
+  html += `<text x="${width/2}" y="${placeY}" text-anchor="middle" font-size="11" fill="#8a8a85" font-style="italic" font-family="inherit">Vista Volcán · Inversiones 2N — sin contrato cargado</text>`;
+
+  svg.setAttribute('viewBox', `0 0 ${width} ${placeY + 20}`);
+  svg.innerHTML = html;
+}
+
+// ============================================================
+// RENDER: CARDS
+// ============================================================
 
 function renderCards() {
   const container = document.getElementById('cardsContainer');
   let html = '';
 
-  CLIENTES.forEach(client => {
-    html += `<div class="card${client.placeholder ? ' placeholder' : ''}">`;
-    html += `<div class="card-head">`;
-    html += `<h3 class="card-name">${client.nombre}</h3>`;
-    const chipText = client.placeholder ? 'sin contrato' : `${client.variedad || 'Chandler'} · ${client.kg ? client.kg.toLocaleString('es-CL') + ' kg' : ''}`;
-    html += `<span class="card-chip ${client.chipClass}">${chipText}</span>`;
-    html += `</div>`;
-
-    if (client.placeholder) {
-      html += `<div class="card-meta" style="font-style:italic; color: var(--text-3);">${client.placeholderText}</div>`;
-      html += `</div>`;
-      return;
-    }
-
-    const total_usd_kg = getClientTotalUsdKg(client);
-    const totalUsd = total_usd_kg * client.kg;
+  ['NDS', 'PN', 'VK'].forEach(clienteId => {
+    const meta = CLIENTES_META[clienteId];
+    const kg = getClientKg(clienteId);
+    const total_usd_kg = getClientTotalUsdKg(clienteId);
+    const totalUsd = total_usd_kg * kg;
     const totalDisplay = fmtMoney(state.currency === 'USD' ? totalUsd : totalUsd * state.tc, state.currency);
 
+    const ms = getMilestonesForClient(clienteId);
+
+    html += `<div class="card">`;
+    html += `<div class="card-head">`;
+    html += `<h3 class="card-name">${meta.nombre}</h3>`;
+    html += `<span class="card-chip ${meta.chipClass}">Chandler · ${kg.toLocaleString('es-CL')} kg</span>`;
+    html += `</div>`;
+
     html += `<div class="card-meta">`;
-    html += `<b>Modalidad:</b> ${client.modalidad}<br>`;
+    html += `<b>Modalidad:</b> ${meta.modalidad}<br>`;
     html += `<b>Total anticipos:</b> USD ${total_usd_kg.toFixed(2)}/kg · <b>${totalDisplay}</b><br>`;
-    html += `<b>${client.extras ? 'Extras:' : ''}</b> ${client.extras || ''}`;
+    html += `<b>Extras:</b> ${meta.extras}`;
     html += `</div>`;
 
     html += `<ul class="milestone-list">`;
-    const milestones = getClientMilestones(client);
     let totalReceived = 0;
 
-    milestones.forEach(m => {
-      const isReceived = state.received[m.id]?.received || false;
-      const realAmount = state.received[m.id]?.realAmount;
-      const projectedAmount = m.usd_kg !== null ? computeAmount(m.usd_kg, client.kg, state.currency) : null;
+    ms.forEach(m => {
+      const pago = pagos[m.milestone_id];
+      const isReceived = pago?.received || false;
+      const realAmount = pago?.realAmount;
+      const projectedAmount = m.usd_kg !== null ? computeAmount(m.usd_kg, kg, state.currency) : null;
 
-      if (isReceived && realAmount !== null && realAmount !== undefined) {
-        totalReceived += realAmount;
-      } else if (isReceived && projectedAmount !== null) {
-        totalReceived += projectedAmount;
+      if (isReceived) {
+        if (realAmount !== null && realAmount !== undefined) {
+          totalReceived += realAmount;
+        } else if (projectedAmount !== null) {
+          totalReceived += projectedAmount;
+        }
       }
 
-      const amtStr = m.isLiq || m.isPMG ? (m.isLiq ? 'saldo' : 'PMG') : fmtMoney(projectedAmount, state.currency);
+      const amtStr = m.isLiq ? 'saldo' : (m.isPMG ? 'PMG' : fmtMoney(projectedAmount, state.currency));
 
       html += `<li class="milestone${isReceived ? ' received' : ''}">`;
       html += `<span class="milestone-date">${m.label}</span>`;
@@ -662,7 +797,7 @@ function renderCards() {
 
       if (!m.isLiq && !m.isPMG) {
         html += `<label class="milestone-check${isReceived ? ' received' : ''}">`;
-        html += `<input type="checkbox" data-ms="${m.id}" ${isReceived ? 'checked' : ''}> ${isReceived ? 'recibido' : 'marcar'}`;
+        html += `<input type="checkbox" data-ms="${m.milestone_id}" ${isReceived ? 'checked' : ''}> ${isReceived ? 'recibido' : 'marcar'}`;
         html += `</label>`;
 
         if (isReceived) {
@@ -674,7 +809,7 @@ function renderCards() {
             : '';
           html += `<div class="milestone-real">`;
           html += `<span>Real:</span>`;
-          html += `<input type="number" data-real="${m.id}" placeholder="${state.currency === 'USD' ? 'USD' : 'CLP'}" value="${realVal}">`;
+          html += `<input type="number" data-real="${m.milestone_id}" placeholder="${state.currency}" value="${realVal}">`;
           html += deltaStr;
           html += `</div>`;
         }
@@ -687,7 +822,6 @@ function renderCards() {
 
     html += `</ul>`;
 
-    // Total recibido por cliente
     const totalProjectedCurrency = state.currency === 'USD' ? totalUsd : totalUsd * state.tc;
     html += `<div class="card-total">`;
     html += `<span>Recibido / Proyectado</span>`;
@@ -697,68 +831,63 @@ function renderCards() {
     html += `</div>`;
   });
 
-  container.innerHTML = html;
-
-  // Attach handlers
-  container.querySelectorAll('[data-ms]').forEach(cb => {
-    cb.addEventListener('change', e => {
-      const id = e.target.dataset.ms;
-      if (!state.received[id]) state.received[id] = {};
-      state.received[id].received = e.target.checked;
-      if (!e.target.checked) {
-        delete state.received[id];
-      }
-      saveState();
-      renderAll();
-    });
+  // Placeholders
+  PLACEHOLDERS.forEach(p => {
+    html += `<div class="card placeholder">`;
+    html += `<div class="card-head">`;
+    html += `<h3 class="card-name">${p.nombre}</h3>`;
+    html += `<span class="card-chip chip-neutral">sin contrato</span>`;
+    html += `</div>`;
+    html += `<div class="card-meta" style="font-style:italic; color: var(--text-3);">${p.texto}</div>`;
+    html += `</div>`;
   });
 
+  container.innerHTML = html;
+
+  // Handlers
+  container.querySelectorAll('[data-ms]').forEach(cb => {
+    cb.addEventListener('change', e => markReceived(e.target.dataset.ms, e.target.checked));
+  });
   container.querySelectorAll('[data-real]').forEach(inp => {
     inp.addEventListener('input', e => {
-      const id = e.target.dataset.real;
-      if (!state.received[id]) state.received[id] = { received: true };
       const val = parseFloat(e.target.value);
-      state.received[id].realAmount = isNaN(val) ? null : val;
-      saveState();
-      renderKPIs();
-      updateCardTotals();
+      updateRealAmount(e.target.dataset.real, isNaN(val) ? null : val);
     });
   });
 }
 
 function updateCardTotals() {
-  // Actualizar solo los totales y deltas sin re-renderizar todo (evita perder focus del input)
-  const cards = document.querySelectorAll('.card:not(.placeholder)');
-  CLIENTES.filter(c => !c.placeholder).forEach((client, idx) => {
-    const card = cards[idx];
-    if (!card) return;
-    const total_usd_kg = getClientTotalUsdKg(client);
-    const totalUsd = total_usd_kg * client.kg;
+  ['NDS', 'PN', 'VK'].forEach((clienteId, idx) => {
+    const kg = getClientKg(clienteId);
+    const total_usd_kg = getClientTotalUsdKg(clienteId);
+    const totalUsd = total_usd_kg * kg;
     const totalProjectedCurrency = state.currency === 'USD' ? totalUsd : totalUsd * state.tc;
 
-    const milestones = getClientMilestones(client);
+    const ms = getMilestonesForClient(clienteId);
     let totalReceived = 0;
-    milestones.forEach(m => {
-      const r = state.received[m.id];
-      if (!r?.received) return;
-      if (r.realAmount !== null && r.realAmount !== undefined) {
-        totalReceived += r.realAmount;
+    ms.forEach(m => {
+      const p = pagos[m.milestone_id];
+      if (!p?.received) return;
+      if (p.realAmount !== null && p.realAmount !== undefined) {
+        totalReceived += p.realAmount;
       } else if (m.usd_kg !== null) {
-        totalReceived += computeAmount(m.usd_kg, client.kg, state.currency);
+        totalReceived += computeAmount(m.usd_kg, kg, state.currency);
       }
     });
 
+    const cards = document.querySelectorAll('.card:not(.placeholder)');
+    const card = cards[idx];
+    if (!card) return;
     const totalEl = card.querySelector('.card-total b');
     if (totalEl) totalEl.textContent = `${fmtMoney(totalReceived, state.currency)} / ${fmtMoney(totalProjectedCurrency, state.currency)}`;
 
-    // Update delta for this client's milestones
-    milestones.forEach(m => {
-      const r = state.received[m.id];
-      if (!r?.received) return;
-      const projectedAmount = m.usd_kg !== null ? computeAmount(m.usd_kg, client.kg, state.currency) : null;
-      const delta = r.realAmount !== null && r.realAmount !== undefined && projectedAmount !== null
-        ? r.realAmount - projectedAmount : null;
-      const realDiv = card.querySelector(`[data-real="${m.id}"]`)?.parentElement;
+    ms.forEach(m => {
+      const p = pagos[m.milestone_id];
+      if (!p?.received) return;
+      const projectedAmount = m.usd_kg !== null ? computeAmount(m.usd_kg, kg, state.currency) : null;
+      const delta = p.realAmount !== null && p.realAmount !== undefined && projectedAmount !== null
+        ? p.realAmount - projectedAmount : null;
+      const realDiv = card.querySelector(`[data-real="${m.milestone_id}"]`)?.parentElement;
       if (realDiv) {
         const existingDelta = realDiv.querySelector('.delta');
         if (existingDelta) existingDelta.remove();
@@ -773,25 +902,33 @@ function updateCardTotals() {
   });
 }
 
-// ============ RENDER: KPIs ============
+// ============================================================
+// RENDER: KPIs
+// ============================================================
 
 function renderKPIs() {
   let totalProjected = 0;
   let totalReceived = 0;
+  let totalKg = 0;
+  const kgByClient = [];
 
-  CLIENTES.filter(c => !c.placeholder).forEach(client => {
-    const total_usd_kg = getClientTotalUsdKg(client);
-    const totalUsd = total_usd_kg * client.kg;
+  ['NDS', 'PN', 'VK'].forEach(clienteId => {
+    const kg = getClientKg(clienteId);
+    totalKg += kg;
+    kgByClient.push(`${clienteId} ${(kg/1000).toFixed(0)}k`);
+
+    const total_usd_kg = getClientTotalUsdKg(clienteId);
+    const totalUsd = total_usd_kg * kg;
     totalProjected += state.currency === 'USD' ? totalUsd : totalUsd * state.tc;
 
-    const milestones = getClientMilestones(client);
-    milestones.forEach(m => {
-      const r = state.received[m.id];
-      if (!r?.received) return;
-      if (r.realAmount !== null && r.realAmount !== undefined) {
-        totalReceived += r.realAmount;
+    const ms = getMilestonesForClient(clienteId);
+    ms.forEach(m => {
+      const p = pagos[m.milestone_id];
+      if (!p?.received) return;
+      if (p.realAmount !== null && p.realAmount !== undefined) {
+        totalReceived += p.realAmount;
       } else if (m.usd_kg !== null) {
-        totalReceived += computeAmount(m.usd_kg, client.kg, state.currency);
+        totalReceived += computeAmount(m.usd_kg, kg, state.currency);
       }
     });
   });
@@ -799,13 +936,13 @@ function renderKPIs() {
   const pending = totalProjected - totalReceived;
   const pct = totalProjected > 0 ? (totalReceived / totalProjected * 100) : 0;
 
+  document.getElementById('kpiKg').textContent = totalKg.toLocaleString('es-CL');
+  document.getElementById('kpiKgHint').textContent = kgByClient.join(' · ');
   document.getElementById('kpiAnt').textContent = fmtMoney(totalProjected, state.currency);
   document.getElementById('kpiRec').textContent = fmtMoney(totalReceived, state.currency);
   document.getElementById('kpiRecHint').textContent = `${pct.toFixed(1)}% del total proyectado`;
   document.getElementById('kpiPend').textContent = fmtMoney(pending, state.currency);
 }
-
-// ============ MAIN RENDER ============
 
 function renderAll() {
   renderGantt();
@@ -813,13 +950,21 @@ function renderAll() {
   renderKPIs();
 }
 
-// ============ EVENT HANDLERS ============
+function applyStateToUI() {
+  document.getElementById('tcInput').value = state.tc;
+  document.querySelectorAll('#currencyToggle button').forEach(b => b.classList.toggle('active', b.dataset.c === state.currency));
+  document.querySelectorAll('#scenarioToggle button').forEach(b => b.classList.toggle('active', b.dataset.s === state.scenario));
+}
+
+// ============================================================
+// EVENT HANDLERS
+// ============================================================
 
 document.getElementById('tcInput').addEventListener('input', e => {
   const val = parseFloat(e.target.value);
   if (!isNaN(val) && val > 0) {
     state.tc = val;
-    saveState();
+    saveLocalState();
     renderAll();
   }
 });
@@ -828,7 +973,7 @@ document.querySelectorAll('#currencyToggle button').forEach(b => {
   b.addEventListener('click', () => {
     state.currency = b.dataset.c;
     document.querySelectorAll('#currencyToggle button').forEach(bb => bb.classList.toggle('active', bb.dataset.c === state.currency));
-    saveState();
+    saveLocalState();
     renderAll();
   });
 });
@@ -837,26 +982,47 @@ document.querySelectorAll('#scenarioToggle button').forEach(b => {
   b.addEventListener('click', () => {
     state.scenario = b.dataset.s;
     document.querySelectorAll('#scenarioToggle button').forEach(bb => bb.classList.toggle('active', bb.dataset.s === state.scenario));
-    saveState();
+    saveLocalState();
     renderAll();
   });
 });
 
-document.getElementById('resetBtn').addEventListener('click', () => {
-  if (confirm('¿Borrar todos los datos guardados localmente (marcados como recibido, montos reales)?\n\nEsto NO afecta el TC ni otros ajustes.')) {
-    state.received = {};
-    saveState();
+document.getElementById('refreshBtn').addEventListener('click', async () => {
+  if (!API_COBROS_URL) {
+    setSync('warn', 'API no configurada — no hay nada que recargar');
+    return;
+  }
+  try {
+    setSync('syncing', 'Recargando desde Sheet...');
+    const data = await apiGet('all');
+    if (data.milestones) milestones = data.milestones;
+    if (data.pagos) {
+      pagos = {};
+      Object.keys(data.pagos).forEach(id => {
+        const p = data.pagos[id];
+        pagos[id] = {
+          received: true,
+          realAmount: p.monto_real_clp,
+          realAmountUsd: p.monto_real_usd,
+          tc_usado: p.tc_usado,
+          timestamp: p.timestamp,
+          observacion: p.observacion
+        };
+      });
+    }
+    saveLocalCache();
+    setSync('ok', 'Actualizado desde Google Sheet');
     renderAll();
+  } catch (e) {
+    setSync('err', 'Error al recargar: ' + e.message);
   }
 });
 
-// ============ INIT ============
+// Retry queue periodically
+setInterval(flushPendingQueue, 30000);
 
-loadState();
-document.getElementById('tcInput').value = state.tc;
-document.querySelectorAll('#currencyToggle button').forEach(b => b.classList.toggle('active', b.dataset.c === state.currency));
-document.querySelectorAll('#scenarioToggle button').forEach(b => b.classList.toggle('active', b.dataset.s === state.scenario));
-renderAll();
+// Boot
+bootstrap();
 </script>
 
 </body>
