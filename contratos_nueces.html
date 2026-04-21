@@ -373,8 +373,11 @@ const LS_STATE_KEY = 'loscrisoles_nueces_2026_state';
 const LS_CACHE_KEY = 'loscrisoles_nueces_2026_cache';
 const LS_PENDING_KEY = 'loscrisoles_nueces_2026_pending';
 
-function apiUrl() {
+function apiUrl(forPost) {
   if (!API_COBROS_URL) return null;
+  // Para POST: siempre directo (el worker no soporta POST bien)
+  if (forPost) return API_COBROS_URL;
+  // Para GET: usar proxy si está configurado
   if (CF_PROXY_PREFIX) return CF_PROXY_PREFIX + encodeURIComponent(API_COBROS_URL);
   return API_COBROS_URL;
 }
@@ -386,25 +389,37 @@ function setSync(type, msg) {
 }
 
 async function apiGet(action) {
-  const base = apiUrl();
+  const base = apiUrl(false);
   if (!base) throw new Error('API_COBROS_URL no configurada');
   const sep = base.includes('?url=') ? '&' : (base.includes('?') ? '&' : '?');
   const url = base + sep + 'action=' + action;
+  console.log('[apiGet]', action, '→', url);
   const res = await fetch(url);
+  console.log('[apiGet] status:', res.status);
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return await res.json();
 }
 
 async function apiPost(body) {
-  const base = apiUrl();
+  const base = apiUrl(true);
   if (!base) throw new Error('API_COBROS_URL no configurada');
-  const res = await fetch(base, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' }, // evita preflight CORS
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  return await res.json();
+  console.log('[apiPost] enviando:', body, '→', base);
+  try {
+    const res = await fetch(base, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body),
+      redirect: 'follow'
+    });
+    console.log('[apiPost] status:', res.status, res.statusText);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const json = await res.json();
+    console.log('[apiPost] respuesta:', json);
+    return json;
+  } catch (e) {
+    console.error('[apiPost] error:', e);
+    throw e;
+  }
 }
 
 // Cola de sync: acciones pendientes de enviar al Sheet
