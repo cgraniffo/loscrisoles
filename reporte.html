@@ -1095,6 +1095,17 @@ function renderIngresos() {
 
   document.getElementById("app-ingresos").innerHTML = `
 
+    <!-- ═══ BLOQUE COLAPSABLE: CONTRATOS NUECES ═══ -->
+    <details style="margin-bottom:14px; border:1px solid #e0e0e0; border-radius:10px; background:#fafaf7; overflow:hidden;">
+      <summary style="padding:12px 16px; cursor:pointer; font-size:13px; font-weight:600; color:#1c1c1a; list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none;">
+        <span>📅 Contratos nueces · temporada 2026 · anticipos y liquidaciones</span>
+        <span style="font-size:11px; color:#5f5e5a; font-weight:400;">clic para expandir ▾</span>
+      </summary>
+      <div style="padding:0; border-top:1px solid #e0e0e0; background:#fff;">
+        <iframe src="contrato_nueces.html" style="width:100%; min-height:1400px; border:none; display:block;" loading="lazy" title="Contratos nueces 2026"></iframe>
+      </div>
+    </details>
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
 
       <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;">
