@@ -142,6 +142,26 @@ if (location.search.includes('embed=1')) {
     }
     .card-link:hover { color: var(--verde); }
 
+    /* ── COLLAPSIBLE CARDS ─────────────────────────────────── */
+    details.card { padding: 0; }
+    details.card > summary {
+      list-style: none;
+      padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    details.card > summary::-webkit-details-marker { display: none; }
+    details.card > summary:hover { background: #fafaf7; }
+    details.card > summary .card-title { font-size: 12px; font-weight: 600; color: #1c1c1a; letter-spacing: 0.04em; text-transform: none; }
+    details.card > summary .summary-meta { display: flex; align-items: center; gap: 10px; }
+    details.card > summary .summary-hint { font-size: 11px; color: var(--gris); }
+    details.card > summary .caret { font-size: 11px; color: var(--gris); transition: transform 0.2s; display: inline-block; }
+    details.card[open] > summary .caret { transform: rotate(90deg); }
+    details.card[open] > summary { border-bottom: 1px solid #f0ede6; }
+    details.card > .card-body { padding: 16px 20px; }
+
     /* ── KPI METRIC ─────────────────────────────────────────────── */
     .metric-big { font-weight: bold; font-size: 36px; font-weight: 700; line-height: 1; }
     .metric-label { font-size: 12px; color: var(--gris); margin-top: 6px; }
@@ -366,20 +386,28 @@ if (location.search.includes('embed=1')) {
     </div>
 
     <div class="grid-2">
-      <div class="card">
-        <div class="card-head">
+      <details class="card">
+        <summary>
           <div class="card-title">⚠️ Labores + Atrasadas</div>
-          <a href="#" onclick="navTo('labores','/reporte');return false;" class="card-link">Ver todas →</a>
-        </div>
+          <div class="summary-meta">
+            <span class="summary-hint" id="hint-labores">—</span>
+            <a href="#" onclick="navTo('labores','/reporte');return false;" class="card-link">Ver →</a>
+            <span class="caret">▶</span>
+          </div>
+        </summary>
         <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
+      </details>
+      <details class="card">
+        <summary>
           <div class="card-title">📎 Documentos sin asignar</div>
-          <a href="#" onclick="navTo('asignar','/asignar');return false;" class="card-link">Asignar →</a>
-        </div>
+          <div class="summary-meta">
+            <span class="summary-hint" id="hint-sin-asignar">—</span>
+            <a href="#" onclick="navTo('asignar','/asignar');return false;" class="card-link">Asignar →</a>
+            <span class="caret">▶</span>
+          </div>
+        </summary>
         <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
-      </div>
+      </details>
     </div>
 
     <!-- ═══ ZONA 2 · LIQUIDEZ ═══ -->
@@ -389,29 +417,41 @@ if (location.search.includes('embed=1')) {
       <div style="font-size:11px;color:var(--gris);">¿cómo está la plata?</div>
     </div>
 
-    <div class="card" style="margin-bottom:10px;">
-      <div class="card-head">
+    <details class="card" style="margin-bottom:10px;">
+      <summary>
         <div class="card-title">🏦 Flujo de caja</div>
-        <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver detalle →</a>
-      </div>
+        <div class="summary-meta">
+          <span class="summary-hint" id="hint-caja">—</span>
+          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver detalle →</a>
+          <span class="caret">▶</span>
+        </div>
+      </summary>
       <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
-    </div>
+    </details>
 
     <div class="grid-2">
-      <div class="card">
-        <div class="card-head">
+      <details class="card">
+        <summary>
           <div class="card-title">⬇️ Por cobrar — próximos 30 días</div>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
-        </div>
+          <div class="summary-meta">
+            <span class="summary-hint" id="hint-cobrar">—</span>
+            <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
+            <span class="caret">▶</span>
+          </div>
+        </summary>
         <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
+      </details>
+      <details class="card">
+        <summary>
           <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
-        </div>
+          <div class="summary-meta">
+            <span class="summary-hint" id="hint-pagar">—</span>
+            <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
+            <span class="caret">▶</span>
+          </div>
+        </summary>
         <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
-      </div>
+      </details>
     </div>
 
     <!-- Banner nueces (KPI mini con 3 números) -->
@@ -482,15 +522,18 @@ if (location.search.includes('embed=1')) {
       <div style="font-size:11px;color:var(--gris);">vista del campo</div>
     </div>
 
-    <div class="card">
-      <div class="card-head">
+    <details class="card">
+      <summary>
         <div class="card-title">🗺 Mapa de unidades productivas</div>
-        <div style="font-size:11px;color:var(--gris);">Click en marcador para ver detalles</div>
-      </div>
+        <div class="summary-meta">
+          <span class="summary-hint">click en marcador para detalles</span>
+          <span class="caret">▶</span>
+        </div>
+      </summary>
       <div class="card-body" style="padding:12px;">
         <div id="mapa-home"></div>
       </div>
-    </div>
+    </details>
 
   </div>
 
@@ -685,6 +728,9 @@ async function main() {
     }
 
     document.getElementById('h-vencidas').textContent = vencidas.length;
+    const _hL = document.getElementById('hint-labores');
+    if (_hL) _hL.textContent = vencidas.length > 0 ? `${vencidas.length} vencidas · ${activos.length} activas` : `${activos.length} activas`;
+    if (_hL) _hL.style.color = vencidas.length > 0 ? '#c0392b' : 'var(--gris)';
     const _nb1 = document.getElementById('nav-labores-badge'); if(_nb1) _nb1.textContent = vencidas.length + " vencidas · " + activos.length + " activas";
     if(_nb1) _nb1.className = "nav-badge " + (vencidas.length>0?"badge-rojo":"badge-verde");
 
@@ -806,6 +852,13 @@ async function main() {
         '</div>';
     };
 
+    const _hCj = document.getElementById('hint-caja');
+    if (_hCj) {
+      _hCj.textContent = `${fmtPeso(CAJA_ACTUAL)}`;
+      _hCj.style.color = CAJA_ACTUAL >= 0 ? 'var(--verde)' : '#ef4444';
+      _hCj.style.fontWeight = '600';
+    }
+
     document.getElementById('card-caja').innerHTML =
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">' +
         '<div class="caja-item" style="background:#eaf3de;"><div class="caja-val" style="color:var(--verde);font-size:22px;">' + fmtPeso(CAJA_ACTUAL) + '</div><div class="caja-lbl">💰 Caja Hoy</div></div>' +
@@ -926,7 +979,6 @@ function renderHome({ registros, asignaciones, proyecciones }) {
   const _nb2 = document.getElementById('nav-prod-badge'); if(_nb2) _nb2.textContent = ingRows.length + " UPs con proyección";
 }
     const CORTE_ASIG = "2026-04-01";
-    // Build set of KEYs that are already assigned in Asignaciones_U (misma lógica que asignar.html)
     const ASIGNADOS_KEYS = new Set();
     (Array.isArray(asignaciones)?asignaciones:[]).forEach(a => {
       if (a["KEY_Documento"]) ASIGNADOS_KEYS.add(String(a["KEY_Documento"]).trim());
@@ -935,7 +987,6 @@ function renderHome({ registros, asignaciones, proyecciones }) {
       const fundo = String(d["Fundo"]||"").trim();
       const rut   = String(d["RUT Emisor"]||"").trim();
       const key   = String(d["KEY"]||"").trim();
-      // Sin asignar si: fundo vacío Y no hay registro en Asignaciones_U Y no es LC emisor
       const sinFundo = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO";
       const yaAsignado = key && ASIGNADOS_KEYS.has(key);
       return sinFundo && !yaAsignado && rut !== RUT_LC;
@@ -943,10 +994,23 @@ function renderHome({ registros, asignaciones, proyecciones }) {
     const sinAsigNuevos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] >= CORTE_ASIG);
     const sinAsigViejos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] < CORTE_ASIG);
     document.getElementById('h-sin-asignar').textContent = sinAsigNuevos.length;
+    const _hS = document.getElementById('hint-sin-asignar');
+    if (_hS) _hS.textContent = sinAsignar.length > 0 ? `${sinAsigNuevos.length} nuevos · ${sinAsigViejos.length} anteriores` : 'todo asignado';
+    if (_hS) _hS.style.color = sinAsigNuevos.length > 0 ? '#c0392b' : 'var(--gris)';
     const _nb3 = document.getElementById('nav-asignar-badge'); if(_nb3) _nb3.textContent = sinAsigNuevos.length + " nuevos · " + sinAsigViejos.length + " anteriores";
     if(_nb3) _nb3.className = "nav-badge " + (sinAsigNuevos.length>0?"badge-rojo":"badge-verde");
 
     // Finanzas tab content
+    const cobrar30Docs = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
+    const pagar30Docs = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
+    const sumMontos = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+    const _hC = document.getElementById('hint-cobrar');
+    if (_hC) _hC.textContent = cobrar30Docs.length > 0 ? `${cobrar30Docs.length} docs · ${fmtPeso(sumMontos(cobrar30Docs))}` : 'sin docs';
+    if (_hC) _hC.style.color = cobrar30Docs.length > 0 ? 'var(--verde2)' : 'var(--gris)';
+    const _hP = document.getElementById('hint-pagar');
+    if (_hP) _hP.textContent = pagar30Docs.length > 0 ? `${pagar30Docs.length} docs · ${fmtPeso(sumMontos(pagar30Docs))}` : 'sin docs';
+    if (_hP) _hP.style.color = pagar30Docs.length > 0 ? '#c0392b' : 'var(--gris)';
+
     const pagar30HTML = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
       .sort((a,b)=>(parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0)).slice(0,8)
       .map(r => {
@@ -1007,6 +1071,23 @@ function renderHome({ registros, asignaciones, proyecciones }) {
 }
 
 main();
+
+document.querySelectorAll('details.card').forEach(d => {
+  const summary = d.querySelector('summary');
+  if (summary) {
+    summary.addEventListener('click', (e) => {
+      if (e.target.closest('a')) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    });
+  }
+  d.addEventListener('toggle', () => {
+    if (d.open && window._mapa && d.querySelector('#mapa-home')) {
+      setTimeout(() => window._mapa.invalidateSize(), 50);
+    }
+  });
+});
 
 // ── BANNER NUECES (lee desde la misma API del contrato_nueces.html) ──
 (async function loadBannerNueces() {
