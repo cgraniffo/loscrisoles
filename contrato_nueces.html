@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contratos Nueces 2026 · Los Crisoles</title>
+<style>
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --surface-2: #f4f2ec;
+    --border: rgba(0,0,0,0.12);
+    --border-strong: rgba(0,0,0,0.22);
+    --text: #1c1c1a;
+    --text-2: #5f5e5a;
+    --text-3: #8a8a85;
+    --accent: #185FA5;
+    --accent-bg: #E6F1FB;
+    --ok: #3B6D11;
+    --ok-bg: #EAF3DE;
+    --warn: #BA7517;
+    --warn-bg: #FAEEDA;
+    --danger: #A32D2D;
+    --danger-bg: #FCEBEB;
+    --nds: #534AB7;
+    --nds-bg: #EEEDFE;
+    --pn: #0F6E56;
+    --pn-bg: #E1F5EE;
+    --vk: #BA7517;
+    --vk-bg: #FAEEDA;
+    --neutral: #5F5E5A;
+    --neutral-bg: #F1EFE8;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 1.5rem;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 22px; font-weight: 500; margin: 0 0 4px; }
+  .subtitle { font-size: 13px; color: var(--text-2); margin: 0 0 1.5rem; }
+
+  /* Controls bar */
+  .controls {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .ctrl-group { display: flex; align-items: center; gap: 10px; }
+  .ctrl-label { font-size: 12px; color: var(--text-2); font-weight: 500; }
+  .ctrl-input {
+    padding: 6px 10px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    width: 90px;
+  }
+  .ctrl-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+  .toggle-group {
+    display: inline-flex;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    font-size: 12px;
+  }
+  .toggle-group button {
+    background: transparent;
+    border: none;
+    padding: 7px 12px;
+    cursor: pointer;
+    color: var(--text-2);
+    font: inherit;
+    font-size: 12px;
+    transition: background .15s;
+  }
+  .toggle-group button.active {
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .ctrl-hint {
+    font-size: 11px;
+    color: var(--text-3);
+    font-style: italic;
+  }
+
+  /* KPIs */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+  .kpi {
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .kpi-label { font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+  .kpi-val {
+    font-size: 22px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-val.small { font-size: 18px; }
+  .kpi-hint { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+
+  /* Gantt */
+  .gantt {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .gantt-title {
+    font-size: 14px;
+    font-weight: 500;
+    margin: 0 0 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .gantt-legend {
+    font-size: 11px;
+    color: var(--text-2);
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .gantt-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .gantt-svg-wrap { overflow-x: auto; }
+
+  /* Cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+  }
+  .card.placeholder { border-style: dashed; opacity: 0.65; }
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .card-name { font-size: 15px; font-weight: 500; margin: 0; }
+  .card-chip {
+    font-size: 11px;
+    padding: 3px 9px;
+    border-radius: 10px;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .chip-nds { background: var(--nds-bg); color: var(--nds); }
+  .chip-pn  { background: var(--pn-bg);  color: var(--pn); }
+  .chip-vk  { background: var(--vk-bg);  color: var(--vk); }
+  .chip-neutral { background: var(--neutral-bg); color: var(--neutral); }
+
+  .card-meta {
+    font-size: 12px;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 12px;
+  }
+  .card-meta b { color: var(--text); font-weight: 500; }
+
+  .milestone-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-top: 0.5px solid var(--border);
+  }
+  .milestone {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 12.5px;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .milestone:last-child { border-bottom: none; }
+  .milestone.received { opacity: 0.7; }
+  .milestone.received .milestone-date { text-decoration: line-through; }
+  .milestone-date { color: var(--text-2); }
+  .milestone-amt {
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    min-width: 100px;
+  }
+  .milestone-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .milestone-check input { cursor: pointer; margin: 0; }
+  .milestone-check.received { color: var(--ok); font-weight: 500; }
+  .milestone-real {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0 0 16px;
+    font-size: 11px;
+    color: var(--text-2);
+  }
+  .milestone-real input {
+    padding: 3px 6px;
+    border: 0.5px solid var(--border);
+    border-radius: 4px;
+    font: inherit;
+    font-size: 11px;
+    width: 110px;
+    font-variant-numeric: tabular-nums;
+  }
+  .milestone-real .delta {
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .delta.pos { color: var(--ok); }
+  .delta.neg { color: var(--danger); }
+
+  .card-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 0.5px solid var(--border-strong);
+    font-size: 13px;
+  }
+  .card-total b { font-weight: 500; }
+
+  /* Reset button */
+  .reset-btn {
+    background: transparent;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    color: var(--text-2);
+    transition: all .15s;
+  }
+  .reset-btn:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <h1>Contratos nueces · temporada 2026</h1>
+  <p class="subtitle">Calendario de anticipos y liquidaciones · Los Crisoles</p>
+
+  <!-- Controls -->
+  <div class="controls">
+    <div class="ctrl-group">
+      <span class="ctrl-label">TC USD→CLP</span>
+      <input type="number" id="tcInput" class="ctrl-input" value="820" min="1" step="1">
+      <span class="ctrl-hint">fijo · editable</span>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Moneda</span>
+      <div class="toggle-group" id="currencyToggle">
+        <button data-c="CLP" class="active">CLP</button>
+        <button data-c="USD">USD</button>
+      </div>
+    </div>
+    <div class="ctrl-group">
+      <span class="ctrl-label">Pacific Nut rend.</span>
+      <div class="toggle-group" id="scenarioToggle">
+        <button data-s="opt" class="active">Sobre 48%</button>
+        <button data-s="con">Bajo 48%</button>
+      </div>
+    </div>
+    <div class="ctrl-group" style="margin-left: auto;">
+      <button class="reset-btn" id="resetBtn" title="Borrar datos de recibidos guardados localmente">Reset datos locales</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-label">Kg comprometidos</div>
+      <div class="kpi-val">190.000</div>
+      <div class="kpi-hint">NDS 60k · PN 40k secos · VK 50k</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total anticipos proyectado</div>
+      <div class="kpi-val small" id="kpiAnt">—</div>
+      <div class="kpi-hint">suma antes de liquidación</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Recibido a la fecha</div>
+      <div class="kpi-val small" id="kpiRec">—</div>
+      <div class="kpi-hint" id="kpiRecHint">0% del total</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Pendiente</div>
+      <div class="kpi-val small" id="kpiPend">—</div>
+      <div class="kpi-hint">incluye liquidaciones dic</div>
+    </div>
+  </div>
+
+  <!-- Gantt -->
+  <div class="gantt">
+    <div class="gantt-title">
+      <span>Calendario anual de cobros 2026</span>
+      <span class="gantt-legend">
+        <span>○ Anticipo</span>
+        <span>◆ Precio mín. garantizado</span>
+        <span>▪ Liquidación final</span>
+        <span style="color: var(--ok);">● Recibido</span>
+      </span>
+    </div>
+    <div class="gantt-svg-wrap">
+      <svg id="ganttSvg" width="100%" viewBox="0 0 900 300" preserveAspectRatio="xMinYMin meet" style="min-width: 760px;"></svg>
+    </div>
+  </div>
+
+  <!-- Cards -->
+  <div class="cards" id="cardsContainer"></div>
+
+</div>
+
+<script>
+// ============ DATA MODEL ============
+
+const STORAGE_KEY = 'loscrisoles_nueces_2026';
+
+const KG = {
+  NDS: 60000,
+  PN: 40000,  // kg secos estimados (50% de 80.000 recepción)
+  VK: 50000
+};
+
+// Pacific Nut escenarios
+const PN_SCENARIOS = {
+  opt: {  // sobre 48% rendimiento
+    label: 'Sobre 48%',
+    total_usd_kg: 2.10,
+    milestones: [
+      { id: 'pn_mar', date: '2026-03-20', label: 'Marzo (vie 20)', usd_kg: 1.00 },
+      { id: 'pn_abr', date: '2026-04-24', label: 'Abril (vie 24)', usd_kg: 0.50 },
+      { id: 'pn_jun', date: '2026-06-26', label: 'Junio (vie 26)', usd_kg: 0.40 },
+      { id: 'pn_ago', date: '2026-08-21', label: 'Agosto (vie 21)', usd_kg: 0.20 }
+    ]
+  },
+  con: {  // bajo 48%
+    label: 'Bajo 48%',
+    total_usd_kg: 1.80,
+    milestones: [
+      { id: 'pn_mar', date: '2026-03-20', label: 'Marzo (vie 20)', usd_kg: 1.00 },
+      { id: 'pn_abr', date: '2026-04-24', label: 'Abril (vie 24)', usd_kg: 0.30 },
+      { id: 'pn_jun', date: '2026-06-26', label: 'Junio (vie 26)', usd_kg: 0.30 },
+      { id: 'pn_ago', date: '2026-08-21', label: 'Agosto (vie 21)', usd_kg: 0.20 }
+    ]
+  }
+};
+
+// Clientes
+const CLIENTES = [
+  {
+    id: 'NDS',
+    nombre: 'NDS · Nueces del Sur',
+    chipClass: 'chip-nds',
+    color: '#534AB7',
+    bgColor: '#EEEDFE',
+    kg: KG.NDS,
+    variedad: 'Chandler',
+    modalidad: 'Consignación · comisión 8%',
+    extras: 'Secado USD 0,28/kg (descuento)',
+    total_usd_kg: 1.80,
+    milestones: [
+      { id: 'nds_firma', date: '2026-01-30', label: 'Firma (30 ene)', usd_kg: 1.00, ganttMonth: 1, ganttDay: 30 },
+      { id: 'nds_may',   date: '2026-05-31', label: '31 mayo 2026', usd_kg: 0.40, ganttMonth: 5, ganttDay: 31 },
+      { id: 'nds_jul',   date: '2026-07-30', label: '30 julio 2026', usd_kg: 0.40, ganttMonth: 7, ganttDay: 30 },
+      { id: 'nds_liq',   date: '2026-12-20', label: '3ra sem dic (liq.)', usd_kg: null, isLiq: true, ganttMonth: 12, ganttDay: 20 }
+    ]
+  },
+  {
+    id: 'PN',
+    nombre: 'Pacific Nut',
+    chipClass: 'chip-pn',
+    color: '#0F6E56',
+    bgColor: '#E1F5EE',
+    kg: KG.PN,
+    variedad: 'Chandler · ~40.000 kg secos',
+    modalidad: 'Consignación · comisión 8%',
+    extras: 'Descuentos: secado USD 0,14/kg · análisis 5 UF · proceso USD 0,49/kg (cáscara)',
+    isDynamic: true,  // se recalcula según escenario
+  },
+  {
+    id: 'VK',
+    nombre: 'Vitakai',
+    chipClass: 'chip-vk',
+    color: '#BA7517',
+    bgColor: '#FAEEDA',
+    kg: KG.VK,
+    variedad: 'Chandler',
+    modalidad: 'Compraventa · comisión 8%',
+    extras: 'Bonificación 50% flete campo-planta',
+    total_usd_kg: 1.80,
+    milestones: [
+      { id: 'vk_mar', date: '2026-03-15', label: 'Marzo 2026',  usd_kg: 0.50, ganttMonth: 3, ganttDay: 15 },
+      { id: 'vk_may', date: '2026-05-15', label: 'Mayo 2026',   usd_kg: 0.50, ganttMonth: 5, ganttDay: 15 },
+      { id: 'vk_jul', date: '2026-07-15', label: 'Julio 2026',  usd_kg: 0.80, ganttMonth: 7, ganttDay: 15 },
+      { id: 'vk_liq', date: '2026-12-30', label: '30 dic 2026 (liq.)', usd_kg: null, isLiq: true, ganttMonth: 12, ganttDay: 30 }
+    ]
+  },
+  {
+    id: 'VV',
+    nombre: 'Vista Volcán',
+    chipClass: 'chip-neutral',
+    color: '#8a8a85',
+    bgColor: '#F1EFE8',
+    placeholder: true,
+    placeholderText: 'Cliente histórico sin contrato cargado. Completar con fechas y montos al recibir documento.'
+  },
+  {
+    id: '2N',
+    nombre: 'Inversiones 2N',
+    chipClass: 'chip-neutral',
+    color: '#8a8a85',
+    bgColor: '#F1EFE8',
+    placeholder: true,
+    placeholderText: 'Cliente histórico sin contrato cargado. Completar con fechas y montos al recibir documento.'
+  }
+];
+
+// ============ STATE ============
+
+let state = {
+  tc: 820,
+  currency: 'CLP',
+  scenario: 'opt',
+  received: {}  // { milestone_id: { received: true, realAmount: number_clp_or_null } }
+};
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+    }
+  } catch(e) { console.warn('No se pudo cargar state:', e); }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      tc: state.tc,
+      currency: state.currency,
+      scenario: state.scenario,
+      received: state.received
+    }));
+  } catch(e) { console.warn('No se pudo guardar state:', e); }
+}
+
+// ============ HELPERS ============
+
+function fmtMoney(amount, currency) {
+  if (amount === null || amount === undefined) return '—';
+  if (currency === 'USD') {
+    return 'USD ' + Math.round(amount).toLocaleString('en-US');
+  }
+  return '$' + Math.round(amount).toLocaleString('es-CL');
+}
+
+function computeAmount(usd_kg, kg, currency) {
+  if (usd_kg === null || usd_kg === undefined) return null;
+  const usd = usd_kg * kg;
+  if (currency === 'USD') return usd;
+  return usd * state.tc;
+}
+
+function getClientMilestones(client) {
+  if (client.placeholder) return [];
+  if (client.isDynamic && client.id === 'PN') {
+    return PN_SCENARIOS[state.scenario].milestones.map(m => ({
+      ...m,
+      ganttMonth: parseInt(m.date.split('-')[1]),
+      ganttDay: parseInt(m.date.split('-')[2])
+    })).concat([
+      { id: 'pn_pmg', date: '2026-10-15', label: 'Oct (PMG informado)', usd_kg: null, isPMG: true, ganttMonth: 10, ganttDay: 15 },
+      { id: 'pn_liq', date: '2026-12-20', label: 'Dic 2026 (liq.)',     usd_kg: null, isLiq: true, ganttMonth: 12, ganttDay: 20 }
+    ]);
+  }
+  return client.milestones || [];
+}
+
+function getClientTotalUsdKg(client) {
+  if (client.isDynamic && client.id === 'PN') return PN_SCENARIOS[state.scenario].total_usd_kg;
+  return client.total_usd_kg || 0;
+}
+
+// ============ RENDER: GANTT ============
+
+function renderGantt() {
+  const svg = document.getElementById('ganttSvg');
+  const width = 900;
+  const height = 300;
+  const leftPad = 90;
+  const topPad = 40;
+  const rowHeight = 55;
+  const monthWidth = (width - leftPad - 20) / 12;
+
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const rows = CLIENTES.filter(c => !c.placeholder);
+
+  let html = '';
+
+  // Month headers
+  months.forEach((m, i) => {
+    const x = leftPad + i * monthWidth + monthWidth / 2;
+    html += `<text x="${x}" y="25" text-anchor="middle" font-size="11" fill="#5f5e5a" font-family="inherit">${m}</text>`;
+  });
+
+  // Vertical gridlines
+  for (let i = 0; i <= 12; i++) {
+    const x = leftPad + i * monthWidth;
+    html += `<line x1="${x}" y1="${topPad-5}" x2="${x}" y2="${topPad + rows.length * rowHeight + 10}" stroke="rgba(0,0,0,0.08)" stroke-width="0.5"/>`;
+  }
+
+  // Row backgrounds + labels + milestones
+  rows.forEach((client, idx) => {
+    const rowY = topPad + idx * rowHeight;
+    const rowMidY = rowY + rowHeight / 2;
+
+    // Label
+    html += `<text x="${leftPad - 12}" y="${rowMidY + 4}" text-anchor="end" font-size="12" font-weight="500" fill="#1c1c1a" font-family="inherit">${client.id === 'NDS' ? 'NDS' : client.id === 'PN' ? 'Pacific Nut' : 'Vitakai'}</text>`;
+
+    // Row bg
+    html += `<rect x="${leftPad}" y="${rowY + 8}" width="${width - leftPad - 20}" height="${rowHeight - 16}" rx="4" fill="${client.bgColor}" opacity="0.35"/>`;
+
+    // Milestones
+    const milestones = getClientMilestones(client);
+    milestones.forEach(m => {
+      const x = leftPad + (m.ganttMonth - 1) * monthWidth + (m.ganttDay / 31) * monthWidth;
+      const isReceived = state.received[m.id]?.received;
+      const usd_kg = m.usd_kg;
+      const amount = usd_kg !== null ? computeAmount(usd_kg, client.kg, state.currency) : null;
+
+      if (m.isLiq) {
+        // Square for liquidation
+        html += `<rect x="${x-6}" y="${rowMidY-6}" width="12" height="12" rx="2" fill="${isReceived ? '#3B6D11' : client.color}" stroke="${client.color}" stroke-width="0.5"/>`;
+        html += `<text x="${x}" y="${rowMidY + 24}" text-anchor="middle" font-size="10" fill="${client.color}" font-family="inherit">Liq.</text>`;
+      } else if (m.isPMG) {
+        // Diamond for PMG
+        html += `<polygon points="${x},${rowMidY-6} ${x+6},${rowMidY} ${x},${rowMidY+6} ${x-6},${rowMidY}" fill="${client.color}"/>`;
+        html += `<text x="${x}" y="${rowMidY + 24}" text-anchor="middle" font-size="10" fill="${client.color}" font-family="inherit">PMG</text>`;
+      } else {
+        // Circle for anticipo
+        const fillColor = isReceived ? '#3B6D11' : client.color;
+        html += `<circle cx="${x}" cy="${rowMidY}" r="6" fill="${fillColor}" stroke="${isReceived ? '#3B6D11' : client.color}" stroke-width="0.5"/>`;
+        const amtStr = amount !== null ? shortMoney(amount, state.currency) : '';
+        html += `<text x="${x}" y="${rowMidY + 24}" text-anchor="middle" font-size="10" fill="${client.color}" font-family="inherit">${amtStr}</text>`;
+      }
+    });
+  });
+
+  // Placeholder row at bottom
+  const placeY = topPad + rows.length * rowHeight + 15;
+  html += `<text x="${width/2}" y="${placeY}" text-anchor="middle" font-size="11" fill="#8a8a85" font-style="italic" font-family="inherit">Vista Volcán · Inversiones 2N — sin contrato cargado</text>`;
+
+  svg.setAttribute('viewBox', `0 0 ${width} ${placeY + 20}`);
+  svg.innerHTML = html;
+}
+
+function shortMoney(amount, currency) {
+  if (currency === 'USD') {
+    if (amount >= 1000) return 'USD ' + (amount/1000).toFixed(0) + 'k';
+    return 'USD ' + Math.round(amount);
+  }
+  if (amount >= 1000000) return '$' + (amount/1000000).toFixed(1) + 'M';
+  if (amount >= 1000) return '$' + Math.round(amount/1000) + 'k';
+  return '$' + Math.round(amount);
+}
+
+// ============ RENDER: CARDS ============
+
+function renderCards() {
+  const container = document.getElementById('cardsContainer');
+  let html = '';
+
+  CLIENTES.forEach(client => {
+    html += `<div class="card${client.placeholder ? ' placeholder' : ''}">`;
+    html += `<div class="card-head">`;
+    html += `<h3 class="card-name">${client.nombre}</h3>`;
+    const chipText = client.placeholder ? 'sin contrato' : `${client.variedad || 'Chandler'} · ${client.kg ? client.kg.toLocaleString('es-CL') + ' kg' : ''}`;
+    html += `<span class="card-chip ${client.chipClass}">${chipText}</span>`;
+    html += `</div>`;
+
+    if (client.placeholder) {
+      html += `<div class="card-meta" style="font-style:italic; color: var(--text-3);">${client.placeholderText}</div>`;
+      html += `</div>`;
+      return;
+    }
+
+    const total_usd_kg = getClientTotalUsdKg(client);
+    const totalUsd = total_usd_kg * client.kg;
+    const totalDisplay = fmtMoney(state.currency === 'USD' ? totalUsd : totalUsd * state.tc, state.currency);
+
+    html += `<div class="card-meta">`;
+    html += `<b>Modalidad:</b> ${client.modalidad}<br>`;
+    html += `<b>Total anticipos:</b> USD ${total_usd_kg.toFixed(2)}/kg · <b>${totalDisplay}</b><br>`;
+    html += `<b>${client.extras ? 'Extras:' : ''}</b> ${client.extras || ''}`;
+    html += `</div>`;
+
+    html += `<ul class="milestone-list">`;
+    const milestones = getClientMilestones(client);
+    let totalReceived = 0;
+
+    milestones.forEach(m => {
+      const isReceived = state.received[m.id]?.received || false;
+      const realAmount = state.received[m.id]?.realAmount;
+      const projectedAmount = m.usd_kg !== null ? computeAmount(m.usd_kg, client.kg, state.currency) : null;
+
+      if (isReceived && realAmount !== null && realAmount !== undefined) {
+        totalReceived += realAmount;
+      } else if (isReceived && projectedAmount !== null) {
+        totalReceived += projectedAmount;
+      }
+
+      const amtStr = m.isLiq || m.isPMG ? (m.isLiq ? 'saldo' : 'PMG') : fmtMoney(projectedAmount, state.currency);
+
+      html += `<li class="milestone${isReceived ? ' received' : ''}">`;
+      html += `<span class="milestone-date">${m.label}</span>`;
+      html += `<span class="milestone-amt">${amtStr}</span>`;
+
+      if (!m.isLiq && !m.isPMG) {
+        html += `<label class="milestone-check${isReceived ? ' received' : ''}">`;
+        html += `<input type="checkbox" data-ms="${m.id}" ${isReceived ? 'checked' : ''}> ${isReceived ? 'recibido' : 'marcar'}`;
+        html += `</label>`;
+
+        if (isReceived) {
+          const realVal = realAmount !== null && realAmount !== undefined ? realAmount : '';
+          const delta = realAmount !== null && realAmount !== undefined && projectedAmount !== null
+            ? realAmount - projectedAmount : null;
+          const deltaStr = delta !== null && delta !== 0
+            ? `<span class="delta ${delta > 0 ? 'pos' : 'neg'}">${delta > 0 ? '+' : ''}${fmtMoney(delta, state.currency)}</span>`
+            : '';
+          html += `<div class="milestone-real">`;
+          html += `<span>Real:</span>`;
+          html += `<input type="number" data-real="${m.id}" placeholder="${state.currency === 'USD' ? 'USD' : 'CLP'}" value="${realVal}">`;
+          html += deltaStr;
+          html += `</div>`;
+        }
+      } else {
+        html += `<span></span>`;
+      }
+
+      html += `</li>`;
+    });
+
+    html += `</ul>`;
+
+    // Total recibido por cliente
+    const totalProjectedCurrency = state.currency === 'USD' ? totalUsd : totalUsd * state.tc;
+    html += `<div class="card-total">`;
+    html += `<span>Recibido / Proyectado</span>`;
+    html += `<b>${fmtMoney(totalReceived, state.currency)} / ${fmtMoney(totalProjectedCurrency, state.currency)}</b>`;
+    html += `</div>`;
+
+    html += `</div>`;
+  });
+
+  container.innerHTML = html;
+
+  // Attach handlers
+  container.querySelectorAll('[data-ms]').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const id = e.target.dataset.ms;
+      if (!state.received[id]) state.received[id] = {};
+      state.received[id].received = e.target.checked;
+      if (!e.target.checked) {
+        delete state.received[id];
+      }
+      saveState();
+      renderAll();
+    });
+  });
+
+  container.querySelectorAll('[data-real]').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const id = e.target.dataset.real;
+      if (!state.received[id]) state.received[id] = { received: true };
+      const val = parseFloat(e.target.value);
+      state.received[id].realAmount = isNaN(val) ? null : val;
+      saveState();
+      renderKPIs();
+      updateCardTotals();
+    });
+  });
+}
+
+function updateCardTotals() {
+  // Actualizar solo los totales y deltas sin re-renderizar todo (evita perder focus del input)
+  const cards = document.querySelectorAll('.card:not(.placeholder)');
+  CLIENTES.filter(c => !c.placeholder).forEach((client, idx) => {
+    const card = cards[idx];
+    if (!card) return;
+    const total_usd_kg = getClientTotalUsdKg(client);
+    const totalUsd = total_usd_kg * client.kg;
+    const totalProjectedCurrency = state.currency === 'USD' ? totalUsd : totalUsd * state.tc;
+
+    const milestones = getClientMilestones(client);
+    let totalReceived = 0;
+    milestones.forEach(m => {
+      const r = state.received[m.id];
+      if (!r?.received) return;
+      if (r.realAmount !== null && r.realAmount !== undefined) {
+        totalReceived += r.realAmount;
+      } else if (m.usd_kg !== null) {
+        totalReceived += computeAmount(m.usd_kg, client.kg, state.currency);
+      }
+    });
+
+    const totalEl = card.querySelector('.card-total b');
+    if (totalEl) totalEl.textContent = `${fmtMoney(totalReceived, state.currency)} / ${fmtMoney(totalProjectedCurrency, state.currency)}`;
+
+    // Update delta for this client's milestones
+    milestones.forEach(m => {
+      const r = state.received[m.id];
+      if (!r?.received) return;
+      const projectedAmount = m.usd_kg !== null ? computeAmount(m.usd_kg, client.kg, state.currency) : null;
+      const delta = r.realAmount !== null && r.realAmount !== undefined && projectedAmount !== null
+        ? r.realAmount - projectedAmount : null;
+      const realDiv = card.querySelector(`[data-real="${m.id}"]`)?.parentElement;
+      if (realDiv) {
+        const existingDelta = realDiv.querySelector('.delta');
+        if (existingDelta) existingDelta.remove();
+        if (delta !== null && delta !== 0) {
+          const span = document.createElement('span');
+          span.className = `delta ${delta > 0 ? 'pos' : 'neg'}`;
+          span.textContent = `${delta > 0 ? '+' : ''}${fmtMoney(delta, state.currency)}`;
+          realDiv.appendChild(span);
+        }
+      }
+    });
+  });
+}
+
+// ============ RENDER: KPIs ============
+
+function renderKPIs() {
+  let totalProjected = 0;
+  let totalReceived = 0;
+
+  CLIENTES.filter(c => !c.placeholder).forEach(client => {
+    const total_usd_kg = getClientTotalUsdKg(client);
+    const totalUsd = total_usd_kg * client.kg;
+    totalProjected += state.currency === 'USD' ? totalUsd : totalUsd * state.tc;
+
+    const milestones = getClientMilestones(client);
+    milestones.forEach(m => {
+      const r = state.received[m.id];
+      if (!r?.received) return;
+      if (r.realAmount !== null && r.realAmount !== undefined) {
+        totalReceived += r.realAmount;
+      } else if (m.usd_kg !== null) {
+        totalReceived += computeAmount(m.usd_kg, client.kg, state.currency);
+      }
+    });
+  });
+
+  const pending = totalProjected - totalReceived;
+  const pct = totalProjected > 0 ? (totalReceived / totalProjected * 100) : 0;
+
+  document.getElementById('kpiAnt').textContent = fmtMoney(totalProjected, state.currency);
+  document.getElementById('kpiRec').textContent = fmtMoney(totalReceived, state.currency);
+  document.getElementById('kpiRecHint').textContent = `${pct.toFixed(1)}% del total proyectado`;
+  document.getElementById('kpiPend').textContent = fmtMoney(pending, state.currency);
+}
+
+// ============ MAIN RENDER ============
+
+function renderAll() {
+  renderGantt();
+  renderCards();
+  renderKPIs();
+}
+
+// ============ EVENT HANDLERS ============
+
+document.getElementById('tcInput').addEventListener('input', e => {
+  const val = parseFloat(e.target.value);
+  if (!isNaN(val) && val > 0) {
+    state.tc = val;
+    saveState();
+    renderAll();
+  }
+});
+
+document.querySelectorAll('#currencyToggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    state.currency = b.dataset.c;
+    document.querySelectorAll('#currencyToggle button').forEach(bb => bb.classList.toggle('active', bb.dataset.c === state.currency));
+    saveState();
+    renderAll();
+  });
+});
+
+document.querySelectorAll('#scenarioToggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    state.scenario = b.dataset.s;
+    document.querySelectorAll('#scenarioToggle button').forEach(bb => bb.classList.toggle('active', bb.dataset.s === state.scenario));
+    saveState();
+    renderAll();
+  });
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (confirm('¿Borrar todos los datos guardados localmente (marcados como recibido, montos reales)?\n\nEsto NO afecta el TC ni otros ajustes.')) {
+    state.received = {};
+    saveState();
+    renderAll();
+  }
+});
+
+// ============ INIT ============
+
+loadState();
+document.getElementById('tcInput').value = state.tc;
+document.querySelectorAll('#currencyToggle button').forEach(b => b.classList.toggle('active', b.dataset.c === state.currency));
+document.querySelectorAll('#scenarioToggle button').forEach(b => b.classList.toggle('active', b.dataset.s === state.scenario));
+renderAll();
+</script>
+
+</body>
+</html>
