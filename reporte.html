@@ -1255,9 +1255,32 @@ function renderIngresos() {
         <span style="font-size:11px; color:#5f5e5a; font-weight:400;">clic para expandir ▾</span>
       </summary>
       <div style="padding:0; border-top:1px solid #e0e0e0; background:#fff;">
-        <iframe src="contratos_nueces.html" style="width:100%; min-height:1400px; border:none; display:block;" loading="lazy" title="Contratos nueces 2026"></iframe>
+        <iframe src="contrato_nueces.html" style="width:100%; min-height:1400px; border:none; display:block;" loading="lazy" title="Contratos nueces 2026"></iframe>
       </div>
     </details>
+
+    <div class="filters-wrap" style="margin-bottom:14px;">
+      <div class="filters-row">
+        <div class="filter-label">Unidad prod.</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+        ${upBtns}
+      </div>
+      <div class="filters-row">
+        <div class="filter-label">Centro de Costo</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+        ${fundoBtnsI}
+      </div>
+      <div class="filters-row">
+        <div class="filter-label">Año</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+        ${anioBtns}
+      </div>
+      <div class="filters-row">
+        <div class="filter-label">Mes</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
+        ${mesBtns}
+      </div>
+    </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
 
@@ -1299,47 +1322,6 @@ function renderIngresos() {
       <div style="font-size:14px;color:#888;">Cumplimiento proyección Ingresos: <span style="font-size:20px;font-weight:700;color:${pFactCombinado>=100?'#1a6e3a':pFactCombinado>=50?'#d97706':'#ef4444'};">${pFactCombinado}%</span></div>
     </div>
 
-    <div class="filters-wrap" style="margin-bottom:12px;">
-      <div class="filters-row">
-        <div class="filter-label">Unidad prod.</div>
-        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
-        ${upBtns}
-      </div>
-      <div class="filters-row">
-        <div class="filter-label">Centro de Costo</div>
-        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
-        ${fundoBtnsI}
-      </div>
-      <div class="filters-row">
-        <div class="filter-label">Año</div>
-        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
-        ${anioBtns}
-      </div>
-      <div class="filters-row">
-        <div class="filter-label">Mes</div>
-        <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
-        ${mesBtns}
-      </div>
-    </div>
-
-    <div class="stat-card" style="margin-bottom:12px;">
-      <div class="stat-title">Ingresos por unidad productiva · <span style="font-size:10px;font-weight:400;color:#888;">% avance = facturado / estimado</span></div>
-      <div style="overflow-x:auto;">
-        <table class="mg-table">
-          <thead><tr>
-            <th>Unidad Productiva</th>
-            <th style="text-align:right;color:#b45309;">🔮 Ppto</th>
-            <th style="text-align:right;color:#1a6e3a;">🧾 Facturado</th>
-            <th style="text-align:right;color:#888;">Pendiente</th>
-            <th style="text-align:right;">% Avance</th>
-            <th style="text-align:right;">Toneladas</th>
-            <th style="text-align:right;">Rend. kg/há</th>
-            <th></th>
-          </tr></thead>
-          <tbody>${tbody}${totRow}</tbody>
-        </table>
-      </div>
-    </div>
     <div class="stat-card" style="margin-bottom:12px;">
       <div class="stat-title">Evolución mensual · <span style="font-size:10px;font-weight:400;color:#888;">verde=facturado · naranjo=estimado</span></div>
       ${mesHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}
