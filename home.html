@@ -159,8 +159,30 @@ if (location.search.includes('embed=1')) {
     details.card > summary .summary-meta { display: flex; align-items: center; gap: 14px; margin-left: auto; }
     details.card > summary .summary-hint { font-size: 11px; color: var(--gris); white-space: nowrap; }
 
+    /* Bordes izquierdos coloreados por zona */
+    details.zona-card[data-zona="1"] { border-left: 3px solid #E24B4A; }
+    details.zona-card[data-zona="2"] { border-left: 3px solid #0F6E56; }
+    details.zona-card.ok[data-zona="1"] { border-left-color: #97C459; }
+    details.zona-card.ok[data-zona="2"] { border-left-color: #97C459; }
+    details.zona-card.warn { border-left-color: #EF9F27; }
+
+    /* Status badges */
+    .status-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 10px;
+      white-space: nowrap;
+      background: #F1EFE8;
+      color: #5F5E5A;
+    }
+    .status-badge.danger { background: #FCEBEB; color: #A32D2D; }
+    .status-badge.warn   { background: #FAEEDA; color: #854F0B; }
+    .status-badge.ok     { background: #EAF3DE; color: #3B6D11; }
+
     /* Botón "Ver →" — claramente diferenciado */
-    details.card > summary .ver-btn {
+    details.card > summary .ver-btn,
+    .ver-btn {
       font-size: 11px; font-weight: 600;
       color: var(--verde2);
       padding: 5px 10px;
@@ -171,7 +193,7 @@ if (location.search.includes('embed=1')) {
       transition: all 0.15s;
       white-space: nowrap;
     }
-    details.card > summary .ver-btn:hover {
+    .ver-btn:hover {
       background: #e8f3db;
       border-color: var(--verde2);
       color: var(--verde);
@@ -197,6 +219,19 @@ if (location.search.includes('embed=1')) {
     details.card[open] > summary .caret { transform: rotate(90deg); }
     details.card[open] > summary { border-bottom: 1px solid #f0ede6; }
     details.card > .card-body { padding: 16px 20px; }
+
+    /* Pipeline cards (zona 3) */
+    .pipeline-card { display:block; }
+    .pipeline-card:hover {
+      border-color: rgba(0,0,0,0.15) !important;
+      background: #fafaf7 !important;
+    }
+
+    /* Tool card (zona 4) */
+    .tool-card:hover {
+      border-color: #97C459 !important;
+      background: #fafdf5 !important;
+    }
 
     /* ── KPI METRIC ─────────────────────────────────────────────── */
     .metric-big { font-weight: bold; font-size: 36px; font-weight: 700; line-height: 1; }
@@ -416,17 +451,23 @@ if (location.search.includes('embed=1')) {
 
     <!-- ═══ ZONA 1 · ACCIÓN INMEDIATA ═══ -->
     <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:4px 0 10px;">
-      <div style="width:4px;height:18px;background:#ef4444;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#991b1b;letter-spacing:0.08em;text-transform:uppercase;">1 · Acción inmediata</div>
+      <div style="width:4px;height:16px;background:#E24B4A;border-radius:2px;"></div>
+      <div style="font-size:10px;font-weight:500;color:#A32D2D;letter-spacing:0.1em;text-transform:uppercase;">1 · Acción inmediata</div>
       <div style="font-size:11px;color:var(--gris);">¿qué tengo que resolver hoy?</div>
     </div>
 
     <div class="grid-2">
-      <details class="card">
+      <details class="card zona-card" data-zona="1">
         <summary>
-          <div class="card-title">⚠️ Labores + Atrasadas</div>
+          <div style="display:flex;align-items:center;gap:12px;flex:1;">
+            <div style="font-size:18px;">⚠️</div>
+            <div>
+              <div class="card-title">Labores atrasadas</div>
+              <div class="summary-hint" id="hint-labores">—</div>
+            </div>
+          </div>
           <div class="summary-meta">
-            <span class="summary-hint" id="hint-labores">—</span>
+            <span class="status-badge" id="badge-labores">—</span>
             <a href="#" onclick="navTo('labores','/reporte');return false;" class="ver-btn">Ver →</a>
             <span class="meta-sep"></span>
             <span class="caret">▶</span>
@@ -434,11 +475,17 @@ if (location.search.includes('embed=1')) {
         </summary>
         <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
       </details>
-      <details class="card">
+      <details class="card zona-card" data-zona="1">
         <summary>
-          <div class="card-title">📎 Documentos sin asignar</div>
+          <div style="display:flex;align-items:center;gap:12px;flex:1;">
+            <div style="font-size:18px;" id="icon-sin-asignar">📎</div>
+            <div>
+              <div class="card-title">Documentos sin asignar</div>
+              <div class="summary-hint" id="hint-sin-asignar">—</div>
+            </div>
+          </div>
           <div class="summary-meta">
-            <span class="summary-hint" id="hint-sin-asignar">—</span>
+            <span class="status-badge" id="badge-sin-asignar">—</span>
             <a href="#" onclick="navTo('asignar','/asignar');return false;" class="ver-btn">Asignar →</a>
             <span class="meta-sep"></span>
             <span class="caret">▶</span>
@@ -450,30 +497,49 @@ if (location.search.includes('embed=1')) {
 
     <!-- ═══ ZONA 2 · LIQUIDEZ ═══ -->
     <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:18px;background:#0F6E56;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#085041;letter-spacing:0.08em;text-transform:uppercase;">2 · Liquidez</div>
+      <div style="width:4px;height:16px;background:#0F6E56;border-radius:2px;"></div>
+      <div style="font-size:10px;font-weight:500;color:#085041;letter-spacing:0.1em;text-transform:uppercase;">2 · Liquidez</div>
       <div style="font-size:11px;color:var(--gris);">¿cómo está la plata?</div>
     </div>
 
-    <details class="card" style="margin-bottom:10px;">
-      <summary>
-        <div class="card-title">🏦 Flujo de caja</div>
-        <div class="summary-meta">
-          <span class="summary-hint" id="hint-caja">—</span>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver detalle →</a>
-          <span class="meta-sep"></span>
-          <span class="caret">▶</span>
+    <!-- Tarjeta unificada de caja con 3 columnas -->
+    <div class="card" style="padding:16px 20px;margin-bottom:10px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;" id="caja-unified">
+        <div style="flex:1;">
+          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">💰 Caja hoy</div>
+          <div style="font-size:26px;font-weight:700;color:#0F6E56;line-height:1;font-variant-numeric:tabular-nums;" id="caja-hoy">—</div>
+          <div style="font-size:11px;color:var(--gris);margin-top:6px;" id="caja-hoy-sub">&nbsp;</div>
         </div>
-      </summary>
-      <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
-    </details>
+        <div style="width:1px;background:rgba(0,0,0,0.06);align-self:stretch;"></div>
+        <div style="flex:1;">
+          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">📆 Proyectado en 30 días</div>
+          <div style="font-size:22px;font-weight:700;color:#1c1c1a;line-height:1;font-variant-numeric:tabular-nums;" id="caja-proy30">—</div>
+          <div style="font-size:11px;color:var(--gris);margin-top:6px;">después de +/- flujos</div>
+        </div>
+        <div style="width:1px;background:rgba(0,0,0,0.06);align-self:stretch;"></div>
+        <div style="flex:1;">
+          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">⚖️ Flujo neto 30d</div>
+          <div style="font-size:22px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;" id="caja-neto30">—</div>
+          <div style="font-size:11px;color:var(--gris);margin-top:6px;" id="caja-neto30-sub">cobros vs pagos</div>
+        </div>
+        <div style="display:flex;align-items:center;">
+          <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver detalle →</a>
+        </div>
+      </div>
+    </div>
 
     <div class="grid-2">
-      <details class="card">
+      <details class="card zona-card" data-zona="2">
         <summary>
-          <div class="card-title">⬇️ Por cobrar — próximos 30 días</div>
+          <div style="display:flex;align-items:center;gap:12px;flex:1;">
+            <div style="font-size:16px;">⬇️</div>
+            <div>
+              <div class="card-title">Por cobrar 30d</div>
+              <div class="summary-hint" id="hint-cobrar">—</div>
+            </div>
+          </div>
           <div class="summary-meta">
-            <span class="summary-hint" id="hint-cobrar">—</span>
+            <span class="status-badge" id="badge-cobrar">—</span>
             <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
             <span class="meta-sep"></span>
             <span class="caret">▶</span>
@@ -481,11 +547,17 @@ if (location.search.includes('embed=1')) {
         </summary>
         <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
       </details>
-      <details class="card">
+      <details class="card zona-card" data-zona="2">
         <summary>
-          <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
+          <div style="display:flex;align-items:center;gap:12px;flex:1;">
+            <div style="font-size:16px;">⬆️</div>
+            <div>
+              <div class="card-title">Por pagar 30d</div>
+              <div class="summary-hint" id="hint-pagar">—</div>
+            </div>
+          </div>
           <div class="summary-meta">
-            <span class="summary-hint" id="hint-pagar">—</span>
+            <span class="status-badge" id="badge-pagar">—</span>
             <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
             <span class="meta-sep"></span>
             <span class="caret">▶</span>
@@ -495,25 +567,30 @@ if (location.search.includes('embed=1')) {
       </details>
     </div>
 
-    <!-- Banner nueces (KPI mini con 3 números) -->
-    <a href="#" onclick="navTo('ingresos','/reporte');return false;" id="banner-nueces" style="display:block;margin-top:10px;background:#fafaf7;border:1px solid #e0e0e0;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
+    <!-- Banner nueces -->
+    <a href="#" onclick="navTo('ingresos','/reporte');return false;" id="banner-nueces" style="display:block;margin-top:10px;background:linear-gradient(90deg,#fafaf7 0%,#f5f2e9 100%);border:1px solid #E1D5B7;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:180px;">
-          <div style="font-size:10px;font-weight:700;color:#0F6E56;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">📅 Contratos nueces · temporada 2026</div>
-          <div style="font-size:12px;color:var(--gris);" id="banner-nueces-hint">Cargando anticipos y liquidaciones...</div>
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:180px;">
+          <div style="font-size:22px;">🌰</div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#1c1c1a;">Contratos nueces · temporada 2026</div>
+            <div style="font-size:11px;color:var(--gris);margin-top:2px;" id="banner-nueces-hint">Cargando anticipos y liquidaciones...</div>
+          </div>
         </div>
-        <div style="display:flex;gap:20px;align-items:center;">
+        <div style="display:flex;gap:18px;align-items:center;">
           <div style="text-align:right;">
             <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Proyectado</div>
-            <div style="font-size:16px;font-weight:700;color:#1c1c1a;font-variant-numeric:tabular-nums;" id="banner-nueces-proy">—</div>
+            <div style="font-size:14px;font-weight:700;color:#1c1c1a;font-variant-numeric:tabular-nums;" id="banner-nueces-proy">—</div>
           </div>
+          <div style="width:1px;background:rgba(0,0,0,0.06);height:30px;"></div>
           <div style="text-align:right;">
             <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Recibido</div>
-            <div style="font-size:16px;font-weight:700;color:#0F6E56;font-variant-numeric:tabular-nums;" id="banner-nueces-rec">—</div>
+            <div style="font-size:14px;font-weight:700;color:#0F6E56;font-variant-numeric:tabular-nums;" id="banner-nueces-rec">—</div>
           </div>
+          <div style="width:1px;background:rgba(0,0,0,0.06);height:30px;"></div>
           <div style="text-align:right;">
             <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Pendiente</div>
-            <div style="font-size:16px;font-weight:700;color:#BA7517;font-variant-numeric:tabular-nums;" id="banner-nueces-pend">—</div>
+            <div style="font-size:14px;font-weight:700;color:#BA7517;font-variant-numeric:tabular-nums;" id="banner-nueces-pend">—</div>
           </div>
           <div style="font-size:12px;color:#0F6E56;font-weight:600;">Ver detalle →</div>
         </div>
@@ -522,52 +599,74 @@ if (location.search.includes('embed=1')) {
 
     <!-- ═══ ZONA 3 · PIPELINE PRODUCTIVO ═══ -->
     <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:18px;background:#BA7517;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#854F0B;letter-spacing:0.08em;text-transform:uppercase;">3 · Pipeline productivo</div>
-      <div style="font-size:11px;color:var(--gris);">¿qué está pasando en el campo?</div>
+      <div style="width:4px;height:16px;background:#BA7517;border-radius:2px;"></div>
+      <div style="font-size:10px;font-weight:500;color:#854F0B;letter-spacing:0.1em;text-transform:uppercase;">3 · Pipeline productivo</div>
+      <div style="font-size:11px;color:var(--gris);">¿cómo va el campo?</div>
     </div>
 
-    <!-- Contador de labores esta semana -->
-    <a href="#" onclick="navTo('labores','/reporte');return false;" id="banner-labores-semana" style="display:block;margin-bottom:10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <div>
-          <div style="font-size:10px;font-weight:700;color:#854F0B;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">📋 Labores esta semana</div>
-          <div style="font-size:13px;color:#1c1c1a;" id="banner-labores-semana-txt">Cargando...</div>
+    <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;">
+      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-labores" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
+        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">📋 Labores esta semana</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap;" id="pipe-labores-nums">
+          <span style="font-size:14px;color:var(--gris);">cargando...</span>
         </div>
-        <div style="font-size:12px;color:#854F0B;font-weight:600;">Ver todas →</div>
-      </div>
-    </a>
+        <div style="background:#F1EFE8;border-radius:3px;height:4px;display:flex;overflow:hidden;" id="pipe-labores-bar">
+          <div style="background:#E24B4A;width:0%;"></div>
+          <div style="background:#BA7517;width:0%;"></div>
+        </div>
+      </a>
+
+      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-avance" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
+        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">🌾 Avance temporada</div>
+        <div style="display:flex;align-items:baseline;gap:6px;" id="pipe-avance-nums">
+          <span style="font-size:14px;color:var(--gris);">cargando...</span>
+        </div>
+        <div style="font-size:10px;color:var(--gris);margin-top:4px;" id="pipe-avance-sub">&nbsp;</div>
+      </a>
+
+      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-eventos" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
+        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">📅 Eventos próximos</div>
+        <div style="font-size:12px;color:#1c1c1a;line-height:1.5;" id="pipe-eventos-list">
+          <span style="color:var(--gris);">cargando...</span>
+        </div>
+      </a>
+    </div>
 
     <!-- ═══ ZONA 4 · HERRAMIENTAS ═══ -->
     <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:18px;background:#888;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#444;letter-spacing:0.08em;text-transform:uppercase;">4 · Herramientas</div>
+      <div style="width:4px;height:16px;background:#888780;border-radius:2px;"></div>
+      <div style="font-size:10px;font-weight:500;color:#444441;letter-spacing:0.1em;text-transform:uppercase;">4 · Herramientas</div>
       <div style="font-size:11px;color:var(--gris);">acciones proactivas</div>
     </div>
 
-    <a href="#" onclick="navTo('optimizador','/optimizador');return false;" class="nav-card verde" style="margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div class="nav-icon">🧪</div>
-        <div style="flex:1;">
-          <div class="nav-title">Optimizador de fertilización</div>
-          <div class="nav-desc">Calcula el plan de compra de fertilizantes al <b>menor costo</b> según cultivo, pivote y análisis de suelo IRRIFER. Soporta fertirriego (tanques A/B), preferencia de proveedor y exporta a Excel.</div>
-          <span class="nav-badge badge-verde">Abrir herramienta →</span>
+    <a href="#" onclick="navTo('optimizador','/optimizador');return false;" style="display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:14px 16px;text-decoration:none;color:inherit;transition:all 0.15s;" class="tool-card">
+      <div style="display:flex;align-items:center;gap:14px;flex:1;">
+        <div style="font-size:24px;">🧪</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1c1c1a;">Optimizador de fertilización</div>
+          <div style="font-size:11px;color:var(--gris);margin-top:2px;">Plan de compra al menor costo según cultivo y análisis IRRIFER</div>
         </div>
       </div>
+      <div style="background:#EAF3DE;color:#3B6D11;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;">Abrir →</div>
     </a>
 
-    <!-- ═══ ZONA 5 · CONTEXTO ESPACIAL ═══ -->
+    <!-- ═══ ZONA 5 · MAPA ═══ -->
     <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:18px;background:#534AB7;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#3C3489;letter-spacing:0.08em;text-transform:uppercase;">5 · Contexto espacial</div>
+      <div style="width:4px;height:16px;background:#0C447C;border-radius:2px;"></div>
+      <div style="font-size:10px;font-weight:500;color:#042C53;letter-spacing:0.1em;text-transform:uppercase;">5 · Mapa</div>
       <div style="font-size:11px;color:var(--gris);">vista del campo</div>
     </div>
 
     <details class="card">
       <summary>
-        <div class="card-title">🗺 Mapa de unidades productivas</div>
+        <div style="display:flex;align-items:center;gap:12px;flex:1;">
+          <div style="font-size:18px;">🗺</div>
+          <div>
+            <div class="card-title">Mapa de unidades productivas</div>
+            <div class="summary-hint" id="hint-mapa">—</div>
+          </div>
+        </div>
         <div class="summary-meta">
-          <span class="summary-hint">click en marcador para detalles</span>
           <span class="caret">▶</span>
         </div>
       </summary>
@@ -647,6 +746,12 @@ function buildMapa(registros) {
     lat: c.lat, lng: c.lng
   }));
   if (!puntos.length) return;
+
+  // Hint del mapa: cantidad de UPs y há total
+  const haTotal = puntos.reduce((s,p) => s + (p.ha||0), 0);
+  const _hM = document.getElementById('hint-mapa');
+  if (_hM) _hM.textContent = `${puntos.length} UPs · ${Math.round(haTotal)} há · clic para expandir`;
+
   const avgLat = puntos.reduce((s,p)=>s+p.lat,0)/puntos.length;
   const avgLng = puntos.reduce((s,p)=>s+p.lng,0)/puntos.length;
   const mapa = L.map('mapa-home').setView([avgLat,avgLng],14);
@@ -747,31 +852,85 @@ async function main() {
 
     // Contador de labores esta semana (hoy + 7 días)
     const en7 = new Date(hoy); en7.setDate(hoy.getDate()+7);
+    const en15 = new Date(hoy); en15.setDate(hoy.getDate()+15);
     const laboresSemana = activos.filter(r => {
       const d = parseDate(r["Fecha"]); if (!d) return false;
       d.setHours(0,0,0,0);
       return d >= hoy && d <= en7;
     });
-    const _bls = document.getElementById('banner-labores-semana-txt');
-    if (_bls) {
-      const totalSemana = laboresSemana.length;
-      const vencidasHoy = vencidas.length;
-      let txt = '';
-      if (totalSemana === 0 && vencidasHoy === 0) {
-        txt = '<span style="color:#166534;font-weight:600;">✅ Sin labores programadas esta semana</span>';
+
+    /* ── ZONA 3 · PIPELINE PRODUCTIVO ─────────────────────────── */
+
+    // Card 1: Labores esta semana (atrasadas + próximos 7 días)
+    const _pLabs = document.getElementById('pipe-labores-nums');
+    const _pLabsBar = document.getElementById('pipe-labores-bar');
+    if (_pLabs) {
+      const atr = vencidas.length, prog = laboresSemana.length;
+      _pLabs.innerHTML = (atr > 0
+          ? `<span style="font-size:22px;font-weight:700;color:#A32D2D;font-variant-numeric:tabular-nums;">${atr}</span><span style="font-size:12px;color:var(--gris);">atrasadas</span>`
+          : `<span style="font-size:22px;font-weight:700;color:#3B6D11;font-variant-numeric:tabular-nums;">0</span><span style="font-size:12px;color:var(--gris);">atrasadas</span>`)
+        + ` <span style="color:rgba(0,0,0,0.2);">·</span> `
+        + `<span style="font-size:16px;font-weight:600;color:#1c1c1a;font-variant-numeric:tabular-nums;">${prog}</span><span style="font-size:12px;color:var(--gris);">próximos 7 días</span>`;
+    }
+    if (_pLabsBar) {
+      const total = Math.max(vencidas.length + laboresSemana.length, 1);
+      const pctAtr = Math.round(vencidas.length / total * 100);
+      const pctProg = 100 - pctAtr;
+      _pLabsBar.children[0].style.width = pctAtr + '%';
+      _pLabsBar.children[1].style.width = pctProg + '%';
+    }
+
+    // Card 2: Avance temporada (% de labores completadas vs total en la temporada)
+    const _pAv = document.getElementById('pipe-avance-nums');
+    const _pAvSub = document.getElementById('pipe-avance-sub');
+    if (_pAv) {
+      const laboresTemp = (Array.isArray(registros)?registros:[]);
+      const completadas = laboresTemp.filter(r => String(r["Estado Operativo"]||"").trim() === "Completado");
+      const total = laboresTemp.length;
+      const pct = total > 0 ? Math.round(completadas.length / total * 100) : 0;
+      const pctColor = pct >= 75 ? '#3B6D11' : pct >= 50 ? '#854F0B' : '#A32D2D';
+      _pAv.innerHTML = `<span style="font-size:22px;font-weight:700;color:${pctColor};font-variant-numeric:tabular-nums;">${pct}%</span><span style="font-size:12px;color:var(--gris);">completadas</span>`;
+      if (_pAvSub) _pAvSub.textContent = `${completadas.length} de ${total} labores de la temporada`;
+    }
+
+    // Card 3: Eventos próximos (labores estratégicas en los próximos 15 días)
+    const _pEvt = document.getElementById('pipe-eventos-list');
+    if (_pEvt) {
+      const estrategicas = /cosech|siembra|fumig|rieg|poda|tratamient|aplicaci/i;
+      const proximas = activos
+        .filter(r => {
+          const d = parseDate(r["Fecha"]); if (!d) return false;
+          d.setHours(0,0,0,0);
+          return d >= hoy && d <= en15 && estrategicas.test(String(r["Labor"]||""));
+        })
+        .sort((a,b) => parseDate(a["Fecha"]) - parseDate(b["Fecha"]))
+        .slice(0,3);
+      if (proximas.length === 0) {
+        _pEvt.innerHTML = '<span style="color:var(--gris);font-size:11px;">Sin eventos estratégicos en 15 días</span>';
       } else {
-        const partes = [];
-        if (vencidasHoy > 0) partes.push(`<span style="color:#c0392b;font-weight:700;">${vencidasHoy} atrasada${vencidasHoy!==1?'s':''}</span>`);
-        if (totalSemana > 0) partes.push(`<span style="font-weight:700;">${totalSemana} programada${totalSemana!==1?'s':''}</span> en los próximos 7 días`);
-        txt = partes.join(' · ');
+        _pEvt.innerHTML = proximas.map(r => {
+          const d = parseDate(r["Fecha"]);
+          const diffDias = Math.round((d - hoy) / 86400000);
+          const labelDias = diffDias <= 0 ? 'hoy' : diffDias === 1 ? 'mañana' : `${diffDias} días`;
+          const colorPunto = diffDias <= 2 ? '#D85A30' : diffDias <= 7 ? '#BA7517' : '#0F6E56';
+          const labor = String(r["Labor"]||"").slice(0, 24);
+          return `<div><span style="color:${colorPunto};">●</span> ${labor} · <span style="color:var(--gris);">${labelDias}</span></div>`;
+        }).join('');
       }
-      _bls.innerHTML = txt;
     }
 
     document.getElementById('h-vencidas').textContent = vencidas.length;
     const _hL = document.getElementById('hint-labores');
     if (_hL) _hL.textContent = vencidas.length > 0 ? `${vencidas.length} vencidas · ${activos.length} activas` : `${activos.length} activas`;
-    if (_hL) _hL.style.color = vencidas.length > 0 ? '#c0392b' : 'var(--gris)';
+    if (_hL) _hL.style.color = vencidas.length > 0 ? '#A32D2D' : 'var(--gris)';
+    const _bdgL = document.getElementById('badge-labores');
+    if (_bdgL) {
+      if (vencidas.length === 0) { _bdgL.textContent = 'Al día'; _bdgL.className = 'status-badge ok'; }
+      else if (vencidas.length <= 5) { _bdgL.textContent = `${vencidas.length} atrasadas`; _bdgL.className = 'status-badge warn'; }
+      else { _bdgL.textContent = `${vencidas.length} atrasadas`; _bdgL.className = 'status-badge danger'; }
+    }
+    const _zC1 = document.querySelector('details.zona-card[data-zona="1"]:nth-of-type(1)');
+    if (_zC1) _zC1.classList.toggle('ok', vencidas.length === 0);
     const _nb1 = document.getElementById('nav-labores-badge'); if(_nb1) _nb1.textContent = vencidas.length + " vencidas · " + activos.length + " activas";
     if(_nb1) _nb1.className = "nav-badge " + (vencidas.length>0?"badge-rojo":"badge-verde");
 
@@ -900,7 +1059,8 @@ async function main() {
       _hCj.style.fontWeight = '600';
     }
 
-    document.getElementById('card-caja').innerHTML =
+    const _cardCaja = document.getElementById('card-caja');
+    if (_cardCaja) _cardCaja.innerHTML =
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">' +
         '<div class="caja-item" style="background:#eaf3de;"><div class="caja-val" style="color:var(--verde);font-size:22px;">' + fmtPeso(CAJA_ACTUAL) + '</div><div class="caja-lbl">💰 Caja Hoy</div></div>' +
         '<div class="caja-item" style="background:#fff8f8;"><div class="caja-val" style="color:#ef4444;font-size:18px;">-' + fmtPeso(sumD(pagarVenc)) + '</div><div class="caja-lbl">⚠️ Por pagar vencido</div></div>' +
@@ -1037,7 +1197,16 @@ function renderHome({ registros, asignaciones, proyecciones }) {
     document.getElementById('h-sin-asignar').textContent = sinAsigNuevos.length;
     const _hS = document.getElementById('hint-sin-asignar');
     if (_hS) _hS.textContent = sinAsignar.length > 0 ? `${sinAsigNuevos.length} nuevos · ${sinAsigViejos.length} anteriores` : 'todo asignado';
-    if (_hS) _hS.style.color = sinAsigNuevos.length > 0 ? '#c0392b' : 'var(--gris)';
+    if (_hS) _hS.style.color = sinAsigNuevos.length > 0 ? '#A32D2D' : 'var(--gris)';
+    const _bdgS = document.getElementById('badge-sin-asignar');
+    if (_bdgS) {
+      if (sinAsigNuevos.length === 0) { _bdgS.textContent = 'Al día'; _bdgS.className = 'status-badge ok'; }
+      else { _bdgS.textContent = `${sinAsigNuevos.length} nuevos`; _bdgS.className = 'status-badge danger'; }
+    }
+    const _iconS = document.getElementById('icon-sin-asignar');
+    if (_iconS) _iconS.textContent = sinAsigNuevos.length === 0 ? '✓' : '📎';
+    const _zC2 = document.querySelectorAll('details.zona-card[data-zona="1"]')[1];
+    if (_zC2) _zC2.classList.toggle('ok', sinAsigNuevos.length === 0);
     const _nb3 = document.getElementById('nav-asignar-badge'); if(_nb3) _nb3.textContent = sinAsigNuevos.length + " nuevos · " + sinAsigViejos.length + " anteriores";
     if(_nb3) _nb3.className = "nav-badge " + (sinAsigNuevos.length>0?"badge-rojo":"badge-verde");
 
@@ -1045,12 +1214,49 @@ function renderHome({ registros, asignaciones, proyecciones }) {
     const cobrar30Docs = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
     const pagar30Docs = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;});
     const sumMontos = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+    const mCobrar30 = sumMontos(cobrar30Docs);
+    const mPagar30  = sumMontos(pagar30Docs);
     const _hC = document.getElementById('hint-cobrar');
-    if (_hC) _hC.textContent = cobrar30Docs.length > 0 ? `${cobrar30Docs.length} docs · ${fmtPeso(sumMontos(cobrar30Docs))}` : 'sin docs';
+    if (_hC) _hC.textContent = cobrar30Docs.length > 0 ? `${fmtPeso(mCobrar30)}` : 'sin docs';
     if (_hC) _hC.style.color = cobrar30Docs.length > 0 ? 'var(--verde2)' : 'var(--gris)';
+    const _bdgC = document.getElementById('badge-cobrar');
+    if (_bdgC) {
+      if (cobrar30Docs.length === 0) { _bdgC.textContent = 'sin docs'; _bdgC.className = 'status-badge ok'; }
+      else { _bdgC.textContent = `${cobrar30Docs.length} docs`; _bdgC.className = 'status-badge ok'; }
+    }
     const _hP = document.getElementById('hint-pagar');
-    if (_hP) _hP.textContent = pagar30Docs.length > 0 ? `${pagar30Docs.length} docs · ${fmtPeso(sumMontos(pagar30Docs))}` : 'sin docs';
-    if (_hP) _hP.style.color = pagar30Docs.length > 0 ? '#c0392b' : 'var(--gris)';
+    if (_hP) _hP.textContent = pagar30Docs.length > 0 ? `${fmtPeso(mPagar30)}` : 'sin docs';
+    if (_hP) _hP.style.color = pagar30Docs.length > 0 ? '#A32D2D' : 'var(--gris)';
+    const _bdgP = document.getElementById('badge-pagar');
+    if (_bdgP) {
+      if (pagar30Docs.length === 0) { _bdgP.textContent = 'sin docs'; _bdgP.className = 'status-badge ok'; }
+      else if (pagar30Docs.length <= 10) { _bdgP.textContent = `${pagar30Docs.length} docs`; _bdgP.className = 'status-badge warn'; }
+      else { _bdgP.textContent = `${pagar30Docs.length} docs`; _bdgP.className = 'status-badge danger'; }
+    }
+
+    /* ── CAJA UNIFICADA (zona 2) ─────────────────────────────── */
+    const _cajaHoy = document.getElementById('caja-hoy');
+    if (_cajaHoy) {
+      _cajaHoy.textContent = fmtPeso(CAJA_ACTUAL);
+      _cajaHoy.style.color = CAJA_ACTUAL >= 0 ? '#0F6E56' : '#D85A30';
+    }
+    const flujoNeto30 = mCobrar30 - mPagar30;
+    const proyectado30 = CAJA_ACTUAL + flujoNeto30;
+    const _cajaProy = document.getElementById('caja-proy30');
+    if (_cajaProy) {
+      _cajaProy.textContent = fmtPeso(proyectado30);
+      _cajaProy.style.color = proyectado30 >= 0 ? '#1c1c1a' : '#D85A30';
+    }
+    const _cajaNeto = document.getElementById('caja-neto30');
+    const _cajaNetoSub = document.getElementById('caja-neto30-sub');
+    if (_cajaNeto) {
+      const signo = flujoNeto30 > 0 ? '+' : '';
+      _cajaNeto.textContent = signo + fmtPeso(flujoNeto30);
+      _cajaNeto.style.color = flujoNeto30 >= 0 ? '#1D9E75' : '#D85A30';
+    }
+    if (_cajaNetoSub) {
+      _cajaNetoSub.textContent = flujoNeto30 >= 0 ? 'cobros superan pagos' : 'pagos superan cobros';
+    }
 
     const pagar30HTML = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
       .sort((a,b)=>(parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0)).slice(0,8)
