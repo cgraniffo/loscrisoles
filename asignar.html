@@ -9,209 +9,86 @@ if (location.search.includes('embed=1')) {
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Los Crisoles — Dashboard</title>
-
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <title>Asignar Documentos — Los Crisoles</title>
   <style>
-    :root {
-      --verde:    #1a3a0a;
-      --verde2:   #2d6a1a;
-      --verde3:   #86efac;
-      --tierra:   #c8b89a;
-      --crema:    #f5f0e8;
-      --blanco:   #fdfcf9;
-      --gris:     #6b6555;
-      --rojo:     #c0392b;
-      --amber:    #d97706;
-      --azul:     #1d4ed8;
-    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: var(--crema); color: #1a1a0f; min-height: 100vh; }
+    body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
+    .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 16px; }
+    .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
+    .hdr-title { font-size: 20px; font-weight: bold; }
+    .hdr-sub { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
+    .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 14px; }
+    .m { background: rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 14px; }
+    .m-val { font-size: 24px; font-weight: bold; color: #fff; }
+    .m-val.red { color: #fca5a5; }
+    .m-label { font-size: 11px; color: #9fe1cb; margin-top: 3px; }
+    .body { padding: 16px; max-width: 900px; margin: 0 auto; }
+    .filters-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; margin-bottom: 14px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .filter-label { font-size: 11px; color: #888; }
+    .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
+    .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
+    select, input[type=text], textarea { border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px; font-size: 13px; font-family: Arial, sans-serif; width: 100%; outline: none; }
+    select:focus, input:focus, textarea:focus { border-color: #1a3a0a; }
+    .doc-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; margin-bottom: 12px; overflow: hidden; }
+    .doc-head { padding: 12px 16px; background: #fef9ec; border-bottom: 1px solid #f0ede6; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .doc-head.factura          { background: #faece7; }
+    .doc-head.factura-emitida  { background: #eaf3de; }
+    .doc-nombre { font-size: 14px; font-weight: bold; }
+    .doc-meta { font-size: 12px; color: #888; margin-top: 3px; }
+    .doc-monto { font-size: 16px; font-weight: bold; color: #b45309; white-space: nowrap; }
+    .doc-body { padding: 14px 16px; }
+    .asig-row { display: grid; grid-template-columns: 1fr 1fr 100px 90px 32px; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .asig-row-label { font-size: 11px; color: #888; font-weight: bold; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; display: grid; grid-template-columns: 1fr 1fr 100px 90px 32px; gap: 8px; }
+    .btn-add { font-size: 12px; padding: 6px 14px; border-radius: 6px; border: 1px dashed #1a3a0a; background: transparent; color: #1a3a0a; cursor: pointer; margin-top: 4px; }
+    .btn-add:hover { background: #eaf3de; }
+    .btn-del { background: none; border: none; color: #cc2222; font-size: 16px; cursor: pointer; padding: 0; line-height: 1; }
+    .metodo-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+    .mtab { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
+    .mtab.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
+    .resumen { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid #f0ede6; margin-top: 8px; font-size: 12px; }
+    .resumen-total { font-weight: bold; }
+    .resumen-ok { color: #1a3a0a; }
+    .resumen-err { color: #cc2222; }
+    .btn-guardar { background: #1a3a0a; color: #fff; border: none; border-radius: 8px; padding: 9px 20px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .btn-guardar:hover { background: #2d6a1a; }
+    .btn-guardar:disabled { background: #ccc; cursor: not-allowed; }
+    .obs-row { margin-top: 8px; }
+    .badge-tipo { font-size: 10px; padding: 2px 8px; border-radius: 99px; }
+    .badge-guia { background: #eaf3de; color: #3b6d11; }
+    .badge-fact { background: #faece7; color: #993c1d; }
+    .badge-asig { background: #e6f1fb; color: #0c447c; }
 
-    /* ── HEADER ─────────────────────────────────────────────── */
-    .header {
-      background: var(--verde);
-      padding: 0;
-      position: relative;
-      overflow: hidden;
+    /* ── RESPONSIVE ────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .hdr { padding: 14px 14px 14px; }
+      .hdr-title { font-size: 18px; }
+      .metrics { grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+      .m-val { font-size: 18px; }
+      .m-label { font-size: 10px; }
+      .body { padding: 12px; }
+      .filters-wrap { flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; }
+      .filters-wrap > * { width: 100%; }
+      #fecha-desde, #usuario-input { width: 100% !important; }
+      .doc-head { flex-direction: column; gap: 6px; }
+      .doc-monto { font-size: 18px; }
+      .metodo-tabs { flex-wrap: wrap; }
+      .mtab { font-size: 11px; padding: 5px 10px; }
+      .asig-row { grid-template-columns: 1fr 36px; gap: 6px; }
+      .asig-row > div:nth-child(2),
+      .asig-row > div:nth-child(3),
+      .asig-row > div:nth-child(4) { display: none; }
+      .asig-row-label { display: none; }
+      /* Mobile: show UP selector full width + monto below */
+      .asig-row { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px;
+                  background: #fafaf8; border-radius: 8px; padding: 10px; }
+      .asig-row select { width: 100%; font-size: 14px; }
+      .asig-row input[type=number] { width: 100%; font-size: 14px; padding: 8px 10px; }
+      .asig-row .btn-del { align-self: flex-end; }
+      .resumen { flex-direction: column; gap: 4px; font-size: 13px; }
+      .btn-guardar { width: 100%; padding: 12px; font-size: 15px; }
+      .btn-add { width: 100%; text-align: center; padding: 10px; }
+      .obs-row input { font-size: 14px; padding: 10px; }
     }
-    .header-bg {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 80% 50%, #2d6a1a44 0%, transparent 60%),
-                  radial-gradient(ellipse at 20% 80%, #0f2a0444 0%, transparent 50%);
-    }
-    .header-grid {
-      position: absolute; inset: 0; opacity: 0.04;
-      background-image: linear-gradient(#86efac 1px, transparent 1px), linear-gradient(90deg, #86efac 1px, transparent 1px);
-      background-size: 40px 40px;
-    }
-    .header-inner {
-      position: relative; z-index: 1;
-      max-width: 1200px; margin: 0 auto;
-      padding: 28px 32px 0;
-    }
-    .header-top {
-      display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px;
-    }
-    .logo-wrap { display: flex; align-items: center; gap: 14px; }
-    .logo-icon {
-      width: 44px; height: 44px; background: var(--verde3); border-radius: 10px;
-      display: flex; align-items: center; justify-content: center; font-size: 22px;
-      box-shadow: 0 4px 16px rgba(134,239,172,0.3);
-    }
-    .logo-text { font-weight: bold; }
-    .logo-name { font-size: 22px; font-weight: 700; color: #fff; line-height: 1; }
-    .logo-sub { font-size: 11px; color: var(--verde3); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 3px; }
-    .bdata-badge {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--verde3); background: rgba(134,239,172,0.12); border: 1px solid rgba(134,239,172,0.25);
-      padding: 5px 12px; border-radius: 99px;
-    }
-    .header-date { font-size: 12px; color: #9fe1cb; margin-top: 2px; text-align: right; }
-
-    /* ── HEADLINE ─────────────────────────────────────────────── */
-    .headline {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: end; margin-bottom: 28px;
-    }
-    .headline-title {
-      font-weight: bold;
-      font-size: clamp(32px, 4vw, 52px);
-      font-weight: 900; color: #fff; line-height: 1.05;
-    }
-    .headline-title span { color: var(--verde3); }
-    .headline-sub { font-size: 13px; color: #9fe1cb; margin-top: 10px; line-height: 1.6; max-width: 360px; }
-    .headline-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .hkpi {
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px; padding: 14px 16px; backdrop-filter: blur(8px);
-      transition: background 0.2s;
-    }
-    .hkpi:hover { background: rgba(255,255,255,0.11); }
-    .hkpi-val { font-weight: bold; font-size: 26px; font-weight: 700; color: #fff; line-height: 1; }
-    .hkpi-val.green { color: var(--verde3); }
-    .hkpi-val.red   { color: #fca5a5; }
-    .hkpi-val.amber { color: #fcd34d; }
-    .hkpi-label { font-size: 11px; color: #9fe1cb; margin-top: 5px; }
-
-    /* ── NAV TABS ─────────────────────────────────────────────── */
-    .nav-tabs {
-      display: flex; gap: 4px; padding: 0 32px;
-      position: relative; z-index: 1; max-width: 1200px; margin: 0 auto;
-    }
-    .ntab {
-      font-size: 12px; font-weight: 600; padding: 10px 20px;
-      border-radius: 10px 10px 0 0; cursor: pointer;
-      color: #9fe1cb; background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.08); border-bottom: none;
-      transition: all 0.2s; letter-spacing: 0.02em;
-    }
-    .ntab:hover { background: rgba(255,255,255,0.1); }
-    .ntab.on { background: var(--crema); color: var(--verde); border-color: var(--crema); }
-
-    /* ── BODY ─────────────────────────────────────────────── */
-    .body { max-width: 1200px; margin: 0 auto; padding: 24px 32px 48px; }
-
-    /* ── SECTION ─────────────────────────────────────────────── */
-    .section { display: none; }
-    .section.on { display: block; }
-
-    /* ── GRID LAYOUTS ─────────────────────────────────────────────── */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 16px; }
-    .span2 { grid-column: span 2; }
-
-    /* ── CARDS ─────────────────────────────────────────────── */
-    .card {
-      background: var(--blanco); border-radius: 16px;
-      border: 1px solid rgba(0,0,0,0.07);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-      overflow: hidden;
-    }
-    .card-head {
-      padding: 16px 20px 12px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid #f0ede6;
-    }
-    .card-title { font-size: 11px; font-weight: 600; color: var(--gris); letter-spacing: 0.08em; text-transform: uppercase; }
-    .card-body { padding: 16px 20px; }
-    .card-link {
-      font-size: 11px; color: var(--verde2); font-weight: 600;
-      text-decoration: none; display: flex; align-items: center; gap: 4px;
-    }
-    .card-link:hover { color: var(--verde); }
-
-    /* ── KPI METRIC ─────────────────────────────────────────────── */
-    .metric-big { font-weight: bold; font-size: 36px; font-weight: 700; line-height: 1; }
-    .metric-label { font-size: 12px; color: var(--gris); margin-top: 6px; }
-    .metric-delta { font-size: 12px; font-weight: 600; margin-top: 4px; }
-    .up   { color: #16a34a; }
-    .down { color: var(--rojo); }
-
-    /* ── NAV BUTTONS ─────────────────────────────────────────────── */
-    .nav-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 16px; }
-    .nav-card {
-      background: var(--blanco); border-radius: 16px; border: 1px solid rgba(0,0,0,0.07);
-      padding: 20px; text-decoration: none; color: inherit;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-      transition: all 0.25s; display: flex; flex-direction: column; gap: 10px;
-      position: relative; overflow: hidden;
-    }
-    .nav-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    }
-    .nav-card.verde::before  { background: linear-gradient(90deg, var(--verde), var(--verde2)); }
-    .nav-card.azul::before   { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
-    .nav-card.amber::before  { background: linear-gradient(90deg, #d97706, #f59e0b); }
-    .nav-card.rojo::before   { background: linear-gradient(90deg, #c0392b, #e74c3c); }
-    .nav-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.1); }
-    .nav-icon { font-size: 28px; }
-    .nav-title { font-size: 16px; font-weight: 700; }
-    .nav-desc { font-size: 12px; color: var(--gris); line-height: 1.5; }
-    .nav-badge {
-      font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
-      align-self: flex-start; margin-top: 4px;
-    }
-    .badge-verde { background: #eaf3de; color: var(--verde); }
-    .badge-rojo  { background: #fee2e2; color: var(--rojo); }
-    .badge-amber { background: #fef3c7; color: var(--amber); }
-
-    /* ── BAR ─────────────────────────────────────────────── */
-    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .bar-label { font-size: 12px; color: #444; width: 110px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bar-track { flex: 1; background: #f0ede6; border-radius: 4px; height: 7px; }
-    .bar-fill  { height: 7px; border-radius: 4px; transition: width 0.8s ease; }
-    .bar-val   { font-size: 11px; font-weight: 700; width: 70px; text-align: right; flex-shrink: 0; }
-
-    /* ── LABOR ROW ─────────────────────────────────────────────── */
-    .labor-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f3ef; }
-    .labor-row:last-child { border-bottom: none; }
-    .labor-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .labor-name { font-size: 13px; flex: 1; }
-    .labor-up   { font-size: 11px; color: var(--gris); }
-    .labor-date { font-size: 11px; color: var(--gris); flex-shrink: 0; }
-    .labor-badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; flex-shrink: 0; }
-
-    /* ── MAP ─────────────────────────────────────────────── */
-    #mapa-home { height: 320px; border-radius: 12px; z-index: 0; }
-    .leaflet-popup-content { font-family: Arial, sans-serif; font-size: 12px; }
-
-    /* ── CAJA FLOW ─────────────────────────────────────────────── */
-    .caja-flow { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
-    .caja-item { text-align: center; padding: 14px 8px; background: #f8f6f2; border-radius: 12px; }
-    .caja-val  { font-weight: bold; font-size: 20px; font-weight: 700; }
-    .caja-lbl  { font-size: 10px; color: var(--gris); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
-    .caja-arrow { display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; padding-top: 20px; }
-
-    /* ── TABLE ─────────────────────────────────────────────── */
-    .mini-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .mini-tbl th { text-align: left; font-size: 10px; color: var(--gris); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border-bottom: 2px solid #f0ede6; }
-    .mini-tbl td { padding: 7px 8px; border-bottom: 1px solid #f8f5f0; }
-    .mini-tbl tr:last-child td { border-bottom: none; }
-    .mini-tbl tr:hover td { background: #fafaf7; }
-
-    /* ── LOADING ─────────────────────────────────────────────── */
 
     /* ── CHAT IA ─────────────────────────────────────────── */
     #chat-btn { position:fixed; bottom:24px; right:24px; width:52px; height:52px; border-radius:50%; background:#1a3a0a; color:#fff; border:none; font-size:22px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.25); z-index:9999; display:flex; align-items:center; justify-content:center; transition:transform 0.2s; }
@@ -259,839 +136,778 @@ if (location.search.includes('embed=1')) {
     .chat-suggestions { display:flex; flex-wrap:wrap; gap:6px; padding:8px 12px; border-top:1px solid #f0ede6; flex-shrink:0; }
     .chat-sug { font-size:11px; padding:4px 10px; border-radius:99px; border:1px solid #ddd; background:#f8f8f6; color:#555; cursor:pointer; white-space:nowrap; }
     .chat-sug:hover { border-color:#1a3a0a; color:#1a3a0a; }
-    .loading { text-align: center; padding: 40px; color: var(--gris); font-size: 14px; }
-    .pulse { animation: pulse 1.5s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .loading { text-align: center; color: #888; padding: 40px; font-size: 14px; }
+    .empty { text-align: center; color: #aaa; padding: 40px; font-size: 14px; background: #fff; border-radius: 10px; border: 1px solid #e5e2da; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1a3a0a; color: #fff; padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+    .ha-info { font-size: 10px; color: #0f6e56; margin-top: 2px; }
 
-    /* ── ANIMATIONS ─────────────────────────────────────────────── */
-    .fade-in { animation: fadeIn 0.5s ease forwards; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-    .card { animation: fadeIn 0.4s ease forwards; }
-
-    /* ── RESPONSIVE ─────────────────────────────────────────────── */
-    @media (max-width: 768px) {
-      .header-inner { padding: 16px 14px 0; }
-      .logo-name { font-size: 18px; }
-      .bdata-badge { font-size: 9px; padding: 4px 9px; }
-      .body { padding: 12px 14px 32px; }
-      .nav-tabs { padding: 0 14px; overflow-x: auto; white-space: nowrap; }
-      .ntab { font-size: 11px; padding: 8px 14px; }
-      .headline { grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; }
-      .headline-title { font-size: 28px; }
-      .headline-sub { display: none; }
-      .headline-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .hkpi { padding: 10px 12px; }
-      .hkpi-val { font-size: 20px; }
-      .hkpi-label { font-size: 10px; }
-      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-      .nav-grid { grid-template-columns: 1fr; gap: 10px; }
-      .nav-card { flex-direction: row; align-items: center; gap: 12px; padding: 14px; }
-      .nav-icon { font-size: 24px; flex-shrink: 0; }
-      .nav-desc { display: none; }
-      .caja-flow { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .caja-val { font-size: 16px; }
-      .caja-lbl { font-size: 9px; }
-      .span2 { grid-column: span 1; }
-      #mapa-home { height: 250px; }
-      .mini-tbl { font-size: 11px; }
-      .mini-tbl td, .mini-tbl th { padding: 5px 6px; }
-      .bar-label { width: 80px; font-size: 11px; }
-      .bar-val { width: 55px; font-size: 11px; }
-      .metric-big { font-size: 26px; }
+    /* ── AI SUGERENCIA ─────────────────────────────────────── */
+    .btn-ia {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600;
+      padding: 7px 14px; border-radius: 8px;
+      border: 1px solid #2d6a1a;
+      background: linear-gradient(135deg, #eaf3de, #d4edbc);
+      color: #1a3a0a; cursor: pointer;
+      transition: all 0.2s;
     }
-    @media (max-width: 480px) {
-      .headline-kpis { grid-template-columns: 1fr 1fr; }
-      .hkpi-val { font-size: 17px; }
-      .caja-flow { grid-template-columns: 1fr 1fr; }
+    .btn-ia:hover { background: linear-gradient(135deg, #d4edbc, #bfe3a0); box-shadow: 0 2px 8px rgba(26,58,10,0.15); }
+    .btn-ia:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ia-sugerencia {
+      background: #f0f7ea;
+      border: 1px solid #b5dca0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+    .ia-sugerencia-title {
+      font-size: 11px; font-weight: 700;
+      color: #1a3a0a; letter-spacing: 0.06em;
+      text-transform: uppercase; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ia-razon {
+      font-size: 11px; color: #4a7a30;
+      line-height: 1.5; margin-top: 6px;
+      padding-top: 6px; border-top: 1px solid #c8e6b0;
+    }
+    .ia-up-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 0; border-bottom: 1px solid #dff0d0;
+      gap: 8px;
+    }
+    .ia-up-row:last-of-type { border-bottom: none; }
+    .ia-up-nombre { font-weight: 600; color: #1a3a0a; flex: 1; }
+    .ia-up-pct { color: #2d6a1a; font-weight: 700; min-width: 40px; text-align: right; }
+    .ia-up-monto { color: #555; min-width: 80px; text-align: right; }
+    .ia-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-ia-apply {
+      flex: 1; padding: 7px; border-radius: 7px; border: none;
+      background: #1a3a0a; color: #fff; font-size: 12px;
+      font-weight: 700; cursor: pointer; transition: background 0.2s;
+    }
+    .btn-ia-apply:hover { background: #2d6a1a; }
+    .btn-ia-dismiss {
+      padding: 7px 14px; border-radius: 7px;
+      border: 1px solid #ddd; background: #f8f8f6;
+      color: #888; font-size: 12px; cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-bg"></div>
-  <div class="header-grid"></div>
-  <div class="header-inner">
-    <div class="header-top">
-      <div class="logo-wrap">
-        <div class="logo-icon">🌱</div>
-        <div class="logo-text">
-          <div class="logo-name">Los Crisoles</div>
-          <div class="logo-sub">Dashboard de gestión</div>
-        </div>
-      </div>
-      <div style="text-align:right;">
-        <div class="bdata-badge">BData.cl</div>
-        <div class="header-date" id="hdr-date">—</div>
-      </div>
-    </div>
-
-    <div class="headline">
-      <div>
-        <div class="headline-title">Gestión<br><span>inteligente</span><br>del campo</div>
-        <div class="headline-sub">Todos los datos de Los Crisoles en un solo lugar — labores, costos, caja y producción en tiempo real.</div>
-      </div>
-      <div class="headline-kpis">
-        <div class="hkpi">
-          <div class="hkpi-val green" id="h-caja">—</div>
-          <div class="hkpi-label">Caja actual</div>
-        </div>
-        <div class="hkpi">
-          <div class="hkpi-val" id="h-costos">—</div>
-          <div class="hkpi-label">Costos acumulados</div>
-        </div>
-        <div class="hkpi">
-          <div class="hkpi-val amber" id="h-vencidas">—</div>
-          <div class="hkpi-label">Labores vencidas</div>
-        </div>
-        <div class="hkpi">
-          <div class="hkpi-val red" id="h-sin-asignar">—</div>
-          <div class="hkpi-label">Sin asignar desde 01-Abr</div>
-        </div>
-      </div>
-    </div>
+<div class="hdr">
+  <div class="hdr-logo">Los Crisoles · BData</div>
+  <div class="hdr-title">Asignación de Documentos</div>
+  <div class="hdr-sub">Asigná guías y facturas a sus unidades productivas</div>
+  <div class="metrics">
+    <div class="m"><div class="m-val red" id="m-sin">—</div><div class="m-label">Sin asignar</div></div>
+    <div class="m"><div class="m-val" id="m-parcial">—</div><div class="m-label">Parcialmente asignados</div></div>
+    <div class="m"><div class="m-val" id="m-total-monto">—</div><div class="m-label">Monto sin asignar</div></div>
   </div>
 </div>
 
 <div class="body">
-
-  <!-- ── RESUMEN ───────────────────────────────────────────── -->
-  <div class="section on" id="sec-resumen">
-
-    <!-- ═══ ZONA 1 · ACCIÓN INMEDIATA ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:4px 0 10px;">
-      <div style="width:4px;height:18px;background:#ef4444;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#991b1b;letter-spacing:0.08em;text-transform:uppercase;">1 · Acción inmediata</div>
-      <div style="font-size:11px;color:var(--gris);">¿qué tengo que resolver hoy?</div>
-    </div>
-
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">⚠️ Labores + Atrasadas</div>
-          <a href="#" onclick="navTo('labores','/reporte');return false;" class="card-link">Ver todas →</a>
-        </div>
-        <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">📎 Documentos sin asignar</div>
-          <a href="#" onclick="navTo('asignar','/asignar');return false;" class="card-link">Asignar →</a>
-        </div>
-        <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
-      </div>
-    </div>
-
-    <!-- ═══ ZONA 2 · LIQUIDEZ ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:18px;background:#0F6E56;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#085041;letter-spacing:0.08em;text-transform:uppercase;">2 · Liquidez</div>
-      <div style="font-size:11px;color:var(--gris);">¿cómo está la plata?</div>
-    </div>
-
-    <div class="card" style="margin-bottom:10px;">
-      <div class="card-head">
-        <div class="card-title">🏦 Flujo de caja</div>
-        <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver detalle →</a>
-      </div>
-      <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
-    </div>
-
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">⬇️ Por cobrar — próximos 30 días</div>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
-        </div>
-        <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
-        </div>
-        <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
-      </div>
-    </div>
-
-    <!-- Banner nueces (KPI mini con 3 números) -->
-    <a href="#" onclick="navTo('ingresos','/reporte');return false;" id="banner-nueces" style="display:block;margin-top:10px;background:#fafaf7;border:1px solid #e0e0e0;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:180px;">
-          <div style="font-size:10px;font-weight:700;color:#0F6E56;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">📅 Contratos nueces · temporada 2026</div>
-          <div style="font-size:12px;color:var(--gris);" id="banner-nueces-hint">Cargando anticipos y liquidaciones...</div>
-        </div>
-        <div style="display:flex;gap:20px;align-items:center;">
-          <div style="text-align:right;">
-            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Proyectado</div>
-            <div style="font-size:16px;font-weight:700;color:#1c1c1a;font-variant-numeric:tabular-nums;" id="banner-nueces-proy">—</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Recibido</div>
-            <div style="font-size:16px;font-weight:700;color:#0F6E56;font-variant-numeric:tabular-nums;" id="banner-nueces-rec">—</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Pendiente</div>
-            <div style="font-size:16px;font-weight:700;color:#BA7517;font-variant-numeric:tabular-nums;" id="banner-nueces-pend">—</div>
-          </div>
-          <div style="font-size:12px;color:#0F6E56;font-weight:600;">Ver detalle →</div>
-        </div>
-      </div>
-    </a>
-
-    <!-- ═══ ZONA 3 · PIPELINE PRODUCTIVO ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:18px;background:#BA7517;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#854F0B;letter-spacing:0.08em;text-transform:uppercase;">3 · Pipeline productivo</div>
-      <div style="font-size:11px;color:var(--gris);">¿qué está pasando en el campo?</div>
-    </div>
-
-    <!-- Contador de labores esta semana -->
-    <a href="#" onclick="navTo('labores','/reporte');return false;" id="banner-labores-semana" style="display:block;margin-bottom:10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-        <div>
-          <div style="font-size:10px;font-weight:700;color:#854F0B;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">📋 Labores esta semana</div>
-          <div style="font-size:13px;color:#1c1c1a;" id="banner-labores-semana-txt">Cargando...</div>
-        </div>
-        <div style="font-size:12px;color:#854F0B;font-weight:600;">Ver todas →</div>
-      </div>
-    </a>
-
-    <!-- ═══ ZONA 4 · HERRAMIENTAS ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:18px;background:#888;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#444;letter-spacing:0.08em;text-transform:uppercase;">4 · Herramientas</div>
-      <div style="font-size:11px;color:var(--gris);">acciones proactivas</div>
-    </div>
-
-    <a href="#" onclick="navTo('optimizador','/optimizador');return false;" class="nav-card verde" style="margin-bottom:10px;">
-      <div style="display:flex;align-items:center;gap:14px;">
-        <div class="nav-icon">🧪</div>
-        <div style="flex:1;">
-          <div class="nav-title">Optimizador de fertilización</div>
-          <div class="nav-desc">Calcula el plan de compra de fertilizantes al <b>menor costo</b> según cultivo, pivote y análisis de suelo IRRIFER. Soporta fertirriego (tanques A/B), preferencia de proveedor y exporta a Excel.</div>
-          <span class="nav-badge badge-verde">Abrir herramienta →</span>
-        </div>
-      </div>
-    </a>
-
-    <!-- ═══ ZONA 5 · CONTEXTO ESPACIAL ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:18px;background:#534AB7;border-radius:2px;"></div>
-      <div style="font-size:11px;font-weight:700;color:#3C3489;letter-spacing:0.08em;text-transform:uppercase;">5 · Contexto espacial</div>
-      <div style="font-size:11px;color:var(--gris);">vista del campo</div>
-    </div>
-
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">🗺 Mapa de unidades productivas</div>
-        <div style="font-size:11px;color:var(--gris);">Click en marcador para ver detalles</div>
-      </div>
-      <div class="card-body" style="padding:12px;">
-        <div id="mapa-home"></div>
-      </div>
-    </div>
-
+  <div class="filters-wrap">
+    <div class="filter-label">Mostrar:</div>
+    <button class="fbtn on" id="f-todos"          onclick="setFiltro('todos')">Todos</button>
+    <button class="fbtn"    id="f-guia"           onclick="setFiltro('guia')">Solo guías</button>
+    <button class="fbtn"    id="f-factura"        onclick="setFiltro('factura')">Facturas recibidas</button>
+    <button class="fbtn"    id="f-factura-emitida" onclick="setFiltro('factura-emitida')">🌾 Facturas emitidas</button>
+    <div style="width:1px;background:#eee;align-self:stretch;"></div>
+    <div style="width:1px;background:#eee;align-self:stretch;"></div>
+    <div class="filter-label">Desde:</div>
+    <input type="date" id="fecha-desde" style="width:140px;" onchange="render()">
+    <div class="filter-label">Usuario:</div>
+    <input type="text" id="usuario-input" placeholder="Tu nombre" style="width:140px;" value="">
   </div>
-
-  <!-- contenedor oculto para JS de UPs -->
-  <div style="display:none;" id="sec-campo"><div id="up-cards"></div></div>
-
+  <div id="app"><div class="loading">Cargando documentos sin asignar...</div></div>
 </div>
 
+<div class="toast" id="toast"></div>
+
 <script>
-const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
 const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
-const API_FIN     = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
-const API_LABORES = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
-const RUT_LC  = "76099766-8";
-let CAJA_ACTUAL = 61805719; // se actualiza desde BD_Banco
-const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const WORKER  = "https://round-night-574d.christian-19c.workers.dev";
 
-const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {}, COORD_MAP = {}, LAB_MAP = {}, ENC_MAP = {};
-
-// ── TEMPORADA ────────────────────────────────────────────────────────────────
-const TEMP_MAP = {};
-let TEMPORADA_ACTIVA = null;
-
-function getTemporada(fechaVal, mesInicio) {
-  const raw = String(fechaVal||"");
-  const d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
-  if (isNaN(d)) return null;
-  const y = d.getFullYear(), m = d.getMonth()+1;
-  return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
-}
-
-window.cambiarTemporada = function(temp) {
-  TEMPORADA_ACTIVA = temp || null;
-  if (window._homeData) renderHome(window._homeData);
-};
+const CC_MAP = {}, FUNDO_MAP = {}, HA_MAP = {};
+let DOCS = [], ASIGNADOS = new Set();
+let filtro = "todos";
+// docState[key] = { metodo, filas: [{up_id, monto, pct}], obs }
+const docState = {};
 
 async function fetchSheet(api, sheet) {
+  // Use worker proxy for FIN api to avoid CORS/redirect issues
+  if (api === API_FIN) {
+    const url = api + "?sheet=" + encodeURIComponent(sheet);
+    const res = await fetch(WORKER + "?url=" + encodeURIComponent(url), { redirect:"follow" });
+    return res.json();
+  }
   const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
-  const text = await res.text();
-  try { return JSON.parse(text); } catch(e) { return []; }
+  return res.json();
 }
 
-function parseDate(val) {
-  if (!val) return null;
-  const s = String(val).trim();
-  try {
-    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s))  { const [y,m,d]=s.split("-"); return new Date(+y,+m-1,+d); }
-  } catch(e) {}
-  return null;
+function fmtPeso(n) { return "$" + Math.round(n).toLocaleString("es-CL"); }
+function fmtPesoK(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
+
+function toggleDocCard(safeKey) {
+  const body  = document.getElementById("doc-body-"  + safeKey);
+  const arrow = document.getElementById("doc-arrow-" + safeKey);
+  if (!body) return;
+  const open = body.style.display === "none";
+  body.style.display    = open ? "block" : "none";
+  arrow.style.transform = open ? "rotate(180deg)" : "";
+  // Store open state
+  const key = Object.keys(docState).find(k => k.replace(/[^a-z0-9]/gi,"_") === safeKey);
+  if (key) docState[key]._open = open;
 }
 
-function fmtPeso(n) { return "$" + Math.round(n/1000).toLocaleString("es-CL") + "k"; }
-function fmtPesoFull(n) { return "$" + Math.round(n).toLocaleString("es-CL"); }
-
-function switchTab(tab) {
-  document.querySelectorAll('.ntab').forEach((el,i) => {
-    el.classList.toggle('on', ['resumen','finanzas','campo'][i] === tab);
+function setFiltro(f) {
+  filtro = f;
+  ["todos","guia","factura","factura-emitida"].forEach(x => {
+    document.getElementById("f-"+x).className = "fbtn" + (x===f?" on":"");
   });
-  document.querySelectorAll('.section').forEach(el => el.classList.remove('on'));
-  document.getElementById('sec-'+tab).classList.add('on');
-  if (tab === 'campo' && window._mapa) setTimeout(()=>window._mapa.invalidateSize(),100);
+  render();
 }
 
-function buildMapa(registros) {
-  const el = document.getElementById('mapa-home');
-  if (!el || window._mapa) return;
-  const puntos = Object.entries(COORD_MAP).map(([id,c]) => ({
-    id, nombre: CC_MAP[id]||id, fundo: FUNDO_MAP[id]||"", ha: HA_MAP[id]||0,
-    lat: c.lat, lng: c.lng
-  }));
-  if (!puntos.length) return;
-  const avgLat = puntos.reduce((s,p)=>s+p.lat,0)/puntos.length;
-  const avgLng = puntos.reduce((s,p)=>s+p.lng,0)/puntos.length;
-  const mapa = L.map('mapa-home').setView([avgLat,avgLng],14);
-  window._mapa = mapa;
-  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    {attribution:"© Esri", maxZoom:19}).addTo(mapa);
-  puntos.forEach(p => {
-    const marker = L.circleMarker([p.lat,p.lng],{
-      radius:10, fillColor:"#1a3a0a", color:"#fff", weight:2, opacity:1, fillOpacity:0.9
-    }).addTo(mapa);
-    marker.bindPopup(`<b>${p.nombre}</b><br>${p.fundo}<br>${p.ha?p.ha+' há':''}`);
-    L.marker([p.lat,p.lng],{
-      icon:L.divIcon({className:"",
-        html:`<div style="font-size:10px;font-weight:bold;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.9);white-space:nowrap;">${p.nombre}</div>`,
-        iconSize:[60,16], iconAnchor:[30,-6]}), interactive:false
-    }).addTo(mapa);
+function showToast(msg, ok) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.style.background = ok ? "#1a3a0a" : "#cc2222";
+  t.style.display = "block";
+  setTimeout(()=>{ t.style.display = "none"; }, 3000);
+}
+
+function getDocState(key, montoTotal) {
+  if (!docState[key]) {
+    docState[key] = {
+      metodo: "porcentaje",
+      filas: [{ up_id:"", monto: montoTotal, pct: 100 }],
+      obs: "",
+      _open: false
+    };
+  }
+  return docState[key];
+}
+
+function setMetodo(key, metodo, montoTotal) {
+  const s = docState[key];
+  s.metodo = metodo;
+  if (metodo === "iguales") {
+    const n = s.filas.length || 1;
+    s.filas.forEach(f => { f.monto = Math.round(montoTotal/n); f.pct = Math.round(100/n); });
+  }
+  if (metodo === "hectareas") {
+    distribuirPorHa(key, montoTotal);
+  }
+  render();
+}
+
+function distribuirPorHa(key, montoTotal) {
+  const s = docState[key];
+  const totalHa = s.filas.reduce((sum,f) => sum + (HA_MAP[f.up_id]||0), 0);
+  if (totalHa === 0) return;
+  s.filas.forEach(f => {
+    const ha = HA_MAP[f.up_id]||0;
+    f.pct   = Math.round(ha/totalHa*100);
+    f.monto = Math.round(montoTotal * ha/totalHa);
   });
-  // UP cards eliminadas del Resumen
 }
 
+function addFila(key, montoTotal) {
+  docState[key].filas.push({ up_id:"", monto:0, pct:0 });
+  recalcMetodo(key, montoTotal);
+  render();
+}
 
-// ── NAVEGACIÓN INTELIGENTE ────────────────────────────────────────────────
-// Si estamos dentro del dashboard (iframe), navega via window.parent.show()
-// Si estamos solos, abre la URL directamente
-function navTo(tab, fallbackUrl) {
-  try {
-    if (window.parent && window.parent !== window && typeof window.parent.show === 'function') {
-      // Estamos dentro del dashboard — buscar el tab element correcto
-      var tabEl = window.parent.document.querySelector('.tab[onclick*=\'' + tab + '\']');
-      window.parent.show(tab, tabEl || { classList: { add: function(){}, remove: function(){} } });
-      return;
+function delFila(key, idx, montoTotal) {
+  docState[key].filas.splice(idx, 1);
+  recalcMetodo(key, montoTotal);
+  render();
+}
+
+function recalcMetodo(key, montoTotal) {
+  const s = docState[key];
+  if (s.metodo === "iguales") {
+    const n = s.filas.length||1;
+    s.filas.forEach(f => { f.monto = Math.round(montoTotal/n); f.pct = Math.round(100/n); });
+  }
+  if (s.metodo === "hectareas") distribuirPorHa(key, montoTotal);
+}
+
+function updateFila(key, idx, campo, valor, montoTotal) {
+  const s = docState[key];
+  const f = s.filas[idx];
+  if (campo === "up_id") {
+    f.up_id = valor;
+    if (s.metodo === "hectareas") distribuirPorHa(key, montoTotal);
+  }
+  if (campo === "monto") {
+    f.monto = Number(valor)||0;
+    f.pct   = montoTotal>0 ? Math.round(f.monto/montoTotal*100) : 0;
+  }
+  if (campo === "pct") {
+    f.pct   = Number(valor)||0;
+    f.monto = Math.round(montoTotal * f.pct/100);
+  }
+  // Re-render just the resumen
+  const resEl = document.getElementById("resumen-"+key.replace(/[^a-z0-9]/gi,"_"));
+  if (resEl) {
+    const totalAsig = s.filas.reduce((sum,ff)=>sum+ff.monto,0);
+    const diff = montoTotal - totalAsig;
+    resEl.innerHTML = buildResumen(totalAsig, diff, montoTotal);
+  }
+}
+
+function buildResumen(totalAsig, diff, montoTotal) {
+  const cls = Math.abs(diff) < 10 ? "resumen-ok" : "resumen-err";
+  return `<span>Asignado: <b>${fmtPeso(totalAsig)}</b></span>
+    <span class="${cls}">Diferencia: <b>${diff >= 0 ? "+" : ""}${fmtPeso(diff)}</b></span>
+    <span>Total doc: <b>${fmtPeso(montoTotal)}</b></span>`;
+}
+
+async function guardar(key, tipo, proveedor, folio, montoTotal, rutEmisor) {
+  const s   = docState[key];
+  const doc = DOCS.find(d => String(d.KEY||"").trim() === key) || {};
+  const user = document.getElementById("usuario-input").value.trim() || "sin usuario";
+
+  if (!s.filas.every(f => f.up_id)) {
+    showToast("Debés seleccionar una UP en cada fila", false);
+    return;
+  }
+  const totalAsig = s.filas.reduce((sum,f)=>sum+f.monto,0);
+  if (Math.abs(totalAsig - montoTotal) > 100) {
+    showToast("El monto asignado no coincide con el total del documento", false);
+    return;
+  }
+
+  const btn = document.getElementById("btn-"+key.replace(/[^a-z0-9]/gi,"_"));
+  if (btn) btn.disabled = true;
+
+  // Base row builder
+  // Get fecha_documento from the doc object
+  const fechaDoc = String(doc?.["Fecha Emisión"]||"").split("T")[0] || "";
+
+  const baseRow = (f) => ({
+    tipo_doc:        tipo,
+    key_documento:   key,
+    proveedor,
+    folio,
+    fecha_documento: fechaDoc,
+    monto_total_doc: montoTotal,
+    up_id:           f.up_id,
+    up_nombre:       CC_MAP[f.up_id]||f.up_id,
+    cc_id:           FUNDO_MAP[f.up_id]||"",
+    cc_nombre:       FUNDO_MAP[f.up_id]||"",
+    metodo:          s.metodo,
+    monto_asignado:  f.monto,
+    porcentaje:      f.pct,
+    observacion:     s.obs,
+    usuario:         user
+  });
+
+  let asignaciones = [];
+
+  if (tipo === "guia" || tipo === "guia-emitida") {
+    // One row per detail line per UP
+    // Both guia and guia-emitida use DET_GUIAS (GuiasDespacho keys)
+    // Fallback: match by RUT+Folio when id_XML differs between tables
+    let dets = window.DET_GUIAS?.[key] || [];
+    if (!dets.length) {
+      const fk = (rutEmisor||"") + "-" + String(folio||"").trim();
+      dets = window.DET_GUIAS_BY_FOLIO?.[fk] || [];
     }
-  } catch(e) {}
-  // Estamos solos — navegar normalmente
-  window.location.href = fallbackUrl || '/';
+
+    if (dets.length > 0) {
+      s.filas.forEach(f => {
+        dets.forEach(d => {
+          const cant = Number(d["Cantidad"]||0);
+          const pctFactor = f.pct / 100;
+          asignaciones.push({
+            ...baseRow(f),
+            nombre_item: String(d["Nombre Item"]||"").trim(),
+            cantidad:    Math.round(cant * pctFactor * 1000) / 1000,
+            unidad:      String(d["um"]||"").trim()
+          });
+        });
+      });
+    } else {
+      // No detail lines — one row per UP without quantity
+      s.filas.forEach(f => asignaciones.push({ ...baseRow(f), nombre_item:"", cantidad:0, unidad:"" }));
+    }
+  } else {
+    // Facturas — one row per UP, no quantity detail
+    s.filas.forEach(f => asignaciones.push({ ...baseRow(f), nombre_item:"", cantidad:0, unidad:"" }));
+  }
+
+  try {
+    const res = await fetch(WORKER, {
+      method:  "POST",
+      headers: {"Content-Type":"application/json"},
+      body:    JSON.stringify({ asignaciones })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      ASIGNADOS.add(key);
+      showToast("✓ Guardado correctamente — " + asignaciones.length + " asignación(es)", true);
+      render();
+    } else {
+      showToast("Error al guardar: " + (data.error||"desconocido"), false);
+      if (btn) btn.disabled = false;
+    }
+  } catch(e) {
+    showToast("Error de conexión", false);
+    if (btn) btn.disabled = false;
+  }
+}
+
+function render() {
+  const sinAsignar = DOCS.filter(d => !ASIGNADOS.has(d.KEY));
+  const fechaDesde = document.getElementById("fecha-desde")?.value;
+  const filtrados  = sinAsignar.filter(d => {
+    if (filtro === "guia"            && d._tipo !== "guia")            return false;
+    if (filtro === "factura"         && d._tipo !== "factura")         return false;
+    if (filtro === "factura-emitida" && d._tipo !== "factura-emitida") return false;
+    if (fechaDesde) {
+      const fe = String(d["Fecha Emisión"]||"").split("T")[0];
+      if (fe < fechaDesde) return false;
+    }
+    return true;
+  });
+
+  // Metrics
+  const montoSin = sinAsignar.reduce((s,d)=>s+Number(d["Monto Total"]||0),0);
+  document.getElementById("m-sin").textContent     = sinAsignar.length;
+  document.getElementById("m-parcial").textContent = Object.keys(docState).filter(k=>!ASIGNADOS.has(k)&&docState[k].filas.some(f=>f.up_id)).length;
+  document.getElementById("m-total-monto").textContent = fmtPesoK(montoSin);
+
+  if (filtrados.length === 0) {
+    document.getElementById("app").innerHTML = `<div class="empty">🎉 No hay documentos sin asignar${filtro!=="todos"?" en esta categoría":""}.</div>`;
+    return;
+  }
+
+  // Build CC options
+  const ccOpts = Object.entries(CC_MAP).map(([id,nombre])=>{
+    const fundo = FUNDO_MAP[id]||"";
+    const ha    = HA_MAP[id]||0;
+    return `<option value="${id}">${nombre}${fundo?" — "+fundo:""}${ha?" ("+ha+"há)":""}</option>`;
+  }).join("");
+
+  const cards = filtrados.map(doc => {
+    const key      = String(doc.KEY||doc["Folio"]||Math.random()).trim();
+    const safeKey  = key.replace(/[^a-z0-9]/gi,"_");
+    const monto    = Number(doc["Monto Total"]||0);
+    const tipo     = doc._tipo;
+    // Para facturas emitidas (ventas), mostrar el cliente del detalle en vez del emisor
+    let proveedor  = String(doc["Razón Social"]||"").trim();
+    if (tipo === "factura-emitida") {
+      const key0 = String(doc.KEY||doc["Folio"]||"").trim();
+      const dets0 = window.DET_FACTURAS?.[key0] || [];
+      const cliente = dets0[0] ? String(dets0[0]["Cliente"]||"").trim() : "";
+      if (cliente) proveedor = cliente;
+    }
+    const folio    = doc["Folio"]||"";
+    const fecha    = doc["Fecha Emisión"] ? new Date(doc["Fecha Emisión"]).toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"numeric"}) : "—";
+    const s        = getDocState(key, monto);
+
+    const metodoTabs = ["porcentaje","monto","iguales","hectareas"].map(m => {
+      const labels = {porcentaje:"% Porcentaje", monto:"$ Monto fijo", iguales:"÷ Iguales", hectareas:"🌱 Por há"};
+      return `<button class="mtab${s.metodo===m?" on":""}" onclick="setMetodo('${key}','${m}',${monto})">${labels[m]}</button>`;
+    }).join("");
+
+    const filas = s.filas.map((f,i) => {
+      const haInfo = f.up_id && HA_MAP[f.up_id] ? `<div class="ha-info">${HA_MAP[f.up_id]} há</div>` : "";
+      const cantInput = s.metodo === "porcentaje"
+        ? `<input type="number" min="0" max="100" value="${f.pct}" onchange="updateFila('${key}',${i},'pct',this.value,${monto})" placeholder="%">`
+        : s.metodo === "monto"
+        ? `<input type="number" min="0" value="${f.monto}" onchange="updateFila('${key}',${i},'monto',this.value,${monto})" placeholder="$">`
+        : `<input type="number" value="${s.metodo==='iguales'?f.pct:f.pct}" readonly style="background:#f8f8f6;color:#888;">`;
+
+      return `<div class="asig-row">
+        <div>
+          <select onchange="updateFila('${key}',${i},'up_id',this.value,${monto})">
+            <option value="">— Seleccionar UP —</option>${ccOpts.replace(`value="${f.up_id}"`,`value="${f.up_id}" selected`)}
+          </select>
+          ${haInfo}
+          ${f.up_id ? `<div style="font-size:11px;color:#0f6e56;margin-top:2px;">${FUNDO_MAP[f.up_id]||""}</div>` : ""}
+        </div>
+        <div class="hide-mobile" style="font-size:12px;color:#888;padding-top:6px;">${FUNDO_MAP[f.up_id]||""}</div>
+        ${cantInput}
+        <div style="font-size:12px;font-weight:bold;color:#1a3a0a;padding-top:6px;">${fmtPeso(f.monto)}</div>
+        <button class="btn-del" onclick="delFila('${key}',${i},${monto})" ${s.filas.length<=1?"disabled style='opacity:0.3'":""}>✕</button>
+      </div>`;
+    }).join("");
+
+    const totalAsig = s.filas.reduce((sum,f)=>sum+f.monto,0);
+    const diff      = monto - totalAsig;
+
+    return `<div class="doc-card">
+      <div class="doc-head ${tipo==="factura"?"factura":tipo==="factura-emitida"?"factura-emitida":""}"
+        onclick="toggleDocCard('${safeKey}')"
+        style="cursor:pointer;user-select:none;">
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span class="badge-tipo ${tipo==="guia"?"badge-guia":tipo==="guia-emitida"?"badge-asig":"badge-fact"}">${tipo==="guia"?"Guía recibida":tipo==="guia-emitida"?"Guía emitida":"Factura"}</span>
+            <span style="font-size:11px;color:#888;">F:${folio} · ${fecha}</span>
+            <a href="https://cgraniffo.pythonanywhere.com/ver_documento/LOS%20CRISOLES/${encodeURIComponent(String(doc['RUT Emisor']||'').trim())}/${encodeURIComponent(String(folio||'').trim())}"
+               target="_blank"
+               onclick="event.stopPropagation()"
+               style="font-size:10px;color:#888;text-decoration:none;border:1px solid #ddd;padding:1px 7px;border-radius:4px;background:#fff;white-space:nowrap;">
+              📄 Ver XML
+            </a>
+          </div>
+          <div class="doc-nombre">${proveedor}${tipo==="factura-emitida"?' <span style="font-size:10px;background:#1a3a0a;color:#86efac;padding:1px 6px;border-radius:3px;margin-left:4px;">🌾 INGRESO</span>':""}</div>
+          ${doc["TermPagoGlosa"] ? `<div class="doc-meta">${doc["TermPagoGlosa"]}</div>` : ""}
+          ${(()=>{
+            // For facturas: key matches ID_Factura_Padre
+            // For guias: key from CargaHTML_Demo, try DET_GUIAS with GuiasDespacho KEY format
+            let dets = [];
+            if (tipo==="factura") {
+              dets = window.DET_FACTURAS?.[key] || [];
+            } else {
+              dets = window.DET_GUIAS?.[key] || [];
+              if (!dets.length) {
+                const rut   = String(doc["RUT Emisor"]||"").trim();
+                const folio = String(doc["Folio"]||"").trim();
+                dets = window.DET_GUIAS_BY_FOLIO?.[rut+"-"+folio] || [];
+              }
+            }
+            if (!dets.length) return tipo==="guia" ? '<div style="font-size:11px;color:#bbb;margin-top:6px;padding:6px 8px;">Sin detalle de líneas disponible</div>' : "";
+            const rows = dets.slice(0,5).map(d=>
+              `<div style="display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:11px;">
+                <span style="color:#555;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${String(d["Nombre Item"]||"").trim()}">${String(d["Nombre Item"]||"").trim()}</span>
+                <span style="color:#888;flex-shrink:0;">${Number(d["Cantidad"]||0).toLocaleString("es-CL")} ${d["um"]||""}</span>
+                <span style="font-weight:600;color:#444;flex-shrink:0;">${fmtPeso(Number(d["Monto Item"]||0))}</span>
+              </div>`
+            ).join("");
+            const extra = dets.length>5 ? `<div style="font-size:10px;color:#aaa;margin-top:4px;">+${dets.length-5} líneas más</div>` : "";
+            return `<div style="margin-top:8px;background:#f8f6f2;border-radius:6px;padding:8px 10px;">
+              <div style="font-size:10px;font-weight:bold;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;">Detalle ${dets.length} línea${dets.length!==1?"s":""}</div>
+              ${rows}${extra}
+            </div>`;
+          })()}
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+          <div class="doc-monto">${fmtPeso(monto)}</div>
+          <div id="doc-arrow-${safeKey}" style="font-size:13px;color:#aaa;transition:transform 0.2s;">▼</div>
+        </div>
+      </div>
+      <div id="doc-body-${safeKey}" style="display:none;">
+        <div class="doc-body">
+          <div id="ia-box-${safeKey}"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div class="metodo-tabs" style="margin-bottom:0;">${metodoTabs}</div>
+            <button class="btn-ia" id="ia-btn-${safeKey}"
+              onclick="sugerirIA('${key}','${safeKey}','${proveedor.replace(/'/g,"\\'")}','${String(doc["RUT Emisor"]||"").trim()}',${monto})">
+              ✨ Sugerir con IA
+            </button>
+          </div>
+          <div class="asig-row-label">
+            <div>Unidad Productiva</div><div>Centro de Costo</div>
+            <div>${s.metodo==="porcentaje"?"%":"Monto $"}</div>
+            <div>Total</div><div></div>
+          </div>
+          ${filas}
+          <button class="btn-add" onclick="addFila('${key}',${monto})">+ Agregar otra UP</button>
+          <div class="obs-row">
+            <input type="text" placeholder="Observación (opcional)" value="${s.obs}"
+              onchange="docState['${key}'].obs=this.value" style="margin-top:8px;">
+          </div>
+          <div class="resumen" id="resumen-${safeKey}">
+            ${buildResumen(totalAsig, diff, monto)}
+          </div>
+          <div style="text-align:right;margin-top:10px;">
+            <button class="btn-guardar" id="btn-${safeKey}"
+              onclick="guardar('${key}','${tipo}','${proveedor.replace(/'/g,"\'")}','${folio}',${monto},'${String(doc["RUT Emisor"]||"").trim()}')">
+              Guardar asignación
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("app").innerHTML = cards;
+
+  // Reabrir cards que estaban abiertas
+  Object.keys(docState).forEach(key => {
+    if (docState[key]._open) {
+      const safeKey = key.replace(/[^a-z0-9]/gi,"_");
+      const body  = document.getElementById("doc-body-"  + safeKey);
+      const arrow = document.getElementById("doc-arrow-" + safeKey);
+      if (body)  body.style.display = "block";
+      if (arrow) arrow.style.transform = "rotate(180deg)";
+    }
+  });
 }
 
 async function main() {
-  const now = new Date();
-  document.getElementById('hdr-date').textContent =
-    now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-
-  const hoy = new Date(); hoy.setHours(0,0,0,0);
-  const en15 = new Date(hoy); en15.setDate(hoy.getDate()+15);
-  const en30 = new Date(hoy); en30.setDate(hoy.getDate()+30);
-  const en60 = new Date(hoy); en60.setDate(hoy.getDate()+60);
-
   try {
-    const [registros, ccs, docs, proyecciones, asignaciones, banco, labores, encargados, detFacturas] = await Promise.all([
-      fetchSheet(API_REG, "BD_Registro"),
-      fetchSheet(API_CC,  "BD_CC"),
+    const [docs, guias, ccs, asignaciones, detFacturas, detGuias] = await Promise.all([
       fetchSheet(API_FIN, "CargaHTML_Demo"),
-      fetchSheet(API_REG, "Proyecciones_Manuales"),
+      fetchSheet(API_FIN, "GuiasDespacho"),
+      fetchSheet(API_CC,  "BD_CC"),
       fetchSheet(API_FIN, "Asignaciones_U"),
-      fetchSheet(API_FIN, "BD_Banco"),
-      fetchSheet(API_LABORES, "BD_Labores"),
-      fetchSheet(API_REG, "Encargados"),
-      fetchSheet(API_FIN, "DetallesFacturas")
+      fetchSheet(API_FIN, "DetallesFacturas"),
+      fetchSheet(API_FIN, "DetallesGuias")
     ]);
 
-    // Saldo real desde BD_Banco
-    const bancoDatos = Array.isArray(banco) ? banco : [];
-    CAJA_ACTUAL = bancoDatos.reduce((s,r) => s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0), 0);
-
-    // Build maps
+    // Build CC maps
     (Array.isArray(ccs)?ccs:[]).forEach(c => {
       const id = String(c["Id_CC"]||"").trim();
-      if (!id) return;
-      CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
-      FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
-      HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0)||0;
-      const coords  = String(c["Coordenadas"]||"").trim();
-      if (coords) { const [lat,lng]=coords.split(",").map(s=>parseFloat(s.trim())); if(!isNaN(lat)&&!isNaN(lng)) COORD_MAP[id]={lat,lng}; }
-      // Poblar TEMP_MAP para filtro de temporada
-      const temp = String(c["Temporada"]||"").trim();
-      const mes  = parseInt(c["MES_INICIO_TEMPORADA"]||3)||3;
-      if (temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
-    });
-
-    // Build LAB_MAP and ENC_MAP
-    (Array.isArray(labores)?labores:[]).forEach(r => {
-      const id     = String(r["Id_Labor"]||"").trim();
-      const nombre = String(r["Nombre Labor"]||"").trim();
-      if (id && nombre) LAB_MAP[id] = nombre;
-    });
-    (Array.isArray(encargados)?encargados:[]).forEach(r => {
-      const id   = String(r["id_Encargado"]||r["Id_Encargado"]||r["id"]||"").trim();
-      const nombre = String(r["Nombre Encargado"]||r["Nombre"]||"").trim();
-      if (id && nombre) ENC_MAP[id] = nombre;
-    });
-
-    // ── LABORES ──────────────────────────────────────────────────
-    const activos = (Array.isArray(registros)?registros:[]).filter(r =>
-      !["Completado","Anulado"].includes(String(r["Estado Operativo"]||"").trim())
-    );
-    const vencidas = activos.filter(r => { const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; });
-    const urgentes = [...vencidas, ...activos.filter(r => { const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; })].slice(0,6);
-
-    // Contador de labores esta semana (hoy + 7 días)
-    const en7 = new Date(hoy); en7.setDate(hoy.getDate()+7);
-    const laboresSemana = activos.filter(r => {
-      const d = parseDate(r["Fecha"]); if (!d) return false;
-      d.setHours(0,0,0,0);
-      return d >= hoy && d <= en7;
-    });
-    const _bls = document.getElementById('banner-labores-semana-txt');
-    if (_bls) {
-      const totalSemana = laboresSemana.length;
-      const vencidasHoy = vencidas.length;
-      let txt = '';
-      if (totalSemana === 0 && vencidasHoy === 0) {
-        txt = '<span style="color:#166534;font-weight:600;">✅ Sin labores programadas esta semana</span>';
-      } else {
-        const partes = [];
-        if (vencidasHoy > 0) partes.push(`<span style="color:#c0392b;font-weight:700;">${vencidasHoy} atrasada${vencidasHoy!==1?'s':''}</span>`);
-        if (totalSemana > 0) partes.push(`<span style="font-weight:700;">${totalSemana} programada${totalSemana!==1?'s':''}</span> en los próximos 7 días`);
-        txt = partes.join(' · ');
+      if (id) {
+        CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
+        FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
+        HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0)||0;
       }
-      _bls.innerHTML = txt;
-    }
-
-    document.getElementById('h-vencidas').textContent = vencidas.length;
-    const _nb1 = document.getElementById('nav-labores-badge'); if(_nb1) _nb1.textContent = vencidas.length + " vencidas · " + activos.length + " activas";
-    if(_nb1) _nb1.className = "nav-badge " + (vencidas.length>0?"badge-rojo":"badge-verde");
-
-    const colorEstado = e => e==="Vencido"||parseDate(e)<hoy ? "#ef4444" : "#f59e0b";
-    // Group labores by date for calendar view
-    const laboresPorFecha = {};
-    urgentes.forEach(r => {
-      const d = parseDate(r["Fecha"]);
-      if (!d) return;
-      const k = d.toISOString().split("T")[0];
-      if (!laboresPorFecha[k]) laboresPorFecha[k] = [];
-      laboresPorFecha[k].push(r);
     });
-    const fechasOrdenadas = Object.keys(laboresPorFecha).sort();
 
-    document.getElementById('card-labores').innerHTML = urgentes.length === 0
-      ? `<div style="text-align:center;padding:20px;color:var(--gris);">✅ Sin labores urgentes</div>`
-      : fechasOrdenadas.map(fecha => {
-          const d = new Date(fecha + "T12:00:00");
-          const venc = d < hoy;
-          const esHoy = d.toDateString() === hoy.toDateString();
-          const laboresDelDia = laboresPorFecha[fecha];
-          const bgColor = venc ? "#fff5f5" : esHoy ? "#fffbeb" : "#f8fff8";
-          const borderColor = venc ? "#fca5a5" : esHoy ? "#fcd34d" : "#d1fae5";
-          const fechaLabel = esHoy ? "HOY" : d.toLocaleDateString("es-CL",{weekday:"short",day:"2-digit",month:"2-digit"}).toUpperCase();
-          return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:8px;padding:8px 10px;margin-bottom:8px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-              <div style="font-size:11px;font-weight:bold;color:${venc?"#c0392b":esHoy?"#d97706":"#166534"};background:${venc?"#fee2e2":esHoy?"#fef3c7":"#dcfce7"};padding:2px 8px;border-radius:99px;">${fechaLabel}</div>
-              <div style="font-size:11px;color:var(--gris);">${laboresDelDia.length} labor${laboresDelDia.length!==1?"es":""}</div>
-            </div>
-            ${laboresDelDia.map(r => {
-              const cc  = CC_MAP[String(r["Centro_Costo"]||"").trim()]||"—";
-              const enc = ENC_MAP[String(r["Encargado"]||"").trim()]||"";
-              const lab = LAB_MAP[String(r["Labor"]||"").trim()]||String(r["Labor"]||"—").trim();
-              return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid rgba(0,0,0,0.05);">
-                <div style="width:6px;height:6px;border-radius:50%;background:${venc?"#ef4444":"#f59e0b"};flex-shrink:0;"></div>
-                <div style="flex:1;min-width:0;">
-                  <div style="font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${lab}</div>
-                  <div style="font-size:11px;color:var(--gris);">${cc}${enc?" · "+enc:""}</div>
-                </div>
-              </div>`;
-            }).join("")}
-          </div>`;
-        }).join('');
+    // Mark already assigned docs
+    (Array.isArray(asignaciones)?asignaciones:[]).forEach(a => {
+      if (a["KEY_Documento"]) ASIGNADOS.add(String(a["KEY_Documento"]).trim());
+    });
 
-    // ── CAJA ──────────────────────────────────────────────────
-    // Índice KEY → Cliente desde DetallesFacturas
-    const CLIENTE_MAP = {};
+    // Filter docs without UP + classify type
+    const RUT_LC = "76099766-8";
+    const sinAsignarFiltro = (arr) => (Array.isArray(arr)?arr:[]).filter(d => {
+      const fundo = String(d["Fundo"]||"").trim();
+      const sinAsig = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO" || fundo === "CC_NO_ENCONTRADO";
+      return sinAsig && d["KEY"];
+    });
+
+    // Facturas: solo de proveedores externos (excluir TODO lo de Los Crisoles)
+    const facturasSin = sinAsignarFiltro(docs)
+      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
+      .map(d => ({ ...d, _tipo: "factura" }));
+
+    // Facturas emitidas por Los Crisoles sin UP asignada (ingresos propios)
+    const facturasPropias = sinAsignarFiltro(docs)
+      .filter(d => String(d["RUT Emisor"]||"").trim() === RUT_LC)
+      .map(d => ({ ...d, _tipo: "factura-emitida" }));
+
+    // Guías recibidas (insumos de proveedores)
+    const guiasRecibidas = sinAsignarFiltro(guias)
+      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
+      .map(d => ({ ...d, _tipo: "guia" }));
+
+    // Guías emitidas (producción propia sin CC asignado) — vienen de GuiasDespacho
+    const guiasEmitidas = (Array.isArray(guias)?guias:[]).filter(d => {
+      const cc  = String(d["Centro de Costo"]||"").trim();
+      const rut = String(d["RUT Emisor"]||"").trim();
+      const sinCC = cc === "" || cc === "CC_NO_ENCONTRADO";
+      return sinCC && rut === RUT_LC && d["KEY"];
+    }).map(d => ({ ...d, _tipo: "guia-emitida" }));
+
+    // For buildContexto compatibility
+    window.TODOS        = [];
+    window.PROYECCIONES = [];
+    window.DOCUMENTOS   = Array.isArray(docs) ? docs : [];
+    window.ASIGNACIONES = Array.isArray(asignaciones) ? asignaciones : [];
+
+    DOCS = [...facturasSin, ...guiasRecibidas, ...guiasEmitidas, ...facturasPropias]
+      .sort((a,b) => new Date(b["Fecha Emisión"]||0) - new Date(a["Fecha Emisión"]||0));
+
+    // Build detalles lookup: KEY_padre -> [lineas]
+    window.DET_FACTURAS = {};
     (Array.isArray(detFacturas)?detFacturas:[]).forEach(d => {
       const key = String(d["ID_Factura_Padre"]||"").trim();
-      const cli = String(d["Cliente"]||"").trim();
-      if (key && cli && !CLIENTE_MAP[key]) CLIENTE_MAP[key] = cli;
+      if (!key) return;
+      if (!window.DET_FACTURAS[key]) window.DET_FACTURAS[key] = [];
+      window.DET_FACTURAS[key].push(d);
     });
-
-    const isPend = r => !["pagado","anulado"].includes(String(r["EstadoPago"]||"").toLowerCase());
-    const cobrar = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()===RUT_LC && isPend(r));
-    const pagar  = (Array.isArray(docs)?docs:[]).filter(r => String(r["RUT Emisor"]||"").trim()!==RUT_LC && isPend(r));
-    const sumD   = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
-    const sumP   = arr => arr.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
-
-    // Buckets incrementales (igual que pestaña Caja)
-    const bucket = (lista, desde, hasta) => lista.filter(r => {
-      const d = parseDate(r["Fecha_Real"]); if (!d) return false; d.setHours(0,0,0,0);
-      return hasta===null ? d<desde : d>=desde && d<=hasta;
-    });
-    const en15p1 = new Date(en15.getTime()+86400000);
-    const en30p1 = new Date(en30.getTime()+86400000);
-    const en60p1 = new Date(en60.getTime()+86400000);
-
-    const cobrarVenc  = bucket(cobrar, hoy, null);
-    const pagarVenc   = bucket(pagar,  hoy, null);
-    const cobrar15    = bucket(cobrar, hoy, en15);
-    const pagar15     = bucket(pagar,  hoy, en15);
-    const cobrar30    = bucket(cobrar, en15p1, en30);
-    const pagar30     = bucket(pagar,  en15p1, en30);
-    const cobrar60    = bucket(cobrar, en30p1, en60);
-    const pagar60     = bucket(pagar,  en30p1, en60);
-    const cobrarMas60 = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>en60;});
-    const pagarMas60  = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>en60;});
-
-    // Proyecciones estimadas por período (igual que pestaña Caja)
-    const proy = Array.isArray(proyecciones) ? proyecciones : [];
-    const ingPeriodo = (desde, hasta) => proy.filter(r => {
-      const d = parseDate(r["Fecha_Estimada"]); if (!d) return false; d.setHours(0,0,0,0);
-      return hasta===null ? d>=desde : d>=desde && d<=hasta;
-    });
-    const ing15  = sumP(ingPeriodo(hoy,    en15));
-    const ing30  = sumP(ingPeriodo(en15p1, en30));
-    const ing60  = sumP(ingPeriodo(en30p1, en60));
-    const ingM60 = sumP(ingPeriodo(en60p1, null));
-
-    // Saldos acumulados en cascada
-    const netoVenc = sumD(cobrarVenc) - sumD(pagarVenc);
-    const neto15   = sumD(cobrar15)   - sumD(pagar15)   + ing15;
-    const neto30   = sumD(cobrar30)   - sumD(pagar30)   + ing30;
-    const neto60   = sumD(cobrar60)   - sumD(pagar60)   + ing60;
-    const netoM60  = sumD(cobrarMas60)- sumD(pagarMas60)+ ingM60;
-    const saldoVenc = CAJA_ACTUAL + netoVenc;
-    const saldo15   = saldoVenc + neto15;
-    const saldo30   = saldo15   + neto30;
-    const saldo60   = saldo30   + neto60;
-    const saldoM60  = saldo60   + netoM60;
-
-    document.getElementById('h-caja').textContent = fmtPeso(CAJA_ACTUAL);
-
-    const fila = (label, pagar, cobrar, ingProy, saldo) => {
-      const cP = fmtPeso(sumD(pagar));
-      const cC = fmtPeso(sumD(cobrar));
-      const cI = ingProy > 0 ? '+' + fmtPeso(ingProy) : null;
-      const cS = fmtPeso(saldo);
-      const clsS = saldo >= 0 ? 'var(--verde)' : '#ef4444';
-      const bgS  = saldo >= 0 ? '#eaf3de' : '#fff8f8';
-      return '<div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">' + label + '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr ' + (cI?'1fr ':'') + '1fr;gap:8px;margin-bottom:12px;">' +
-        '<div class="caja-item"><div class="caja-val" style="color:#ef4444;font-size:15px;">-' + cP + '</div><div class="caja-lbl">Por pagar</div></div>' +
-        '<div class="caja-item"><div class="caja-val" style="color:var(--verde2);font-size:15px;">+' + cC + '</div><div class="caja-lbl">Por cobrar</div></div>' +
-        (cI ? '<div class="caja-item" style="background:#fff8f0;"><div class="caja-val" style="color:#b45309;font-size:15px;">' + cI + '</div><div class="caja-lbl">🔮 Ing. proy.</div></div>' : '') +
-        '<div class="caja-item" style="background:' + bgS + ';"><div class="caja-val" style="color:' + clsS + ';font-size:15px;">' + cS + '</div><div class="caja-lbl">Proyectado</div></div>' +
-        '</div>';
-    };
-
-    document.getElementById('card-caja').innerHTML =
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">' +
-        '<div class="caja-item" style="background:#eaf3de;"><div class="caja-val" style="color:var(--verde);font-size:22px;">' + fmtPeso(CAJA_ACTUAL) + '</div><div class="caja-lbl">💰 Caja Hoy</div></div>' +
-        '<div class="caja-item" style="background:#fff8f8;"><div class="caja-val" style="color:#ef4444;font-size:18px;">-' + fmtPeso(sumD(pagarVenc)) + '</div><div class="caja-lbl">⚠️ Por pagar vencido</div></div>' +
-      '</div>' +
-      fila('Próximos 15 días',  pagar15,   cobrar15,   ing15,  saldo15)  +
-      fila('Próximos 30 días',  pagar30,   cobrar30,   ing30,  saldo30);
-
-    // ── COSTOS y PRODUCCIÓN → renderHome() ──────────────────────────────────
-    // (se llama aquí y también al cambiar temporada desde el dashboard)
-
-
-// ── RENDER COSTOS + PRODUCCIÓN (filtrado por temporada) ─────────────────────
-function renderHome({ registros, asignaciones, proyecciones }) {
-  const FECHA_CORTE = "2026-03-30";
-
-  // Filtro de temporada activa
-  function enTemporada(fechaVal, ccId) {
-    if (!TEMPORADA_ACTIVA) return true; // sin filtro → todo
-    const entry = TEMP_MAP[ccId];
-    if (!entry) return true; // CC sin temporada definida → incluir
-    return getTemporada(fechaVal, entry.mesInicio) === TEMPORADA_ACTIVA;
-  }
-
-  // ── COSTOS ────────────────────────────────────────────────────────────────
-  const costosHist = (Array.isArray(registros)?registros:[]).filter(r => {
-    const raw = String(r["Fecha"]||""); const f = raw.includes("T")?raw.split("T")[0]:raw.slice(0,10);
-    const id  = String(r["Centro_Costo"]||"").trim();
-    return Number(r["Costo Total"]||0)>0 && (f===""||f<FECHA_CORTE) && enTemporada(f, id);
-  });
-  const costosNuevos = (Array.isArray(asignaciones)?asignaciones:[]).filter(r => {
-    const id    = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    return Number(r["Monto_Asignado"]||0)>0 && enTemporada(fecha, id);
-  });
-
-  const costoPorCC = {};
-  costosHist.forEach(r => {
-    const id = String(r["Centro_Costo"]||"").trim();
-    costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Costo Total"]||0);
-  });
-  costosNuevos.forEach(r => {
-    const id = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
-    costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Monto_Asignado"]||0);
-  });
-  const costoTotal = Object.values(costoPorCC).reduce((s,v)=>s+v,0);
-  const costoRows  = Object.entries(costoPorCC).map(([id,v])=>([CC_MAP[id]||id,v])).sort((a,b)=>b[1]-a[1]).slice(0,6);
-  const costoMax   = costoRows[0]?.[1]||1;
-
-  document.getElementById('h-costos').textContent = fmtPeso(costoTotal);
-  const costFechas  = costosHist.map(r=>String(r["Fecha"]||"").split("T")[0]).filter(Boolean).sort();
-  const costPeriodo = costFechas.length > 0
-    ? costFechas[0].slice(0,7).replace("-","/") + " — " + costFechas[costFechas.length-1].slice(0,7).replace("-","/")
-    : (TEMPORADA_ACTIVA || "");
-  const _cc = document.getElementById('card-costos'); if(_cc) _cc.innerHTML = `
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-weight:bold;font-size:22px;color:var(--verde);">${fmtPeso(costoTotal)}</div>
-      ${costPeriodo?`<div style="font-size:11px;color:var(--gris);">${costPeriodo}</div>`:""}
-    </div>` + costoRows.map(([nombre,val]) =>
-    `<div class="bar-row">
-      <div class="bar-label" title="${nombre}">${nombre}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/costoMax*100)}%;background:var(--verde2);"></div></div>
-      <div class="bar-val">${fmtPeso(val)}</div>
-    </div>`).join('');
-
-  // ── PRODUCCIÓN ESTIMADA ───────────────────────────────────────────────────
-  const proy = (Array.isArray(proyecciones)?proyecciones:[]).filter(r => {
-    const id    = String(r["Unidad_Productiva"]||"").trim();
-    const fecha = r["Fecha_Estimada"]||"";
-    return enTemporada(fecha, id);
-  });
-  const ingTotal = proy.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
-  const ingPorUP = {};
-  proy.forEach(r => {
-    const up = CC_MAP[String(r["Unidad_Productiva"]||"").trim()]||String(r["Unidad_Productiva"]||"").trim();
-    ingPorUP[up] = (ingPorUP[up]||0) + Number(r["Monto_Total"]||0);
-  });
-  const ingRows = Object.entries(ingPorUP).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  const ingMax  = ingRows[0]?.[1]||1;
-
-  // Volúmenes despachados filtrados por temporada
-  const volPorUP = {};
-  (Array.isArray(asignaciones)?asignaciones:[])
-    .filter(r => {
-      const id    = String(r["UP_Nombre"]||"").trim();
-      const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-      return String(r["Tipo_Doc"]||"").includes("guia") && enTemporada(fecha, id);
-    })
-    .forEach(r => {
-      const up   = String(r["UP_Nombre"]||"").trim();
-      const cant = Number(r["Cantidad "]||r["Cantidad"]||0);
-      const und  = String(r["Unidad "]||r["Unidad"]||"").trim()||"kg";
-      if (!up||!cant) return;
-      if (!volPorUP[up]) volPorUP[up]={};
-      volPorUP[up][und] = (volPorUP[up][und]||0)+cant;
-    });
-  const volRows = Object.entries(volPorUP).map(([up,units])=>
-    `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f5f3ef;font-size:12px;">
-      <span style="color:#444;">${up}</span>
-      <span style="font-weight:600;color:#1a3a0a;">${Object.entries(units).map(([u,v])=>v.toLocaleString("es-CL")+" "+u).join(" · ")}</span>
-    </div>`
-  ).join("");
-  const _cp = document.getElementById('card-prod'); if(_cp) _cp.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;">Ingresos estimados</div>
-      ${(()=>{ const ff=proy.map(r=>String(r["Fecha_Estimada"]||"").split("T")[0]).filter(Boolean).sort(); return ff.length?`<div style="font-size:10px;color:var(--gris);">${ff[0].slice(0,7).replace("-","/")} — ${ff[ff.length-1].slice(0,7).replace("-","/")}</div>`:""; })()}
-    </div>
-    <div style="font-weight:bold;font-size:22px;color:var(--verde);margin-bottom:10px;">${fmtPeso(ingTotal)}</div>
-    ${ingRows.map(([nombre,val]) => `<div class="bar-row">
-      <div class="bar-label" title="${nombre}">${nombre}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/ingMax*100)}%;background:#0f6e56;"></div></div>
-      <div class="bar-val">${fmtPeso(val)}</div>
-    </div>`).join('')}
-    ${volRows?`<div style="margin-top:10px;padding-top:8px;border-top:1px solid #f0ede6;">
-      <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Producción real despachada</div>
-      ${volRows}
-    </div>`:""}`;
-  const _nb2 = document.getElementById('nav-prod-badge'); if(_nb2) _nb2.textContent = ingRows.length + " UPs con proyección";
-}
-    const CORTE_ASIG = "2026-04-01";
-    // Build set of KEYs that are already assigned in Asignaciones_U (misma lógica que asignar.html)
-    const ASIGNADOS_KEYS = new Set();
-    (Array.isArray(asignaciones)?asignaciones:[]).forEach(a => {
-      if (a["KEY_Documento"]) ASIGNADOS_KEYS.add(String(a["KEY_Documento"]).trim());
-    });
-    const sinAsignar = (Array.isArray(docs)?docs:[]).filter(d => {
-      const fundo = String(d["Fundo"]||"").trim();
+    window.DET_GUIAS = {};
+    window.DET_GUIAS_BY_FOLIO = {};
+    (Array.isArray(detGuias)?detGuias:[]).forEach(d => {
+      const key = String(d["ID_Guia_Padre"]||"").trim();
+      if (key) {
+        if (!window.DET_GUIAS[key]) window.DET_GUIAS[key] = [];
+        window.DET_GUIAS[key].push(d);
+      }
       const rut   = String(d["RUT Emisor"]||"").trim();
-      const key   = String(d["KEY"]||"").trim();
-      // Sin asignar si: fundo vacío Y no hay registro en Asignaciones_U Y no es LC emisor
-      const sinFundo = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO";
-      const yaAsignado = key && ASIGNADOS_KEYS.has(key);
-      return sinFundo && !yaAsignado && rut !== RUT_LC;
+      const folio = String(d["Folio"]||"").trim();
+      if (rut && folio) {
+        const fk = rut + "-" + folio;
+        if (!window.DET_GUIAS_BY_FOLIO[fk]) window.DET_GUIAS_BY_FOLIO[fk] = [];
+        window.DET_GUIAS_BY_FOLIO[fk].push(d);
+      }
     });
-    const sinAsigNuevos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] >= CORTE_ASIG);
-    const sinAsigViejos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] < CORTE_ASIG);
-    document.getElementById('h-sin-asignar').textContent = sinAsigNuevos.length;
-    const _nb3 = document.getElementById('nav-asignar-badge'); if(_nb3) _nb3.textContent = sinAsigNuevos.length + " nuevos · " + sinAsigViejos.length + " anteriores";
-    if(_nb3) _nb3.className = "nav-badge " + (sinAsigNuevos.length>0?"badge-rojo":"badge-verde");
 
-    // Finanzas tab content
-    const pagar30HTML = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
-      .sort((a,b)=>(parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0)).slice(0,8)
-      .map(r => {
-        const d = parseDate(r["Fecha_Real"]);
-        return `<tr><td style="color:var(--gris);">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"}):"—"}</td>
-          <td>${String(r["Razón Social"]||"").trim().slice(0,25)}</td>
-          <td style="text-align:right;font-weight:600;color:#ef4444;">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
-      }).join('');
-    document.getElementById('card-pagar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Proveedor</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${pagar30HTML}</tbody></table>`;
-
-    const cobrar30HTML = cobrar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
-      .sort((a,b)=>(parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0)).slice(0,8)
-      .map(r => {
-        const d = parseDate(r["Fecha_Real"]);
-        return `<tr><td style="color:var(--gris);">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit"}):"—"}</td>
-          <td>${(CLIENTE_MAP[String(r["KEY"]||"").trim()] || String(r["RznSocRecep"]||r["Razón Social"]||"")).trim().slice(0,25)}</td>
-          <td style="text-align:right;font-weight:600;color:var(--verde2);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
-      }).join('');
-    document.getElementById('card-cobrar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${cobrar30HTML}</tbody></table>`;
-
-    document.getElementById('card-sin-asignar').innerHTML = sinAsignar.slice(0,8).map(r => `
-      <tr><td>${String(r["Razón Social"]||"").trim().slice(0,30)}</td>
-      <td style="color:var(--gris);">F:${r["Folio"]||"—"}</td>
-      <td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`)
-      .join('');
-    const docRow = r => `<tr><td>${String(r["Razón Social"]||"").trim().slice(0,28)}</td><td style="color:var(--gris);">F:${r["Folio"]||"—"}</td><td style="color:var(--gris);font-size:10px;">${String(r["Fecha Emisión"]||"").split("T")[0]}</td><td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
-    document.getElementById('card-sin-asignar').innerHTML = `
-      ${sinAsigNuevos.length>0?`
-        <div style="font-size:10px;font-weight:bold;color:#c0392b;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Desde 01-Abr (${sinAsigNuevos.length})</div>
-        <table class="mini-tbl" style="margin-bottom:12px;"><thead><tr><th>Proveedor</th><th>Folio</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsigNuevos.slice(0,5).map(docRow).join('')}</tbody></table>
-      `:""}
-      ${sinAsigViejos.length>0?`
-        <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Anteriores al 01-Abr (${sinAsigViejos.length})</div>
-        <table class="mini-tbl"><thead><tr><th>Proveedor</th><th>Folio</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsigViejos.slice(0,5).map(docRow).join('')}</tbody></table>
-      `:""}
-      ${sinAsignar.length===0?'<div style="text-align:center;color:var(--gris);padding:20px;">🎉 Todo asignado</div>':""}`;
-
-    window._activos      = activos;
-    window._proyecciones = Array.isArray(proyecciones) ? proyecciones : [];
-    window._docs         = Array.isArray(docs) ? docs : [];
-    window._asignaciones = Array.isArray(asignaciones) ? asignaciones : [];
-    // For buildContexto compatibility
-    window.TODOS         = Array.isArray(registros) ? registros : [];
-    window.PROYECCIONES  = Array.isArray(proyecciones) ? proyecciones : [];
-    window.DOCUMENTOS    = Array.isArray(docs) ? docs : [];
-    window.ASIGNACIONES  = window._asignaciones;
-
-    // Guardar datos crudos para poder re-renderizar al cambiar temporada
-    window._homeData = { registros, asignaciones, proyecciones };
-    renderHome(window._homeData);
-    window._mapa = null;  // resetear para re-inicializar
-    buildMapa(registros);
-
+    render();
   } catch(e) {
-    console.error(e);
-    document.getElementById('card-labores').innerHTML = `<div style="color:#ef4444;font-size:13px;">Error: ${e.message}</div>`;
+    document.getElementById("app").innerHTML =
+      `<div style="background:#fff8f8;border:1px solid #fca5a5;border-radius:10px;padding:16px;color:#991b1b;font-size:13px;">
+        Error cargando datos: ${e.message}
+      </div>`;
   }
 }
+
+// Set default date to yesterday
+const ayer = new Date(); ayer.setDate(ayer.getDate()-1);
+document.addEventListener("DOMContentLoaded", () => {
+  const el = document.getElementById("fecha-desde");
+  if (el) el.value = ayer.toISOString().split("T")[0];
+});
 
 main();
 
-// ── BANNER NUECES (lee desde la misma API del contrato_nueces.html) ──
-(async function loadBannerNueces() {
-  const API = 'https://script.google.com/macros/s/AKfycbzMmNMiEWjxKxg_dcTI45WXjTKZ3RvUU8apNLpETqW6lMskyXgYei3YaDLLlvwkovngbQ/exec';
-  const PROXY = 'https://round-night-574d.christian-19c.workers.dev?url=';
-  const TC_DEFAULT = 820; // mismo default que contrato_nueces.html
-  const fmt = n => '$' + Math.round(n).toLocaleString('es-CL');
-  const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+// ── SUGERENCIA IA ────────────────────────────────────────────────────────
+
+async function sugerirIA(key, safeKey, proveedor, rutEmisor, montoTotal) {
+  const btn = document.getElementById("ia-btn-" + safeKey);
+  const box = document.getElementById("ia-box-" + safeKey);
+  if (!btn || !box) return;
+
+  btn.disabled = true;
+  btn.textContent = "⏳ Analizando historial...";
+
+  // Buscar historial de asignaciones para este RUT
+  const asignaciones = window.ASIGNACIONES || [];
+  const historial = asignaciones.filter(a =>
+    String(a["KEY_Documento"]||"").includes(rutEmisor) ||
+    String(a["Proveedor"]||"").trim() === proveedor.trim()
+  );
+
+  // Construir resumen de UPs disponibles
+  const upsDisponibles = Object.entries(CC_MAP).map(([id, nombre]) =>
+    `${id}: ${nombre} (${FUNDO_MAP[id]||"sin fundo"}, ${HA_MAP[id]||0} há)`
+  ).join("\n");
+
+  // Construir resumen del historial por UP
+  const histPorUP = {};
+  historial.forEach(a => {
+    const up = a["UP_Nombre"] || CC_MAP[a["UP_ID"]] || a["UP_ID"] || "Desconocida";
+    const upId = a["UP_ID"] || "";
+    if (!histPorUP[upId]) histPorUP[upId] = { nombre: up, count: 0, montoTotal: 0 };
+    histPorUP[upId].count++;
+    histPorUP[upId].montoTotal += Number(a["Monto_Asignado"]||0);
+  });
+
+  const histResumen = Object.entries(histPorUP).length > 0
+    ? Object.entries(histPorUP)
+        .sort((a,b) => b[1].count - a[1].count)
+        .map(([id, d]) => `UP_ID: ${id} | Nombre: ${d.nombre} | Veces asignado: ${d.count} | Monto total histórico: $${Math.round(d.montoTotal/1000)}k`)
+        .join("\n")
+    : "Sin historial previo para este proveedor.";
+
+  // Obtener items del documento actual si es guía
+  const doc = DOCS.find(d => String(d.KEY||"").trim() === key) || {};
+  let detalle = "";
+  const dets = window.DET_GUIAS?.[key] || window.DET_FACTURAS?.[key] || [];
+  if (dets.length) {
+    detalle = dets.slice(0,8).map(d =>
+      `${String(d["Nombre Item"]||"").trim()} | Cant: ${d["Cantidad"]||0} ${d["um"]||""} | $${Math.round(Number(d["Monto Item"]||0)/1000)}k`
+    ).join("\n");
+  }
+
+  const prompt = `Eres un asistente experto en gestión agrícola para el campo Los Crisoles.
+
+Tu tarea es sugerir cómo asignar un documento (factura o guía de despacho) a las unidades productivas (UPs) del campo.
+
+DOCUMENTO A ASIGNAR:
+- Proveedor: ${proveedor}
+- RUT: ${rutEmisor}
+- Monto total: $${Math.round(montoTotal).toLocaleString("es-CL")}
+${detalle ? `- Detalle de ítems:\n${detalle}` : ""}
+
+HISTORIAL DE ASIGNACIONES PREVIAS DE ESTE PROVEEDOR:
+${histResumen}
+
+UPs DISPONIBLES:
+${upsDisponibles}
+
+INSTRUCCIONES:
+- Analiza el historial y los ítems del documento para proponer la asignación más lógica
+- Si hay historial claro, sigue el patrón histórico
+- Si no hay historial, usa los ítems del documento para inferir qué UP se beneficia
+- Responde SOLO en JSON válido con este formato exacto:
+{
+  "sugerencia": [
+    { "up_id": "ID_exacto_de_la_UP", "up_nombre": "Nombre UP", "pct": 100, "monto": ${montoTotal} }
+  ],
+  "razon": "Explicación breve en español de por qué se sugiere esta distribución (máx 2 oraciones)"
+}
+- Los porcentajes deben sumar exactamente 100
+- Los montos deben sumar exactamente ${montoTotal}
+- Usa solo UP_IDs que existan en la lista de UPs disponibles`;
 
   try {
-    const url = PROXY + encodeURIComponent(API + '?action=all');
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const res = await fetch(WORKER, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system: "Eres un asistente agrícola experto. Responde SOLO con JSON válido, sin texto adicional, sin markdown, sin backticks.",
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
     const data = await res.json();
-    const milestones = data.milestones || [];
-    const pagos = data.pagos || {};
+    let texto = data.content?.[0]?.text || "";
 
-    // Leer TC del localStorage si el usuario lo editó en el dashboard de nueces
-    let tc = TC_DEFAULT;
-    try {
-      const s = localStorage.getItem('loscrisoles_nueces_2026_state');
-      if (s) {
-        const parsed = JSON.parse(s);
-        if (parsed.tc && parsed.tc > 0) tc = parsed.tc;
-      }
-    } catch(e) {}
+    // Limpiar posibles backticks o markdown
+    texto = texto.replace(/```json|```/g, "").trim();
 
-    // Calcular proyectado total (usar escenario optimista por default)
-    let proyectadoUSD = 0;
-    const msByClient = {};
-    milestones.forEach(m => {
-      if (!msByClient[m.cliente]) msByClient[m.cliente] = [];
-      msByClient[m.cliente].push(m);
-      const usdKg = m.usd_kg_opt;
-      if (usdKg !== null && usdKg !== undefined && usdKg !== '') {
-        proyectadoUSD += Number(usdKg) * Number(m.kg || 0);
-      }
-    });
-    const proyectadoCLP = proyectadoUSD * tc;
+    let parsed;
+    try { parsed = JSON.parse(texto); } catch(e) {
+      throw new Error("La IA no devolvió un JSON válido");
+    }
 
-    // Calcular recibido (sumar montos reales o proyectado del milestone si no hay monto real)
-    let recibidoCLP = 0;
-    Object.keys(pagos).forEach(id => {
-      const p = pagos[id];
-      const clpRaw = p.monto_real_clp;
-      if (clpRaw !== null && clpRaw !== undefined && clpRaw !== '' && !isNaN(Number(clpRaw)) && Number(clpRaw) > 0) {
-        recibidoCLP += Number(clpRaw);
-      } else {
-        // Marcado recibido sin monto: usar proyectado
-        const m = milestones.find(x => x.milestone_id === id);
-        if (m) {
-          const usdKg = m.usd_kg_opt;
-          if (usdKg !== null && usdKg !== undefined && usdKg !== '') {
-            recibidoCLP += Number(usdKg) * Number(m.kg || 0) * tc;
-          }
-        }
-      }
-    });
+    const sug = parsed.sugerencia || [];
+    const razon = parsed.razon || "";
 
-    const pendienteCLP = proyectadoCLP - recibidoCLP;
-    const pct = proyectadoCLP > 0 ? (recibidoCLP / proyectadoCLP * 100) : 0;
-    const clientesTxt = Object.keys(msByClient).map(c => {
-      const kg = msByClient[c][0]?.kg || 0;
-      return `${c} ${(kg/1000).toFixed(0)}k kg`;
-    }).join(' · ');
+    if (!sug.length) throw new Error("Sin sugerencias");
 
-    setTxt('banner-nueces-proy', fmt(proyectadoCLP));
-    setTxt('banner-nueces-rec', fmt(recibidoCLP));
-    setTxt('banner-nueces-pend', fmt(pendienteCLP));
-    setTxt('banner-nueces-hint', `${clientesTxt} · ${pct.toFixed(1)}% cobrado · TC ${tc}`);
-  } catch (e) {
-    console.warn('[banner-nueces] error:', e);
-    setTxt('banner-nueces-hint', '⚠️ No se pudo cargar. Clic para ver detalle.');
-    setTxt('banner-nueces-proy', '—');
-    setTxt('banner-nueces-rec', '—');
-    setTxt('banner-nueces-pend', '—');
+    // Validar que los UP_IDs existan
+    const sugsValidas = sug.filter(s => CC_MAP[s.up_id]);
+    if (!sugsValidas.length) throw new Error("Las UPs sugeridas no coinciden con las disponibles");
+
+    // Mostrar sugerencia
+    const rowsHtml = sugsValidas.map(s => `
+      <div class="ia-up-row">
+        <div class="ia-up-nombre">${s.up_nombre || CC_MAP[s.up_id]}</div>
+        <div style="font-size:11px;color:#888;">${FUNDO_MAP[s.up_id]||""}</div>
+        <div class="ia-up-pct">${s.pct}%</div>
+        <div class="ia-up-monto">$${Math.round(s.monto/1000)}k</div>
+      </div>`).join("");
+
+    box.innerHTML = `
+      <div class="ia-sugerencia">
+        <div class="ia-sugerencia-title">✨ Sugerencia de la IA</div>
+        ${rowsHtml}
+        <div class="ia-razon">💡 ${razon}</div>
+        <div class="ia-actions">
+          <button class="btn-ia-apply" onclick="aplicarSugerencia('${key}',${montoTotal},${JSON.stringify(sugsValidas).replace(/"/g,'&quot;')})">
+            ✓ Aplicar sugerencia
+          </button>
+          <button class="btn-ia-dismiss" onclick="document.getElementById('ia-box-${safeKey}').innerHTML=''">
+            Descartar
+          </button>
+        </div>
+      </div>`;
+
+  } catch(e) {
+    box.innerHTML = `<div style="background:#fff8f8;border:1px solid #fca5a5;border-radius:8px;padding:10px 12px;font-size:12px;color:#991b1b;margin-bottom:10px;">
+      ⚠️ No se pudo generar sugerencia: ${e.message}
+    </div>`;
   }
-})();
 
-// Hover sutil para los banners
-document.querySelectorAll('#banner-nueces, #banner-labores-semana').forEach(el => {
-  el.addEventListener('mouseenter', () => el.style.borderColor = '#888');
-  el.addEventListener('mouseleave', () => { el.style.borderColor = ''; });
-});
+  btn.disabled = false;
+  btn.innerHTML = "✨ Sugerir con IA";
+}
 
+function aplicarSugerencia(key, montoTotal, sugs) {
+  // Reemplazar filas del docState con la sugerencia
+  if (!docState[key]) docState[key] = { metodo: "porcentaje", filas: [], obs: "", _open: true };
+  docState[key].metodo = "porcentaje";
+  docState[key].filas = sugs.map(s => ({
+    up_id: s.up_id,
+    monto: Math.round(s.monto),
+    pct:   s.pct
+  }));
+  render();
+}
 
 // ── CHAT IA ──────────────────────────────────────────────────────────────
 let chatHistory = [];
@@ -1111,6 +927,17 @@ function sendSug(el) {
 
 function chatKeyDown(e) {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); chatSend(); }
+}
+
+function parseDate(val) {
+  if (!val) return null;
+  const s = String(val).trim();
+  try {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
+    if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(s)) { const sep=s.includes("-")?"-":"/"; const [d,m,y]=s.split(sep); return new Date(+y,+m-1,+d); }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y,m,d]=s.split("-"); return new Date(+y,+m-1,+d); }
+  } catch(e) {}
+  return null;
 }
 
 function buildContexto() {
