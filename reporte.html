@@ -420,6 +420,19 @@ const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMag
 
 const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {}, COORD_MAP = {}, CULTIVO_MAP = {};
 
+// Mapeo de Id_Especie → Nombre (desde BD_Especies, hardcodeado)
+const ESPECIE_NAMES = {
+  '1375af62': 'Trigo',
+  'ba014ad5': 'Nuez',
+  '1375af79': 'Maiz',
+  '1375af63': 'Pepino',
+  '1375af65': 'Achicoria',
+  '1375af67': 'Repollo',
+  '1375af69': 'Frejol',
+  'de607423': 'Nativos',
+  'f2ecb567': 'Otros'
+};
+
 const API_COBROS_URL = 'https://script.google.com/macros/s/AKfycbzMmNMiEWjxKxg_dcTI45WXjTKZ3RvUU8apNLpETqW6lMskyXgYei3YaDLLlvwkovngbQ/exec';
 const CF_PROXY_PREFIX_COBROS = 'https://round-night-574d.christian-19c.workers.dev?url=';
 window.CONTRATOS_DATA = { milestones: [], pagos: {}, tc: 820, loaded: false };
@@ -3114,7 +3127,8 @@ async function main() {
         CC_MAP[id]    = String(c["NOMBRE CC"]||id).trim();
         FUNDO_MAP[id] = String(c["FUNDO"]||"").trim();
         HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0) || 0;
-        CULTIVO_MAP[id] = String(c["Cultivo"]||c["CULTIVO"]||"").trim();
+        const especieId = String(c["Especie"]||c["Cultivo"]||c["CULTIVO"]||"").trim();
+        CULTIVO_MAP[id] = ESPECIE_NAMES[especieId] || especieId || "";
         const temp    = String(c["Temporada"]||"").trim();
         const mesIni  = parseInt(c["MES_INICIO_TEMPORADA"]||7)||7;
         if (temp) {
