@@ -358,7 +358,13 @@ if (location.search.includes('embed=1')) {
   <!-- ── RESUMEN ───────────────────────────────────────────── -->
   <div class="section on" id="sec-resumen">
 
-    <!-- Fila 1: Labores urgentes + Flujo de caja (15/30d) -->
+    <!-- ═══ ZONA 1 · ACCIÓN INMEDIATA ═══ -->
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:4px 0 10px;">
+      <div style="width:4px;height:18px;background:#ef4444;border-radius:2px;"></div>
+      <div style="font-size:11px;font-weight:700;color:#991b1b;letter-spacing:0.08em;text-transform:uppercase;">1 · Acción inmediata</div>
+      <div style="font-size:11px;color:var(--gris);">¿qué tengo que resolver hoy?</div>
+    </div>
+
     <div class="grid-2">
       <div class="card">
         <div class="card-head">
@@ -369,22 +375,29 @@ if (location.search.includes('embed=1')) {
       </div>
       <div class="card">
         <div class="card-head">
-          <div class="card-title">🏦 Flujo de caja</div>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver detalle →</a>
+          <div class="card-title">📎 Documentos sin asignar</div>
+          <a href="#" onclick="navTo('asignar','/asignar');return false;" class="card-link">Asignar →</a>
         </div>
-        <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
+        <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
       </div>
     </div>
 
-    <!-- Fila 2: Por pagar + Por cobrar -->
-    <div class="grid-2">
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
-        </div>
-        <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
+    <!-- ═══ ZONA 2 · LIQUIDEZ ═══ -->
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
+      <div style="width:4px;height:18px;background:#0F6E56;border-radius:2px;"></div>
+      <div style="font-size:11px;font-weight:700;color:#085041;letter-spacing:0.08em;text-transform:uppercase;">2 · Liquidez</div>
+      <div style="font-size:11px;color:var(--gris);">¿cómo está la plata?</div>
+    </div>
+
+    <div class="card" style="margin-bottom:10px;">
+      <div class="card-head">
+        <div class="card-title">🏦 Flujo de caja</div>
+        <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver detalle →</a>
       </div>
+      <div class="card-body" id="card-caja"><div class="loading pulse">Cargando...</div></div>
+    </div>
+
+    <div class="grid-2">
       <div class="card">
         <div class="card-head">
           <div class="card-title">⬇️ Por cobrar — próximos 30 días</div>
@@ -392,19 +405,66 @@ if (location.search.includes('embed=1')) {
         </div>
         <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
       </div>
-    </div>
-
-    <!-- Fila 3: Documentos sin asignar -->
-    <div class="card" style="margin-bottom:16px;">
-      <div class="card-head">
-        <div class="card-title">📎 Documentos sin asignar</div>
-        <a href="#" onclick="navTo('asignar','/asignar');return false;" class="card-link">Asignar →</a>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
+          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
+        </div>
+        <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
       </div>
-      <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
     </div>
 
-    <!-- Fila 4: Acceso rápido — Optimizador de fertilización -->
-    <a href="#" onclick="navTo('optimizador','/optimizador');return false;" class="nav-card verde" style="margin-bottom:16px;">
+    <!-- Banner nueces (KPI mini con 3 números) -->
+    <a href="#" onclick="navTo('ingresos','/reporte');return false;" id="banner-nueces" style="display:block;margin-top:10px;background:#fafaf7;border:1px solid #e0e0e0;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;">
+          <div style="font-size:10px;font-weight:700;color:#0F6E56;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">📅 Contratos nueces · temporada 2026</div>
+          <div style="font-size:12px;color:var(--gris);" id="banner-nueces-hint">Cargando anticipos y liquidaciones...</div>
+        </div>
+        <div style="display:flex;gap:20px;align-items:center;">
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Proyectado</div>
+            <div style="font-size:16px;font-weight:700;color:#1c1c1a;font-variant-numeric:tabular-nums;" id="banner-nueces-proy">—</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Recibido</div>
+            <div style="font-size:16px;font-weight:700;color:#0F6E56;font-variant-numeric:tabular-nums;" id="banner-nueces-rec">—</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Pendiente</div>
+            <div style="font-size:16px;font-weight:700;color:#BA7517;font-variant-numeric:tabular-nums;" id="banner-nueces-pend">—</div>
+          </div>
+          <div style="font-size:12px;color:#0F6E56;font-weight:600;">Ver detalle →</div>
+        </div>
+      </div>
+    </a>
+
+    <!-- ═══ ZONA 3 · PIPELINE PRODUCTIVO ═══ -->
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
+      <div style="width:4px;height:18px;background:#BA7517;border-radius:2px;"></div>
+      <div style="font-size:11px;font-weight:700;color:#854F0B;letter-spacing:0.08em;text-transform:uppercase;">3 · Pipeline productivo</div>
+      <div style="font-size:11px;color:var(--gris);">¿qué está pasando en el campo?</div>
+    </div>
+
+    <!-- Contador de labores esta semana -->
+    <a href="#" onclick="navTo('labores','/reporte');return false;" id="banner-labores-semana" style="display:block;margin-bottom:10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:#854F0B;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">📋 Labores esta semana</div>
+          <div style="font-size:13px;color:#1c1c1a;" id="banner-labores-semana-txt">Cargando...</div>
+        </div>
+        <div style="font-size:12px;color:#854F0B;font-weight:600;">Ver todas →</div>
+      </div>
+    </a>
+
+    <!-- ═══ ZONA 4 · HERRAMIENTAS ═══ -->
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
+      <div style="width:4px;height:18px;background:#888;border-radius:2px;"></div>
+      <div style="font-size:11px;font-weight:700;color:#444;letter-spacing:0.08em;text-transform:uppercase;">4 · Herramientas</div>
+      <div style="font-size:11px;color:var(--gris);">acciones proactivas</div>
+    </div>
+
+    <a href="#" onclick="navTo('optimizador','/optimizador');return false;" class="nav-card verde" style="margin-bottom:10px;">
       <div style="display:flex;align-items:center;gap:14px;">
         <div class="nav-icon">🧪</div>
         <div style="flex:1;">
@@ -415,7 +475,13 @@ if (location.search.includes('embed=1')) {
       </div>
     </a>
 
-    <!-- Mapa al final -->
+    <!-- ═══ ZONA 5 · CONTEXTO ESPACIAL ═══ -->
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
+      <div style="width:4px;height:18px;background:#534AB7;border-radius:2px;"></div>
+      <div style="font-size:11px;font-weight:700;color:#3C3489;letter-spacing:0.08em;text-transform:uppercase;">5 · Contexto espacial</div>
+      <div style="font-size:11px;color:var(--gris);">vista del campo</div>
+    </div>
+
     <div class="card">
       <div class="card-head">
         <div class="card-title">🗺 Mapa de unidades productivas</div>
@@ -594,6 +660,29 @@ async function main() {
     );
     const vencidas = activos.filter(r => { const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d<hoy; });
     const urgentes = [...vencidas, ...activos.filter(r => { const d=parseDate(r["Fecha"]); if(!d) return false; d.setHours(0,0,0,0); return d>=hoy&&d<=en15; })].slice(0,6);
+
+    // Contador de labores esta semana (hoy + 7 días)
+    const en7 = new Date(hoy); en7.setDate(hoy.getDate()+7);
+    const laboresSemana = activos.filter(r => {
+      const d = parseDate(r["Fecha"]); if (!d) return false;
+      d.setHours(0,0,0,0);
+      return d >= hoy && d <= en7;
+    });
+    const _bls = document.getElementById('banner-labores-semana-txt');
+    if (_bls) {
+      const totalSemana = laboresSemana.length;
+      const vencidasHoy = vencidas.length;
+      let txt = '';
+      if (totalSemana === 0 && vencidasHoy === 0) {
+        txt = '<span style="color:#166534;font-weight:600;">✅ Sin labores programadas esta semana</span>';
+      } else {
+        const partes = [];
+        if (vencidasHoy > 0) partes.push(`<span style="color:#c0392b;font-weight:700;">${vencidasHoy} atrasada${vencidasHoy!==1?'s':''}</span>`);
+        if (totalSemana > 0) partes.push(`<span style="font-weight:700;">${totalSemana} programada${totalSemana!==1?'s':''}</span> en los próximos 7 días`);
+        txt = partes.join(' · ');
+      }
+      _bls.innerHTML = txt;
+    }
 
     document.getElementById('h-vencidas').textContent = vencidas.length;
     const _nb1 = document.getElementById('nav-labores-badge'); if(_nb1) _nb1.textContent = vencidas.length + " vencidas · " + activos.length + " activas";
@@ -909,6 +998,90 @@ function renderHome({ registros, asignaciones, proyecciones }) {
 }
 
 main();
+
+// ── BANNER NUECES (lee desde la misma API del contrato_nueces.html) ──
+(async function loadBannerNueces() {
+  const API = 'https://script.google.com/macros/s/AKfycbzMmNMiEWjxKxg_dcTI45WXjTKZ3RvUU8apNLpETqW6lMskyXgYei3YaDLLlvwkovngbQ/exec';
+  const PROXY = 'https://round-night-574d.christian-19c.workers.dev?url=';
+  const TC_DEFAULT = 820; // mismo default que contrato_nueces.html
+  const fmt = n => '$' + Math.round(n).toLocaleString('es-CL');
+  const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  try {
+    const url = PROXY + encodeURIComponent(API + '?action=all');
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const milestones = data.milestones || [];
+    const pagos = data.pagos || {};
+
+    // Leer TC del localStorage si el usuario lo editó en el dashboard de nueces
+    let tc = TC_DEFAULT;
+    try {
+      const s = localStorage.getItem('loscrisoles_nueces_2026_state');
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (parsed.tc && parsed.tc > 0) tc = parsed.tc;
+      }
+    } catch(e) {}
+
+    // Calcular proyectado total (usar escenario optimista por default)
+    let proyectadoUSD = 0;
+    const msByClient = {};
+    milestones.forEach(m => {
+      if (!msByClient[m.cliente]) msByClient[m.cliente] = [];
+      msByClient[m.cliente].push(m);
+      const usdKg = m.usd_kg_opt;
+      if (usdKg !== null && usdKg !== undefined && usdKg !== '') {
+        proyectadoUSD += Number(usdKg) * Number(m.kg || 0);
+      }
+    });
+    const proyectadoCLP = proyectadoUSD * tc;
+
+    // Calcular recibido (sumar montos reales o proyectado del milestone si no hay monto real)
+    let recibidoCLP = 0;
+    Object.keys(pagos).forEach(id => {
+      const p = pagos[id];
+      const clpRaw = p.monto_real_clp;
+      if (clpRaw !== null && clpRaw !== undefined && clpRaw !== '' && !isNaN(Number(clpRaw)) && Number(clpRaw) > 0) {
+        recibidoCLP += Number(clpRaw);
+      } else {
+        // Marcado recibido sin monto: usar proyectado
+        const m = milestones.find(x => x.milestone_id === id);
+        if (m) {
+          const usdKg = m.usd_kg_opt;
+          if (usdKg !== null && usdKg !== undefined && usdKg !== '') {
+            recibidoCLP += Number(usdKg) * Number(m.kg || 0) * tc;
+          }
+        }
+      }
+    });
+
+    const pendienteCLP = proyectadoCLP - recibidoCLP;
+    const pct = proyectadoCLP > 0 ? (recibidoCLP / proyectadoCLP * 100) : 0;
+    const clientesTxt = Object.keys(msByClient).map(c => {
+      const kg = msByClient[c][0]?.kg || 0;
+      return `${c} ${(kg/1000).toFixed(0)}k kg`;
+    }).join(' · ');
+
+    setTxt('banner-nueces-proy', fmt(proyectadoCLP));
+    setTxt('banner-nueces-rec', fmt(recibidoCLP));
+    setTxt('banner-nueces-pend', fmt(pendienteCLP));
+    setTxt('banner-nueces-hint', `${clientesTxt} · ${pct.toFixed(1)}% cobrado · TC ${tc}`);
+  } catch (e) {
+    console.warn('[banner-nueces] error:', e);
+    setTxt('banner-nueces-hint', '⚠️ No se pudo cargar. Clic para ver detalle.');
+    setTxt('banner-nueces-proy', '—');
+    setTxt('banner-nueces-rec', '—');
+    setTxt('banner-nueces-pend', '—');
+  }
+})();
+
+// Hover sutil para los banners
+document.querySelectorAll('#banner-nueces, #banner-labores-semana').forEach(el => {
+  el.addEventListener('mouseenter', () => el.style.borderColor = '#888');
+  el.addEventListener('mouseleave', () => { el.style.borderColor = ''; });
+});
 
 
 // ── CHAT IA ──────────────────────────────────────────────────────────────
