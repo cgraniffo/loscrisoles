@@ -72,6 +72,10 @@
     iframe.ready { opacity: 1; pointer-events: auto; }
     iframe.hidden { display: none; }
 
+    /* Cuando la pestaña está marcada como WIP, empujar el iframe hacia abajo
+       para que el banner superior no tape el arranque del contenido */
+    .frame-wrap.wip-active iframe { top: 56px; height: calc(100% - 56px); }
+
     /* Loading overlay per iframe */
     .frame-loader {
       position: absolute; inset: 0; background: #f5f0e8;
@@ -90,20 +94,21 @@
     .wip-overlay {
       position: absolute; top: 0; left: 0; right: 0; z-index: 20;
       display: none; justify-content: center; padding: 10px 16px;
-      background: linear-gradient(to bottom, rgba(245,240,232,0.85) 80%, transparent);
+      background: rgba(245,240,232,0.95);
+      border-bottom: 1px dashed #d4a800;
       pointer-events: none;
     }
     .wip-overlay.visible { display: flex; }
     .wip-box {
-      background: #fff; border: 2px dashed #d4a800;
-      border-radius: 10px; padding: 10px 24px;
-      text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      background: #fff; border: 1px dashed #d4a800;
+      border-radius: 8px; padding: 8px 18px;
+      text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       display: flex; align-items: center; gap: 10px;
       pointer-events: auto;
     }
-    .wip-icon { font-size: 22px; }
-    .wip-title { font-size: 14px; font-weight: 700; color: #1a3a0a; }
-    .wip-sub { font-size: 12px; color: #6b7280; }
+    .wip-icon { font-size: 18px; }
+    .wip-title { font-size: 13px; font-weight: 700; color: #1a3a0a; }
+    .wip-sub { font-size: 11px; color: #6b7280; }
 
     @media (max-width: 768px) {
       .dash-kpis { grid-template-columns: repeat(3, 1fr); }
@@ -348,10 +353,13 @@
 
     // WIP overlay
     var wip = document.getElementById('wip-overlay');
+    var frameWrap = document.querySelector('.frame-wrap');
     if (WIP_TABS[name]) {
       wip.classList.add('visible');
+      if (frameWrap) frameWrap.classList.add('wip-active');
     } else {
       wip.classList.remove('visible');
+      if (frameWrap) frameWrap.classList.remove('wip-active');
     }
 
     var frame = document.getElementById('f-' + name);
