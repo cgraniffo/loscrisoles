@@ -151,13 +151,49 @@ if (location.search.includes('embed=1')) {
       cursor: pointer;
       user-select: none;
       transition: background 0.15s;
+      gap: 12px;
     }
     details.card > summary::-webkit-details-marker { display: none; }
     details.card > summary:hover { background: #fafaf7; }
     details.card > summary .card-title { font-size: 12px; font-weight: 600; color: #1c1c1a; letter-spacing: 0.04em; text-transform: none; }
-    details.card > summary .summary-meta { display: flex; align-items: center; gap: 10px; }
-    details.card > summary .summary-hint { font-size: 11px; color: var(--gris); }
-    details.card > summary .caret { font-size: 11px; color: var(--gris); transition: transform 0.2s; display: inline-block; }
+    details.card > summary .summary-meta { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+    details.card > summary .summary-hint { font-size: 11px; color: var(--gris); white-space: nowrap; }
+
+    /* Botón "Ver →" — claramente diferenciado */
+    details.card > summary .ver-btn {
+      font-size: 11px; font-weight: 600;
+      color: var(--verde2);
+      padding: 5px 10px;
+      border: 1px solid #d4e6c8;
+      border-radius: 6px;
+      background: #f7fbf1;
+      text-decoration: none;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    details.card > summary .ver-btn:hover {
+      background: #e8f3db;
+      border-color: var(--verde2);
+      color: var(--verde);
+    }
+
+    /* Separador visual vertical entre botón y chevron */
+    details.card > summary .meta-sep {
+      width: 1px; height: 20px; background: rgba(0,0,0,0.08);
+    }
+
+    /* Chevron solo — más discreto */
+    details.card > summary .caret {
+      font-size: 10px;
+      color: #9ca3af;
+      transition: transform 0.2s;
+      display: inline-block;
+      width: 16px; height: 16px;
+      line-height: 16px;
+      text-align: center;
+      border-radius: 50%;
+    }
+    details.card > summary:hover .caret { background: rgba(0,0,0,0.05); color: #4b5563; }
     details.card[open] > summary .caret { transform: rotate(90deg); }
     details.card[open] > summary { border-bottom: 1px solid #f0ede6; }
     details.card > .card-body { padding: 16px 20px; }
@@ -391,7 +427,8 @@ if (location.search.includes('embed=1')) {
           <div class="card-title">⚠️ Labores + Atrasadas</div>
           <div class="summary-meta">
             <span class="summary-hint" id="hint-labores">—</span>
-            <a href="#" onclick="navTo('labores','/reporte');return false;" class="card-link">Ver →</a>
+            <a href="#" onclick="navTo('labores','/reporte');return false;" class="ver-btn">Ver →</a>
+            <span class="meta-sep"></span>
             <span class="caret">▶</span>
           </div>
         </summary>
@@ -402,7 +439,8 @@ if (location.search.includes('embed=1')) {
           <div class="card-title">📎 Documentos sin asignar</div>
           <div class="summary-meta">
             <span class="summary-hint" id="hint-sin-asignar">—</span>
-            <a href="#" onclick="navTo('asignar','/asignar');return false;" class="card-link">Asignar →</a>
+            <a href="#" onclick="navTo('asignar','/asignar');return false;" class="ver-btn">Asignar →</a>
+            <span class="meta-sep"></span>
             <span class="caret">▶</span>
           </div>
         </summary>
@@ -422,7 +460,8 @@ if (location.search.includes('embed=1')) {
         <div class="card-title">🏦 Flujo de caja</div>
         <div class="summary-meta">
           <span class="summary-hint" id="hint-caja">—</span>
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver detalle →</a>
+          <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver detalle →</a>
+          <span class="meta-sep"></span>
           <span class="caret">▶</span>
         </div>
       </summary>
@@ -435,7 +474,8 @@ if (location.search.includes('embed=1')) {
           <div class="card-title">⬇️ Por cobrar — próximos 30 días</div>
           <div class="summary-meta">
             <span class="summary-hint" id="hint-cobrar">—</span>
-            <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
+            <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
+            <span class="meta-sep"></span>
             <span class="caret">▶</span>
           </div>
         </summary>
@@ -446,7 +486,8 @@ if (location.search.includes('embed=1')) {
           <div class="card-title">⬆️ Por pagar — próximos 30 días</div>
           <div class="summary-meta">
             <span class="summary-hint" id="hint-pagar">—</span>
-            <a href="#" onclick="navTo('caja','/reporte');return false;" class="card-link">Ver caja →</a>
+            <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
+            <span class="meta-sep"></span>
             <span class="caret">▶</span>
           </div>
         </summary>
