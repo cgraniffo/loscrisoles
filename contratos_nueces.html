@@ -359,11 +359,11 @@
 // Pegar acá la URL del web app de Apps Script (doGet/doPost) después de publicar
 // Ejemplo: 'https://script.google.com/macros/s/AKfycb.../exec'
 // Si queda vacío, el dashboard funciona solo con localStorage (sin sync)
-const API_COBROS_URL = 'https://script.google.com/macros/s/AKfycbzMmNMiEWjxKxg_dcTI45WXjTKZ3RvUU8apNLpETqW6lMskyXgYei3YaDLLlvwkovngbQ/exec';
+const API_COBROS_URL = '';
 
 // Proxy Cloudflare (para evitar CORS). Si está vacío, llama directo.
 // Ejemplo: 'https://round-night-574d.christian-19c.workers.dev?url='
-const CF_PROXY_PREFIX = '';
+const CF_PROXY_PREFIX = 'https://round-night-574d.christian-19c.workers.dev?url=';
 
 // ============================================================
 // STORAGE LAYER — localStorage primario + sync a Sheet background
@@ -543,14 +543,19 @@ async function bootstrap() {
       milestones = data.milestones;
     }
     if (data.pagos) {
-      // Convertir formato Sheet → formato local
       pagos = {};
       Object.keys(data.pagos).forEach(id => {
         const p = data.pagos[id];
+        const clpRaw = p.monto_real_clp;
+        const usdRaw = p.monto_real_usd;
+        const clp = (clpRaw !== null && clpRaw !== undefined && clpRaw !== '' && !isNaN(Number(clpRaw)))
+          ? Number(clpRaw) : null;
+        const usd = (usdRaw !== null && usdRaw !== undefined && usdRaw !== '' && !isNaN(Number(usdRaw)))
+          ? Number(usdRaw) : null;
         pagos[id] = {
           received: true,
-          realAmount: p.monto_real_clp, // asumimos CLP como moneda canónica
-          realAmountUsd: p.monto_real_usd,
+          realAmount: clp,
+          realAmountUsd: usd,
           tc_usado: p.tc_usado,
           timestamp: p.timestamp,
           observacion: p.observacion
@@ -1000,10 +1005,16 @@ document.getElementById('refreshBtn').addEventListener('click', async () => {
       pagos = {};
       Object.keys(data.pagos).forEach(id => {
         const p = data.pagos[id];
+        const clpRaw = p.monto_real_clp;
+        const usdRaw = p.monto_real_usd;
+        const clp = (clpRaw !== null && clpRaw !== undefined && clpRaw !== '' && !isNaN(Number(clpRaw)))
+          ? Number(clpRaw) : null;
+        const usd = (usdRaw !== null && usdRaw !== undefined && usdRaw !== '' && !isNaN(Number(usdRaw)))
+          ? Number(usdRaw) : null;
         pagos[id] = {
           received: true,
-          realAmount: p.monto_real_clp,
-          realAmountUsd: p.monto_real_usd,
+          realAmount: clp,
+          realAmountUsd: usd,
           tc_usado: p.tc_usado,
           timestamp: p.timestamp,
           observacion: p.observacion
