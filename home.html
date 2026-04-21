@@ -926,10 +926,19 @@ function renderHome({ registros, asignaciones, proyecciones }) {
   const _nb2 = document.getElementById('nav-prod-badge'); if(_nb2) _nb2.textContent = ingRows.length + " UPs con proyección";
 }
     const CORTE_ASIG = "2026-04-01";
+    // Build set of KEYs that are already assigned in Asignaciones_U (misma lógica que asignar.html)
+    const ASIGNADOS_KEYS = new Set();
+    (Array.isArray(asignaciones)?asignaciones:[]).forEach(a => {
+      if (a["KEY_Documento"]) ASIGNADOS_KEYS.add(String(a["KEY_Documento"]).trim());
+    });
     const sinAsignar = (Array.isArray(docs)?docs:[]).filter(d => {
       const fundo = String(d["Fundo"]||"").trim();
       const rut   = String(d["RUT Emisor"]||"").trim();
-      return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && rut!==RUT_LC;
+      const key   = String(d["KEY"]||"").trim();
+      // Sin asignar si: fundo vacío Y no hay registro en Asignaciones_U Y no es LC emisor
+      const sinFundo = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO";
+      const yaAsignado = key && ASIGNADOS_KEYS.has(key);
+      return sinFundo && !yaAsignado && rut !== RUT_LC;
     });
     const sinAsigNuevos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] >= CORTE_ASIG);
     const sinAsigViejos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] < CORTE_ASIG);
