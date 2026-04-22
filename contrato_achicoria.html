@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrato Achicoria Orafti · Temporada 2025-2026</title>
+<style>
+  :root {
+    --fondo: #f5f0e8;
+    --blanco: #fdfcf9;
+    --verde: #1a3a0a;
+    --verde2: #2d6a1a;
+    --verde3: #86efac;
+    --verde-suave: #eaf3de;
+    --ambar: #BA7517;
+    --ambar-suave: #FAEEDA;
+    --rojo: #A32D2D;
+    --rojo-suave: #FCEBEB;
+    --gris: #6b6555;
+    --gris-claro: #e5e2da;
+    --azul: #0C447C;
+    --azul-suave: #E6F1FB;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, system-ui, sans-serif;
+    background: var(--fondo);
+    color: #1c1c1a;
+    padding: 16px;
+    min-height: 100vh;
+  }
+  .wrapper { max-width: 1200px; margin: 0 auto; }
+
+  /* ── HEADER ─────────────────────────────────────── */
+  .header {
+    background: linear-gradient(135deg, #1a3a0a 0%, #2d6a1a 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .header-left { display: flex; align-items: center; gap: 16px; }
+  .header-icon { font-size: 36px; }
+  .header-title { font-size: 18px; font-weight: 600; line-height: 1.2; }
+  .header-sub { font-size: 11px; color: #9fe1cb; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+  .header-meta { font-size: 11px; color: #c0dd97; margin-top: 6px; }
+
+  .refresh-btn {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .refresh-btn:hover { background: rgba(255,255,255,0.2); }
+  .refresh-btn.loading { opacity: 0.5; cursor: wait; }
+
+  /* ── KPIS ─────────────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .kpi {
+    background: var(--blanco);
+    border-radius: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--gris-claro);
+  }
+  .kpi-label {
+    font-size: 10px;
+    color: var(--gris);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .kpi-val {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-val.verde { color: var(--verde); }
+  .kpi-val.ambar { color: var(--ambar); }
+  .kpi-val.azul { color: var(--azul); }
+  .kpi-sub { font-size: 11px; color: var(--gris); margin-top: 6px; }
+
+  /* ── CARDS ─────────────────────────────────────── */
+  .card {
+    background: var(--blanco);
+    border-radius: 12px;
+    border: 1px solid var(--gris-claro);
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .card-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--gris-claro);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-title { font-size: 13px; font-weight: 600; color: #1c1c1a; }
+  .card-body { padding: 14px 18px; }
+
+  /* ── UP BLOCKS (proyección) ──────────────────── */
+  .up-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 12px;
+  }
+  .up-card {
+    background: #fafaf7;
+    border: 1px solid var(--gris-claro);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .up-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--gris-claro);
+  }
+  .up-nombre { font-size: 14px; font-weight: 600; color: var(--verde); }
+  .up-sub { font-size: 10px; color: var(--gris); }
+  .up-rows { font-size: 12px; }
+  .up-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px dotted #eee;
+  }
+  .up-row:last-child { border-bottom: none; }
+  .up-label { color: var(--gris); }
+  .up-val { font-variant-numeric: tabular-nums; font-weight: 500; }
+  .up-total {
+    background: var(--verde-suave);
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-top: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .up-total-lbl { font-size: 11px; font-weight: 600; color: var(--verde); text-transform: uppercase; letter-spacing: 0.06em; }
+  .up-total-val { font-size: 15px; font-weight: 700; color: var(--verde); font-variant-numeric: tabular-nums; }
+
+  /* ── TABLA DE BONO COSECHA TEMPRANA ──────────── */
+  .bono-caja {
+    background: var(--ambar-suave);
+    border: 1px solid #f0d5a0;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 10px;
+  }
+  .bono-titulo {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ambar);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .bono-input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .bono-input-row label { color: var(--gris); min-width: 90px; }
+  .bono-input-row input[type="date"] {
+    border: 1px solid var(--gris-claro);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .bono-pct {
+    font-weight: 700;
+    color: var(--ambar);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── TABLA ENTREGAS ───────────────────────────── */
+  table.entregas {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.entregas th {
+    background: #fafaf7;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gris);
+    border-bottom: 2px solid var(--gris-claro);
+  }
+  table.entregas td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f5f2ec;
+    font-variant-numeric: tabular-nums;
+  }
+  table.entregas td.txt { font-variant-numeric: normal; }
+  table.entregas tfoot td {
+    background: var(--verde-suave);
+    font-weight: 700;
+    color: var(--verde);
+    border-top: 2px solid var(--verde2);
+  }
+  .btn-accion {
+    background: var(--verde2);
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .btn-accion:hover { background: var(--verde); }
+  .btn-accion.rojo { background: var(--rojo); }
+  .btn-accion.rojo:hover { background: #7a2020; }
+  .btn-small { font-size: 10px; padding: 3px 8px; }
+
+  /* ── FORMULARIO ENTREGA ───────────────────────── */
+  .form-entrega {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    padding: 12px;
+    background: #fafaf7;
+    border-radius: 8px;
+    margin-top: 10px;
+    align-items: end;
+  }
+  .form-entrega label {
+    font-size: 10px;
+    color: var(--gris);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .form-entrega input, .form-entrega select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--gris-claro);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+  }
+
+  /* ── LIQUIDACIÓN ────────────────────────────── */
+  .liquidacion {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .liq-box {
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--gris-claro);
+  }
+  .liq-box.ingresos { background: var(--verde-suave); border-color: #c0dd97; }
+  .liq-box.egresos { background: var(--rojo-suave); border-color: #f7c1c1; }
+  .liq-box.neto { background: var(--azul-suave); border-color: #b5d4f4; grid-column: span 2; }
+  .liq-lbl {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .liq-ingresos .liq-lbl { color: var(--verde); }
+  .liq-box.ingresos .liq-lbl { color: var(--verde); }
+  .liq-box.egresos .liq-lbl { color: var(--rojo); }
+  .liq-box.neto .liq-lbl { color: var(--azul); }
+  .liq-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px dotted rgba(0,0,0,0.08);
+  }
+  .liq-row:last-child { border-bottom: none; }
+  .liq-row.total {
+    border-top: 2px solid rgba(0,0,0,0.15);
+    border-bottom: none;
+    margin-top: 6px;
+    padding-top: 8px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .liq-val { font-variant-numeric: tabular-nums; font-weight: 500; }
+
+  /* ── ESTADOS ─────────────────────────────────── */
+  .loading-big {
+    text-align: center;
+    padding: 40px;
+    color: var(--gris);
+    font-size: 14px;
+  }
+  .error { color: var(--rojo); background: var(--rojo-suave); padding: 10px; border-radius: 6px; font-size: 12px; }
+
+  @media (max-width: 640px) {
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+    .liquidacion { grid-template-columns: 1fr; }
+    .liq-box.neto { grid-column: span 1; }
+    .header { flex-direction: column; align-items: flex-start; }
+    .up-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-icon">🌱</div>
+      <div>
+        <div class="header-title">Contrato Achicoria Orafti</div>
+        <div class="header-sub">Temporada 2025-2026 · Contrato N° 101</div>
+        <div class="header-meta">Agrícola Los Crisoles · 32,5 há · Socio Orafti 3075286</div>
+      </div>
+    </div>
+    <button id="refresh-btn" class="refresh-btn" onclick="cargarTodo()">↻ Actualizar</button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">Proyectado</div>
+      <div class="kpi-val ambar" id="kpi-proy">—</div>
+      <div class="kpi-sub" id="kpi-proy-sub">Base + bonos estimados</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Facturado real</div>
+      <div class="kpi-val verde" id="kpi-fact">—</div>
+      <div class="kpi-sub" id="kpi-fact-sub">Entregas registradas</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Pendiente</div>
+      <div class="kpi-val azul" id="kpi-pend">—</div>
+      <div class="kpi-sub" id="kpi-pend-sub">Por cosechar</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">% cosechado</div>
+      <div class="kpi-val" id="kpi-pct" style="color:#1c1c1a;">—</div>
+      <div class="kpi-sub" id="kpi-pct-sub">del total proyectado</div>
+    </div>
+  </div>
+
+  <!-- PROYECCIÓN POR UP -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">📊 Proyección por Unidad Productiva</div>
+      <div style="font-size:11px;color:var(--gris);">Click en fecha para recalcular bono cosecha temprana</div>
+    </div>
+    <div class="card-body">
+      <div class="up-grid" id="up-grid">
+        <div class="loading-big">Cargando proyección...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ENTREGAS -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">🚛 Entregas registradas</div>
+      <button class="btn-accion btn-small" onclick="toggleFormEntrega()">+ Nueva entrega</button>
+    </div>
+    <div class="card-body">
+      <div id="form-entrega-wrap" style="display:none;">
+        <div class="form-entrega">
+          <div>
+            <label>Fecha guía</label>
+            <input type="date" id="f-fecha" required>
+          </div>
+          <div>
+            <label>UP</label>
+            <select id="f-up"></select>
+          </div>
+          <div>
+            <label>Folio guía</label>
+            <input type="text" id="f-folio" placeholder="123456">
+          </div>
+          <div>
+            <label>Patente camión</label>
+            <input type="text" id="f-patente" placeholder="ABCD-12">
+          </div>
+          <div>
+            <label>Ton brutas</label>
+            <input type="number" id="f-ton-brutas" step="0.01" placeholder="42.5">
+          </div>
+          <div>
+            <label>% mugre</label>
+            <input type="number" id="f-mugre" step="0.01" placeholder="8.50" value="8">
+          </div>
+          <div>
+            <label>Observación</label>
+            <input type="text" id="f-obs" placeholder="(opcional)">
+          </div>
+          <div>
+            <button class="btn-accion" onclick="guardarEntrega()">Guardar</button>
+          </div>
+        </div>
+      </div>
+      <div id="entregas-tabla-wrap" style="margin-top:12px;overflow-x:auto;">
+        <table class="entregas" id="entregas-tabla">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>UP</th>
+              <th>Folio</th>
+              <th style="text-align:right;">Ton brutas</th>
+              <th style="text-align:right;">% mugre</th>
+              <th style="text-align:right;">Ton netas</th>
+              <th style="text-align:right;">Bono %</th>
+              <th style="text-align:right;">Monto</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="entregas-body">
+            <tr><td colspan="9" style="text-align:center;color:var(--gris);padding:20px;">Cargando...</td></tr>
+          </tbody>
+          <tfoot id="entregas-foot"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIQUIDACIÓN -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-title">💰 Liquidación estimada</div>
+    </div>
+    <div class="card-body">
+      <div class="liquidacion" id="liq-content">
+        <div class="liq-box ingresos">
+          <div class="liq-lbl">↑ Ingresos</div>
+          <div id="liq-ing">Cargando...</div>
+        </div>
+        <div class="liq-box egresos">
+          <div class="liq-lbl">↓ Descuentos</div>
+          <div id="liq-egr">Cargando...</div>
+        </div>
+        <div class="liq-box neto">
+          <div class="liq-lbl">= Líquido estimado a recibir</div>
+          <div class="liq-row total">
+            <span>Total neto proyectado</span>
+            <span class="liq-val" id="liq-neto">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// CONFIGURACIÓN
+// ══════════════════════════════════════════════════════════════
+// IMPORTANTE: Reemplazar esta URL cuando se deploye el Apps Script
+const API_URL = 'https://script.google.com/macros/s/AKfycbzN6W9Nh8ru2Tre0cgItwu0M7VDLaDZVSCzTfrIhxFGNbjZ3C-R407mrddFL0CFV9J3fw/exec';
+const CF_PROXY = 'https://round-night-574d.christian-19c.workers.dev?url=';
+const LS_KEY = 'loscrisoles_achicoria_2026_state';
+const IVA = 1.19;
+
+// Tabla de bono cosecha temprana (del contrato, 46 días)
+const BONO_TEMPRANA = {
+  '2026-03-01': 49.39, '2026-03-02': 47.27, '2026-03-03': 45.19,
+  '2026-03-04': 43.17, '2026-03-05': 41.19, '2026-03-06': 39.26,
+  '2026-03-07': 37.37, '2026-03-08': 35.52, '2026-03-09': 33.72,
+  '2026-03-10': 31.96, '2026-03-11': 30.23, '2026-03-12': 28.55,
+  '2026-03-13': 26.90, '2026-03-14': 25.28, '2026-03-15': 23.70,
+  '2026-03-16': 22.15, '2026-03-17': 21.36, '2026-03-18': 20.58,
+  '2026-03-19': 19.81, '2026-03-20': 19.04, '2026-03-21': 18.29,
+  '2026-03-22': 17.54, '2026-03-23': 16.80, '2026-03-24': 16.06,
+  '2026-03-25': 15.34, '2026-03-26': 14.62, '2026-03-27': 13.91,
+  '2026-03-28': 13.20, '2026-03-29': 12.51, '2026-03-30': 11.82,
+  '2026-03-31': 11.13, '2026-04-01': 10.46, '2026-04-02': 9.71,
+  '2026-04-03': 8.96,  '2026-04-04': 8.23,  '2026-04-05': 7.50,
+  '2026-04-06': 6.78,  '2026-04-07': 6.07,  '2026-04-08': 5.37,
+  '2026-04-09': 4.67,  '2026-04-10': 3.98,  '2026-04-11': 3.30,
+  '2026-04-12': 2.63,  '2026-04-13': 1.96,  '2026-04-14': 1.30,
+  '2026-04-15': 0.65
+};
+
+// Costo cosecha mecanizada (del contrato)
+const COSTO_COSECHA_HA = 455000; // + IVA
+
+// ══════════════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════════════════════════
+let STATE = {
+  contratos: [],
+  entregas: [],
+  pagos: [],
+  fechasCosecha: {}  // { up_id: 'YYYY-MM-DD' }
+};
+
+function loadLocal() {
+  try {
+    const s = localStorage.getItem(LS_KEY);
+    if (s) {
+      const parsed = JSON.parse(s);
+      if (parsed.fechasCosecha) STATE.fechasCosecha = parsed.fechasCosecha;
+    }
+  } catch(e) {}
+}
+
+function saveLocal() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      fechasCosecha: STATE.fechasCosecha
+    }));
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILIDADES
+// ══════════════════════════════════════════════════════════════
+function fmt(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  return '$' + Math.round(n).toLocaleString('es-CL');
+}
+
+function fmtK(n) {
+  if (n === null || n === undefined || isNaN(n)) return '—';
+  if (Math.abs(n) >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
+  return '$' + Math.round(n/1000).toLocaleString('es-CL') + 'k';
+}
+
+function fmtTon(n) {
+  if (!n) return '0 t';
+  return Number(n).toLocaleString('es-CL', { maximumFractionDigits: 1 }) + ' t';
+}
+
+function getBonoPct(fechaStr) {
+  if (!fechaStr) return 0;
+  const pct = BONO_TEMPRANA[fechaStr];
+  return pct !== undefined ? pct : 0;
+}
+
+// ══════════════════════════════════════════════════════════════
+// FETCH
+// ══════════════════════════════════════════════════════════════
+async function cargarTodo() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('loading');
+  btn.textContent = '↻ Cargando...';
+  
+  try {
+    const url = CF_PROXY + encodeURIComponent(API_URL + '?action=all');
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    
+    STATE.contratos = data.contratos || [];
+    STATE.entregas = data.entregas || [];
+    STATE.pagos = data.pagos || [];
+    
+    loadLocal();
+    render();
+    
+    btn.textContent = '↻ Actualizar';
+  } catch (e) {
+    console.error(e);
+    document.getElementById('up-grid').innerHTML = 
+      `<div class="error">Error al cargar: ${e.message}<br><small>Verificar que API_URL esté configurada (aún tiene valor PENDIENTE_DEPLOY).</small></div>`;
+    btn.textContent = '↻ Error';
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════════
+function render() {
+  renderProyeccion();
+  renderEntregas();
+  renderLiquidacion();
+  renderKPIs();
+  poblarSelectUP();
+}
+
+function renderProyeccion() {
+  const grid = document.getElementById('up-grid');
+  if (!STATE.contratos.length) {
+    grid.innerHTML = '<div class="error">Sin contratos cargados en Contratos_Achicoria</div>';
+    return;
+  }
+  
+  grid.innerHTML = STATE.contratos.filter(c => c.activo !== false && c.activo !== 'FALSE').map(c => {
+    const ha = Number(c.ha || 0);
+    const ton = Number(c.ton_esperadas || 0);
+    const precio = Number(c.precio_base || 0);
+    const bonoSust = Number(c.bono_sust || 0);
+    const bonoColectivo = Number(c.bono_colectivo || 0);
+    const bonoRebroteHa = Number(c.bono_rebrote_ha || 0);
+    
+    const fechaCosecha = STATE.fechasCosecha[c.up_id] || c.fecha_cosecha_estimada || '2026-03-15';
+    const bonoPct = getBonoPct(fechaCosecha);
+    
+    const mBase = ton * precio;
+    const mBonoSust = ton * bonoSust;
+    const mBonoColectivo = ton * bonoColectivo;
+    const mBonoTemprana = mBase * (bonoPct / 100);
+    const mBonoRebrote = ha * bonoRebroteHa;
+    const mTotal = mBase + mBonoSust + mBonoColectivo + mBonoTemprana + mBonoRebrote;
+    
+    return `<div class="up-card">
+      <div class="up-header">
+        <div>
+          <div class="up-nombre">${c.up_nombre}</div>
+          <div class="up-sub">${c.predio_contrato} · ROL ${c.rol_sii}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:13px;font-weight:600;">${ha} há</div>
+          <div class="up-sub">${ton} ton esperadas</div>
+        </div>
+      </div>
+      <div class="up-rows">
+        <div class="up-row">
+          <span class="up-label">Precio base (${ton}t × ${fmtK(precio)})</span>
+          <span class="up-val">${fmtK(mBase)}</span>
+        </div>
+        <div class="up-row">
+          <span class="up-label">Bono sustentabilidad</span>
+          <span class="up-val">${fmtK(mBonoSust)}</span>
+        </div>
+        <div class="up-row">
+          <span class="up-label">Bono colectivo</span>
+          <span class="up-val">${fmtK(mBonoColectivo)}</span>
+        </div>
+        <div class="up-row">
+          <span class="up-label">Bono rebrote (${ha}há × $50k)</span>
+          <span class="up-val">${fmtK(mBonoRebrote)}</span>
+        </div>
+      </div>
+      <div class="bono-caja">
+        <div class="bono-titulo">
+          <span>🗓️ Bono cosecha temprana</span>
+          <span class="bono-pct">${bonoPct.toFixed(2)}%</span>
+        </div>
+        <div class="bono-input-row">
+          <label>Fecha estimada:</label>
+          <input type="date" value="${fechaCosecha}" min="2026-03-01" max="2026-04-15"
+                 onchange="cambiarFechaCosecha('${c.up_id}', this.value)">
+        </div>
+        <div class="bono-input-row">
+          <label>Monto bono:</label>
+          <span class="bono-pct">${fmtK(mBonoTemprana)}</span>
+        </div>
+      </div>
+      <div class="up-total">
+        <span class="up-total-lbl">Total proyectado UP</span>
+        <span class="up-total-val">${fmtK(mTotal)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cambiarFechaCosecha(upId, fecha) {
+  STATE.fechasCosecha[upId] = fecha;
+  saveLocal();
+  render();
+}
+
+function renderEntregas() {
+  const tbody = document.getElementById('entregas-body');
+  const tfoot = document.getElementById('entregas-foot');
+  
+  if (!STATE.entregas.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--gris);padding:20px;">Sin entregas registradas aún</td></tr>';
+    tfoot.innerHTML = '';
+    return;
+  }
+  
+  const sorted = [...STATE.entregas].sort((a,b) => String(a.fecha_guia||'').localeCompare(String(b.fecha_guia||'')));
+  
+  let totalBrutas = 0, totalNetas = 0, totalMonto = 0;
+  tbody.innerHTML = sorted.map(e => {
+    const brutas = Number(e.ton_brutas || 0);
+    const netas = Number(e.ton_netas || 0);
+    const monto = Number(e.monto_total || 0);
+    totalBrutas += brutas;
+    totalNetas += netas;
+    totalMonto += monto;
+    
+    const upName = STATE.contratos.find(c => c.up_id === e.up_id)?.up_nombre || e.up_id;
+    
+    return `<tr>
+      <td class="txt">${e.fecha_guia || '—'}</td>
+      <td class="txt">${upName}</td>
+      <td class="txt">${e.guia_folio || '—'}</td>
+      <td style="text-align:right;">${fmtTon(brutas)}</td>
+      <td style="text-align:right;color:#888;">${e.pct_mugre ? e.pct_mugre + '%' : '—'}</td>
+      <td style="text-align:right;font-weight:600;">${fmtTon(netas)}</td>
+      <td style="text-align:right;color:var(--ambar);">${e.pct_bono_temprana ? Number(e.pct_bono_temprana).toFixed(1)+'%' : '—'}</td>
+      <td style="text-align:right;font-weight:600;color:var(--verde);">${fmt(monto)}</td>
+      <td style="text-align:right;">
+        <button class="btn-accion rojo btn-small" onclick="eliminarEntrega('${e.id}')">×</button>
+      </td>
+    </tr>`;
+  }).join('');
+  
+  tfoot.innerHTML = `<tr>
+    <td colspan="3">Total</td>
+    <td style="text-align:right;">${fmtTon(totalBrutas)}</td>
+    <td></td>
+    <td style="text-align:right;">${fmtTon(totalNetas)}</td>
+    <td></td>
+    <td style="text-align:right;">${fmt(totalMonto)}</td>
+    <td></td>
+  </tr>`;
+}
+
+function renderKPIs() {
+  // Total proyectado (suma de todas las UPs con bonos actuales)
+  let totalProy = 0;
+  STATE.contratos.filter(c => c.activo !== false && c.activo !== 'FALSE').forEach(c => {
+    const ha = Number(c.ha || 0);
+    const ton = Number(c.ton_esperadas || 0);
+    const precio = Number(c.precio_base || 0);
+    const bonoSust = Number(c.bono_sust || 0);
+    const bonoColectivo = Number(c.bono_colectivo || 0);
+    const bonoRebroteHa = Number(c.bono_rebrote_ha || 0);
+    const fecha = STATE.fechasCosecha[c.up_id] || c.fecha_cosecha_estimada || '2026-03-15';
+    const bonoPct = getBonoPct(fecha);
+    
+    const mBase = ton * precio;
+    totalProy += mBase + ton*bonoSust + ton*bonoColectivo + mBase*(bonoPct/100) + ha*bonoRebroteHa;
+  });
+  
+  const totalFact = STATE.entregas.reduce((s,e) => s + Number(e.monto_total || 0), 0);
+  const pendiente = Math.max(0, totalProy - totalFact);
+  const pct = totalProy > 0 ? (totalFact / totalProy * 100) : 0;
+  
+  document.getElementById('kpi-proy').textContent = fmtK(totalProy);
+  document.getElementById('kpi-fact').textContent = fmtK(totalFact);
+  document.getElementById('kpi-pend').textContent = fmtK(pendiente);
+  document.getElementById('kpi-pct').textContent = pct.toFixed(1) + '%';
+  
+  const totalTon = STATE.contratos.filter(c => c.activo !== false && c.activo !== 'FALSE').reduce((s,c) => s + Number(c.ton_esperadas||0), 0);
+  const tonNetas = STATE.entregas.reduce((s,e) => s + Number(e.ton_netas||0), 0);
+  document.getElementById('kpi-fact-sub').textContent = `${fmtTon(tonNetas)} netas`;
+  document.getElementById('kpi-pend-sub').textContent = `${fmtTon(Math.max(0, totalTon - tonNetas))} restantes`;
+}
+
+function renderLiquidacion() {
+  const totalBase = STATE.contratos.filter(c => c.activo !== false && c.activo !== 'FALSE').reduce((s,c) => {
+    return s + Number(c.ton_esperadas||0) * Number(c.precio_base||0);
+  }, 0);
+  
+  let totalBonoSust = 0, totalBonoColectivo = 0, totalBonoTemprana = 0, totalBonoRebrote = 0;
+  STATE.contratos.filter(c => c.activo !== false && c.activo !== 'FALSE').forEach(c => {
+    const ton = Number(c.ton_esperadas||0);
+    const ha = Number(c.ha||0);
+    const precio = Number(c.precio_base||0);
+    const fecha = STATE.fechasCosecha[c.up_id] || c.fecha_cosecha_estimada || '2026-03-15';
+    totalBonoSust += ton * Number(c.bono_sust||0);
+    totalBonoColectivo += ton * Number(c.bono_colectivo||0);
+    totalBonoTemprana += (ton * precio) * getBonoPct(fecha) / 100;
+    totalBonoRebrote += ha * Number(c.bono_rebrote_ha||0);
+  });
+  
+  const totalIngresos = totalBase + totalBonoSust + totalBonoColectivo + totalBonoTemprana + totalBonoRebrote;
+  
+  const totalHa = STATE.contratos.filter(c => c.activo !== false && c.activo !== 'FALSE').reduce((s,c) => s + Number(c.ha||0), 0);
+  const descCosechaNeto = totalHa * COSTO_COSECHA_HA;
+  const descCosechaBruto = descCosechaNeto * IVA;
+  
+  const liqIng = document.getElementById('liq-ing');
+  liqIng.innerHTML = `
+    <div class="liq-row"><span>Precio base</span><span class="liq-val">${fmtK(totalBase)}</span></div>
+    <div class="liq-row"><span>+ Bono sustentabilidad</span><span class="liq-val">${fmtK(totalBonoSust)}</span></div>
+    <div class="liq-row"><span>+ Bono colectivo</span><span class="liq-val">${fmtK(totalBonoColectivo)}</span></div>
+    <div class="liq-row"><span>+ Bono cosecha temprana</span><span class="liq-val">${fmtK(totalBonoTemprana)}</span></div>
+    <div class="liq-row"><span>+ Bono rebrote</span><span class="liq-val">${fmtK(totalBonoRebrote)}</span></div>
+    <div class="liq-row total"><span>Subtotal ingresos</span><span class="liq-val">${fmtK(totalIngresos)}</span></div>
+  `;
+  
+  const liqEgr = document.getElementById('liq-egr');
+  liqEgr.innerHTML = `
+    <div class="liq-row"><span>Cosecha mecanizada (${totalHa}há × $455k)</span><span class="liq-val">${fmtK(descCosechaNeto)}</span></div>
+    <div class="liq-row" style="color:var(--gris);font-size:11px;"><span>IVA cosecha (19%)</span><span class="liq-val">${fmtK(descCosechaBruto - descCosechaNeto)}</span></div>
+    <div class="liq-row"><span>Cuota gremial</span><span class="liq-val" style="color:var(--gris);">—</span></div>
+    <div class="liq-row"><span>Línea financiamiento</span><span class="liq-val" style="color:var(--gris);">(no considerada)</span></div>
+    <div class="liq-row total"><span>Total descuentos</span><span class="liq-val">${fmtK(descCosechaBruto)}</span></div>
+  `;
+  
+  const liquido = totalIngresos - descCosechaBruto;
+  document.getElementById('liq-neto').textContent = fmtK(liquido);
+}
+
+function poblarSelectUP() {
+  const sel = document.getElementById('f-up');
+  sel.innerHTML = STATE.contratos.filter(c => c.activo !== false && c.activo !== 'FALSE').map(c => 
+    `<option value="${c.up_id}">${c.up_nombre} (${c.predio_contrato})</option>`
+  ).join('');
+}
+
+function toggleFormEntrega() {
+  const w = document.getElementById('form-entrega-wrap');
+  w.style.display = w.style.display === 'none' ? 'block' : 'none';
+}
+
+async function guardarEntrega() {
+  const fecha = document.getElementById('f-fecha').value;
+  const upId = document.getElementById('f-up').value;
+  const folio = document.getElementById('f-folio').value;
+  const patente = document.getElementById('f-patente').value;
+  const tonBrutas = Number(document.getElementById('f-ton-brutas').value);
+  const mugre = Number(document.getElementById('f-mugre').value);
+  const obs = document.getElementById('f-obs').value;
+  
+  if (!fecha || !upId || !tonBrutas) {
+    alert('Faltan campos obligatorios: fecha, UP, ton brutas');
+    return;
+  }
+  
+  const contrato = STATE.contratos.find(c => c.up_id === upId);
+  if (!contrato) {
+    alert('UP no encontrada');
+    return;
+  }
+  
+  const tonNetas = tonBrutas * (1 - mugre/100);
+  const precioTon = Number(contrato.precio_base || 0);
+  const bonoPct = getBonoPct(fecha);
+  const montoBase = tonNetas * precioTon;
+  const montoBono = montoBase * (bonoPct / 100);
+  const montoTotal = montoBase + montoBono;
+  
+  const data = {
+    fecha_guia: fecha,
+    up_id: upId,
+    guia_folio: folio,
+    camion_patente: patente,
+    ton_brutas: tonBrutas,
+    pct_mugre: mugre,
+    ton_netas: tonNetas.toFixed(2),
+    precio_ton: precioTon,
+    pct_bono_temprana: bonoPct,
+    monto_base: Math.round(montoBase),
+    monto_bono_temprana: Math.round(montoBono),
+    monto_total: Math.round(montoTotal),
+    observacion: obs
+  };
+  
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'upsert_entrega', data: data })
+    });
+    const result = await res.json();
+    if (result.error) throw new Error(result.error);
+    
+    // Limpiar form
+    ['f-fecha','f-folio','f-patente','f-ton-brutas','f-obs'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-mugre').value = '8';
+    
+    await cargarTodo();
+  } catch(e) {
+    alert('Error al guardar: ' + e.message);
+  }
+}
+
+async function eliminarEntrega(id) {
+  if (!confirm('¿Eliminar esta entrega?')) return;
+  
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'delete_entrega', id: id })
+    });
+    const result = await res.json();
+    if (result.error) throw new Error(result.error);
+    await cargarTodo();
+  } catch(e) {
+    alert('Error al eliminar: ' + e.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+cargarTodo();
+</script>
+
+</body>
+</html>
