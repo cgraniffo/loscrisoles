@@ -615,19 +615,31 @@ function renderMargenes() {
     if (CC_MAP[raw]) return raw;
     return NAME_TO_ID[raw.toLowerCase()] || raw;
   }
+  // FIX: priorizar UP_ID sobre UP_Nombre para evitar colisiones por temporada
+  function getUpId(r) {
+    const upId = String(r["UP_ID"]||"").trim();
+    return upId || resolveUpId(r["UP_Nombre"]||"");
+  }
+  // FIX: extraer RUT emisor desde KEY_Documento ("XXXX-RUT-DV-FOLIO")
+  function rutEmisor(r) {
+    const partes = String(r["KEY_Documento"]||"").split("-");
+    return partes.length < 4 ? "" : partes[1] + "-" + partes[2];
+  }
+  const RUT_LC_ING = "76099766-8";
 
   const ingresosPorUP = {};   // presupuesto (estimado)
   const facturadoPorUP = {};  // real facturado
   const kilosPorUP    = {};
 
-  // Facturado real
+  // Facturado real (solo facturas EMITIDAS por LC)
   (window.ASIGNACIONES||[]).filter(r => {
     const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    const id    = resolveUpId(r["UP_Nombre"]||r["UP_ID"]||"");
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    return tipo.includes("factura") && Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id);
+    const id    = getUpId(r);
+    const fecha = r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"";
+    return tipo.includes("factura") && rutEmisor(r) === RUT_LC_ING
+      && Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id);
   }).forEach(r => {
-    const id = resolveUpId(r["UP_Nombre"]||r["UP_ID"]||"");
+    const id = getUpId(r);
     facturadoPorUP[id] = (facturadoPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
   });
 
@@ -1020,18 +1032,30 @@ function renderIngresos() {
     // Si es un nombre textual, buscar el código
     return NAME_TO_ID[raw.toLowerCase()] || raw;
   }
+  // FIX: priorizar UP_ID sobre UP_Nombre para evitar colisiones por temporada
+  function getUpId(r) {
+    const upId = String(r["UP_ID"]||"").trim();
+    return upId || resolveUpId(r["UP_Nombre"]||"");
+  }
+  // FIX: extraer RUT emisor desde KEY_Documento ("XXXX-RUT-DV-FOLIO")
+  function rutEmisor(r) {
+    const partes = String(r["KEY_Documento"]||"").split("-");
+    return partes.length < 4 ? "" : partes[1] + "-" + partes[2];
+  }
+  const RUT_LC_ING = "76099766-8";
 
   const facturasAsig = (window.ASIGNACIONES||[]).filter(r => {
     const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
-    const id   = resolveUpId(r["UP_Nombre"]||r["UP_ID"]||"");
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    return tipo.includes("factura") && Number(r["Monto_Asignado"]||0) > 0
+    const id   = getUpId(r);
+    const fecha = r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"";
+    return tipo.includes("factura") && rutEmisor(r) === RUT_LC_ING
+      && Number(r["Monto_Asignado"]||0) > 0
       && passTemp(fecha, id) && esProdI(id);
   }).map(r => ({
     _fuente: "factura",
-    up:      resolveUpId(r["UP_Nombre"]||r["UP_ID"]||""),
+    up:      getUpId(r),
     monto:   Number(r["Monto_Asignado"]||0),
-    fecha:   r["Fecha_Documento"]||r["Fecha_Asignacion"]||"",
+    fecha:   r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"",
     kilos:   0
   }));
 
@@ -1402,6 +1426,16 @@ function renderResultadoUP() {
     const raw = String(val||"").trim();
     return CC_MAP[raw] ? raw : (NAME_TO_ID_R[raw.toLowerCase()]||raw);
   }
+  // FIX: priorizar UP_ID sobre UP_Nombre para evitar colisiones por temporada
+  function getUpIdR(r) {
+    const upId = String(r["UP_ID"]||"").trim();
+    return upId || resolveId(r["UP_Nombre"]||"");
+  }
+  // FIX: extraer RUT emisor desde KEY_Documento ("XXXX-RUT-DV-FOLIO")
+  function rutEmisorR(r) {
+    const partes = String(r["KEY_Documento"]||"").split("-");
+    return partes.length < 4 ? "" : partes[1] + "-" + partes[2];
+  }
 
   // ── UPs productivas de la temporada ──────────────────────────────────────
   const upsTemp = Object.keys(CC_MAP).filter(id => {
@@ -1496,14 +1530,15 @@ function renderResultadoUP() {
 
   (window.ASIGNACIONES||[]).filter(r => {
     const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    const id    = resolveId(r["UP_Nombre"]||r["UP_ID"]||"");
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    return tipo.includes("emit") && Number(r["Monto_Asignado"]||0)>0 && passTemp(fecha,id);
+    const id    = getUpIdR(r);
+    const fecha = r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"";
+    return (tipo.includes("emit") || (tipo.includes("factura") && rutEmisorR(r) === RUT_LC))
+      && Number(r["Monto_Asignado"]||0)>0 && passTemp(fecha,id);
   }).forEach(r => {
-    const id = resolveId(r["UP_Nombre"]||r["UP_ID"]||"");
+    const id = getUpIdR(r);
     if (!docsIng[id]) docsIng[id] = [];
     docsIng[id].push({
-      fecha:     r["Fecha_Documento"]||r["Fecha_Asignacion"]||"",
+      fecha:     r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"",
       proveedor: String(r["Proveedor"]||"—").trim().slice(0,30),
       folio:     String(r["Folio"]||"—").trim(),
       tipo:      String(r["Tipo_Doc"]||"—").trim(),
@@ -1530,11 +1565,12 @@ function renderResultadoUP() {
   const ingFact = {};
   (window.ASIGNACIONES||[]).filter(r => {
     const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    const id    = resolveId(r["UP_Nombre"]||r["UP_ID"]||"");
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    return tipo.includes("factura") && tipo.includes("emit") && Number(r["Monto_Asignado"]||0)>0 && passTemp(fecha,id);
+    const id    = getUpIdR(r);
+    const fecha = r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"";
+    return tipo.includes("factura") && rutEmisorR(r) === RUT_LC
+      && Number(r["Monto_Asignado"]||0)>0 && passTemp(fecha,id);
   }).forEach(r => {
-    const id = resolveId(r["UP_Nombre"]||r["UP_ID"]||"");
+    const id = getUpIdR(r);
     ingFact[id] = (ingFact[id]||0) + Number(r["Monto_Asignado"]||0);
   });
 
