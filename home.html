@@ -574,6 +574,36 @@ if (location.search.includes('embed=1')) {
       </div>
     </a>
 
+    <!-- Banner achicoria -->
+    <a href="#" onclick="navTo('ingresos','/reporte');return false;" id="banner-achicoria" style="display:block;margin-top:8px;background:linear-gradient(90deg,#f7faf0 0%,#eaf3de 100%);border:1px solid #c0dd97;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:180px;">
+          <div style="font-size:22px;">🌱</div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#1c1c1a;">Contrato achicoria Orafti · 2025-2026</div>
+            <div style="font-size:11px;color:var(--gris);margin-top:2px;" id="banner-achicoria-hint">Cargando entregas y bonos...</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:18px;align-items:center;">
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Proyectado</div>
+            <div style="font-size:14px;font-weight:700;color:#1c1c1a;font-variant-numeric:tabular-nums;" id="banner-achicoria-proy">—</div>
+          </div>
+          <div style="width:1px;background:rgba(0,0,0,0.06);height:30px;"></div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Facturado</div>
+            <div style="font-size:14px;font-weight:700;color:#1a3a0a;font-variant-numeric:tabular-nums;" id="banner-achicoria-fact">—</div>
+          </div>
+          <div style="width:1px;background:rgba(0,0,0,0.06);height:30px;"></div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Pendiente</div>
+            <div style="font-size:14px;font-weight:700;color:#2d6a1a;font-variant-numeric:tabular-nums;" id="banner-achicoria-pend">—</div>
+          </div>
+          <div style="font-size:12px;color:#1a3a0a;font-weight:600;">Ver detalle →</div>
+        </div>
+      </div>
+    </a>
+
     <!-- ═══ ZONA 3 · PIPELINE PRODUCTIVO ═══ -->
     <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
       <div style="width:4px;height:16px;background:#BA7517;border-radius:2px;"></div>
@@ -1390,8 +1420,95 @@ document.querySelectorAll('details.card').forEach(d => {
   }
 })();
 
+// ── BANNER ACHICORIA (lee desde la API de contrato_achicoria.html) ──
+(async function loadBannerAchicoria() {
+  const API = 'https://script.google.com/macros/s/AKfycbzN6W9Nh8ru2Tre0cgItwu0M7VDLaDZVSCzTfrIhxFGNbjZ3C-R407mrddFL0CFV9J3fw/exec';
+  const PROXY = 'https://round-night-574d.christian-19c.workers.dev?url=';
+  const fmt = n => '$' + Math.round(n).toLocaleString('es-CL');
+  const fmtK = n => Math.abs(n) >= 1000000 ? '$' + (n/1000000).toFixed(1) + 'M' : '$' + Math.round(n/1000).toLocaleString('es-CL') + 'k';
+  const setTxt = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+  try {
+    // Si el API no está configurado, no hacer fetch
+    if (API.includes('PENDIENTE_DEPLOY')) {
+      setTxt('banner-achicoria-hint', '⚠️ API no configurada aún. Clic para ver detalle.');
+      return;
+    }
+    
+    const url = PROXY + encodeURIComponent(API + '?action=all');
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const contratos = data.contratos || [];
+    const entregas = data.entregas || [];
+    const pagosTerceros = data.pagos_terceros || [];
+
+    // Leer fechas de cosecha del localStorage (editadas por el usuario en dashboard)
+    let fechasCosecha = {};
+    try {
+      const s = localStorage.getItem('loscrisoles_achicoria_2026_state');
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (parsed.fechasCosecha) fechasCosecha = parsed.fechasCosecha;
+      }
+    } catch(e) {}
+
+    // Tabla bono cosecha temprana (mismo que el dashboard)
+    const BONO_TEMPRANA = {
+      '2026-03-01': 49.39, '2026-03-02': 47.27, '2026-03-03': 45.19, '2026-03-04': 43.17,
+      '2026-03-05': 41.19, '2026-03-06': 39.26, '2026-03-07': 37.37, '2026-03-08': 35.52,
+      '2026-03-09': 33.72, '2026-03-10': 31.96, '2026-03-11': 30.23, '2026-03-12': 28.55,
+      '2026-03-13': 26.90, '2026-03-14': 25.28, '2026-03-15': 23.70, '2026-03-16': 22.15,
+      '2026-03-17': 21.36, '2026-03-18': 20.58, '2026-03-19': 19.81, '2026-03-20': 19.04,
+      '2026-03-21': 18.29, '2026-03-22': 17.54, '2026-03-23': 16.80, '2026-03-24': 16.06,
+      '2026-03-25': 15.34, '2026-03-26': 14.62, '2026-03-27': 13.91, '2026-03-28': 13.20,
+      '2026-03-29': 12.51, '2026-03-30': 11.82, '2026-03-31': 11.13, '2026-04-01': 10.46,
+      '2026-04-02': 9.71, '2026-04-03': 8.96, '2026-04-04': 8.23, '2026-04-05': 7.50,
+      '2026-04-06': 6.78, '2026-04-07': 6.07, '2026-04-08': 5.37, '2026-04-09': 4.67,
+      '2026-04-10': 3.98, '2026-04-11': 3.30, '2026-04-12': 2.63, '2026-04-13': 1.96,
+      '2026-04-14': 1.30, '2026-04-15': 0.65
+    };
+
+    // Calcular proyectado total (ingresos brutos con bonos según fechas actuales)
+    let proyectado = 0;
+    let totalHa = 0;
+    contratos.filter(c => c.activo !== false && c.activo !== 'FALSE').forEach(c => {
+      const ha = Number(c.ha || 0);
+      const ton = Number(c.ton_esperadas || 0);
+      const precio = Number(c.precio_base || 0);
+      const bonoSust = Number(c.bono_sust || 0);
+      const bonoColectivo = Number(c.bono_colectivo || 0);
+      const bonoRebroteHa = Number(c.bono_rebrote_ha || 0);
+      const fecha = fechasCosecha[c.up_id] || c.fecha_cosecha_estimada || '2026-03-15';
+      const bonoPct = BONO_TEMPRANA[fecha] || 0;
+      
+      const mBase = ton * precio;
+      proyectado += mBase + ton*bonoSust + ton*bonoColectivo + mBase*(bonoPct/100) + ha*bonoRebroteHa;
+      totalHa += ha;
+    });
+
+    // Facturado = suma de monto_total de entregas registradas
+    const facturado = entregas.reduce((s,e) => s + Number(e.monto_total || 0), 0);
+    const pendiente = Math.max(0, proyectado - facturado);
+    const pct = proyectado > 0 ? (facturado / proyectado * 100) : 0;
+    const numUPs = contratos.filter(c => c.activo !== false && c.activo !== 'FALSE').length;
+    const numEntregas = entregas.length;
+
+    setTxt('banner-achicoria-proy', fmtK(proyectado));
+    setTxt('banner-achicoria-fact', fmtK(facturado));
+    setTxt('banner-achicoria-pend', fmtK(pendiente));
+    setTxt('banner-achicoria-hint', `${numUPs} UP · ${totalHa}há · ${numEntregas} entregas · ${pct.toFixed(1)}% cosechado`);
+  } catch (e) {
+    console.warn('[banner-achicoria] error:', e);
+    setTxt('banner-achicoria-hint', '⚠️ No se pudo cargar. Clic para ver detalle.');
+    setTxt('banner-achicoria-proy', '—');
+    setTxt('banner-achicoria-fact', '—');
+    setTxt('banner-achicoria-pend', '—');
+  }
+})();
+
 // Hover sutil para los banners
-document.querySelectorAll('#banner-nueces, #banner-labores-semana').forEach(el => {
+document.querySelectorAll('#banner-nueces, #banner-achicoria, #banner-labores-semana').forEach(el => {
   el.addEventListener('mouseenter', () => el.style.borderColor = '#888');
   el.addEventListener('mouseleave', () => { el.style.borderColor = ''; });
 });
