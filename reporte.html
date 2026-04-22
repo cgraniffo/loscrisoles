@@ -506,7 +506,7 @@ const TEMP_CC  = {}; // temporada -> [ccIds]
 var ACTIVOS = window.ACTIVOS, TODOS = window.TODOS, PROYECCIONES = window.PROYECCIONES, DOCUMENTOS = window.DOCUMENTOS, ASIGNACIONES = window.ASIGNACIONES;
 let state = { estados:[], encargados:[], ups:[], fundos:[], soloVencidas:false };
 let stateCostos = { ccs:[], fundos:[], anios:[], meses:[] };
-let stateMargenes = { ups:[], fundos:[] };
+let stateMargenes = { ups:[], fundos:[], prorrateo:"ha" }; // prorrateo: "no" | "ha" | "ingreso"
 let stateCaja = { tipo:"todos", estado:"pendiente" };
 let stateIngresos = { ups:[], fundos:[], estados:[], anios:[], meses:[] };
 let currentTab = "labores";
@@ -563,6 +563,90 @@ function toggleMargenMulti(key, val) {
   const idx = arr.indexOf(val);
   if (idx === -1) arr.push(val); else arr.splice(idx, 1);
   renderMargenes();
+}
+
+function setProrrateo(modo) {
+  stateMargenes.prorrateo = modo;
+  renderMargenes();
+  renderResultadoUP();
+}
+
+// ── CALCULAR PRORRATEO ──────────────────────────────────────────────────────
+// Retorna { pool, prorrateoPorUP, base, modo, factor }
+//   pool:          total de costos de UPs NO productivas en la temporada
+//   prorrateoPorUP[upId]: monto a cargar a cada UP productiva
+//   base:          suma total de la base usada (HA o ingreso)
+//   modo:          "no" | "ha" | "ingreso"
+//   factor:        factor por unidad de base (solo modo "ha")
+function calcularProrrateo(tempActiva, modo, ingresosPorUP) {
+  const FECHA_CORTE = FECHA_CORTE_COSTOS;
+  const RUT_LC = "76099766-8";
+  const esProd    = id => BASE_PRORRATEO_MAP[id] === true;
+  const esNoProd  = id => BASE_PRORRATEO_MAP[id] !== true;
+  const upsProdConDatos = []; // productivas con base > 0
+
+  if (!modo || modo === "no") return { pool:0, prorrateoPorUP:{}, base:0, modo:"no", factor:0 };
+
+  // 1) Pool: suma costos de UPs NO productivas en la temporada
+  let pool = 0;
+  (window.TODOS||[]).forEach(r => {
+    const raw = String(r["Fecha"]||"");
+    const f   = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
+    const ccId = String(r["Centro_Costo"]||"").trim();
+    const tmp  = TEMP_MAP[ccId];
+    if (!tmp || tmp.temporada !== tempActiva) return;
+    if (!esNoProd(ccId)) return;
+    if (Number(r["Costo Total"]||0) <= 0 || (f !== "" && f >= FECHA_CORTE)) return;
+    pool += Number(r["Costo Total"]||0);
+  });
+  (window.ASIGNACIONES||[]).forEach(r => {
+    const ccId = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
+    const tmp  = TEMP_MAP[ccId];
+    if (!tmp || tmp.temporada !== tempActiva) return;
+    if (!esNoProd(ccId)) return;
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    const partes = String(r["KEY_Documento"]||"").split("-");
+    const rutEmis = partes.length < 4 ? "" : partes[1] + "-" + partes[2];
+    const esIngreso = tipo.includes("emit") || (tipo.includes("factura") && rutEmis === RUT_LC);
+    if (Number(r["Monto_Asignado"]||0) <= 0 || esIngreso) return;
+    pool += Number(r["Monto_Asignado"]||0);
+  });
+
+  if (pool <= 0) return { pool:0, prorrateoPorUP:{}, base:0, modo, factor:0 };
+
+  // 2) Definir base por UP productiva
+  const basePorUP = {};
+  if (modo === "ha") {
+    Object.keys(CC_MAP).forEach(id => {
+      const tmp = TEMP_MAP[id];
+      if (!tmp || tmp.temporada !== tempActiva) return;
+      if (!esProd(id)) return;
+      const ha = HA_MAP[id]||0;
+      if (ha > 0) basePorUP[id] = ha;
+    });
+  } else if (modo === "ingreso") {
+    // ingresosPorUP es el ppto por UP de la temporada (ya calculado por el caller)
+    Object.entries(ingresosPorUP||{}).forEach(([id, monto]) => {
+      if (!esProd(id)) return;
+      if (monto > 0) basePorUP[id] = monto;
+    });
+  }
+
+  const base = Object.values(basePorUP).reduce((s,v)=>s+v, 0);
+
+  // Fallback: si modo "ingreso" da base 0, fallback a "ha"
+  if (base <= 0 && modo === "ingreso") {
+    return calcularProrrateo(tempActiva, "ha", null);
+  }
+  if (base <= 0) return { pool, prorrateoPorUP:{}, base:0, modo, factor:0 };
+
+  // 3) Prorratear
+  const prorrateoPorUP = {};
+  Object.entries(basePorUP).forEach(([id, val]) => {
+    prorrateoPorUP[id] = pool * (val / base);
+  });
+
+  return { pool, prorrateoPorUP, base, modo, factor: pool/base };
 }
 
 function renderMargenes() {
@@ -663,29 +747,37 @@ function renderMargenes() {
   const fundoOptsM = [...new Set(allUPs.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
   const fundoBtnsM = fundoOptsM.map(f => `<button class="fbtn${stateMargenes.fundos.includes(f)?' on':''}" onclick="toggleMargenMulti('fundos','${f}')">${f}</button>`).join("");
 
-  let totalIng = 0, totalFact = 0, totalCost = 0, totalKilos = 0;
+  // Prorrateo de costos indirectos
+  const modoProrr = stateMargenes.prorrateo || "ha";
+  const prorr     = calcularProrrateo(tempActiva, modoProrr, ingresosPorUP);
+
+  let totalIng = 0, totalFact = 0, totalCost = 0, totalProrr = 0, totalKilos = 0;
   const rows = filtradas.map(ccId => {
-    const nombre      = CC_MAP[ccId]       || ccId;
-    const fundo       = FUNDO_MAP[ccId]    || "—";
-    const ingPpto     = ingresosPorUP[ccId]  || 0;  // presupuesto
-    const ingReal     = facturadoPorUP[ccId] || 0;  // facturado
-    const costo       = costosPorUP[ccId]    || 0;
-    const margenPpto  = ingPpto - costo;
-    const margenReal  = ingReal > 0 ? ingReal - costo : null;  // null si aún no hay factura
-    const kilos       = kilosPorUP[ccId]   || 0;
-    const toneladas   = kilos / 1000;
-    const ha          = HA_MAP[ccId]       || 0;
-    const mgnPptoTon  = toneladas > 0 ? margenPpto / toneladas : 0;
-    const mgnPptoHa   = ha > 0 ? margenPpto / ha : 0;
-    const mgnRealTon  = (margenReal !== null && toneladas > 0) ? margenReal / toneladas : null;
-    const mgnRealHa   = (margenReal !== null && ha > 0) ? margenReal / ha : null;
-    const pctPpto     = ingPpto > 0 ? (margenPpto/ingPpto*100).toFixed(1) : "—";
-    const pctReal     = (margenReal !== null && ingReal > 0) ? (margenReal/ingReal*100).toFixed(1) : "—";
-    totalIng   += ingPpto;
-    totalFact  += ingReal;
-    totalCost  += costo;
-    totalKilos += kilos;
-    return { nombre, fundo, ingPpto, ingReal, costo, margenPpto, margenReal,
+    const nombre       = CC_MAP[ccId]       || ccId;
+    const fundo        = FUNDO_MAP[ccId]    || "—";
+    const ingPpto      = ingresosPorUP[ccId]  || 0;  // presupuesto
+    const ingReal      = facturadoPorUP[ccId] || 0;  // facturado
+    const costoDirecto = costosPorUP[ccId]    || 0;
+    const costoProrr   = prorr.prorrateoPorUP[ccId] || 0;
+    const costo        = costoDirecto + costoProrr;  // costo total con prorrateo
+    const margenPpto   = ingPpto - costo;
+    const margenReal   = ingReal > 0 ? ingReal - costo : null;
+    const kilos        = kilosPorUP[ccId]   || 0;
+    const toneladas    = kilos / 1000;
+    const ha           = HA_MAP[ccId]       || 0;
+    const mgnPptoTon   = toneladas > 0 ? margenPpto / toneladas : 0;
+    const mgnPptoHa    = ha > 0 ? margenPpto / ha : 0;
+    const mgnRealTon   = (margenReal !== null && toneladas > 0) ? margenReal / toneladas : null;
+    const mgnRealHa    = (margenReal !== null && ha > 0) ? margenReal / ha : null;
+    const pctPpto      = ingPpto > 0 ? (margenPpto/ingPpto*100).toFixed(1) : "—";
+    const pctReal      = (margenReal !== null && ingReal > 0) ? (margenReal/ingReal*100).toFixed(1) : "—";
+    totalIng    += ingPpto;
+    totalFact   += ingReal;
+    totalCost   += costo;
+    totalProrr  += costoProrr;
+    totalKilos  += kilos;
+    return { nombre, fundo, ingPpto, ingReal, costo, costoDirecto, costoProrr,
+             margenPpto, margenReal,
              toneladas, ha, mgnPptoTon, mgnPptoHa, mgnRealTon, mgnRealHa,
              pctPpto, pctReal, cls: margenPpto>=0?"mg-pos":"mg-neg" };
   }).sort((a,b) => b.margenPpto - a.margenPpto);
@@ -718,11 +810,14 @@ function renderMargenes() {
       const barHTML    = r.margenPpto >= 0
         ? `<div class="mg-bar-pos" style="width:${barW}px;"></div>`
         : `<div class="mg-bar-neg" style="width:${barW}px;"></div>`;
+      const costoLbl   = r.costoProrr > 0
+        ? `${fmtPeso(r.costo)}<br><span style="font-size:9px;color:#888;font-weight:normal;">dir ${fmtPeso(r.costoDirecto)} + prr ${fmtPeso(r.costoProrr)}</span>`
+        : fmtPeso(r.costo);
       return `<tr>
         <td style="font-weight:bold;">${r.nombre}<br><span style="font-size:10px;color:#888;">${r.fundo}</span></td>
         <td style="text-align:right;color:#b45309;">${fmtPeso(r.ingPpto)}</td>
         <td style="text-align:right;color:#1a6e3a;">${r.ingReal>0?fmtPeso(r.ingReal):"—"}</td>
-        <td style="text-align:right;color:#cc2222;">${fmtPeso(r.costo)}</td>
+        <td style="text-align:right;color:#cc2222;" title="Directo ${fmtPeso(r.costoDirecto)} + Prorrateo ${fmtPeso(r.costoProrr)}">${costoLbl}</td>
         <td style="text-align:right;" class="${r.cls}">${fmtPeso(r.margenPpto)}</td>
         <td style="text-align:right;color:${r.margenReal!==null?(r.margenReal>=0?"#1a6e3a":"#cc2222"):"#aaa"};">
           ${r.margenReal!==null?fmtPeso(r.margenReal):"—"}</td>
@@ -971,7 +1066,22 @@ function renderMargenes() {
         <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
         ${fundoBtnsM}
       </div>
+      <div class="filters-row">
+        <div class="filter-label">Prorrateo</div>
+        <div style="font-size:10px;color:#aaa;margin-right:4px;">(indirectos)</div>
+        <button class="fbtn${modoProrr==="no"?' on':''}" onclick="setProrrateo('no')">Sin prorrateo</button>
+        <button class="fbtn${modoProrr==="ha"?' on':''}" onclick="setProrrateo('ha')">Por hectárea</button>
+        <button class="fbtn${modoProrr==="ingreso"?' on':''}" onclick="setProrrateo('ingreso')">Por ingreso (ppto)</button>
+      </div>
     </div>
+
+    ${prorr.pool > 0 ? `
+    <div style="background:#fff7ed;border:1px solid #fbd5a5;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#7c2d12;">
+      <b>Prorrateo activo (${modoProrr === "ha" ? "por hectárea" : modoProrr === "ingreso" ? "por ingreso ppto" : "sin prorrateo"}):</b>
+      pool de costos indirectos ${fmtPeso(prorr.pool)} repartido entre ${Object.keys(prorr.prorrateoPorUP).length} UP productivas.
+      ${modoProrr === "ha" ? `Factor: ${fmtPeso(prorr.factor)}/há.` : ""}
+      ${totalProrr > 0 && totalProrr < prorr.pool ? ` <span style="color:#991b1b;">Nota: filtros aplicados reducen prorrateo mostrado a ${fmtPeso(totalProrr)}.</span>` : ""}
+    </div>` : ""}
 
     <div class="stat-card" style="margin-bottom:12px;">
       <div class="stat-title">Margen por tonelada</div>
@@ -1593,6 +1703,10 @@ function renderResultadoUP() {
   if (!upsFiltradas.includes(window._resUPActiva))
     window._resUPActiva = upsFiltradas[0];
 
+  // Prorrateo (mismo modo que márgenes)
+  const modoProrrR = stateMargenes.prorrateo || "ha";
+  const prorrR     = calcularProrrateo(tempActiva, modoProrrR, ingPpto);
+
   const selectorBtns = upsFiltradas.map(id => {
     const sel    = window._resUPs.includes(id);
     const activa = id === window._resUPActiva;
@@ -1620,7 +1734,9 @@ function renderResultadoUP() {
     const ha      = HA_MAP[upId]||0;
     const tReg    = costoRegTotal[upId]||0;
     const tAsig   = costoAsigTotal[upId]||0;
-    const tCosto  = tReg + tAsig;
+    const tDirecto = tReg + tAsig;
+    const tProrr   = prorrR.prorrateoPorUP[upId] || 0;
+    const tCosto  = tDirecto + tProrr;
     const tPpto   = ingPpto[upId]||0;
     const tFact   = ingFact[upId]||0;
     const tPend   = Math.max(0, tPpto - tFact);
@@ -1698,6 +1814,7 @@ function renderResultadoUP() {
           <div style="margin-bottom:8px;">
             <div style="font-size:11px;color:#888;">Total</div>
             <div style="font-size:20px;font-weight:700;color:#cc2222;">${fmtPeso(tCosto)}</div>
+            ${tProrr > 0 ? `<div style="font-size:10px;color:#888;margin-top:2px;">Directo ${fmtPeso(tDirecto)} + Prorrateo ${fmtPeso(tProrr)}</div>` : ""}
           </div>
           ${ha>0?`<div style="font-size:12px;color:#888;margin-bottom:8px;">$${Math.round(tCosto/ha).toLocaleString("es-CL")}/há</div>`:""}
 
@@ -1724,6 +1841,13 @@ function renderResultadoUP() {
               ${rowsAsig||'<tr><td colspan="2" style="font-size:12px;color:#aaa;padding:4px 8px;">Sin registros</td></tr>'}
             </table>
           </div>
+
+          ${tProrr > 0 ? `
+          <!-- Bloque Prorrateo -->
+          <div style="background:#fff7ed;border:1px solid #fbd5a5;border-radius:6px;padding:7px 10px;margin-top:6px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:11px;font-weight:600;color:#7c2d12;">🔄 Prorrateo (${modoProrrR === "ha" ? "por há" : "por ingreso"})</span>
+            <span style="font-size:12px;font-weight:700;color:#7c2d12;">${fmtPeso(tProrr)}</span>
+          </div>` : ""}
         </div>
 
         <!-- MARGEN -->
@@ -1870,9 +1994,11 @@ function renderResultadoUP() {
   // ── VISTA COMPARATIVA ─────────────────────────────────────────────────────
   function tablaComparativa() {
     const rows = upsFiltradas.map(id => {
-      const nombre  = CC_MAP[id]||id;
-      const ha      = HA_MAP[id]||0;
-      const tCosto  = (costoRegTotal[id]||0) + (costoAsigTotal[id]||0);
+      const nombre   = CC_MAP[id]||id;
+      const ha       = HA_MAP[id]||0;
+      const tDirecto = (costoRegTotal[id]||0) + (costoAsigTotal[id]||0);
+      const tProrr   = prorrR.prorrateoPorUP[id] || 0;
+      const tCosto   = tDirecto + tProrr;
       const tPpto   = ingPpto[id]||0;
       const tFact   = ingFact[id]||0;
       const mgnPpto = tPpto - tCosto;
@@ -1881,11 +2007,14 @@ function renderResultadoUP() {
       const clsP    = mgnPpto>=0?"color:#1a6e3a":"color:#cc2222";
       const clsR    = mgnReal>=0?"color:#1a6e3a":"color:#cc2222";
       const avC     = pctAv>=100?"#1a6e3a":pctAv>=50?"#d97706":"#888";
+      const costoLbl = tProrr > 0
+        ? `${fmtPeso(tCosto)}<br><span style="font-size:9px;color:#888;font-weight:400;">dir ${fmtPeso(tDirecto)} + prr ${fmtPeso(tProrr)}</span>`
+        : fmtPeso(tCosto);
       return `<tr style="border-bottom:1px solid #f0ede6;">
         <td style="padding:8px 10px;font-weight:600;">${nombre}<br><span style="font-size:10px;color:#888;font-weight:400;">${ha}há</span></td>
         <td style="text-align:right;padding:8px 10px;color:#b45309;font-weight:600;">${fmtPeso(tPpto)}</td>
         <td style="text-align:right;padding:8px 10px;color:#1a6e3a;font-weight:600;">${tFact>0?fmtPeso(tFact):"—"}</td>
-        <td style="text-align:right;padding:8px 10px;color:#cc2222;font-weight:600;">${fmtPeso(tCosto)}</td>
+        <td style="text-align:right;padding:8px 10px;color:#cc2222;font-weight:600;" title="Directo ${fmtPeso(tDirecto)} + Prorrateo ${fmtPeso(tProrr)}">${costoLbl}</td>
         <td style="text-align:right;padding:8px 10px;font-weight:700;${clsP}">${fmtPeso(mgnPpto)}</td>
         <td style="text-align:right;padding:8px 10px;font-weight:700;${clsR}">${tFact>0?fmtPeso(mgnReal):"—"}</td>
         <td style="padding:8px 10px;">
@@ -1900,15 +2029,22 @@ function renderResultadoUP() {
     }).join("");
 
     // Totales
-    let tTP=0,tTF=0,tTC=0;
+    let tTP=0,tTF=0,tTC=0,tTD=0,tTPr=0;
     upsFiltradas.forEach(id => {
       tTP += ingPpto[id]||0;
       tTF += ingFact[id]||0;
-      tTC += (costoRegTotal[id]||0)+(costoAsigTotal[id]||0);
+      const dir  = (costoRegTotal[id]||0)+(costoAsigTotal[id]||0);
+      const prr  = prorrR.prorrateoPorUP[id]||0;
+      tTD += dir;
+      tTPr += prr;
+      tTC += dir + prr;
     });
     const tMP = tTP-tTC, tMR = tTF-tTC;
     const tAv = tTP>0?Math.round(tTF/tTP*100):0;
     const tAvC = tAv>=100?"#1a6e3a":tAv>=50?"#d97706":"#888";
+    const totalCostoLbl = tTPr > 0
+      ? `${fmtPeso(tTC)}<br><span style="font-size:9px;color:#888;font-weight:400;">dir ${fmtPeso(tTD)} + prr ${fmtPeso(tTPr)}</span>`
+      : fmtPeso(tTC);
 
     return `<div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
@@ -1929,7 +2065,7 @@ function renderResultadoUP() {
             <td style="padding:8px 10px;">Total</td>
             <td style="text-align:right;padding:8px 10px;color:#b45309;">${fmtPeso(tTP)}</td>
             <td style="text-align:right;padding:8px 10px;color:#1a6e3a;">${tTF>0?fmtPeso(tTF):"—"}</td>
-            <td style="text-align:right;padding:8px 10px;color:#cc2222;">${fmtPeso(tTC)}</td>
+            <td style="text-align:right;padding:8px 10px;color:#cc2222;">${totalCostoLbl}</td>
             <td style="text-align:right;padding:8px 10px;color:${tMP>=0?"#1a6e3a":"#cc2222"};">${fmtPeso(tMP)}</td>
             <td style="text-align:right;padding:8px 10px;color:${tMR>=0?"#1a6e3a":"#cc2222"};">${tTF>0?fmtPeso(tMR):"—"}</td>
             <td style="padding:8px 10px;">
@@ -1952,7 +2088,22 @@ function renderResultadoUP() {
         <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Centro de Costo</div>
         <div style="display:flex;flex-wrap:wrap;gap:4px;">${fundoBtns}</div>
       </div>
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Prorrateo</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">
+          <button onclick="setProrrateo('no')" style="padding:5px 12px;border-radius:20px;border:1px solid ${modoProrrR==='no'?'#1a3a0a':'#ddd'};background:${modoProrrR==='no'?'#1a3a0a':'#fff'};color:${modoProrrR==='no'?'#fff':'#333'};font-size:12px;cursor:pointer;margin:2px;">Sin prorrateo</button>
+          <button onclick="setProrrateo('ha')" style="padding:5px 12px;border-radius:20px;border:1px solid ${modoProrrR==='ha'?'#1a3a0a':'#ddd'};background:${modoProrrR==='ha'?'#1a3a0a':'#fff'};color:${modoProrrR==='ha'?'#fff':'#333'};font-size:12px;cursor:pointer;margin:2px;">Por hectárea</button>
+          <button onclick="setProrrateo('ingreso')" style="padding:5px 12px;border-radius:20px;border:1px solid ${modoProrrR==='ingreso'?'#1a3a0a':'#ddd'};background:${modoProrrR==='ingreso'?'#1a3a0a':'#fff'};color:${modoProrrR==='ingreso'?'#fff':'#333'};font-size:12px;cursor:pointer;margin:2px;">Por ingreso</button>
+        </div>
+      </div>
     </div>
+
+    ${prorrR.pool > 0 ? `
+    <div style="background:#fff7ed;border:1px solid #fbd5a5;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#7c2d12;">
+      <b>Prorrateo activo (${modoProrrR === "ha" ? "por hectárea" : modoProrrR === "ingreso" ? "por ingreso ppto" : "sin prorrateo"}):</b>
+      pool de costos indirectos ${fmtPeso(prorrR.pool)} repartido entre ${Object.keys(prorrR.prorrateoPorUP).length} UP productivas.
+      ${modoProrrR === "ha" ? `Factor: ${fmtPeso(prorrR.factor)}/há.` : ""}
+    </div>` : ""}
 
     <!-- Card detalle: muestra la UP activa -->
     ${(()=>{
