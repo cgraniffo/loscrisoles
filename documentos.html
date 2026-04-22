@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<script>
+if (location.search.includes('embed=1')) {
+  document.write('<style>.hdr,.header{display:none!important}</style>');
+}
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentos — Los Crisoles</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
+
+  /* HEADER */
+  .hdr { background: #1a3a0a; color: #fff; padding: 18px 20px 16px; }
+  .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
+  .hdr-title { font-size: 20px; font-weight: bold; }
+  .hdr-sub { font-size: 12px; color: #9fe1cb; margin-top: 3px; }
+
+  .body { padding: 16px; max-width: 1280px; margin: 0 auto; }
+
+  /* FILTROS */
+  .filters-card { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 14px 16px; margin-bottom: 12px; }
+  .filters-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+  .filters-row:last-child { margin-bottom: 0; }
+  .filter-label { font-size: 11px; color: #888; letter-spacing: 0.05em; text-transform: uppercase; font-weight: 600; min-width: 70px; }
+  .fbtn { font-size: 11px; padding: 5px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; white-space: nowrap; }
+  .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
+  .fbtn:hover { border-color: #1a3a0a; }
+  input[type="text"], input[type="date"], select {
+    border: 1px solid #ddd; border-radius: 6px; padding: 6px 10px;
+    font-size: 12px; font-family: inherit; outline: none;
+  }
+  input[type="text"]:focus, input[type="date"]:focus, select:focus { border-color: #1a3a0a; }
+  .clear-btn { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid #ddd; background: #fff; color: #666; cursor: pointer; }
+  .clear-btn:hover { background: #f0ede6; }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+  .kpi { background: #fff; border: 1px solid #e5e2da; border-radius: 8px; padding: 10px 12px; }
+  .kpi-lbl { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .kpi-val { font-size: 18px; font-weight: 700; margin-top: 4px; color: #1a3a0a; font-variant-numeric: tabular-nums; }
+  .kpi-sub { font-size: 10px; color: #aaa; margin-top: 2px; }
+
+  /* TABLA */
+  .table-wrap { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; overflow: hidden; }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th {
+    background: #fafaf7; padding: 10px 12px; text-align: left;
+    font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #666; border-bottom: 2px solid #e5e2da; white-space: nowrap;
+  }
+  td { padding: 9px 12px; border-bottom: 1px solid #f5f3ef; vertical-align: middle; }
+  tr:hover td { background: #fafaf7; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.txt { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .badge {
+    display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 99px;
+    font-weight: 600; white-space: nowrap;
+  }
+  .badge-factura         { background: #faece7; color: #993c1d; }
+  .badge-factura-emitida { background: #eaf3de; color: #3b6d11; }
+  .badge-guia            { background: #e6f1fb; color: #0c447c; }
+  .badge-guia-emitida    { background: #fef3d7; color: #854f0b; }
+  .badge-asig  { background: #86efac33; color: #1a3a0a; }
+  .badge-sin   { background: #fecaca66; color: #991b1b; }
+
+  .btn-ver {
+    font-size: 10px; padding: 4px 10px; border-radius: 5px;
+    background: #1a3a0a; color: #fff; border: none; cursor: pointer;
+    font-weight: 600; white-space: nowrap;
+  }
+  .btn-ver:hover { background: #2d6a1a; }
+
+  /* PAGINACION + FOOTER TABLA */
+  .table-foot { padding: 12px 16px; background: #fafaf7; border-top: 1px solid #e5e2da; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; }
+  .page-btns { display: flex; gap: 4px; }
+  .page-btn { padding: 4px 10px; border-radius: 5px; border: 1px solid #ddd; background: #fff; cursor: pointer; font-size: 11px; color: #555; }
+  .page-btn:hover:not(:disabled) { border-color: #1a3a0a; }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .page-btn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
+
+  /* EMPTY STATE */
+  .empty { text-align: center; padding: 40px 20px; color: #999; font-size: 13px; }
+  .loading { text-align: center; padding: 40px; color: #888; font-size: 13px; }
+
+  /* MODAL XML */
+  .modal-backdrop {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(26, 58, 10, 0.7); backdrop-filter: blur(2px);
+    z-index: 9999; display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-backdrop.on { display: flex; }
+  .modal {
+    background: #fff; border-radius: 12px; max-width: 900px; width: 100%;
+    max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .modal-head {
+    padding: 12px 18px; border-bottom: 1px solid #e5e2da;
+    display: flex; justify-content: space-between; align-items: center;
+    background: #1a3a0a; color: #fff;
+  }
+  .modal-title { font-size: 13px; font-weight: 600; }
+  .modal-sub { font-size: 11px; color: #9fe1cb; margin-top: 2px; }
+  .modal-close {
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    width: 28px; height: 28px; border-radius: 6px; cursor: pointer;
+    font-size: 16px; line-height: 1;
+  }
+  .modal-close:hover { background: rgba(255,255,255,0.25); }
+  .modal-body { flex: 1; overflow: hidden; position: relative; }
+  .modal-body iframe { width: 100%; height: 100%; border: none; }
+  .modal-footer { padding: 10px 18px; border-top: 1px solid #e5e2da; background: #fafaf7; font-size: 11px; color: #666; display: flex; justify-content: space-between; align-items: center; }
+  .modal-footer a { color: #1a3a0a; font-weight: 600; text-decoration: none; }
+  .modal-footer a:hover { text-decoration: underline; }
+
+  /* SEARCH BAR */
+  .search-row { display: flex; gap: 8px; align-items: center; flex: 1; min-width: 260px; }
+  .search-row input[type="text"] { flex: 1; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .kpis { grid-template-columns: 1fr 1fr; }
+    .hdr-title { font-size: 17px; }
+    .filter-label { min-width: unset; }
+    table { font-size: 11px; }
+    th, td { padding: 7px 8px; }
+    td.txt { max-width: 150px; }
+    .modal { max-width: 100%; max-height: 95vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">BData · Agrícola Los Crisoles</div>
+  <div class="hdr-title">📄 Documentos</div>
+  <div class="hdr-sub">Visor universal · facturas y guías recibidas y emitidas</div>
+</div>
+
+<div class="body">
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-lbl">Resultados filtrados</div>
+      <div class="kpi-val" id="kpi-count">—</div>
+      <div class="kpi-sub" id="kpi-count-sub">de N totales</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Monto total</div>
+      <div class="kpi-val" id="kpi-monto">—</div>
+      <div class="kpi-sub">en la selección</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Asignados</div>
+      <div class="kpi-val" id="kpi-asig">—</div>
+      <div class="kpi-sub" id="kpi-asig-sub">del total</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-lbl">Sin asignar</div>
+      <div class="kpi-val" id="kpi-sin" style="color:#991b1b;">—</div>
+      <div class="kpi-sub">requieren acción</div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filters-card">
+    <div class="filters-row">
+      <div class="filter-label">Tipo</div>
+      <button class="fbtn on" id="f-todos"           onclick="setTipo('todos')">Todos</button>
+      <button class="fbtn"    id="f-factura"         onclick="setTipo('factura')">📄 Fact. recibidas</button>
+      <button class="fbtn"    id="f-factura-emitida" onclick="setTipo('factura-emitida')">🌾 Fact. emitidas</button>
+      <button class="fbtn"    id="f-guia"            onclick="setTipo('guia')">🚚 Guías recibidas</button>
+      <button class="fbtn"    id="f-guia-emitida"    onclick="setTipo('guia-emitida')">📦 Guías emitidas</button>
+    </div>
+
+    <div class="filters-row">
+      <div class="filter-label">Estado</div>
+      <button class="fbtn on" id="e-todos" onclick="setEstado('todos')">Todos</button>
+      <button class="fbtn" id="e-asig" onclick="setEstado('asig')">Asignados</button>
+      <button class="fbtn" id="e-sin" onclick="setEstado('sin')">Sin asignar</button>
+    </div>
+
+    <div class="filters-row">
+      <div class="filter-label">Fecha</div>
+      <span style="font-size:11px;color:#888;">desde</span>
+      <input type="date" id="fecha-desde" onchange="render()">
+      <span style="font-size:11px;color:#888;">hasta</span>
+      <input type="date" id="fecha-hasta" onchange="render()">
+      <button class="fbtn" onclick="setRango(30)">30d</button>
+      <button class="fbtn" onclick="setRango(90)">90d</button>
+      <button class="fbtn" onclick="setRango(365)">Año</button>
+      <button class="fbtn" onclick="setRango(null)">Todo</button>
+    </div>
+
+    <div class="filters-row">
+      <div class="filter-label">Buscar</div>
+      <div class="search-row">
+        <input type="text" id="search" placeholder="RUT, proveedor, folio..." oninput="render()">
+      </div>
+      <button class="clear-btn" onclick="clearFiltros()">✕ limpiar</button>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div class="table-wrap">
+    <div class="table-scroll">
+      <table id="docs-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Tipo</th>
+            <th>Proveedor / Cliente</th>
+            <th>Folio</th>
+            <th style="text-align:right;">Monto</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="docs-body">
+          <tr><td colspan="7" class="loading">Cargando documentos...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="table-foot" id="table-foot" style="display:none;">
+      <div id="paging-info">—</div>
+      <div class="page-btns" id="page-btns"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL XML -->
+<div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="modal-title">Documento</div>
+        <div class="modal-sub" id="modal-sub">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <iframe id="modal-iframe" src="about:blank"></iframe>
+    </div>
+    <div class="modal-footer">
+      <span>📄 Visor XML · <span id="modal-url-hint"></span></span>
+      <a id="modal-open-new" href="#" target="_blank">Abrir en nueva pestaña ↗</a>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+const API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
+const WORKER  = "https://round-night-574d.christian-19c.workers.dev";
+const VISOR_URL = "https://cgraniffo.pythonanywhere.com/ver_documento/LOS%20CRISOLES";
+const RUT_LC = "76099766-8";
+const PAGE_SIZE = 50;
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let DOCS = [];          // Lista combinada con _tipo agregado
+let ASIGNADOS = new Set();  // KEYs asignados (en Asignaciones_U)
+let tipoFiltro = "todos";
+let estadoFiltro = "todos";
+let currentPage = 1;
+
+// ═══════════════════════════════════════════════════════════════
+// UTILIDADES
+// ═══════════════════════════════════════════════════════════════
+async function fetchSheet(sheet) {
+  const url = API_FIN + "?sheet=" + encodeURIComponent(sheet);
+  const res = await fetch(WORKER + "?url=" + encodeURIComponent(url), { redirect: "follow" });
+  return res.json();
+}
+
+function fmtPeso(n) {
+  if (!n || isNaN(n)) return "—";
+  return "$" + Math.round(Number(n)).toLocaleString("es-CL");
+}
+function fmtPesoK(n) {
+  if (!n || isNaN(n)) return "—";
+  const abs = Math.abs(Number(n));
+  if (abs >= 1000000) return "$" + (Number(n)/1000000).toFixed(1) + "M";
+  return "$" + Math.round(Number(n)/1000).toLocaleString("es-CL") + "k";
+}
+
+function parseFecha(s) {
+  if (!s) return null;
+  if (s instanceof Date) return s;
+  // Soporta "YYYY-MM-DD" y "DD-MM-YYYY"
+  const str = String(s).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return new Date(str);
+  const m = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (m) return new Date(Number(m[3]), Number(m[2])-1, Number(m[1]));
+  const d = new Date(str);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function fmtFecha(s) {
+  const d = parseFecha(s);
+  if (!d) return "—";
+  return d.toLocaleDateString("es-CL", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function toDateInput(d) {
+  if (!d) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FILTROS
+// ═══════════════════════════════════════════════════════════════
+function setTipo(t) {
+  tipoFiltro = t;
+  ["todos","factura","factura-emitida","guia","guia-emitida"].forEach(x => {
+    const el = document.getElementById("f-"+x);
+    if (el) el.className = "fbtn" + (x===t?" on":"");
+  });
+  currentPage = 1;
+  render();
+}
+
+function setEstado(e) {
+  estadoFiltro = e;
+  ["todos","asig","sin"].forEach(x => {
+    const el = document.getElementById("e-"+x);
+    if (el) el.className = "fbtn" + (x===e?" on":"");
+  });
+  currentPage = 1;
+  render();
+}
+
+function setRango(dias) {
+  const hasta = new Date();
+  if (dias === null) {
+    document.getElementById("fecha-desde").value = "";
+    document.getElementById("fecha-hasta").value = "";
+  } else {
+    const desde = new Date();
+    desde.setDate(desde.getDate() - dias);
+    document.getElementById("fecha-desde").value = toDateInput(desde);
+    document.getElementById("fecha-hasta").value = toDateInput(hasta);
+  }
+  currentPage = 1;
+  render();
+}
+
+function clearFiltros() {
+  document.getElementById("search").value = "";
+  setTipo("todos");
+  setEstado("todos");
+  setRango(30); // vuelve al default 30 días
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════════
+function openModal(doc) {
+  const rut = String(doc["RUT Emisor"]||"").trim();
+  const folio = String(doc["Folio"]||"").trim();
+  const proveedor = String(doc["Razón Social"]||doc["Razon Social"]||"").trim() || "—";
+  const fecha = fmtFecha(doc["Fecha Emisión"]||doc["Fecha Emision"]);
+  const url = VISOR_URL + "/" + encodeURIComponent(rut) + "/" + encodeURIComponent(folio);
+  
+  document.getElementById("modal-title").textContent = `${proveedor} · Folio ${folio}`;
+  document.getElementById("modal-sub").textContent = `${rut} · ${fecha} · ${fmtPeso(doc["Monto Total"])}`;
+  document.getElementById("modal-iframe").src = url;
+  document.getElementById("modal-open-new").href = url;
+  document.getElementById("modal-url-hint").textContent = `RUT ${rut} · Folio ${folio}`;
+  document.getElementById("modal").classList.add("on");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("on");
+  document.getElementById("modal-iframe").src = "about:blank";
+  document.body.style.overflow = "";
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeModal();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function filtrarDocs() {
+  const search = (document.getElementById("search").value||"").toLowerCase().trim();
+  const desdeStr = document.getElementById("fecha-desde").value;
+  const hastaStr = document.getElementById("fecha-hasta").value;
+  const desde = desdeStr ? new Date(desdeStr) : null;
+  const hasta = hastaStr ? new Date(hastaStr + "T23:59:59") : null;
+
+  return DOCS.filter(d => {
+    // Tipo
+    if (tipoFiltro !== "todos" && d._tipo !== tipoFiltro) return false;
+    
+    // Estado asignación
+    const key = d["KEY"] || "";
+    const asignado = ASIGNADOS.has(key);
+    if (estadoFiltro === "asig" && !asignado) return false;
+    if (estadoFiltro === "sin"  &&  asignado) return false;
+    
+    // Fecha
+    const f = parseFecha(d["Fecha Emisión"]||d["Fecha Emision"]);
+    if (desde && f && f < desde) return false;
+    if (hasta && f && f > hasta) return false;
+    
+    // Búsqueda
+    if (search) {
+      const hay = (
+        String(d["RUT Emisor"]||"") + " " +
+        String(d["Razón Social"]||d["Razon Social"]||"") + " " +
+        String(d["Folio"]||"")
+      ).toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    
+    return true;
+  });
+}
+
+function render() {
+  const filtrados = filtrarDocs();
+  
+  // KPIs
+  const total = DOCS.length;
+  const cant = filtrados.length;
+  const monto = filtrados.reduce((s,d) => s + Number(d["Monto Total"]||0), 0);
+  const asigCount = filtrados.filter(d => ASIGNADOS.has(d["KEY"]||"")).length;
+  const sinCount = cant - asigCount;
+  
+  document.getElementById("kpi-count").textContent = cant.toLocaleString("es-CL");
+  document.getElementById("kpi-count-sub").textContent = `de ${total.toLocaleString("es-CL")} totales`;
+  document.getElementById("kpi-monto").textContent = fmtPesoK(monto);
+  document.getElementById("kpi-asig").textContent = asigCount.toLocaleString("es-CL");
+  document.getElementById("kpi-asig-sub").textContent = cant>0 ? `${Math.round(asigCount/cant*100)}% del total` : "0%";
+  document.getElementById("kpi-sin").textContent = sinCount.toLocaleString("es-CL");
+  
+  // Ordenar por fecha desc
+  filtrados.sort((a,b) => {
+    const fa = parseFecha(a["Fecha Emisión"]||a["Fecha Emision"]);
+    const fb = parseFecha(b["Fecha Emisión"]||b["Fecha Emision"]);
+    return (fb?.getTime()||0) - (fa?.getTime()||0);
+  });
+  
+  // Paginación
+  const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage-1) * PAGE_SIZE;
+  const pageDocs = filtrados.slice(start, start + PAGE_SIZE);
+  
+  const tbody = document.getElementById("docs-body");
+  
+  if (filtrados.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">📭 Sin documentos con los filtros actuales</td></tr>`;
+    document.getElementById("table-foot").style.display = "none";
+    return;
+  }
+  
+  tbody.innerHTML = pageDocs.map((d,idx) => {
+    const tipo = d._tipo;
+    const tipoLabel = {
+      "factura": "📄 Fact. recibida",
+      "factura-emitida": "🌾 Fact. emitida",
+      "guia": "🚚 Guía recib.",
+      "guia-emitida": "📦 Guía emitida"
+    }[tipo] || tipo;
+    
+    const proveedor = String(d["Razón Social"]||d["Razon Social"]||"").trim() || `RUT ${d["RUT Emisor"]}`;
+    const key = d["KEY"] || "";
+    const asignado = ASIGNADOS.has(key);
+    const rut = String(d["RUT Emisor"]||"").trim();
+    const folio = String(d["Folio"]||"").trim();
+    const canVer = rut && folio;
+    
+    return `<tr>
+      <td>${fmtFecha(d["Fecha Emisión"]||d["Fecha Emision"])}</td>
+      <td><span class="badge badge-${tipo}">${tipoLabel}</span></td>
+      <td class="txt" title="${proveedor}">${proveedor}</td>
+      <td>${folio||"—"}</td>
+      <td class="num"><strong>${fmtPeso(d["Monto Total"])}</strong></td>
+      <td><span class="badge ${asignado?"badge-asig":"badge-sin"}">${asignado?"✓ asignado":"sin asignar"}</span></td>
+      <td style="text-align:right;">
+        ${canVer 
+          ? `<button class="btn-ver" onclick='openModal(${JSON.stringify(d).replace(/'/g,"&#39;")})'>📄 Ver XML</button>`
+          : `<span style="font-size:10px;color:#bbb;">sin XML</span>`
+        }
+      </td>
+    </tr>`;
+  }).join("");
+  
+  // Footer con paginación
+  const foot = document.getElementById("table-foot");
+  const info = document.getElementById("paging-info");
+  const btns = document.getElementById("page-btns");
+  
+  foot.style.display = "flex";
+  info.textContent = `Mostrando ${start+1}-${Math.min(start+PAGE_SIZE, filtrados.length)} de ${filtrados.length.toLocaleString("es-CL")}`;
+  
+  // Botones paginación: Primera, Anterior, números cercanos, Siguiente, Última
+  let btnsHtml = "";
+  if (totalPages > 1) {
+    btnsHtml += `<button class="page-btn" onclick="setPage(1)" ${currentPage===1?"disabled":""}>«</button>`;
+    btnsHtml += `<button class="page-btn" onclick="setPage(${currentPage-1})" ${currentPage===1?"disabled":""}>‹</button>`;
+    
+    // Mostrar hasta 5 páginas alrededor de la actual
+    const minP = Math.max(1, currentPage - 2);
+    const maxP = Math.min(totalPages, currentPage + 2);
+    for (let p = minP; p <= maxP; p++) {
+      btnsHtml += `<button class="page-btn ${p===currentPage?"on":""}" onclick="setPage(${p})">${p}</button>`;
+    }
+    
+    btnsHtml += `<button class="page-btn" onclick="setPage(${currentPage+1})" ${currentPage===totalPages?"disabled":""}>›</button>`;
+    btnsHtml += `<button class="page-btn" onclick="setPage(${totalPages})" ${currentPage===totalPages?"disabled":""}>»</button>`;
+  }
+  btns.innerHTML = btnsHtml;
+}
+
+function setPage(p) {
+  currentPage = p;
+  render();
+  document.querySelector(".table-wrap").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARGA INICIAL
+// ═══════════════════════════════════════════════════════════════
+async function init() {
+  try {
+    // Default range: últimos 30 días
+    setRango(30);
+    
+    const [docs, guias, asignaciones] = await Promise.all([
+      fetchSheet("CargaHTML_Demo"),
+      fetchSheet("GuiasDespacho"),
+      fetchSheet("Asignaciones_U")
+    ]);
+    
+    const docsArr  = Array.isArray(docs)  ? docs  : [];
+    const guiasArr = Array.isArray(guias) ? guias : [];
+    const asigArr  = Array.isArray(asignaciones) ? asignaciones : [];
+    
+    // Asignados: KEYs que aparecen en Asignaciones_U
+    ASIGNADOS = new Set(asigArr.map(a => a["KEY_Documento"]).filter(Boolean));
+    
+    // Clasificar cada doc por _tipo
+    const facturasRec = docsArr
+      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
+      .map(d => ({ ...d, _tipo: "factura" }));
+    
+    const facturasEmit = docsArr
+      .filter(d => String(d["RUT Emisor"]||"").trim() === RUT_LC)
+      .map(d => ({ ...d, _tipo: "factura-emitida" }));
+    
+    const guiasRec = guiasArr
+      .filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC)
+      .map(d => ({ ...d, _tipo: "guia" }));
+    
+    const guiasEmit = guiasArr
+      .filter(d => String(d["RUT Emisor"]||"").trim() === RUT_LC)
+      .map(d => ({ ...d, _tipo: "guia-emitida" }));
+    
+    DOCS = [...facturasRec, ...facturasEmit, ...guiasRec, ...guiasEmit];
+    
+    render();
+  } catch(e) {
+    console.error(e);
+    document.getElementById("docs-body").innerHTML = 
+      `<tr><td colspan="7" class="empty" style="color:#991b1b;">Error al cargar: ${e.message}</td></tr>`;
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
