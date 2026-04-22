@@ -2021,10 +2021,93 @@ function getTemporadaActiva() {
 let TEMPORADA_ACTIVA = "";
 function cambiarTemporada(temp) {
   TEMPORADA_ACTIVA = temp;
+  updateHeaderKPIs();
   renderCostos();
   renderMargenes();
   renderIngresos();
   renderResultadoUP();
+}
+
+// ── UPDATE HEADER KPIS por temporada ────────────────────────────────────────
+// Aplica la misma lógica híbrida (BD_Registro pre-corte + Asignaciones_U post-corte)
+// que renderCostos, filtrando por temporada activa y excluyendo ingresos.
+function updateHeaderKPIs() {
+  const tempActiva = TEMPORADA_ACTIVA || getTemporadaActiva();
+  const FECHA_CORTE = FECHA_CORTE_COSTOS;
+  const RUT_LC = "76099766-8";
+
+  // Costos BD_Registro pre-corte, por temporada de la UP
+  let totalReg = 0;
+  (window.TODOS||[]).forEach(r => {
+    const raw   = String(r["Fecha"]||"");
+    const fecha = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
+    const ccId  = String(r["Centro_Costo"]||"").trim();
+    const tmpCC = TEMP_MAP[ccId];
+    const tempR = tmpCC ? getTemporadaDeFecha(r["Fecha"], tmpCC.mesInicio) : null;
+    if (Number(r["Costo Total"]||0) > 0 && (fecha === "" || fecha < FECHA_CORTE)
+      && (!tempActiva || tempR === tempActiva)) {
+      totalReg += Number(r["Costo Total"]||0);
+    }
+  });
+
+  // Costos Asignaciones_U por temporada de la UP, excluyendo ingresos
+  let totalAsig = 0;
+  (window.ASIGNACIONES||[]).forEach(r => {
+    const ccId  = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
+    const tmpCC = TEMP_MAP[ccId];
+    const passTemp = !tempActiva || (tmpCC && tmpCC.temporada === tempActiva);
+    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
+    const partes = String(r["KEY_Documento"]||"").split("-");
+    const rutEmis = partes.length < 4 ? "" : partes[1] + "-" + partes[2];
+    const esIngreso = tipo.includes("emit") || (tipo.includes("factura") && rutEmis === RUT_LC);
+    if (Number(r["Monto_Asignado"]||0) > 0 && passTemp && !esIngreso) {
+      totalAsig += Number(r["Monto_Asignado"]||0);
+    }
+  });
+
+  const totalCosto = totalReg + totalAsig;
+
+  // Hectáreas totales de la temporada activa
+  const haTemp = Object.keys(CC_MAP).reduce((s, id) => {
+    const tmp = TEMP_MAP[id];
+    const pasa = !tempActiva || (tmp && tmp.temporada === tempActiva);
+    return s + (pasa ? (HA_MAP[id]||0) : 0);
+  }, 0);
+  const costoHa = haTemp > 0 ? totalCosto / haTemp : 0;
+
+  const mCT = document.getElementById("m-costo-total");
+  const mCH = document.getElementById("m-costo-ha");
+  if (mCT) mCT.textContent = fmtPeso(totalCosto);
+  if (mCH) mCH.textContent = fmtPeso(costoHa);
+
+  // Ingresos header (facturado + proyecciones filtrado por temporada)
+  let ingReal = 0, ingEst = 0, kilosTot = 0;
+  (window.PROYECCIONES||[]).forEach(r => {
+    const id = String(r["Unidad_Productiva"]||"").trim();
+    const tmp = TEMP_MAP[id];
+    if (tempActiva && (!tmp || tmp.temporada !== tempActiva)) return;
+    const est = String(r["Estado"]||"").trim();
+    const m = Number(r["Monto_Total"]||0);
+    if (est === "Real")     ingReal += m;
+    if (est === "Estimado") ingEst  += m;
+    kilosTot += Number(r["Kilos_Estimados"]||0);
+  });
+  const ingTot = ingReal + ingEst;
+  const precioP = kilosTot > 0 ? ingTot/kilosTot : 0;
+  const setIf = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  setIf("m-ing-total", fmtPeso(ingTot));
+  setIf("m-ing-real", fmtPeso(ingReal));
+  setIf("m-ing-estimado", fmtPeso(ingEst));
+  setIf("m-ing-kilos", Math.round(kilosTot/1000).toLocaleString("es-CL")+"t");
+  setIf("m-ing-precio", "$"+Math.round(precioP).toLocaleString("es-CL")+"/kg");
+
+  // Márgenes header
+  const margenTotal = ingTot - totalCosto;
+  const margenTon   = kilosTot > 0 ? margenTotal / (kilosTot/1000) : 0;
+  const margenHa    = haTemp > 0 ? margenTotal / haTemp : 0;
+  setIf("m-margen-total", fmtPeso(margenTotal));
+  setIf("m-margen-ton", fmtPeso(margenTon));
+  setIf("m-margen-ha", fmtPeso(margenHa));
 }
 
 function toggleBloque(id) {
@@ -2874,24 +2957,30 @@ function renderCostos() {
   }));
 
   // Costos nuevos Asignaciones_U (desde el corte)
-  // Excluir facturas emitidas (ingresos) y guías emitidas — solo costos de proveedores
+  // Excluir facturas emitidas (ingresos) — solo costos de proveedores
   const RUT_LC_COSTOS = "76099766-8";
+  // FIX: extraer RUT emisor desde KEY_Documento ("XXXX-RUT-DV-FOLIO")
+  function rutEmisorC(r) {
+    const partes = String(r["KEY_Documento"]||"").split("-");
+    return partes.length < 4 ? "" : partes[1] + "-" + partes[2];
+  }
   const costosNuevos = (window.ASIGNACIONES||[]).filter(r => {
     const ccId  = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
     const tmpCC = TEMP_MAP[ccId];
-    const fechaAsig = r["Fecha_Documento"] || r["Fecha_Asignacion"];
-    const tempR = tmpCC ? getTemporadaDeFecha(fechaAsig, tmpCC.mesInicio) : null;
-    const passTemp = !tempActiva || tempR === tempActiva;
+    // FIX Opción A: filtrar por temporada de la UP (no por fecha del documento)
+    const passTemp = !tempActiva || (tmpCC && tmpCC.temporada === tempActiva);
     const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    const rut   = String(r["RUT_Emisor"]||r["Proveedor"]||"").trim();
+    // FIX: extraer RUT real desde KEY_Documento en vez de comparar Proveedor (texto)
+    const rutEmis = rutEmisorC(r);
     // Excluir: facturas emitidas por Los Crisoles y guías emitidas (son ingresos)
     const esIngreso = tipo.includes("emit")
-      || (tipo.includes("factura") && rut === RUT_LC_COSTOS);
+      || (tipo.includes("factura") && rutEmis === RUT_LC_COSTOS);
     return Number(r["Monto_Asignado"]||0) > 0 && passTemp && !esIngreso;
   }).map(r => ({
     _fuente:      "Asignaciones_U",
     Centro_Costo: String(r["UP_ID"]||r["UP_Nombre"]||"").trim(),
-    Fecha:        r["Fecha_Documento"] || r["Fecha_Asignacion"],
+    // FIX: leer fecha_documento (minúscula) como viene de la hoja + fallbacks
+    Fecha:        r["Fecha_Documento"] || r["fecha_documento"] || r["Fecha_Asignacion"],
     Tipo_Labor:   String(r["Tipo_Doc"]||"").trim(),
     monto:        Number(r["Monto_Asignado"]||0)
   }));
@@ -3229,24 +3318,9 @@ async function main() {
     document.getElementById("m-hoy").textContent   = hoy;
     document.getElementById("m-prox").textContent  = prox;
 
-    // Costos header metrics
-    const totalCosto = TODOS.reduce((s,r) => s + Number(r["Costo Total"]||0), 0);
-    const totalHa    = Object.values(HA_MAP).reduce((s,v) => s + v, 0);
-    const costoHa    = totalHa > 0 ? totalCosto / totalHa : 0;
-    document.getElementById("m-costo-total").textContent = fmtPeso(totalCosto);
-    document.getElementById("m-costo-ha").textContent    = fmtPeso(costoHa);
-
-    // Margenes header metrics
-    const totalIngreso = proyecciones.reduce((s,r) => s + Number(r["Monto_Total"]||0), 0);
-    const totalKilos   = proyecciones.reduce((s,r) => s + Number(r["Kilos_Estimados"]||0), 0);
-    const margenTotal  = totalIngreso - totalCosto;
-    const margenTon    = totalKilos > 0 ? margenTotal / (totalKilos/1000) : 0;
-
-    document.getElementById("m-margen-total").textContent  = fmtPeso(margenTotal);
-    document.getElementById("m-margen-ton").textContent    = fmtPeso(margenTon);
-    const totalHaM   = Object.values(HA_MAP).reduce((s,v) => s+v, 0);
-    const margenHaM  = totalHaM > 0 ? margenTotal / totalHaM : 0;
-    document.getElementById("m-margen-ha").textContent = fmtPeso(margenHaM);
+    // Costos, Ingresos y Márgenes header metrics — filtrados por temporada activa
+    // (se recalculan también al cambiar temporada vía cambiarTemporada → updateHeaderKPIs)
+    updateHeaderKPIs();
 
     const now = new Date();
     document.getElementById("hdr-date").textContent = now.toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
@@ -3276,18 +3350,6 @@ async function main() {
     renderIngresos();
     renderResultadoUP();
     renderCaja();
-
-    // Ingresos header metrics
-    const ingReal  = proyecciones.filter(r=>String(r["Estado"]||"").trim()==="Real").reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
-    const ingEst   = proyecciones.filter(r=>String(r["Estado"]||"").trim()==="Estimado").reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
-    const ingTot   = ingReal + ingEst;
-    const kilosTot = proyecciones.reduce((s,r)=>s+Number(r["Kilos_Estimados"]||0),0);
-    const precioP  = kilosTot > 0 ? ingTot/kilosTot : 0;
-    document.getElementById("m-ing-total").textContent    = fmtPeso(ingTot);
-    document.getElementById("m-ing-real").textContent     = fmtPeso(ingReal);
-    document.getElementById("m-ing-estimado").textContent = fmtPeso(ingEst);
-    document.getElementById("m-ing-kilos").textContent    = Math.round(kilosTot/1000).toLocaleString("es-CL")+"t";
-    document.getElementById("m-ing-precio").textContent   = "$"+Math.round(precioP).toLocaleString("es-CL")+"/kg";
 
   } catch(e) {
     document.getElementById("app-labores").innerHTML =
