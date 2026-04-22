@@ -380,7 +380,7 @@ if (location.search.includes('embed=1')) {
     <div class="m"><div class="m-val" id="m-caja-p60">—</div><div class="m-label">Proyectado 60d</div></div>
     <div class="m"><div class="m-val" id="m-caja-pm60">—</div><div class="m-label">Proyectado +60d</div></div>
   </div>
-  <div class="metrics-top" id="metrics-margenes" style="display:none;">
+  <div class="metrics-top" id="metrics-resultados" style="display:none;">
     <div class="m"><div class="m-val amber" id="m-margen-total">—</div><div class="m-label">Margen total</div></div>
     <div class="m"><div class="m-val" id="m-margen-ton">—</div><div class="m-label">Margen por tonelada</div></div>
     <div class="m"><div class="m-val" id="m-margen-ha">—</div><div class="m-label">Margen por hectárea</div></div>
@@ -391,8 +391,7 @@ if (location.search.includes('embed=1')) {
       <div class="tab" id="tab-caja" onclick="switchTab('caja')">🏦 Caja</div>
       <div class="tab" id="tab-costos" onclick="switchTab('costos')">💰 Costos</div>
       <div class="tab" id="tab-ingresos" onclick="switchTab('ingresos')">🌾 Ingresos</div>
-      <div class="tab" id="tab-margenes" onclick="switchTab('margenes')">📊 Márgenes</div>
-      <div class="tab" id="tab-resultado" onclick="switchTab('resultado')">📋 Resultado UP</div>
+      <div class="tab" id="tab-resultados" onclick="switchTab('resultados')">📊 Resultados</div>
     </div>
     <div style="padding:0 12px 4px;display:flex;align-items:center;gap:8px;">
       <span style="font-size:11px;color:#9fe1cb;">Temporada:</span>
@@ -406,10 +405,15 @@ if (location.search.includes('embed=1')) {
 <div class="body">
   <div id="app-labores"><div class="loading">Cargando reporte...</div></div>
   <div id="app-costos" style="display:none;"><div class="loading">Cargando costos...</div></div>
-  <div id="app-margenes" style="display:none;"><div class="loading">Cargando márgenes...</div></div>
   <div id="app-caja" style="display:none;"><div class="loading">Cargando caja...</div></div>
   <div id="app-ingresos" style="display:none;"><div class="loading">Cargando ingresos...</div></div>
-  <div id="app-resultado" style="display:none;"><div class="loading">Cargando...</div></div>
+  <div id="app-resultados" style="display:none;"><div class="loading">Cargando resultados...</div></div>
+</div>
+
+<!-- Drawer lateral para detalle UP -->
+<div id="drawer-overlay" onclick="cerrarDrawer()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9000;"></div>
+<div id="drawer-up" style="display:none;position:fixed;top:0;right:0;width:480px;max-width:92vw;height:100vh;background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,0.15);z-index:9001;overflow-y:auto;transform:translateX(100%);transition:transform 0.25s ease;">
+  <div id="drawer-content"></div>
 </div>
 
 <script>
@@ -558,17 +562,9 @@ function fmtPeso(n) {
 
 const C = { venc:{bar:"#fca5a5",date:"#cc2222"}, hoy:{bar:"#fcd34d",date:"#b45309"}, prox:{bar:"#86efac",date:"#166534"} };
 
-function toggleMargenMulti(key, val) {
-  const arr = stateMargenes[key];
-  const idx = arr.indexOf(val);
-  if (idx === -1) arr.push(val); else arr.splice(idx, 1);
-  renderMargenes();
-}
-
 function setProrrateo(modo) {
   stateMargenes.prorrateo = modo;
-  renderMargenes();
-  renderResultadoUP();
+  renderResultados();
 }
 
 // ── CALCULAR PRORRATEO ──────────────────────────────────────────────────────
@@ -660,412 +656,253 @@ function calcularProrrateo(tempActiva, modo, ingresosPorUP) {
   return { pool, prorrateoPorUP, base, modo, factor: pool/base };
 }
 
-function renderMargenes() {
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB RESULTADOS (fusión de ex-Márgenes + ex-Resultado UP)
+// Mapa central + strip totales + tabla comparativa → click abre drawer lateral
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Estado visible del tab Resultados
+let stateResultados = {
+  ups: [],            // filtro UPs (multi)
+  fundos: [],         // filtro CC (multi)
+  unidad: "ha",       // "ha" | "ton" para la columna $/
+  orden: "margenReal" // columna de orden
+};
+
+function toggleResUp(id) {
+  const arr = stateResultados.ups;
+  const i = arr.indexOf(id);
+  if (i === -1) arr.push(id); else arr.splice(i, 1);
+  renderResultados();
+}
+function toggleResFundo(f) {
+  const arr = stateResultados.fundos;
+  const i = arr.indexOf(f);
+  if (i === -1) arr.push(f); else arr.splice(i, 1);
+  renderResultados();
+}
+function setResUnidad(u) {
+  stateResultados.unidad = u;
+  renderResultados();
+}
+function setResOrden(col) {
+  stateResultados.orden = col;
+  renderResultados();
+}
+
+function renderResultados() {
   const FECHA_CORTE = FECHA_CORTE_COSTOS;
   const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
+  const RUT_LC      = "76099766-8";
 
-  // UPs productivas según BD_CC.Es_Base_Prorrateo (fuente única de verdad)
   const esUpProd = id => BASE_PRORRATEO_MAP[id] === true;
-
-  function passTemp(fechaVal, ccId) {
+  function passTemp(ccId) {
     if (!tempActiva) return true;
     const tmp = TEMP_MAP[ccId];
     if (!tmp) return true;
-    return tmp.temporada === tempActiva;  // Opción A: por temporada de UP, no por fecha
+    return tmp.temporada === tempActiva;
   }
-
-  // ── COSTOS (misma lógica que renderCostos) ────────────────────────────────
-  const costosPorUP = {};
-  (window.TODOS||[]).filter(r => {
-    const raw  = String(r["Fecha"]||"");
-    const f    = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
-    const ccId = String(r["Centro_Costo"]||"").trim();
-    return Number(r["Costo Total"]||0) > 0 && (f===""||f<FECHA_CORTE) && passTemp(f, ccId)
-      && esUpProd(ccId);
-  }).forEach(r => {
-    const id = String(r["Centro_Costo"]||"").trim();
-    costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Costo Total"]||0);
-  });
-  (window.ASIGNACIONES||[]).filter(r => {
-    const id    = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    const fecha = r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"";
-    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    const esIngreso = tipo.includes("emit") || tipo === "guia-emitida";
-    return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id)
-      && esUpProd(id) && !esIngreso;
-  }).forEach(r => {
-    const id = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
-  });
-
-  // ── INGRESOS (misma lógica que renderIngresos) ────────────────────────────
+  // Resolver nombre→id de Asignaciones
   const NAME_TO_ID = {};
-  Object.entries(CC_MAP).forEach(([id, nombre]) => { NAME_TO_ID[nombre.trim().toLowerCase()] = id; });
-  function resolveUpId(val) {
-    const raw = String(val||"").trim();
-    if (CC_MAP[raw]) return raw;
-    return NAME_TO_ID[raw.toLowerCase()] || raw;
-  }
-  // FIX: priorizar UP_ID sobre UP_Nombre para evitar colisiones por temporada
+  Object.entries(CC_MAP).forEach(([id,n]) => { NAME_TO_ID[n.trim().toLowerCase()] = id; });
   function getUpId(r) {
     const upId = String(r["UP_ID"]||"").trim();
-    return upId || resolveUpId(r["UP_Nombre"]||"");
+    if (upId) return upId;
+    const raw = String(r["UP_Nombre"]||"").trim();
+    return CC_MAP[raw] ? raw : (NAME_TO_ID[raw.toLowerCase()]||raw);
   }
-  // FIX: extraer RUT emisor desde KEY_Documento ("XXXX-RUT-DV-FOLIO")
   function rutEmisor(r) {
     const partes = String(r["KEY_Documento"]||"").split("-");
     return partes.length < 4 ? "" : partes[1] + "-" + partes[2];
   }
-  const RUT_LC_ING = "76099766-8";
 
-  const ingresosPorUP = {};   // presupuesto (estimado)
-  const facturadoPorUP = {};  // real facturado
-  const kilosPorUP    = {};
-
-  // Facturado real (solo facturas EMITIDAS por LC)
-  (window.ASIGNACIONES||[]).filter(r => {
-    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    const id    = getUpId(r);
-    const fecha = r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"";
-    return tipo.includes("factura") && rutEmisor(r) === RUT_LC_ING
-      && Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id);
-  }).forEach(r => {
+  // ── COSTOS DIRECTOS por UP (solo productivas) ───────────────────────────
+  const costosPorUP = {};
+  (window.TODOS||[]).forEach(r => {
+    const raw  = String(r["Fecha"]||"");
+    const f    = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
+    const ccId = String(r["Centro_Costo"]||"").trim();
+    if (!esUpProd(ccId) || !passTemp(ccId)) return;
+    if (Number(r["Costo Total"]||0) <= 0 || (f !== "" && f >= FECHA_CORTE)) return;
+    costosPorUP[ccId] = (costosPorUP[ccId]||0) + Number(r["Costo Total"]||0);
+  });
+  (window.ASIGNACIONES||[]).forEach(r => {
     const id = getUpId(r);
-    facturadoPorUP[id] = (facturadoPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
+    if (!esUpProd(id) || !passTemp(id)) return;
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    const rut  = rutEmisor(r);
+    const esIngreso = tipo.includes("emit") || (tipo.includes("factura") && rut === RUT_LC);
+    if (Number(r["Monto_Asignado"]||0) <= 0 || esIngreso) return;
+    costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
   });
 
-  // Presupuesto (estimado)
-  (window.PROYECCIONES||[]).filter(r => {
-    const id    = String(r["Unidad_Productiva"]||"").trim();
-    const fecha = r["Fecha_Estimada"]||"";
-    return passTemp(fecha, id);
-  }).forEach(r => {
+  // ── INGRESOS: Ppto (Proyecciones) + Facturado real ───────────────────────
+  const ingPpto = {}, ingFact = {}, kilosPpto = {};
+  (window.PROYECCIONES||[]).forEach(r => {
     const id = String(r["Unidad_Productiva"]||"").trim();
-    ingresosPorUP[id] = (ingresosPorUP[id]||0) + Number(r["Monto_Total"]||0);
-    kilosPorUP[id]    = (kilosPorUP[id]||0)    + Number(r["Kilos_Estimados"]||0);
+    if (!esUpProd(id) || !passTemp(id)) return;
+    ingPpto[id]   = (ingPpto[id]||0)   + Number(r["Monto_Total"]||0);
+    kilosPpto[id] = (kilosPpto[id]||0) + Number(r["Kilos_Estimados"]||0);
+  });
+  (window.ASIGNACIONES||[]).forEach(r => {
+    const id   = getUpId(r);
+    if (!esUpProd(id) || !passTemp(id)) return;
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    const rut  = rutEmisor(r);
+    const esIng = tipo.includes("emit") || (tipo.includes("factura") && rut === RUT_LC);
+    if (!esIng || Number(r["Monto_Asignado"]||0) <= 0) return;
+    ingFact[id] = (ingFact[id]||0) + Number(r["Monto_Asignado"]||0);
   });
 
-  // ── FILAS ─────────────────────────────────────────────────────────────────
-  const allUPs = [...new Set([...Object.keys(costosPorUP), ...Object.keys(ingresosPorUP)])].filter(esUpProd).sort();
+  // ── PRORRATEO ───────────────────────────────────────────────────────────
+  const modoProrr = stateResultados.prorrateo = (stateMargenes.prorrateo || "ha");
+  const prorr     = calcularProrrateo(tempActiva, modoProrr, ingPpto);
 
+  // ── UPs a mostrar (productivas con datos en la temporada) ───────────────
+  const allUPs = [...new Set([
+    ...Object.keys(costosPorUP),
+    ...Object.keys(ingPpto),
+    ...Object.keys(ingFact),
+    ...Object.keys(TEMP_MAP).filter(id => esUpProd(id) && passTemp(id))
+  ])].filter(esUpProd);
+
+  // Filtros
   const filtradas = allUPs.filter(id => {
-    if (stateMargenes.ups.length    > 0 && !stateMargenes.ups.includes(id))                   return false;
-    if (stateMargenes.fundos.length > 0 && !stateMargenes.fundos.includes(FUNDO_MAP[id]||"")) return false;
+    if (stateResultados.ups.length    > 0 && !stateResultados.ups.includes(id))                   return false;
+    if (stateResultados.fundos.length > 0 && !stateResultados.fundos.includes(FUNDO_MAP[id]||"")) return false;
     return true;
   });
 
-  const upBtns     = allUPs.map(id => `<button class="fbtn${stateMargenes.ups.includes(id)?' on':''}" onclick="toggleMargenMulti('ups','${id}')">${CC_MAP[id]||id}</button>`).join("");
-  const fundoOptsM = [...new Set(allUPs.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
-  const fundoBtnsM = fundoOptsM.map(f => `<button class="fbtn${stateMargenes.fundos.includes(f)?' on':''}" onclick="toggleMargenMulti('fundos','${f}')">${f}</button>`).join("");
+  // Armar filas con todos los cálculos
+  const filas = filtradas.map(id => {
+    const nombre    = CC_MAP[id] || id;
+    const fundo     = FUNDO_MAP[id] || "";
+    const ha        = HA_MAP[id] || 0;
+    const kilos     = kilosPpto[id] || 0;
+    const toneladas = kilos/1000;
+    const pptoI     = ingPpto[id] || 0;
+    const factI     = ingFact[id] || 0;
+    const cDir      = costosPorUP[id] || 0;
+    const cPrr      = prorr.prorrateoPorUP[id] || 0;
+    const cTot      = cDir + cPrr;
+    const mgnPpto   = pptoI - cTot;
+    const mgnReal   = factI > 0 ? factI - cTot : null;
+    const pctAv     = pptoI > 0 ? Math.round(factI/pptoI*100) : 0;
+    const mgnHa     = ha > 0 ? (mgnReal !== null ? mgnReal : mgnPpto)/ha : 0;
+    const mgnTon    = toneladas > 0 ? (mgnReal !== null ? mgnReal : mgnPpto)/toneladas : 0;
+    return { id, nombre, fundo, ha, toneladas, pptoI, factI, cDir, cPrr, cTot, mgnPpto, mgnReal, pctAv, mgnHa, mgnTon };
+  });
 
-  // Prorrateo de costos indirectos
-  const modoProrr = stateMargenes.prorrateo || "ha";
-  const prorr     = calcularProrrateo(tempActiva, modoProrr, ingresosPorUP);
-
-  let totalIng = 0, totalFact = 0, totalCost = 0, totalProrr = 0, totalKilos = 0;
-  const rows = filtradas.map(ccId => {
-    const nombre       = CC_MAP[ccId]       || ccId;
-    const fundo        = FUNDO_MAP[ccId]    || "—";
-    const ingPpto      = ingresosPorUP[ccId]  || 0;  // presupuesto
-    const ingReal      = facturadoPorUP[ccId] || 0;  // facturado
-    const costoDirecto = costosPorUP[ccId]    || 0;
-    const costoProrr   = prorr.prorrateoPorUP[ccId] || 0;
-    const costo        = costoDirecto + costoProrr;  // costo total con prorrateo
-    const margenPpto   = ingPpto - costo;
-    const margenReal   = ingReal > 0 ? ingReal - costo : null;
-    const kilos        = kilosPorUP[ccId]   || 0;
-    const toneladas    = kilos / 1000;
-    const ha           = HA_MAP[ccId]       || 0;
-    const mgnPptoTon   = toneladas > 0 ? margenPpto / toneladas : 0;
-    const mgnPptoHa    = ha > 0 ? margenPpto / ha : 0;
-    const mgnRealTon   = (margenReal !== null && toneladas > 0) ? margenReal / toneladas : null;
-    const mgnRealHa    = (margenReal !== null && ha > 0) ? margenReal / ha : null;
-    const pctPpto      = ingPpto > 0 ? (margenPpto/ingPpto*100).toFixed(1) : "—";
-    const pctReal      = (margenReal !== null && ingReal > 0) ? (margenReal/ingReal*100).toFixed(1) : "—";
-    totalIng    += ingPpto;
-    totalFact   += ingReal;
-    totalCost   += costo;
-    totalProrr  += costoProrr;
-    totalKilos  += kilos;
-    return { nombre, fundo, ingPpto, ingReal, costo, costoDirecto, costoProrr,
-             margenPpto, margenReal,
-             toneladas, ha, mgnPptoTon, mgnPptoHa, mgnRealTon, mgnRealHa,
-             pctPpto, pctReal, cls: margenPpto>=0?"mg-pos":"mg-neg" };
-  }).sort((a,b) => b.margenPpto - a.margenPpto);
-
-  const margenTotalPpto = totalIng  - totalCost;
-  const margenTotalReal = totalFact - totalCost;
-  const pctTotal    = totalIng > 0 ? (margenTotalPpto/totalIng*100).toFixed(1) : "—";
-  const clsTotal    = margenTotalPpto >= 0 ? "#1a6e3a" : "#cc2222";
-
-  const rowsConKilos = rows.filter(r => r.toneladas > 0);
-  const rowsConHa    = rows.filter(r => r.ha > 0);
-
-  const buildTable = (filas, tipo) => {
-    if (filas.length === 0) return `<div style="font-size:12px;color:#aaa;padding:12px 0;">Sin datos</div>`;
-    const esTon = tipo === "ton";
-    let tIng=0, tFact=0, tCost=0, tMed=0;
-    filas.forEach(r => { tIng+=r.ingPpto; tFact+=r.ingReal; tCost+=r.costo; tMed += esTon ? r.toneladas : r.ha; });
-    const tMgnPpto = tIng  - tCost;
-    const tMgnReal = tFact - tCost;
-    const tCls     = tMgnPpto >= 0 ? "mg-pos" : "mg-neg";
-    const maxAbs   = Math.max(...filas.map(r=>Math.abs(r.margenPpto)), 1);
-    const unidadLbl = esTon ? "Ton." : "Hás";
-    const mgnLblHdr = esTon ? "$/Ton" : "$/Há";
-
-    const tbody = filas.map(r => {
-      const mgnPptoMed = esTon ? r.mgnPptoTon : r.mgnPptoHa;
-      const mgnRealMed = esTon ? r.mgnRealTon : r.mgnRealHa;
-      const medLbl     = esTon ? r.toneladas.toFixed(1)+"t" : r.ha+"há";
-      const barW       = Math.round(Math.abs(r.margenPpto)/maxAbs*60);
-      const barHTML    = r.margenPpto >= 0
-        ? `<div class="mg-bar-pos" style="width:${barW}px;"></div>`
-        : `<div class="mg-bar-neg" style="width:${barW}px;"></div>`;
-      const costoLbl   = r.costoProrr > 0
-        ? `${fmtPeso(r.costo)}<br><span style="font-size:9px;color:#888;font-weight:normal;">dir ${fmtPeso(r.costoDirecto)} + prr ${fmtPeso(r.costoProrr)}</span>`
-        : fmtPeso(r.costo);
-      return `<tr>
-        <td style="font-weight:bold;">${r.nombre}<br><span style="font-size:10px;color:#888;">${r.fundo}</span></td>
-        <td style="text-align:right;color:#b45309;">${fmtPeso(r.ingPpto)}</td>
-        <td style="text-align:right;color:#1a6e3a;">${r.ingReal>0?fmtPeso(r.ingReal):"—"}</td>
-        <td style="text-align:right;color:#cc2222;" title="Directo ${fmtPeso(r.costoDirecto)} + Prorrateo ${fmtPeso(r.costoProrr)}">${costoLbl}</td>
-        <td style="text-align:right;" class="${r.cls}">${fmtPeso(r.margenPpto)}</td>
-        <td style="text-align:right;color:${r.margenReal!==null?(r.margenReal>=0?"#1a6e3a":"#cc2222"):"#aaa"};">
-          ${r.margenReal!==null?fmtPeso(r.margenReal):"—"}</td>
-        <td style="text-align:right;color:#888;">${r.pctPpto !== "—" ? r.pctPpto+"%" : "—"}</td>
-        <td style="text-align:right;color:#555;">${medLbl}</td>
-        <td style="text-align:right;" class="${r.cls}">${mgnPptoMed?fmtPeso(mgnPptoMed)+"/"+( esTon?"t":"há"):"—"}</td>
-        <td style="padding-left:8px;">${barHTML}</td>
-      </tr>`;
-    }).join("");
-
-    const medTotLbl  = esTon ? tMed.toFixed(1)+"t" : tMed+"há";
-    const tMedVal    = tMed > 0 ? tMgnPpto/tMed : 0;
-    const mgnTotLbl  = tMed > 0 ? fmtPeso(tMedVal)+(esTon?"/t":"/há") : "—";
-    const tClsReal   = tMgnReal >= 0 ? "mg-pos" : "mg-neg";
-    const totRow = `<tr style="background:#f8f8f6;font-weight:bold;border-top:2px solid #e5e2da;">
-      <td>Total</td>
-      <td style="text-align:right;color:#b45309;">${fmtPeso(tIng)}</td>
-      <td style="text-align:right;color:#1a6e3a;">${tFact>0?fmtPeso(tFact):"—"}</td>
-      <td style="text-align:right;color:#cc2222;">${fmtPeso(tCost)}</td>
-      <td style="text-align:right;" class="${tCls}">${fmtPeso(tMgnPpto)}</td>
-      <td style="text-align:right;" class="${tClsReal}">${tFact>0?fmtPeso(tMgnReal):"—"}</td>
-      <td style="text-align:right;color:#888;">${tIng>0?(tMgnPpto/tIng*100).toFixed(1)+"%":"—"}</td>
-      <td style="text-align:right;color:#555;">${medTotLbl}</td>
-      <td style="text-align:right;" class="${tCls}">${mgnTotLbl}</td>
-      <td></td>
-    </tr>`;
-
-    return `<div style="overflow-x:auto;">
-      <table class="mg-table">
-        <thead><tr>
-          <th>Unidad Productiva</th>
-          <th style="text-align:right;color:#b45309;">🔮 Ppto</th>
-          <th style="text-align:right;color:#1a6e3a;">🧾 Fact.</th>
-          <th style="text-align:right;color:#cc2222;">Costos</th>
-          <th style="text-align:right;">Margen Ppto</th>
-          <th style="text-align:right;">Margen Real</th>
-          <th style="text-align:right;">%</th>
-          <th style="text-align:right;">${unidadLbl}</th>
-          <th style="text-align:right;">${mgnLblHdr} Ppto</th>
-          <th></th>
-        </tr></thead>
-        <tbody>${tbody}${totRow}</tbody>
-      </table>
-    </div>`;
-  };
-
-  // ── WATERFALL POR UP ─────────────────────────────────────────────────────
-  function buildWaterfall(filas) {
-    if (!filas.length) return "";
-
-    const BAR_W   = 28;   // ancho de cada barra
-    const GAP     = 10;   // gap entre grupos
-    const GROUP_W = BAR_W * 3 + GAP * 2 + 20; // ancho por UP
-    const H       = 180;  // altura área de barras
-    const PAD_TOP = 20;
-    const PAD_BOT = 52;   // espacio para labels
-    const PAD_L   = 52;   // eje Y
-    const SVG_H   = H + PAD_TOP + PAD_BOT;
-
-    const maxVal = Math.max(...filas.map(r => r.ingPpto), 1);
-
-    const SVG_W = PAD_L + filas.length * GROUP_W + 20;
-
-    // Eje Y: 4 marcas
-    const yTicks = [0, 0.25, 0.5, 0.75, 1].map(p => ({
-      val: maxVal * p,
-      y:   PAD_TOP + H - Math.round(p * H)
-    }));
-
-    const ticksHTML = yTicks.map(t =>
-      `<line x1="${PAD_L - 4}" y1="${t.y}" x2="${SVG_W}" y2="${t.y}"
-             stroke="#e5e2da" stroke-width="1" stroke-dasharray="3,3"/>
-       <text x="${PAD_L - 8}" y="${t.y + 4}" text-anchor="end"
-             font-size="9" fill="#aaa">${fmtPeso(t.val)}</text>`
-    ).join("");
-
-    const barsHTML = filas.map((r, i) => {
-      const x0 = PAD_L + i * GROUP_W;
-
-      // Alturas proporcionales
-      const hIng  = Math.max(2, Math.round(r.ingPpto / maxVal * H));
-      const hCost = Math.max(2, Math.round(r.costo   / maxVal * H));
-      const hMarg = Math.abs(Math.round(r.margenPpto / maxVal * H));
-      const margPos = r.margenPpto >= 0;
-
-      const yIng  = PAD_TOP + H - hIng;
-      const yCost = PAD_TOP + H - hCost;
-      const yMarg = margPos ? PAD_TOP + H - hMarg : PAD_TOP + H;
-
-      // Posición X de cada barra
-      const xIng  = x0;
-      const xCost = x0 + BAR_W + GAP;
-      const xMarg = x0 + (BAR_W + GAP) * 2;
-
-      // Label nombre UP (truncado)
-      const nombre = r.nombre.length > 10 ? r.nombre.slice(0, 9) + "…" : r.nombre;
-
-      // Valor encima de cada barra
-      const labelY = (yBar, h) => Math.max(PAD_TOP + 10, yBar - 3);
-
-      return `
-        <g>
-          <!-- Ingreso -->
-          <rect x="${xIng}" y="${yIng}" width="${BAR_W}" height="${hIng}"
-                fill="#1a6e3a" rx="2"/>
-          <text x="${xIng + BAR_W/2}" y="${labelY(yIng, hIng)}"
-                text-anchor="middle" font-size="8" fill="#1a6e3a"
-                font-weight="600">${fmtPeso(r.ingPpto)}</text>
-
-          <!-- Costo -->
-          <rect x="${xCost}" y="${yCost}" width="${BAR_W}" height="${hCost}"
-                fill="#cc2222" rx="2"/>
-          <text x="${xCost + BAR_W/2}" y="${labelY(yCost, hCost)}"
-                text-anchor="middle" font-size="8" fill="#cc2222"
-                font-weight="600">${fmtPeso(r.costo)}</text>
-
-          <!-- Margen -->
-          <rect x="${xMarg}" y="${yMarg}" width="${BAR_W}" height="${hMarg}"
-                fill="${margPos ? "#0f6e56" : "#f87171"}" rx="2"/>
-          <text x="${xMarg + BAR_W/2}" y="${margPos ? labelY(yMarg, hMarg) : yMarg + hMarg + 11}"
-                text-anchor="middle" font-size="8"
-                fill="${margPos ? "#0f6e56" : "#cc2222"}"
-                font-weight="700">${fmtPeso(r.margenPpto)}</text>
-
-          <!-- Línea conectora ingreso→costo -->
-          <line x1="${xIng + BAR_W}" y1="${yIng}" x2="${xCost}" y2="${yIng}"
-                stroke="#e5e2da" stroke-width="1" stroke-dasharray="2,2"/>
-          <!-- Línea conectora costo→margen -->
-          <line x1="${xCost + BAR_W}" y1="${yCost}" x2="${xMarg}" y2="${yCost}"
-                stroke="#e5e2da" stroke-width="1" stroke-dasharray="2,2"/>
-
-          <!-- Label nombre UP -->
-          <text x="${x0 + GROUP_W/2 - 10}" y="${PAD_TOP + H + 18}"
-                text-anchor="middle" font-size="9" fill="#555"
-                font-weight="600">${nombre}</text>
-          <!-- % margen -->
-          <text x="${x0 + GROUP_W/2 - 10}" y="${PAD_TOP + H + 30}"
-                text-anchor="middle" font-size="9"
-                fill="${margPos ? '#0f6e56' : '#cc2222'}">${r.pctPpto !== '—' ? r.pctPpto+'%' : '—'}</text>
-        </g>`;
-    }).join("");
-
-    // Leyenda
-    const legY = SVG_H - 8;
-    const legX = PAD_L;
-    const legend = `
-      <rect x="${legX}"    y="${legY - 7}" width="8" height="8" fill="#1a6e3a" rx="1"/>
-      <text x="${legX+11}" y="${legY}"     font-size="9" fill="#555">Ingreso</text>
-      <rect x="${legX+60}" y="${legY - 7}" width="8" height="8" fill="#cc2222" rx="1"/>
-      <text x="${legX+71}" y="${legY}"     font-size="9" fill="#555">Costo</text>
-      <rect x="${legX+110}" y="${legY - 7}" width="8" height="8" fill="#0f6e56" rx="1"/>
-      <text x="${legX+121}" y="${legY}"    font-size="9" fill="#555">Margen</text>`;
-
-    return `
-      <div style="overflow-x:auto;padding-bottom:4px;">
-        <svg width="${SVG_W}" height="${SVG_H + 20}" xmlns="http://www.w3.org/2000/svg"
-             style="font-family:Arial,sans-serif;">
-          <!-- Fondo -->
-          <rect width="${SVG_W}" height="${SVG_H + 20}" fill="#fafaf8" rx="8"/>
-          <!-- Ticks -->
-          ${ticksHTML}
-          <!-- Línea base -->
-          <line x1="${PAD_L}" y1="${PAD_TOP + H}" x2="${SVG_W}" y2="${PAD_TOP + H}"
-                stroke="#aaa" stroke-width="1"/>
-          <!-- Barras -->
-          ${barsHTML}
-          <!-- Leyenda -->
-          ${legend}
-        </svg>
-      </div>`;
-  }
-
-  // ── MAPA: inicializar o actualizar ───────────────────────────────────────
-  setTimeout(() => {
-    const mapaId = "mapa-margenes";
-    if (window._mapaMargenes) {
-      window._mapaMargenes.remove();
-      window._mapaMargenes = null;
+  // Orden: margen real descendente, UPs sin fact al final
+  const ord = stateResultados.orden || "margenReal";
+  filas.sort((a,b) => {
+    if (ord === "margenReal") {
+      if (a.mgnReal === null && b.mgnReal === null) return b.mgnPpto - a.mgnPpto;
+      if (a.mgnReal === null) return 1;
+      if (b.mgnReal === null) return -1;
+      return b.mgnReal - a.mgnReal;
     }
-    const puntos = filtradas.map(ccId => ({
-      ccId,
-      nombre:     CC_MAP[ccId]||ccId,
-      fundo:      FUNDO_MAP[ccId]||"",
-      ha:         HA_MAP[ccId]||0,
-      coord:      COORD_MAP[ccId],
-      mgnPptoHa:  rows.find(r=>r.nombre===(CC_MAP[ccId]||ccId))?.mgnPptoHa || 0,
-      mgnPptoTon: rows.find(r=>r.nombre===(CC_MAP[ccId]||ccId))?.mgnPptoTon || 0,
-      margenPpto: rows.find(r=>r.nombre===(CC_MAP[ccId]||ccId))?.margenPpto || 0,
-    })).filter(p => p.coord);
+    if (ord === "nombre")    return a.nombre.localeCompare(b.nombre);
+    if (ord === "ha")        return b.ha - a.ha;
+    if (ord === "pctAv")     return b.pctAv - a.pctAv;
+    if (ord === "mgnPpto")   return b.mgnPpto - a.mgnPpto;
+    return 0;
+  });
 
-    if (!puntos.length) return;
-    const avgLat = puntos.reduce((s,p)=>s+p.coord.lat,0)/puntos.length;
-    const avgLng = puntos.reduce((s,p)=>s+p.coord.lng,0)/puntos.length;
-    const mapa = L.map(mapaId).setView([avgLat, avgLng], 14);
-    window._mapaMargenes = mapa;
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-      attribution: "© Esri", maxZoom: 19
-    }).addTo(mapa);
-    puntos.forEach(p => {
-      const pos   = p.margenPpto >= 0;
-      const color = pos ? "#1a6e3a" : "#cc2222";
-      const lbl   = p.ha > 0 ? p.ha + "há" : "—";
-      const iconHtml = '<div style="width:34px;height:34px;border-radius:50%;background:' + color +
-        ';border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;' +
-        'justify-content:center;color:#fff;font-size:9px;font-weight:700;text-align:center;line-height:1.1;">' +
-        lbl + '</div>';
-      const icon = L.divIcon({ className:"", html: iconHtml, iconSize:[34,34], iconAnchor:[17,17] });
-      const mgnHaStr  = p.ha > 0 ? fmtPeso(p.mgnPptoHa) + "/há" : "—";
-      const mgnTonStr = p.mgnPptoTon ? fmtPeso(p.mgnPptoTon) + "/t" : "—";
-      const popup = '<div style="min-width:160px;">' +
-        '<div style="font-weight:700;font-size:13px;margin-bottom:4px;">' + p.nombre + '</div>' +
-        '<div style="font-size:11px;color:#888;margin-bottom:6px;">' + p.fundo + ' · ' + p.ha + 'há</div>' +
-        '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">' +
-          '<span>Margen Ppto</span><span style="font-weight:700;color:' + color + ';">' + fmtPeso(p.margenPpto) + '</span></div>' +
-        '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">' +
-          '<span>Margen/há</span><span style="font-weight:700;color:' + color + ';">' + mgnHaStr + '</span></div>' +
-        '<div style="display:flex;justify-content:space-between;font-size:12px;">' +
-          '<span>Margen/ton</span><span style="font-weight:700;color:' + color + ';">' + mgnTonStr + '</span></div>' +
-        '</div>';
-      L.marker(p.coord, {icon}).addTo(mapa).bindPopup(popup);
-    });
-  }, 100);
+  // Totales
+  const t = filas.reduce((acc,r) => {
+    acc.pptoI  += r.pptoI;
+    acc.factI  += r.factI;
+    acc.cDir   += r.cDir;
+    acc.cPrr   += r.cPrr;
+    acc.cTot   += r.cTot;
+    acc.ha     += r.ha;
+    acc.kilos  += r.toneladas;
+    return acc;
+  }, { pptoI:0, factI:0, cDir:0, cPrr:0, cTot:0, ha:0, kilos:0 });
+  t.mgnPpto = t.pptoI - t.cTot;
+  t.mgnReal = t.factI > 0 ? t.factI - t.cTot : null;
+  t.pctAv   = t.pptoI > 0 ? Math.round(t.factI/t.pptoI*100) : 0;
+  t.pctMgn  = t.pptoI > 0 ? (t.mgnPpto/t.pptoI*100) : 0;
 
-  // Ordenar tablas
-  const rowsConKilosOrd = [...rowsConKilos].sort((a,b) => b.toneladas - a.toneladas);
-  const rowsConHaOrd    = [...rowsConHa].sort((a,b) => b.ha - a.ha);
+  // ── FILTRO UI: pills de UP ──────────────────────────────────────────────
+  const upBtns = allUPs.sort((a,b) => (CC_MAP[a]||"").localeCompare(CC_MAP[b]||""))
+    .map(id => `<button class="fbtn${stateResultados.ups.includes(id)?' on':''}" onclick="toggleResUp('${id}')">${CC_MAP[id]||id}</button>`).join("");
+  const fundoOpts = [...new Set(allUPs.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
+  const fundoBtns = fundoOpts.map(f => `<button class="fbtn${stateResultados.fundos.includes(f)?' on':''}" onclick="toggleResFundo('${f}')">${f}</button>`).join("");
 
-  document.getElementById("app-margenes").innerHTML = `
+  const unidad = stateResultados.unidad;
 
-    <div class="stat-card" style="margin-bottom:14px;padding:0;overflow:hidden;">
-      <div style="padding:12px 16px;border-bottom:1px solid #f0ede6;">
-        <div class="stat-title">Márgenes por Unidad Productiva · ${tempActiva||""}</div>
-        <div style="font-size:11px;color:#888;margin-top:2px;">Click en marcador para ver detalle · Verde = margen positivo · Rojo = margen negativo</div>
+  // ── TABLA ────────────────────────────────────────────────────────────────
+  const tbody = filas.map(r => {
+    const clsR = r.mgnReal === null ? "color:#aaa;" : (r.mgnReal >= 0 ? "color:#1a6e3a;" : "color:#cc2222;");
+    const clsP = r.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
+    const avC  = r.pctAv >= 100 ? "#1a6e3a" : r.pctAv >= 50 ? "#d97706" : "#888";
+    const medidaVal = unidad === "ton" ? r.mgnTon : r.mgnHa;
+    const medidaLbl = unidad === "ton" ? "/t" : "/há";
+    const costoLbl  = r.cPrr > 0
+      ? `<b>${fmtPeso(r.cTot)}</b><br><span style="font-size:9px;color:#888;">${fmtPeso(r.cDir)} + ${fmtPeso(r.cPrr)}</span>`
+      : `<b>${fmtPeso(r.cTot)}</b>`;
+    return `<tr onclick="abrirDrawerUP('${r.id}')" style="cursor:pointer;border-bottom:1px solid #f0ede6;" onmouseover="this.style.background='#fafaf7'" onmouseout="this.style.background=''">
+      <td style="padding:10px 12px;font-weight:600;">${r.nombre}<br><span style="font-size:10px;color:#888;font-weight:400;">${r.fundo}</span></td>
+      <td style="text-align:right;padding:10px 12px;color:#555;">${r.ha}</td>
+      <td style="text-align:right;padding:10px 12px;color:#b45309;">${fmtPeso(r.pptoI)}</td>
+      <td style="text-align:right;padding:10px 12px;color:#1a6e3a;">${r.factI>0?fmtPeso(r.factI):"—"}</td>
+      <td style="text-align:right;padding:10px 12px;color:#cc2222;">${costoLbl}</td>
+      <td style="text-align:right;padding:10px 12px;font-weight:700;${clsP}">${fmtPeso(r.mgnPpto)}</td>
+      <td style="text-align:right;padding:10px 12px;font-weight:700;${clsR}">${r.mgnReal !== null ? fmtPeso(r.mgnReal) : "—"}</td>
+      <td style="text-align:right;padding:10px 12px;${clsR}">${medidaVal ? fmtPeso(medidaVal)+medidaLbl : "—"}</td>
+      <td style="padding:10px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="height:6px;background:#f0ede6;border-radius:3px;width:50px;">
+            <div style="height:6px;background:${avC};border-radius:3px;width:${Math.min(100,r.pctAv)*0.5}px;"></div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:${avC};">${r.pctAv>0?r.pctAv+"%":"—"}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+
+  const totalCostoLbl = t.cPrr > 0
+    ? `${fmtPeso(t.cTot)}<br><span style="font-size:9px;color:#888;font-weight:400;">${fmtPeso(t.cDir)} + ${fmtPeso(t.cPrr)}</span>`
+    : fmtPeso(t.cTot);
+  const totalMgnHa   = t.ha > 0 ? (t.mgnReal !== null ? t.mgnReal : t.mgnPpto)/t.ha : 0;
+  const totalMgnTon  = t.kilos > 0 ? (t.mgnReal !== null ? t.mgnReal : t.mgnPpto)/t.kilos : 0;
+  const totalMedida  = unidad === "ton" ? totalMgnTon : totalMgnHa;
+  const totalMedLbl  = unidad === "ton" ? "/t" : "/há";
+  const clsTotR = t.mgnReal === null ? "color:#aaa;" : (t.mgnReal >= 0 ? "color:#1a6e3a;" : "color:#cc2222;");
+  const clsTotP = t.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
+  const avCT    = t.pctAv >= 100 ? "#1a6e3a" : t.pctAv >= 50 ? "#d97706" : "#888";
+
+  const tfoot = `<tr style="background:#f8f8f6;font-weight:700;border-top:2px solid #e5e2da;">
+    <td style="padding:10px 12px;">Total</td>
+    <td style="text-align:right;padding:10px 12px;color:#555;">${t.ha}</td>
+    <td style="text-align:right;padding:10px 12px;color:#b45309;">${fmtPeso(t.pptoI)}</td>
+    <td style="text-align:right;padding:10px 12px;color:#1a6e3a;">${t.factI>0?fmtPeso(t.factI):"—"}</td>
+    <td style="text-align:right;padding:10px 12px;color:#cc2222;">${totalCostoLbl}</td>
+    <td style="text-align:right;padding:10px 12px;${clsTotP}">${fmtPeso(t.mgnPpto)}</td>
+    <td style="text-align:right;padding:10px 12px;${clsTotR}">${t.mgnReal !== null ? fmtPeso(t.mgnReal) : "—"}</td>
+    <td style="text-align:right;padding:10px 12px;${clsTotR}">${totalMedida ? fmtPeso(totalMedida)+totalMedLbl : "—"}</td>
+    <td style="padding:10px 12px;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="height:6px;background:#f0ede6;border-radius:3px;width:50px;">
+          <div style="height:6px;background:${avCT};border-radius:3px;width:${Math.min(100,t.pctAv)*0.5}px;"></div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${avCT};">${t.pctAv>0?t.pctAv+"%":"—"}</span>
       </div>
-      <div id="mapa-margenes" style="height:340px;z-index:0;"></div>
-    </div>
+    </td>
+  </tr>`;
 
+  // ── Guardar datos para el drawer y el mapa ───────────────────────────────
+  window._resFilas = {};
+  filas.forEach(r => { window._resFilas[r.id] = r; });
+  window._resProrr = prorr;
+  window._resTemp  = tempActiva;
+  window._resModoProrr = modoProrr;
+
+  // ── HTML FINAL ───────────────────────────────────────────────────────────
+  document.getElementById("app-resultados").innerHTML = `
+    <!-- Filtros -->
     <div class="filters-wrap" style="margin-bottom:12px;">
       <div class="filters-row">
         <div class="filter-label">Unidad prod.</div>
@@ -1075,34 +912,270 @@ function renderMargenes() {
       <div class="filters-row">
         <div class="filter-label">Centro de Costo</div>
         <div style="font-size:10px;color:#aaa;margin-right:4px;">(múltiple)</div>
-        ${fundoBtnsM}
+        ${fundoBtns}
       </div>
       <div class="filters-row">
         <div class="filter-label">Prorrateo</div>
         <div style="font-size:10px;color:#aaa;margin-right:4px;">(indirectos)</div>
         <button class="fbtn${modoProrr==="no"?' on':''}" onclick="setProrrateo('no')">Sin prorrateo</button>
         <button class="fbtn${modoProrr==="ha"?' on':''}" onclick="setProrrateo('ha')">Por hectárea</button>
-        <button class="fbtn${modoProrr==="ingreso"?' on':''}" onclick="setProrrateo('ingreso')">Por ingreso (ppto)</button>
+        <button class="fbtn${modoProrr==="ingreso"?' on':''}" onclick="setProrrateo('ingreso')">Por ingreso</button>
       </div>
     </div>
 
     ${prorr.pool > 0 ? `
     <div style="background:#fff7ed;border:1px solid #fbd5a5;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#7c2d12;">
-      <b>Prorrateo activo (${modoProrr === "ha" ? "por hectárea" : modoProrr === "ingreso" ? "por ingreso ppto" : "sin prorrateo"}):</b>
+      <b>Prorrateo activo (${modoProrr === "ha" ? "por hectárea" : modoProrr === "ingreso" ? "por ingreso" : "—"}):</b>
       pool de costos indirectos ${fmtPeso(prorr.pool)} repartido entre ${Object.keys(prorr.prorrateoPorUP).length} UP productivas.
       ${modoProrr === "ha" ? `Factor: ${fmtPeso(prorr.factor)}/há.` : ""}
-      ${totalProrr > 0 && totalProrr < prorr.pool ? ` <span style="color:#991b1b;">Nota: filtros aplicados reducen prorrateo mostrado a ${fmtPeso(totalProrr)}.</span>` : ""}
     </div>` : ""}
 
-    <div class="stat-card" style="margin-bottom:12px;">
-      <div class="stat-title">Margen por tonelada</div>
-      ${buildTable(rowsConKilosOrd, "ton")}
+    <!-- MAPA CENTRAL GRANDE -->
+    <div class="stat-card" style="margin-bottom:14px;padding:0;overflow:hidden;">
+      <div style="padding:12px 16px;border-bottom:1px solid #f0ede6;">
+        <div class="stat-title">Resultados · ${tempActiva || ""}</div>
+        <div style="font-size:11px;color:#888;margin-top:2px;">Click en marcador o fila → abre detalle · Verde = margen positivo · Rojo = margen negativo</div>
+      </div>
+      <div id="mapa-resultados" style="height:450px;z-index:0;"></div>
     </div>
-    <div class="stat-card" style="margin-bottom:12px;">
-      <div class="stat-title">Margen por hectárea</div>
-      ${buildTable(rowsConHaOrd, "ha")}
+
+    <!-- STRIP TOTALES -->
+    <div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;">
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Ppto ingresos</div>
+        <div style="font-size:18px;font-weight:700;color:#b45309;">${fmtPeso(t.pptoI)}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Facturado real</div>
+        <div style="font-size:18px;font-weight:700;color:#1a6e3a;">${fmtPeso(t.factI)}</div>
+        <div style="font-size:10px;color:${avCT};font-weight:600;">${t.pctAv}% avance</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Costos totales</div>
+        <div style="font-size:18px;font-weight:700;color:#cc2222;">${fmtPeso(t.cTot)}</div>
+        ${t.cPrr > 0 ? `<div style="font-size:10px;color:#888;">${fmtPeso(t.cDir)} dir + ${fmtPeso(t.cPrr)} prr</div>` : ""}
+      </div>
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Margen real</div>
+        <div style="font-size:18px;font-weight:700;${clsTotR}">${t.mgnReal !== null ? fmtPeso(t.mgnReal) : "—"}</div>
+        <div style="font-size:10px;color:#888;">${t.factI > 0 && t.mgnReal !== null ? (t.mgnReal/t.factI*100).toFixed(1)+"%" : ""}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Margen ppto</div>
+        <div style="font-size:18px;font-weight:700;${clsTotP}">${fmtPeso(t.mgnPpto)}</div>
+        <div style="font-size:10px;color:#888;">${t.pctMgn.toFixed(1)}%</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Margen/há (${t.mgnReal !== null ? "real" : "ppto"})</div>
+        <div style="font-size:18px;font-weight:700;${clsTotR}">${totalMgnHa ? fmtPeso(totalMgnHa)+"/há" : "—"}</div>
+      </div>
     </div>
-    <div class="footer">Ingresos: Facturado + Proyecciones · Costos: BD Registro + Asignaciones · Los Crisoles · BData</div>`;
+
+    <!-- TABLA UNIFICADA -->
+    <div class="stat-card" style="margin-bottom:12px;padding:0;overflow:hidden;">
+      <div style="padding:10px 16px;border-bottom:1px solid #f0ede6;display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:13px;font-weight:700;">Comparativa por UP — ${filas.length} UPs</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <span style="font-size:10px;color:#888;margin-right:4px;">Vista:</span>
+          <button class="fbtn${unidad==='ha'?' on':''}" onclick="setResUnidad('ha')">$/Há</button>
+          <button class="fbtn${unidad==='ton'?' on':''}" onclick="setResUnidad('ton')">$/Ton</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead style="background:#f8f8f6;">
+            <tr>
+              <th style="text-align:left;padding:10px 12px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('nombre')">UP</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('ha')">Há</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#b45309;border-bottom:2px solid #e5e2da;">🔮 Ppto</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#1a6e3a;border-bottom:2px solid #e5e2da;">🧾 Fact</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#cc2222;border-bottom:2px solid #e5e2da;">💰 Costos</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('mgnPpto')">Mgn Ppto</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('margenReal')">Mgn Real ↓</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#555;border-bottom:2px solid #e5e2da;">${unidad==='ton'?'Mgn/Ton':'Mgn/Há'}</th>
+              <th style="padding:10px 12px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('pctAv')">% Avance</th>
+            </tr>
+          </thead>
+          <tbody>${tbody}</tbody>
+          <tfoot>${tfoot}</tfoot>
+        </table>
+      </div>
+    </div>
+    <div class="footer">Click en una UP → detalle lateral · Ingresos: Fact + Ppto · Costos: Directos + Prorrateo · ${tempActiva} · Los Crisoles · BData</div>`;
+
+  // Renderizar el mapa
+  setTimeout(() => renderMapaResultados(filas, tempActiva, unidad), 50);
+}
+
+// ── MAPA del tab Resultados ───────────────────────────────────────────────
+function renderMapaResultados(filas, tempActiva, unidad) {
+  const mapDiv = document.getElementById("mapa-resultados");
+  if (!mapDiv) return;
+
+  // Limpiar mapa previo
+  if (window._mapResLeaflet) {
+    window._mapResLeaflet.remove();
+    window._mapResLeaflet = null;
+  }
+
+  const puntos = filas.filter(r => COORD_MAP[r.id]);
+  if (puntos.length === 0) {
+    mapDiv.innerHTML = '<div style="padding:40px;text-align:center;color:#aaa;">Sin coordenadas para mostrar.</div>';
+    return;
+  }
+
+  const avgLat = puntos.reduce((s,p) => s+COORD_MAP[p.id].lat, 0)/puntos.length;
+  const avgLng = puntos.reduce((s,p) => s+COORD_MAP[p.id].lng, 0)/puntos.length;
+
+  const mapa = L.map("mapa-resultados").setView([avgLat, avgLng], 14);
+  window._mapResLeaflet = mapa;
+
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    attribution: "© Esri", maxZoom: 19
+  }).addTo(mapa);
+
+  // Escala de radio por hectárea
+  const maxHa = Math.max(...puntos.map(p => p.ha), 1);
+  puntos.forEach(p => {
+    const coords = COORD_MAP[p.id];
+    const radius = Math.max(12, 12 + (p.ha/maxHa)*24); // 12-36 px
+    const mgnRef = p.mgnReal !== null ? p.mgnReal : p.mgnPpto;
+    const color = mgnRef >= 0 ? "#1a6e3a" : "#cc2222";
+    const medidaVal = unidad === "ton" ? p.mgnTon : p.mgnHa;
+    const medidaLbl = unidad === "ton" ? "/t" : "/há";
+
+    L.circleMarker([coords.lat, coords.lng], {
+      radius: radius,
+      fillColor: color,
+      color: "#fff",
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.75
+    }).addTo(mapa)
+    .bindTooltip(`<div style="font-weight:700;">${p.nombre}</div>
+      <div style="font-size:11px;color:#555;">${p.fundo} · ${p.ha}há</div>
+      <div style="margin-top:4px;font-size:11px;">
+        Fact: <b style="color:#1a6e3a;">${p.factI>0?fmtPeso(p.factI):"—"}</b><br>
+        Costo: <b style="color:#cc2222;">${fmtPeso(p.cTot)}</b><br>
+        Mgn ${p.mgnReal !== null ? "real" : "ppto"}: <b style="color:${color};">${fmtPeso(mgnRef)}</b>
+        ${medidaVal ? `<br>${fmtPeso(medidaVal)}${medidaLbl}` : ""}
+      </div>
+      <div style="font-size:10px;color:#888;margin-top:4px;">Click → detalle</div>`)
+    .on("click", () => abrirDrawerUP(p.id));
+  });
+
+  // Ajustar zoom para incluir todos los puntos
+  const latlngs = puntos.map(p => [COORD_MAP[p.id].lat, COORD_MAP[p.id].lng]);
+  mapa.fitBounds(latlngs, { padding:[30,30] });
+}
+
+// ── DRAWER LATERAL: detalle UP ─────────────────────────────────────────────
+function abrirDrawerUP(upId) {
+  const r = (window._resFilas || {})[upId];
+  if (!r) return;
+  const modo = window._resModoProrr || "ha";
+  const tempActiva = window._resTemp || "";
+  const clsR = r.mgnReal === null ? "#aaa" : (r.mgnReal >= 0 ? "#1a6e3a" : "#cc2222");
+  const clsP = r.mgnPpto >= 0 ? "#1a6e3a" : "#cc2222";
+  const avC  = r.pctAv >= 100 ? "#1a6e3a" : r.pctAv >= 50 ? "#d97706" : "#888";
+  const mgnPct = r.factI > 0 && r.mgnReal !== null ? (r.mgnReal/r.factI*100).toFixed(1) : "—";
+  const cultivo = CULTIVO_MAP[upId] || r.fundo;
+
+  const html = `
+    <div style="background:#1a3a0a;padding:18px 22px;position:sticky;top:0;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#fff;">${r.nombre}</div>
+        <div style="font-size:12px;color:#86efac;margin-top:3px;">${r.fundo} · ${r.ha}há · ${tempActiva}${cultivo && cultivo !== r.fundo ? " · "+cultivo : ""}</div>
+      </div>
+      <button onclick="cerrarDrawer()" style="background:transparent;border:1px solid #86efac;color:#fff;width:32px;height:32px;border-radius:8px;font-size:18px;cursor:pointer;line-height:1;">×</button>
+    </div>
+
+    <div style="padding:18px 22px;">
+
+      <!-- INGRESOS -->
+      <div style="margin-bottom:22px;">
+        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">🌾 Ingresos</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;">
+          <div>
+            <div style="font-size:11px;color:#888;">Presupuesto</div>
+            <div style="font-size:20px;font-weight:700;color:#b45309;">${fmtPeso(r.pptoI)}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#888;">Facturado real</div>
+            <div style="font-size:20px;font-weight:700;color:#1a6e3a;">${r.factI>0?fmtPeso(r.factI):"—"}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fafaf7;border-radius:6px;">
+          <div style="flex:1;height:8px;background:#f0ede6;border-radius:4px;overflow:hidden;">
+            <div style="height:8px;background:${avC};border-radius:4px;width:${Math.min(100,r.pctAv)}%;"></div>
+          </div>
+          <span style="font-size:12px;font-weight:700;color:${avC};">${r.pctAv>0?r.pctAv+"%":"—"}</span>
+          <span style="font-size:10px;color:#888;">${r.pctAv >= 100 ? "completado" : r.pctAv > 0 ? "avance" : "sin facturar"}</span>
+        </div>
+      </div>
+
+      <!-- COSTOS -->
+      <div style="margin-bottom:22px;">
+        <div style="font-size:10px;font-weight:700;color:#cc2222;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">💰 Costos</div>
+        <div style="font-size:11px;color:#888;">Total</div>
+        <div style="font-size:24px;font-weight:700;color:#cc2222;margin-bottom:4px;">${fmtPeso(r.cTot)}</div>
+        ${r.ha > 0 ? `<div style="font-size:11px;color:#888;margin-bottom:10px;">${fmtPeso(r.cTot/r.ha)}/há</div>` : ""}
+
+        <div style="background:#f8faf5;border:1px solid #e0edda;border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;font-weight:600;color:#3b6d11;">📋 Costos directos</span>
+          <span style="font-size:13px;font-weight:700;color:#3b6d11;">${fmtPeso(r.cDir)}</span>
+        </div>
+
+        ${r.cPrr > 0 ? `
+        <div style="background:#fff7ed;border:1px solid #fbd5a5;border-radius:6px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;font-weight:600;color:#7c2d12;">🔄 Prorrateo (${modo==="ha"?"por há":"por ingreso"})</span>
+          <span style="font-size:13px;font-weight:700;color:#7c2d12;">${fmtPeso(r.cPrr)}</span>
+        </div>` : ""}
+      </div>
+
+      <!-- MARGEN -->
+      <div>
+        <div style="font-size:10px;font-weight:700;color:#1a3a0a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">📊 Margen</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div>
+            <div style="font-size:11px;color:#888;">Real (facturado − costos)</div>
+            <div style="font-size:22px;font-weight:700;color:${clsR};">${r.mgnReal !== null ? fmtPeso(r.mgnReal) : "—"}</div>
+            ${r.mgnReal !== null && r.ha > 0 ? `<div style="font-size:11px;color:${clsR};">${fmtPeso(r.mgnReal/r.ha)}/há</div>` : ""}
+            ${mgnPct !== "—" ? `<div style="font-size:11px;color:#888;">${mgnPct}% del ingreso</div>` : ""}
+          </div>
+          <div>
+            <div style="font-size:11px;color:#888;">Ppto (proyectado)</div>
+            <div style="font-size:20px;font-weight:700;color:${clsP};">${fmtPeso(r.mgnPpto)}</div>
+            ${r.ha > 0 ? `<div style="font-size:11px;color:${clsP};">${fmtPeso(r.mgnPpto/r.ha)}/há</div>` : ""}
+            ${r.pptoI > 0 ? `<div style="font-size:11px;color:#888;">${(r.mgnPpto/r.pptoI*100).toFixed(1)}% del ingreso</div>` : ""}
+          </div>
+        </div>
+        ${r.toneladas > 0 ? `
+        <div style="padding:8px 10px;background:#fafaf7;border-radius:6px;">
+          <div style="font-size:11px;color:#888;">Rendimiento proyectado</div>
+          <div style="font-size:14px;font-weight:600;">${r.toneladas.toFixed(1)} ton ${r.ha > 0 ? `· ${(r.toneladas/r.ha).toFixed(2)} ton/há` : ""}</div>
+          ${r.mgnReal !== null && r.toneladas > 0 ? `<div style="font-size:11px;color:${clsR};margin-top:2px;">Mgn real: ${fmtPeso(r.mgnReal/r.toneladas)}/ton</div>` : ""}
+        </div>` : ""}
+      </div>
+    </div>
+  `;
+  document.getElementById("drawer-content").innerHTML = html;
+  const overlay = document.getElementById("drawer-overlay");
+  const drawer  = document.getElementById("drawer-up");
+  overlay.style.display = "block";
+  drawer.style.display  = "block";
+  // Trigger transform transition
+  requestAnimationFrame(() => { drawer.style.transform = "translateX(0)"; });
+}
+
+function cerrarDrawer() {
+  const overlay = document.getElementById("drawer-overlay");
+  const drawer  = document.getElementById("drawer-up");
+  drawer.style.transform = "translateX(100%)";
+  setTimeout(() => {
+    overlay.style.display = "none";
+    drawer.style.display  = "none";
+  }, 250);
 }
 
 function toggleIngresosMulti(key, val) {
@@ -1486,658 +1559,6 @@ function renderIngresos() {
 }
 
 
-// Determina la temporada de una fecha dado el mes de inicio
-
-// ── RESULTADO POR UP ────────────────────────────────────────────────────────
-function toggleResUP(id) {
-  if (!window._resUPs) window._resUPs = [];
-  const idx = window._resUPs.indexOf(id);
-  if (idx===-1) window._resUPs.push(id); else window._resUPs.splice(idx,1);
-  // La UP activa para el detalle es la última clickeada (o la primera seleccionada)
-  window._resUPActiva = id;
-  renderResultadoUP();
-}
-function toggleResFundo(f) {
-  if (!window._resFundos) window._resFundos = [];
-  const idx = window._resFundos.indexOf(f);
-  if (idx===-1) window._resFundos.push(f); else window._resFundos.splice(idx,1);
-  // Limpiar UPs que ya no aplican al fundo
-  if (window._resUPs) {
-    window._resUPs = window._resUPs.filter(id =>
-      window._resFundos.length===0 || window._resFundos.includes(FUNDO_MAP[id]||"")
-    );
-  }
-  renderResultadoUP();
-}
-
-function renderResultadoUP() {
-  const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
-  const FECHA_CORTE = FECHA_CORTE_COSTOS;
-  const RUT_LC      = "76099766-8";
-
-  function passTemp(fechaVal, ccId) {
-    if (!tempActiva) return true;
-    const tmp = TEMP_MAP[ccId];
-    if (!tmp) return false;
-    return tmp.temporada === tempActiva;
-  }
-  // UPs productivas según BD_CC.Es_Base_Prorrateo (fuente única de verdad)
-  function esProd(id) {
-    return BASE_PRORRATEO_MAP[id] === true;
-  }
-
-  // Resolver nombre→id para Asignaciones
-  const NAME_TO_ID_R = {};
-  Object.entries(CC_MAP).forEach(([id,n]) => { NAME_TO_ID_R[n.trim().toLowerCase()] = id; });
-  function resolveId(val) {
-    const raw = String(val||"").trim();
-    return CC_MAP[raw] ? raw : (NAME_TO_ID_R[raw.toLowerCase()]||raw);
-  }
-  // FIX: priorizar UP_ID sobre UP_Nombre para evitar colisiones por temporada
-  function getUpIdR(r) {
-    const upId = String(r["UP_ID"]||"").trim();
-    return upId || resolveId(r["UP_Nombre"]||"");
-  }
-  // FIX: extraer RUT emisor desde KEY_Documento ("XXXX-RUT-DV-FOLIO")
-  function rutEmisorR(r) {
-    const partes = String(r["KEY_Documento"]||"").split("-");
-    return partes.length < 4 ? "" : partes[1] + "-" + partes[2];
-  }
-
-  // ── UPs productivas de la temporada ──────────────────────────────────────
-  const upsTemp = Object.keys(CC_MAP).filter(id => {
-    const tmp = TEMP_MAP[id];
-    if (!tmp || !esProd(id)) return false;
-    return !tempActiva || tmp.temporada === tempActiva;
-  }).sort((a,b) => (CC_MAP[a]||a).localeCompare(CC_MAP[b]||b));
-
-  if (!upsTemp.length) {
-    document.getElementById("app-resultado").innerHTML =
-      `<div style="text-align:center;padding:40px;color:#aaa;">Sin UPs para la temporada ${tempActiva}</div>`;
-    return;
-  }
-
-  // ── COSTOS por UP ─────────────────────────────────────────────────────────
-  // BD_Registro — desglose por tipo
-  const costoReg = {};   // { upId: { tipoLabor: monto } }
-  const costoRegTotal = {};
-  (window.TODOS||[]).filter(r => {
-    const raw = String(r["Fecha"]||"");
-    const f   = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
-    const id  = String(r["Centro_Costo"]||"").trim();
-    return Number(r["Costo Total"]||0) > 0 && (f===""||f<FECHA_CORTE) && passTemp(f,id) && esProd(id);
-  }).forEach(r => {
-    const id   = String(r["Centro_Costo"]||"").trim();
-    const tipo = String(r["Tipo_Labor"]||"Sin tipo").trim() || "Sin tipo";
-    const m    = Number(r["Costo Total"]||0);
-    if (!costoReg[id])          costoReg[id] = {};
-    if (!costoReg[id][tipo])    costoReg[id][tipo] = 0;
-    costoReg[id][tipo]         += m;
-    costoRegTotal[id]           = (costoRegTotal[id]||0) + m;
-  });
-
-  // Asignaciones_U — desglose por tipo doc
-  const costoAsig = {};
-  const costoAsigTotal = {};
-  (window.ASIGNACIONES||[]).filter(r => {
-    const id    = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha,id) && esProd(id)
-      && !tipo.includes("emit");
-  }).forEach(r => {
-    const id   = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    const tipo = String(r["Tipo_Doc"]||"Sin tipo").trim() || "Sin tipo";
-    const m    = Number(r["Monto_Asignado"]||0);
-    if (!costoAsig[id])         costoAsig[id] = {};
-    if (!costoAsig[id][tipo])   costoAsig[id][tipo] = 0;
-    costoAsig[id][tipo]        += m;
-    costoAsigTotal[id]          = (costoAsigTotal[id]||0) + m;
-  });
-
-  // ── DOCS DETALLE por UP (para expandibles) ──────────────────────────────
-  const docsReg  = {};   // { upId: [{fecha, labor, tipo, monto}] }
-  const docsAsig = {};   // { upId: [{fecha, proveedor, folio, tipo, monto}] }
-  const docsIng  = {};   // { upId: [{fecha, proveedor, folio, tipo, monto}] }
-  const docsProy = {};   // { upId: [{fecha, estado, monto, kilos}] }
-
-  (window.TODOS||[]).filter(r => {
-    const raw = String(r["Fecha"]||"");
-    const f   = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
-    const id  = String(r["Centro_Costo"]||"").trim();
-    return Number(r["Costo Total"]||0) > 0 && (f===""||f<FECHA_CORTE) && passTemp(f,id) && esProd(id);
-  }).forEach(r => {
-    const id = String(r["Centro_Costo"]||"").trim();
-    if (!docsReg[id]) docsReg[id] = [];
-    docsReg[id].push({
-      fecha:  r["Fecha"]||"",
-      labor:  String(r["Tipo_Labor"]||r["Labor"]||"—").trim(),
-      tipo:   String(r["Tipo_Labor"]||"—").trim(),
-      obs:    String(r["Observaciones"]||"").trim().slice(0,40),
-      monto:  Number(r["Costo Total"]||0)
-    });
-  });
-
-  (window.ASIGNACIONES||[]).filter(r => {
-    const id    = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha,id) && esProd(id) && !tipo.includes("emit");
-  }).forEach(r => {
-    const id = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    if (!docsAsig[id]) docsAsig[id] = [];
-    docsAsig[id].push({
-      fecha:     r["Fecha_Documento"]||r["Fecha_Asignacion"]||"",
-      proveedor: String(r["Proveedor"]||"—").trim().slice(0,30),
-      folio:     String(r["Folio"]||"—").trim(),
-      tipo:      String(r["Tipo_Doc"]||"—").trim(),
-      monto:     Number(r["Monto_Asignado"]||0)
-    });
-  });
-
-  (window.ASIGNACIONES||[]).filter(r => {
-    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    const id    = getUpIdR(r);
-    const fecha = r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"";
-    return (tipo.includes("emit") || (tipo.includes("factura") && rutEmisorR(r) === RUT_LC))
-      && Number(r["Monto_Asignado"]||0)>0 && passTemp(fecha,id);
-  }).forEach(r => {
-    const id = getUpIdR(r);
-    if (!docsIng[id]) docsIng[id] = [];
-    docsIng[id].push({
-      fecha:     r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"",
-      proveedor: String(r["Proveedor"]||"—").trim().slice(0,30),
-      folio:     String(r["Folio"]||"—").trim(),
-      tipo:      String(r["Tipo_Doc"]||"—").trim(),
-      monto:     Number(r["Monto_Asignado"]||0)
-    });
-  });
-
-  (window.PROYECCIONES||[]).filter(r => {
-    const id    = String(r["Unidad_Productiva"]||"").trim();
-    const fecha = r["Fecha_Estimada"]||"";
-    return passTemp(fecha,id) && esProd(id);
-  }).forEach(r => {
-    const id = String(r["Unidad_Productiva"]||"").trim();
-    if (!docsProy[id]) docsProy[id] = [];
-    docsProy[id].push({
-      fecha:  r["Fecha_Estimada"]||"",
-      estado: String(r["Estado"]||"—").trim(),
-      monto:  Number(r["Monto_Total"]||0),
-      kilos:  Number(r["Kilos_Estimados"]||0)
-    });
-  });
-
-  // ── INGRESOS por UP ───────────────────────────────────────────────────────
-  const ingFact = {};
-  (window.ASIGNACIONES||[]).filter(r => {
-    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    const id    = getUpIdR(r);
-    const fecha = r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"";
-    return tipo.includes("factura") && rutEmisorR(r) === RUT_LC
-      && Number(r["Monto_Asignado"]||0)>0 && passTemp(fecha,id);
-  }).forEach(r => {
-    const id = getUpIdR(r);
-    ingFact[id] = (ingFact[id]||0) + Number(r["Monto_Asignado"]||0);
-  });
-
-  const ingPpto = {};
-  (window.PROYECCIONES||[]).filter(r => {
-    const id    = String(r["Unidad_Productiva"]||"").trim();
-    const fecha = r["Fecha_Estimada"]||"";
-    return passTemp(fecha,id) && esProd(id);
-  }).forEach(r => {
-    const id = String(r["Unidad_Productiva"]||"").trim();
-    ingPpto[id] = (ingPpto[id]||0) + Number(r["Monto_Total"]||0);
-  });
-
-  // ── STATE: UP seleccionada ─────────────────────────────────────────────────
-  // Multi-select: arrays de seleccionados (vacío = todos)
-  if (!window._resUPs)      window._resUPs      = [];
-  if (!window._resFundos)   window._resFundos   = [];
-  if (!window._resUPActiva) window._resUPActiva = upsTemp[0];
-
-  // ── RENDER SELECTOR ───────────────────────────────────────────────────────
-  // Filtros multi-select
-  const fundosDisp = [...new Set(upsTemp.map(id => FUNDO_MAP[id]||"").filter(Boolean))].sort();
-
-  // UPs filtradas por fundos seleccionados
-  const upsFiltradas = window._resFundos.length > 0
-    ? upsTemp.filter(id => window._resFundos.includes(FUNDO_MAP[id]||""))
-    : upsTemp;
-
-  // Para la tabla: UPs seleccionadas (o todas del fundo si no hay selección)
-  const upsDetalle = window._resUPs.length > 0
-    ? upsFiltradas.filter(id => window._resUPs.includes(id))
-    : upsFiltradas;
-  // Sincronizar UP activa
-  if (!upsFiltradas.includes(window._resUPActiva))
-    window._resUPActiva = upsFiltradas[0];
-
-  // Prorrateo (mismo modo que márgenes)
-  const modoProrrR = stateMargenes.prorrateo || "ha";
-  const prorrR     = calcularProrrateo(tempActiva, modoProrrR, ingPpto);
-
-  const selectorBtns = upsFiltradas.map(id => {
-    const sel    = window._resUPs.includes(id);
-    const activa = id === window._resUPActiva;
-    const bg     = sel ? '#1a3a0a' : activa ? '#eaf3de' : '#fff';
-    const border = sel ? '#1a3a0a' : activa ? '#1a3a0a' : '#ddd';
-    const color  = sel ? '#fff'    : '#333';
-    return `<button onclick="toggleResUP('${id}')"
-      style="padding:5px 12px;border-radius:20px;border:1px solid ${border};
-      background:${bg};color:${color};
-      font-size:12px;cursor:pointer;margin:2px;">${CC_MAP[id]||id}</button>`;
-  }).join("");
-
-  const fundoBtns = fundosDisp.map(f => {
-    const on = window._resFundos.includes(f);
-    return `<button onclick="toggleResFundo('${f}')"
-      style="padding:5px 12px;border-radius:20px;border:1px solid ${on?'#1a3a0a':'#ddd'};
-      background:${on?'#1a3a0a':'#fff'};color:${on?'#fff':'#333'};
-      font-size:12px;cursor:pointer;margin:2px;">${f}</button>`;
-  }).join("");
-
-  // ── RENDER CARD UP ────────────────────────────────────────────────────────
-  function cardUP(upId) {
-    const nombre  = CC_MAP[upId]||upId;
-    const fundo   = FUNDO_MAP[upId]||"";
-    const ha      = HA_MAP[upId]||0;
-    const tReg    = costoRegTotal[upId]||0;
-    const tAsig   = costoAsigTotal[upId]||0;
-    const tDirecto = tReg + tAsig;
-    const tProrr   = prorrR.prorrateoPorUP[upId] || 0;
-    const tCosto  = tDirecto + tProrr;
-    const tPpto   = ingPpto[upId]||0;
-    const tFact   = ingFact[upId]||0;
-    const tPend   = Math.max(0, tPpto - tFact);
-    const pctAv   = tPpto>0 ? Math.round(tFact/tPpto*100) : 0;
-    const mgnPpto = tPpto  - tCosto;
-    const mgnReal = tFact  - tCosto;
-    const mgnHaPpto = ha>0 ? mgnPpto/ha : 0;
-    const mgnHaReal = ha>0 ? mgnReal/ha : 0;
-    const avColor = pctAv>=100?"#1a6e3a":pctAv>=50?"#d97706":"#888";
-    const clsPpto = mgnPpto>=0?"#1a6e3a":"#cc2222";
-    const clsReal = mgnReal>=0?"#1a6e3a":"#cc2222";
-
-    // Detalle costos BD_Registro
-    const tiposReg = Object.entries(costoReg[upId]||{}).sort((a,b)=>b[1]-a[1]);
-    const rowsReg  = tiposReg.map(([tipo,m]) =>
-      `<tr><td style="padding:4px 8px;font-size:12px;color:#555;">${tipo}</td>
-       <td style="text-align:right;padding:4px 8px;font-size:12px;">${fmtPeso(m)}</td></tr>`
-    ).join("");
-
-    // Detalle costos Asignaciones
-    const tiposAsig = Object.entries(costoAsig[upId]||{}).sort((a,b)=>b[1]-a[1]);
-    const rowsAsig  = tiposAsig.map(([tipo,m]) =>
-      `<tr><td style="padding:4px 8px;font-size:12px;color:#555;">${tipo}</td>
-       <td style="text-align:right;padding:4px 8px;font-size:12px;">${fmtPeso(m)}</td></tr>`
-    ).join("");
-
-    const safeId = upId.replace(/[^a-z0-9]/gi,"_");
-
-    return `
-    <div style="background:#fff;border:1px solid #e5e2da;border-radius:12px;overflow:hidden;margin-bottom:16px;">
-
-      <!-- Header -->
-      <div style="background:#1a3a0a;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">
-        <div>
-          <div style="font-size:16px;font-weight:700;color:#fff;">${nombre}</div>
-          <div style="font-size:11px;color:#86efac;margin-top:2px;">${fundo} · ${ha}há · ${tempActiva}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#9fe1cb;text-transform:uppercase;letter-spacing:0.08em;">Margen Ppto</div>
-          <div style="font-size:22px;font-weight:700;color:${clsPpto};">${fmtPeso(mgnPpto)}</div>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid #f0ede6;">
-
-        <!-- INGRESOS -->
-        <div style="padding:16px;border-right:1px solid #f0ede6;">
-          <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">🌾 Ingresos</div>
-          <div style="margin-bottom:8px;">
-            <div style="font-size:11px;color:#888;">Presupuesto</div>
-            <div style="font-size:20px;font-weight:700;color:#b45309;">${fmtPeso(tPpto)}</div>
-          </div>
-          <div style="margin-bottom:8px;">
-            <div style="font-size:11px;color:#888;">Facturado</div>
-            <div style="font-size:18px;font-weight:700;color:#1a6e3a;">${tFact>0?fmtPeso(tFact):"—"}</div>
-          </div>
-          <div style="margin-bottom:8px;">
-            <div style="font-size:11px;color:#888;">Pendiente</div>
-            <div style="font-size:14px;color:#888;">${tPend>0?fmtPeso(tPend):"—"}</div>
-          </div>
-          <!-- Barra de avance -->
-          <div style="margin-top:10px;">
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:#888;margin-bottom:3px;">
-              <span>Avance</span><span style="color:${avColor};font-weight:700;">${pctAv}%</span>
-            </div>
-            <div style="height:6px;background:#f0ede6;border-radius:3px;">
-              <div style="height:6px;background:${avColor};border-radius:3px;width:${Math.min(100,pctAv)}%;"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- COSTOS -->
-        <div style="padding:16px;border-right:1px solid #f0ede6;">
-          <div style="font-size:10px;font-weight:700;color:#cc2222;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">💰 Costos</div>
-          <div style="margin-bottom:8px;">
-            <div style="font-size:11px;color:#888;">Total</div>
-            <div style="font-size:20px;font-weight:700;color:#cc2222;">${fmtPeso(tCosto)}</div>
-            ${tProrr > 0 ? `<div style="font-size:10px;color:#888;margin-top:2px;">Directo ${fmtPeso(tDirecto)} + Prorrateo ${fmtPeso(tProrr)}</div>` : ""}
-          </div>
-          ${ha>0?`<div style="font-size:12px;color:#888;margin-bottom:8px;">$${Math.round(tCosto/ha).toLocaleString("es-CL")}/há</div>`:""}
-
-          <!-- Toggle BD Registro -->
-          <div onclick="toggleBloque('reg_${safeId}')"
-            style="cursor:pointer;background:#f8faf5;border:1px solid #e0edda;border-radius:6px;padding:7px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:11px;font-weight:600;color:#3b6d11;">📋 BD Registro</span>
-            <span style="font-size:12px;font-weight:700;color:#3b6d11;">${fmtPeso(tReg)}</span>
-          </div>
-          <div id="body-reg_${safeId}" style="display:none;margin-bottom:8px;">
-            <table style="width:100%;border-collapse:collapse;">
-              ${rowsReg||'<tr><td colspan="2" style="font-size:12px;color:#aaa;padding:4px 8px;">Sin registros</td></tr>'}
-            </table>
-          </div>
-
-          <!-- Toggle Asignaciones -->
-          <div onclick="toggleBloque('asig_${safeId}')"
-            style="cursor:pointer;background:#f5f8ff;border:1px solid #d5e4f5;border-radius:6px;padding:7px 10px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:11px;font-weight:600;color:#0c447c;">📎 Asignaciones</span>
-            <span style="font-size:12px;font-weight:700;color:#0c447c;">${fmtPeso(tAsig)}</span>
-          </div>
-          <div id="body-asig_${safeId}" style="display:none;">
-            <table style="width:100%;border-collapse:collapse;">
-              ${rowsAsig||'<tr><td colspan="2" style="font-size:12px;color:#aaa;padding:4px 8px;">Sin registros</td></tr>'}
-            </table>
-          </div>
-
-          ${tProrr > 0 ? `
-          <!-- Bloque Prorrateo -->
-          <div style="background:#fff7ed;border:1px solid #fbd5a5;border-radius:6px;padding:7px 10px;margin-top:6px;display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-size:11px;font-weight:600;color:#7c2d12;">🔄 Prorrateo (${modoProrrR === "ha" ? "por há" : "por ingreso"})</span>
-            <span style="font-size:12px;font-weight:700;color:#7c2d12;">${fmtPeso(tProrr)}</span>
-          </div>` : ""}
-        </div>
-
-        <!-- MARGEN -->
-        <div style="padding:16px;">
-          <div style="font-size:10px;font-weight:700;color:#1a3a0a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">📊 Margen</div>
-          <div style="margin-bottom:12px;">
-            <div style="font-size:11px;color:#888;">Margen Ppto</div>
-            <div style="font-size:20px;font-weight:700;color:${clsPpto};">${fmtPeso(mgnPpto)}</div>
-            ${ha>0?`<div style="font-size:11px;color:${clsPpto};">$${Math.round(mgnHaPpto).toLocaleString("es-CL")}/há</div>`:""}
-          </div>
-          <div style="margin-bottom:12px;">
-            <div style="font-size:11px;color:#888;">Margen Real</div>
-            <div style="font-size:18px;font-weight:700;color:${clsReal};">${tFact>0?fmtPeso(mgnReal):"—"}</div>
-            ${(ha>0&&tFact>0)?`<div style="font-size:11px;color:${clsReal};">$${Math.round(mgnHaReal).toLocaleString("es-CL")}/há</div>`:""}
-          </div>
-          <div style="margin-top:12px;padding-top:12px;border-top:1px solid #f0ede6;">
-            <div style="font-size:11px;color:#888;">% Margen Ppto</div>
-            <div style="font-size:16px;font-weight:700;color:${clsPpto};">${tPpto>0?(mgnPpto/tPpto*100).toFixed(1)+"%":"—"}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Detalle documentos expandible -->
-      <div style="border-top:1px solid #f0ede6;">
-
-        <!-- Costos BD Registro -->
-        <div onclick="toggleBloque('det_reg_${safeId}')"
-          style="cursor:pointer;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;background:#f8faf5;">
-          <span style="font-size:12px;font-weight:600;color:#3b6d11;">📋 Detalle BD Registro (${(docsReg[upId]||[]).length} registros)</span>
-          <span style="font-size:11px;color:#3b6d11;" id="arr-det_reg_${safeId}">▼</span>
-        </div>
-        <div id="body-det_reg_${safeId}" style="display:none;overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead style="background:#f0f7ec;">
-              <tr>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Fecha</th>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Tipo Labor</th>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Observación</th>
-                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(docsReg[upId]||[]).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).map(d => `
-                <tr style="border-bottom:1px solid #f0ede6;">
-                  <td style="padding:5px 12px;color:#888;">${String(d.fecha).split("T")[0]}</td>
-                  <td style="padding:5px 12px;">${d.labor}</td>
-                  <td style="padding:5px 12px;color:#888;">${d.obs||"—"}</td>
-                  <td style="text-align:right;padding:5px 12px;font-weight:600;">${fmtPeso(d.monto)}</td>
-                </tr>`).join("")||'<tr><td colspan="4" style="padding:10px 12px;color:#aaa;text-align:center;">Sin registros</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Costos Asignaciones -->
-        <div onclick="toggleBloque('det_asig_${safeId}')"
-          style="cursor:pointer;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;background:#f5f8ff;border-top:1px solid #f0ede6;">
-          <span style="font-size:12px;font-weight:600;color:#0c447c;">📎 Detalle Asignaciones (${(docsAsig[upId]||[]).length} registros)</span>
-          <span style="font-size:11px;color:#0c447c;" id="arr-det_asig_${safeId}">▼</span>
-        </div>
-        <div id="body-det_asig_${safeId}" style="display:none;overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead style="background:#eef3fc;">
-              <tr>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Fecha</th>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Proveedor</th>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Folio</th>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Tipo</th>
-                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(docsAsig[upId]||[]).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).map(d => `
-                <tr style="border-bottom:1px solid #f0ede6;">
-                  <td style="padding:5px 12px;color:#888;">${String(d.fecha).split("T")[0]}</td>
-                  <td style="padding:5px 12px;">${d.proveedor}</td>
-                  <td style="padding:5px 12px;color:#888;">${d.folio}</td>
-                  <td style="padding:5px 12px;color:#888;">${d.tipo}</td>
-                  <td style="text-align:right;padding:5px 12px;font-weight:600;">${fmtPeso(d.monto)}</td>
-                </tr>`).join("")||'<tr><td colspan="5" style="padding:10px 12px;color:#aaa;text-align:center;">Sin registros</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Ingresos Facturados -->
-        <div onclick="toggleBloque('det_ing_${safeId}')"
-          style="cursor:pointer;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;background:#f3fbf5;border-top:1px solid #f0ede6;">
-          <span style="font-size:12px;font-weight:600;color:#1a6e3a;">🧾 Detalle Facturado (${(docsIng[upId]||[]).length} registros)</span>
-          <span style="font-size:11px;color:#1a6e3a;" id="arr-det_ing_${safeId}">▼</span>
-        </div>
-        <div id="body-det_ing_${safeId}" style="display:none;overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead style="background:#e8f7ec;">
-              <tr>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Fecha</th>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Cliente</th>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Folio</th>
-                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(docsIng[upId]||[]).sort((a,b)=>String(b.fecha).localeCompare(String(a.fecha))).map(d => `
-                <tr style="border-bottom:1px solid #f0ede6;">
-                  <td style="padding:5px 12px;color:#888;">${String(d.fecha).split("T")[0]}</td>
-                  <td style="padding:5px 12px;">${d.proveedor}</td>
-                  <td style="padding:5px 12px;color:#888;">${d.folio}</td>
-                  <td style="text-align:right;padding:5px 12px;font-weight:600;color:#1a6e3a;">${fmtPeso(d.monto)}</td>
-                </tr>`).join("")||'<tr><td colspan="4" style="padding:10px 12px;color:#aaa;text-align:center;">Sin facturas emitidas</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Proyecciones -->
-        <div onclick="toggleBloque('det_proy_${safeId}')"
-          style="cursor:pointer;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;background:#fffbf0;border-top:1px solid #f0ede6;">
-          <span style="font-size:12px;font-weight:600;color:#b45309;">🔮 Detalle Proyecciones (${(docsProy[upId]||[]).length} registros)</span>
-          <span style="font-size:11px;color:#b45309;" id="arr-det_proy_${safeId}">▼</span>
-        </div>
-        <div id="body-det_proy_${safeId}" style="display:none;overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;font-size:12px;">
-            <thead style="background:#fef9ec;">
-              <tr>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Fecha Est.</th>
-                <th style="text-align:left;padding:6px 12px;color:#555;font-weight:600;">Estado</th>
-                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Kilos Est.</th>
-                <th style="text-align:right;padding:6px 12px;color:#555;font-weight:600;">Monto</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(docsProy[upId]||[]).sort((a,b)=>String(a.fecha).localeCompare(String(b.fecha))).map(d => `
-                <tr style="border-bottom:1px solid #f0ede6;">
-                  <td style="padding:5px 12px;color:#888;">${String(d.fecha).split("T")[0]}</td>
-                  <td style="padding:5px 12px;">${d.estado}</td>
-                  <td style="text-align:right;padding:5px 12px;color:#888;">${d.kilos>0?d.kilos.toLocaleString("es-CL")+" kg":"—"}</td>
-                  <td style="text-align:right;padding:5px 12px;font-weight:600;color:#b45309;">${fmtPeso(d.monto)}</td>
-                </tr>`).join("")||'<tr><td colspan="4" style="padding:10px 12px;color:#aaa;text-align:center;">Sin proyecciones</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </div>`;
-  }
-
-  // ── VISTA COMPARATIVA ─────────────────────────────────────────────────────
-  function tablaComparativa() {
-    const rows = upsFiltradas.map(id => {
-      const nombre   = CC_MAP[id]||id;
-      const ha       = HA_MAP[id]||0;
-      const tDirecto = (costoRegTotal[id]||0) + (costoAsigTotal[id]||0);
-      const tProrr   = prorrR.prorrateoPorUP[id] || 0;
-      const tCosto   = tDirecto + tProrr;
-      const tPpto   = ingPpto[id]||0;
-      const tFact   = ingFact[id]||0;
-      const mgnPpto = tPpto - tCosto;
-      const mgnReal = tFact - tCosto;
-      const pctAv   = tPpto>0 ? Math.round(tFact/tPpto*100) : 0;
-      const clsP    = mgnPpto>=0?"color:#1a6e3a":"color:#cc2222";
-      const clsR    = mgnReal>=0?"color:#1a6e3a":"color:#cc2222";
-      const avC     = pctAv>=100?"#1a6e3a":pctAv>=50?"#d97706":"#888";
-      const costoLbl = tProrr > 0
-        ? `${fmtPeso(tCosto)}<br><span style="font-size:9px;color:#888;font-weight:400;">dir ${fmtPeso(tDirecto)} + prr ${fmtPeso(tProrr)}</span>`
-        : fmtPeso(tCosto);
-      return `<tr style="border-bottom:1px solid #f0ede6;">
-        <td style="padding:8px 10px;font-weight:600;">${nombre}<br><span style="font-size:10px;color:#888;font-weight:400;">${ha}há</span></td>
-        <td style="text-align:right;padding:8px 10px;color:#b45309;font-weight:600;">${fmtPeso(tPpto)}</td>
-        <td style="text-align:right;padding:8px 10px;color:#1a6e3a;font-weight:600;">${tFact>0?fmtPeso(tFact):"—"}</td>
-        <td style="text-align:right;padding:8px 10px;color:#cc2222;font-weight:600;" title="Directo ${fmtPeso(tDirecto)} + Prorrateo ${fmtPeso(tProrr)}">${costoLbl}</td>
-        <td style="text-align:right;padding:8px 10px;font-weight:700;${clsP}">${fmtPeso(mgnPpto)}</td>
-        <td style="text-align:right;padding:8px 10px;font-weight:700;${clsR}">${tFact>0?fmtPeso(mgnReal):"—"}</td>
-        <td style="padding:8px 10px;">
-          <div style="display:flex;align-items:center;gap:6px;">
-            <div style="height:6px;background:#f0ede6;border-radius:3px;width:60px;">
-              <div style="height:6px;background:${avC};border-radius:3px;width:${Math.min(100,pctAv)*0.6}px;"></div>
-            </div>
-            <span style="font-size:11px;font-weight:700;color:${avC};">${pctAv>0?pctAv+"%":"—"}</span>
-          </div>
-        </td>
-      </tr>`;
-    }).join("");
-
-    // Totales
-    let tTP=0,tTF=0,tTC=0,tTD=0,tTPr=0;
-    upsFiltradas.forEach(id => {
-      tTP += ingPpto[id]||0;
-      tTF += ingFact[id]||0;
-      const dir  = (costoRegTotal[id]||0)+(costoAsigTotal[id]||0);
-      const prr  = prorrR.prorrateoPorUP[id]||0;
-      tTD += dir;
-      tTPr += prr;
-      tTC += dir + prr;
-    });
-    const tMP = tTP-tTC, tMR = tTF-tTC;
-    const tAv = tTP>0?Math.round(tTF/tTP*100):0;
-    const tAvC = tAv>=100?"#1a6e3a":tAv>=50?"#d97706":"#888";
-    const totalCostoLbl = tTPr > 0
-      ? `${fmtPeso(tTC)}<br><span style="font-size:9px;color:#888;font-weight:400;">dir ${fmtPeso(tTD)} + prr ${fmtPeso(tTPr)}</span>`
-      : fmtPeso(tTC);
-
-    return `<div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:13px;">
-        <thead style="background:#f8f8f6;">
-          <tr>
-            <th style="text-align:left;padding:8px 10px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;">UP</th>
-            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#b45309;border-bottom:2px solid #e5e2da;">🔮 Ppto</th>
-            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#1a6e3a;border-bottom:2px solid #e5e2da;">🧾 Fact.</th>
-            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#cc2222;border-bottom:2px solid #e5e2da;">💰 Costos</th>
-            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;">Mgn Ppto</th>
-            <th style="text-align:right;padding:8px 10px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;">Mgn Real</th>
-            <th style="padding:8px 10px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;">% Avance</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-        <tfoot>
-          <tr style="background:#f8f8f6;font-weight:700;border-top:2px solid #e5e2da;">
-            <td style="padding:8px 10px;">Total</td>
-            <td style="text-align:right;padding:8px 10px;color:#b45309;">${fmtPeso(tTP)}</td>
-            <td style="text-align:right;padding:8px 10px;color:#1a6e3a;">${tTF>0?fmtPeso(tTF):"—"}</td>
-            <td style="text-align:right;padding:8px 10px;color:#cc2222;">${totalCostoLbl}</td>
-            <td style="text-align:right;padding:8px 10px;color:${tMP>=0?"#1a6e3a":"#cc2222"};">${fmtPeso(tMP)}</td>
-            <td style="text-align:right;padding:8px 10px;color:${tMR>=0?"#1a6e3a":"#cc2222"};">${tTF>0?fmtPeso(tMR):"—"}</td>
-            <td style="padding:8px 10px;">
-              <span style="font-weight:700;color:${tAvC};">${tAv>0?tAv+"%":"—"}</span>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>`;
-  }
-
-  // ── HTML FINAL ────────────────────────────────────────────────────────────
-  document.getElementById("app-resultado").innerHTML = `
-    <div style="margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
-      <div>
-        <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Unidad Productiva</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;">${selectorBtns}</div>
-      </div>
-      <div>
-        <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Centro de Costo</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;">${fundoBtns}</div>
-      </div>
-      <div>
-        <div style="font-size:10px;font-weight:700;color:#888;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;">Prorrateo</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px;">
-          <button onclick="setProrrateo('no')" style="padding:5px 12px;border-radius:20px;border:1px solid ${modoProrrR==='no'?'#1a3a0a':'#ddd'};background:${modoProrrR==='no'?'#1a3a0a':'#fff'};color:${modoProrrR==='no'?'#fff':'#333'};font-size:12px;cursor:pointer;margin:2px;">Sin prorrateo</button>
-          <button onclick="setProrrateo('ha')" style="padding:5px 12px;border-radius:20px;border:1px solid ${modoProrrR==='ha'?'#1a3a0a':'#ddd'};background:${modoProrrR==='ha'?'#1a3a0a':'#fff'};color:${modoProrrR==='ha'?'#fff':'#333'};font-size:12px;cursor:pointer;margin:2px;">Por hectárea</button>
-          <button onclick="setProrrateo('ingreso')" style="padding:5px 12px;border-radius:20px;border:1px solid ${modoProrrR==='ingreso'?'#1a3a0a':'#ddd'};background:${modoProrrR==='ingreso'?'#1a3a0a':'#fff'};color:${modoProrrR==='ingreso'?'#fff':'#333'};font-size:12px;cursor:pointer;margin:2px;">Por ingreso</button>
-        </div>
-      </div>
-    </div>
-
-    ${prorrR.pool > 0 ? `
-    <div style="background:#fff7ed;border:1px solid #fbd5a5;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#7c2d12;">
-      <b>Prorrateo activo (${modoProrrR === "ha" ? "por hectárea" : modoProrrR === "ingreso" ? "por ingreso ppto" : "sin prorrateo"}):</b>
-      pool de costos indirectos ${fmtPeso(prorrR.pool)} repartido entre ${Object.keys(prorrR.prorrateoPorUP).length} UP productivas.
-      ${modoProrrR === "ha" ? `Factor: ${fmtPeso(prorrR.factor)}/há.` : ""}
-    </div>` : ""}
-
-    <!-- Card detalle: muestra la UP activa -->
-    ${(()=>{
-      const upCard = (window._resUPs.length>0 && window._resUPs.includes(window._resUPActiva))
-        ? window._resUPActiva
-        : (upsFiltradas.includes(window._resUPActiva) ? window._resUPActiva : upsFiltradas[0]);
-      window._resUPActiva = upCard;
-      return upCard ? cardUP(upCard) : '';
-    })()}
-
-    <!-- Tabla comparativa todas las UPs -->
-    <div style="background:#fff;border:1px solid #e5e2da;border-radius:12px;overflow:hidden;">
-      <div style="padding:14px 20px;border-bottom:1px solid #f0ede6;display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:13px;font-weight:700;">Comparativa todas las UPs — ${tempActiva}</div>
-        <div style="font-size:11px;color:#888;">${upsFiltradas.length} UPs${window._resUPs.length>0?" · "+window._resUPs.length+" seleccionadas":""}</div>
-      </div>
-      <div style="padding:0 8px 8px;">
-        ${tablaComparativa()}
-      </div>
-    </div>
-    <div class="footer">Estado de Resultado por UP · ${tempActiva} · Los Crisoles · BData</div>`;
-}
-
 function getTemporadaDeFecha(fecha, mesInicio) {
   const d = typeof fecha === "string" ? new Date(fecha) : fecha;
   if (!d || isNaN(d)) return null;
@@ -2171,9 +1592,8 @@ function cambiarTemporada(temp) {
   TEMPORADA_ACTIVA = temp;
   updateHeaderKPIs();
   renderCostos();
-  renderMargenes();
   renderIngresos();
-  renderResultadoUP();
+  renderResultados();
 }
 
 // ── UPDATE HEADER KPIS por temporada ────────────────────────────────────────
@@ -2598,7 +2018,7 @@ function renderCaja() {
 
 function switchTab(tab) {
   currentTab = tab;
-  ["labores","costos","margenes","ingresos","caja","resultado"].forEach(t => {
+  ["labores","costos","ingresos","caja","resultados"].forEach(t => {
     const elTab     = document.getElementById("tab-"+t);
     const elApp     = document.getElementById("app-"+t);
     const elMetrics = document.getElementById("metrics-"+t);
@@ -3521,9 +2941,8 @@ async function main() {
 
     renderPageLabores();
     renderCostos();
-    renderMargenes();
     renderIngresos();
-    renderResultadoUP();
+    renderResultados();
     renderCaja();
 
   } catch(e) {
