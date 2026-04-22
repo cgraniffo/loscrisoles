@@ -155,7 +155,7 @@
       <div class="kpi-val amber" id="k-ppto">—</div>
       <div class="kpi-label" id="k-ppto-label">🌾 Ppto ingresos</div>
     </div>
-    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('margenes',null)">
+    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('resultados',null)">
       <div class="kpi-val" id="k-margen">—</div>
       <div class="kpi-label" id="k-margen-label">📊 Margen ppto</div>
     </div>
@@ -183,8 +183,7 @@
   <div class="tab g-finanzas" onclick="show('caja', this)">🏦 Caja</div>
   <div class="tab g-finanzas" onclick="show('ingresos', this)">🌾 Ingresos</div>
   <div class="tab g-finanzas" onclick="show('costos', this)">💰 Costos</div>
-  <div class="tab g-finanzas" onclick="show('resultado', this)">📋 Resultado UP</div>
-  <div class="tab g-finanzas" onclick="show('margenes', this)">📊 Márgenes Unitarios</div>
+  <div class="tab g-finanzas" onclick="show('resultados', this)">📊 Resultados</div>
   <div class="tab g-finanzas" onclick="show('asignar', this)">📎 Asignar</div>
   <div class="tab g-finanzas" onclick="show('documentos', this)">📄 Documentos</div>
 </div>
@@ -212,10 +211,9 @@
   <iframe id="f-caja"       src=""  data-src="/reporte"    data-tab="caja"       class="hidden"></iframe>
   <iframe id="f-costos"     src=""  data-src="/reporte"    data-tab="costos"     class="hidden"></iframe>
   <iframe id="f-ingresos"   src=""  data-src="/reporte"    data-tab="ingresos"   class="hidden"></iframe>
-  <iframe id="f-margenes"   src=""  data-src="/reporte"    data-tab="margenes"   class="hidden"></iframe>
+  <iframe id="f-resultados" src=""  data-src="/reporte"    data-tab="resultados" class="hidden"></iframe>
   <iframe id="f-asignar"    src=""  data-src="/asignar"    data-tab=""           class="hidden"></iframe>
   <iframe id="f-documentos" src=""  data-src="/documentos" data-tab=""           class="hidden"></iframe>
-  <iframe id="f-resultado"  src=""  data-src="/reporte"   data-tab="resultado"  class="hidden"></iframe>
 </div>
 
 <script>
@@ -229,7 +227,7 @@
   var currentTab  = 'home';
   var loaded      = {};
   var temporada   = '';
-  var WIP_TABS    = { ingresos:1, costos:1, resultado:1, margenes:1, produccion:1, insumos:1 };
+  var WIP_TABS    = { ingresos:1, costos:1, produccion:1, insumos:1 };
 
   // CSS injected into every iframe to hide internal header/tabs
   var HIDE_CSS = [
@@ -417,7 +415,7 @@
     }
 
     // Push to all loaded iframes
-    ['f-home','f-costos','f-ingresos','f-margenes','f-labores','f-caja','f-produccion','f-insumos','f-resultado'].forEach(function(id) {
+    ['f-home','f-costos','f-ingresos','f-resultados','f-labores','f-caja','f-produccion','f-insumos'].forEach(function(id) {
       var f = document.getElementById(id);
       if (loaded[id.replace('f-','')] && f.contentWindow) pushTemporada(f);
     });
