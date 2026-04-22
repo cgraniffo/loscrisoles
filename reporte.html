@@ -418,7 +418,7 @@ const API_FINANZAS  = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtS
 const API_CC       = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
 const API_LABORES  = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 
-const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {}, COORD_MAP = {}, CULTIVO_MAP = {};
+const CC_MAP = {}, FUNDO_MAP = {}, LAB_MAP = {}, ENC_MAP = {}, HA_MAP = {}, COORD_MAP = {}, CULTIVO_MAP = {}, BASE_PRORRATEO_MAP = {};
 
 // Mapeo de Id_Especie → Nombre (desde BD_Especies, hardcodeado)
 const ESPECIE_NAMES = {
@@ -569,8 +569,8 @@ function renderMargenes() {
   const FECHA_CORTE = FECHA_CORTE_COSTOS;
   const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
 
-  // UPs no productivas — excluidas de costos, ingresos y márgenes
-  const FUNDOS_NO_PROD_M = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
+  // UPs productivas según BD_CC.Es_Base_Prorrateo (fuente única de verdad)
+  const esUpProd = id => BASE_PRORRATEO_MAP[id] === true;
 
   function passTemp(fechaVal, ccId) {
     if (!tempActiva) return true;
@@ -585,23 +585,19 @@ function renderMargenes() {
     const raw  = String(r["Fecha"]||"");
     const f    = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
     const ccId = String(r["Centro_Costo"]||"").trim();
-    const ha   = HA_MAP[ccId]||0;
-    const fundo = FUNDO_MAP[ccId]||"";
     return Number(r["Costo Total"]||0) > 0 && (f===""||f<FECHA_CORTE) && passTemp(f, ccId)
-      && ha > 0 && !FUNDOS_NO_PROD_M.has(fundo);
+      && esUpProd(ccId);
   }).forEach(r => {
     const id = String(r["Centro_Costo"]||"").trim();
     costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Costo Total"]||0);
   });
   (window.ASIGNACIONES||[]).filter(r => {
     const id    = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    const ha    = HA_MAP[id]||0;
-    const fundo = FUNDO_MAP[id]||"";
+    const fecha = r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"";
     const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
     const esIngreso = tipo.includes("emit") || tipo === "guia-emitida";
     return Number(r["Monto_Asignado"]||0) > 0 && passTemp(fecha, id)
-      && ha > 0 && !FUNDOS_NO_PROD_M.has(fundo) && !esIngreso;
+      && esUpProd(id) && !esIngreso;
   }).forEach(r => {
     const id = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
     costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
@@ -655,12 +651,7 @@ function renderMargenes() {
   });
 
   // ── FILAS ─────────────────────────────────────────────────────────────────
-  function esProdUP(id) {
-    const ha    = HA_MAP[id]||0;
-    const fundo = FUNDO_MAP[id]||"";
-    return ha > 0 && !FUNDOS_NO_PROD_M.has(fundo);
-  }
-  const allUPs = [...new Set([...Object.keys(costosPorUP), ...Object.keys(ingresosPorUP)])].filter(esProdUP).sort();
+  const allUPs = [...new Set([...Object.keys(costosPorUP), ...Object.keys(ingresosPorUP)])].filter(esUpProd).sort();
 
   const filtradas = allUPs.filter(id => {
     if (stateMargenes.ups.length    > 0 && !stateMargenes.ups.includes(id))                   return false;
@@ -1005,13 +996,8 @@ function renderIngresos() {
   const RUT_LC = "76099766-8";
   const tempActiva = TEMPORADA_ACTIVA || getTemporadaActiva();
 
-  // UPs no productivas — excluidas de ingresos
-  const FUNDOS_NO_PROD_I = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
-  function esProdI(id) {
-    const ha    = HA_MAP[id]||0;
-    const fundo = FUNDO_MAP[id]||"";
-    return ha > 0 && !FUNDOS_NO_PROD_I.has(fundo);
-  }
+  // UPs productivas según BD_CC.Es_Base_Prorrateo (fuente única de verdad)
+  const esProdI = id => BASE_PRORRATEO_MAP[id] === true;
 
   function passTemp(fechaVal, ccId) {
     if (!tempActiva) return true;
@@ -1407,7 +1393,6 @@ function renderResultadoUP() {
   const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
   const FECHA_CORTE = FECHA_CORTE_COSTOS;
   const RUT_LC      = "76099766-8";
-  const FUNDOS_NP   = new Set(["Gastos Generales","Maquinarias","Remuneraciones","Pivote","Infraestructura","Nativos","Gastos generales"]);
 
   function passTemp(fechaVal, ccId) {
     if (!tempActiva) return true;
@@ -1415,8 +1400,9 @@ function renderResultadoUP() {
     if (!tmp) return false;
     return tmp.temporada === tempActiva;
   }
+  // UPs productivas según BD_CC.Es_Base_Prorrateo (fuente única de verdad)
   function esProd(id) {
-    return (HA_MAP[id]||0) > 0 && !FUNDOS_NP.has(FUNDO_MAP[id]||"");
+    return BASE_PRORRATEO_MAP[id] === true;
   }
 
   // Resolver nombre→id para Asignaciones
@@ -3264,6 +3250,10 @@ async function main() {
         HA_MAP[id]    = parseFloat(c["HECTÁREAS"]||c["HECTAREAS"]||0) || 0;
         const especieId = String(c["Especie"]||c["Cultivo"]||c["CULTIVO"]||"").trim();
         CULTIVO_MAP[id] = ESPECIE_NAMES[especieId] || especieId || "";
+        // Es_Base_Prorrateo: acepta booleano, "TRUE"/"FALSE", "VERDADERO"/"FALSO" (case-insensitive)
+        const rawBase = c["Es_Base_Prorrateo"];
+        BASE_PRORRATEO_MAP[id] = (rawBase === true)
+          || ["true","verdadero","si","sí","1"].includes(String(rawBase||"").trim().toLowerCase());
         const temp    = String(c["Temporada"]||"").trim();
         const mesIni  = parseInt(c["MES_INICIO_TEMPORADA"]||7)||7;
         if (temp) {
