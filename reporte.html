@@ -583,27 +583,38 @@ function calcularProrrateo(tempActiva, modo, ingresosPorUP) {
   const RUT_LC = "76099766-8";
   const esProd    = id => BASE_PRORRATEO_MAP[id] === true;
   const esNoProd  = id => BASE_PRORRATEO_MAP[id] !== true;
-  const upsProdConDatos = []; // productivas con base > 0
 
   if (!modo || modo === "no") return { pool:0, prorrateoPorUP:{}, base:0, modo:"no", factor:0 };
 
-  // 1) Pool: suma costos de UPs NO productivas en la temporada
+  // Helper: para UPs NO productivas, la temporada del movimiento se calcula desde
+  // la FECHA del movimiento + el mesInicio que trae el CC en BD_CC.
+  // Las UPs no productivas (Maquinarias, Gastos Generales, Remuneraciones, etc.)
+  // son recurrentes: no tienen un "ciclo" propio, se reparten por año agrícola.
+  function tempMovNoProd(fechaVal, ccId) {
+    const tmp = TEMP_MAP[ccId];
+    const mesIni = (tmp && tmp.mesInicio) || 4; // fallback abril si no hay
+    return getTemporadaDeFecha(fechaVal, mesIni);
+  }
+
+  // 1) Pool: suma costos de UPs NO productivas clasificados a la temporada activa
+  //    por fecha del movimiento (no por la temporada del CC en BD_CC).
   let pool = 0;
   (window.TODOS||[]).forEach(r => {
     const raw = String(r["Fecha"]||"");
     const f   = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
     const ccId = String(r["Centro_Costo"]||"").trim();
-    const tmp  = TEMP_MAP[ccId];
-    if (!tmp || tmp.temporada !== tempActiva) return;
     if (!esNoProd(ccId)) return;
+    const tempMov = tempMovNoProd(r["Fecha"], ccId);
+    if (tempMov !== tempActiva) return;
     if (Number(r["Costo Total"]||0) <= 0 || (f !== "" && f >= FECHA_CORTE)) return;
     pool += Number(r["Costo Total"]||0);
   });
   (window.ASIGNACIONES||[]).forEach(r => {
     const ccId = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    const tmp  = TEMP_MAP[ccId];
-    if (!tmp || tmp.temporada !== tempActiva) return;
     if (!esNoProd(ccId)) return;
+    const fechaMov = r["fecha_documento"] || r["Fecha_Documento"] || r["Fecha_Asignacion"];
+    const tempMov  = tempMovNoProd(fechaMov, ccId);
+    if (tempMov !== tempActiva) return;
     const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
     const partes = String(r["KEY_Documento"]||"").split("-");
     const rutEmis = partes.length < 4 ? "" : partes[1] + "-" + partes[2];
@@ -614,7 +625,7 @@ function calcularProrrateo(tempActiva, modo, ingresosPorUP) {
 
   if (pool <= 0) return { pool:0, prorrateoPorUP:{}, base:0, modo, factor:0 };
 
-  // 2) Definir base por UP productiva
+  // 2) Definir base por UP productiva (temporada del CC — Opción A original)
   const basePorUP = {};
   if (modo === "ha") {
     Object.keys(CC_MAP).forEach(id => {
@@ -2173,26 +2184,36 @@ function updateHeaderKPIs() {
   const FECHA_CORTE = FECHA_CORTE_COSTOS;
   const RUT_LC = "76099766-8";
 
-  // Costos BD_Registro pre-corte, por temporada de la UP
+  // Helper: temporada a la que pertenece un movimiento.
+  //   - UP productiva: temporada fija del CC (Opción A)
+  //   - UP no productiva: por fecha del movimiento + mesInicio del CC
+  function tempDeMov(fechaVal, ccId) {
+    const tmpCC = TEMP_MAP[ccId];
+    if (!tmpCC) return null;
+    if (BASE_PRORRATEO_MAP[ccId] === true) return tmpCC.temporada;
+    return getTemporadaDeFecha(fechaVal, tmpCC.mesInicio || 4);
+  }
+
+  // Costos BD_Registro pre-corte
   let totalReg = 0;
   (window.TODOS||[]).forEach(r => {
     const raw   = String(r["Fecha"]||"");
     const fecha = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
     const ccId  = String(r["Centro_Costo"]||"").trim();
-    const tmpCC = TEMP_MAP[ccId];
-    const tempR = tmpCC ? getTemporadaDeFecha(r["Fecha"], tmpCC.mesInicio) : null;
+    const tempR = tempDeMov(r["Fecha"], ccId);
     if (Number(r["Costo Total"]||0) > 0 && (fecha === "" || fecha < FECHA_CORTE)
       && (!tempActiva || tempR === tempActiva)) {
       totalReg += Number(r["Costo Total"]||0);
     }
   });
 
-  // Costos Asignaciones_U por temporada de la UP, excluyendo ingresos
+  // Costos Asignaciones_U, excluyendo ingresos
   let totalAsig = 0;
   (window.ASIGNACIONES||[]).forEach(r => {
     const ccId  = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    const tmpCC = TEMP_MAP[ccId];
-    const passTemp = !tempActiva || (tmpCC && tmpCC.temporada === tempActiva);
+    const fechaMov = r["fecha_documento"] || r["Fecha_Documento"] || r["Fecha_Asignacion"];
+    const tempR = tempDeMov(fechaMov, ccId);
+    const passTemp = !tempActiva || tempR === tempActiva;
     const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
     const partes = String(r["KEY_Documento"]||"").split("-");
     const rutEmis = partes.length < 4 ? "" : partes[1] + "-" + partes[2];
@@ -2204,10 +2225,11 @@ function updateHeaderKPIs() {
 
   const totalCosto = totalReg + totalAsig;
 
-  // Hectáreas totales de la temporada activa
+  // Hectáreas totales de la temporada activa (solo productivas)
   const haTemp = Object.keys(CC_MAP).reduce((s, id) => {
     const tmp = TEMP_MAP[id];
-    const pasa = !tempActiva || (tmp && tmp.temporada === tempActiva);
+    const esUpProd = BASE_PRORRATEO_MAP[id] === true;
+    const pasa = esUpProd && (!tempActiva || (tmp && tmp.temporada === tempActiva));
     return s + (pasa ? (HA_MAP[id]||0) : 0);
   }, 0);
   const costoHa = haTemp > 0 ? totalCosto / haTemp : 0;
@@ -3076,13 +3098,28 @@ function renderCostos() {
   const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
   const ccDeTemp    = TEMP_CC[tempActiva] || Object.keys(CC_MAP); // UPs de la temporada
 
+  // Helper: temporada a la que pertenece un movimiento.
+  //   - UP productiva: temporada fija del CC en BD_CC (Opción A)
+  //   - UP no productiva: calculada por fecha del movimiento + mesInicio del CC
+  //     (las UPs recurrentes no tienen "ciclo" propio; se reparten por año agrícola)
+  function tempDeMovimiento(fechaVal, ccId) {
+    const tmpCC = TEMP_MAP[ccId];
+    if (!tmpCC) return null;
+    if (BASE_PRORRATEO_MAP[ccId] === true) {
+      // Productiva: temporada fija del CC
+      return tmpCC.temporada;
+    }
+    // No productiva: por fecha del movimiento
+    const mesIni = tmpCC.mesInicio || 4;
+    return getTemporadaDeFecha(fechaVal, mesIni);
+  }
+
   // Costos históricos BD_Registro (antes del corte)
   const costosHistoricos = (window.TODOS||[]).filter(r => {
     const raw   = String(r["Fecha"]||"");
     const fecha = raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10);
     const ccId  = String(r["Centro_Costo"]||"").trim();
-    const tmpCC = TEMP_MAP[ccId];
-    const tempR = tmpCC ? getTemporadaDeFecha(r["Fecha"], tmpCC.mesInicio) : null;
+    const tempR = tempDeMovimiento(r["Fecha"], ccId);
     const passTemp = !tempActiva || tempR === tempActiva;
     return Number(r["Costo Total"]||0) > 0 && (fecha === "" || fecha < FECHA_CORTE) && passTemp;
   }).map(r => ({
@@ -3103,20 +3140,17 @@ function renderCostos() {
   }
   const costosNuevos = (window.ASIGNACIONES||[]).filter(r => {
     const ccId  = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
-    const tmpCC = TEMP_MAP[ccId];
-    // FIX Opción A: filtrar por temporada de la UP (no por fecha del documento)
-    const passTemp = !tempActiva || (tmpCC && tmpCC.temporada === tempActiva);
+    const fechaMov = r["fecha_documento"] || r["Fecha_Documento"] || r["Fecha_Asignacion"];
+    const tempR = tempDeMovimiento(fechaMov, ccId);
+    const passTemp = !tempActiva || tempR === tempActiva;
     const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
-    // FIX: extraer RUT real desde KEY_Documento en vez de comparar Proveedor (texto)
     const rutEmis = rutEmisorC(r);
-    // Excluir: facturas emitidas por Los Crisoles y guías emitidas (son ingresos)
     const esIngreso = tipo.includes("emit")
       || (tipo.includes("factura") && rutEmis === RUT_LC_COSTOS);
     return Number(r["Monto_Asignado"]||0) > 0 && passTemp && !esIngreso;
   }).map(r => ({
     _fuente:      "Asignaciones_U",
     Centro_Costo: String(r["UP_ID"]||r["UP_Nombre"]||"").trim(),
-    // FIX: leer fecha_documento (minúscula) como viene de la hoja + fallbacks
     Fecha:        r["Fecha_Documento"] || r["fecha_documento"] || r["Fecha_Asignacion"],
     Tipo_Labor:   String(r["Tipo_Doc"]||"").trim(),
     monto:        Number(r["Monto_Asignado"]||0)
