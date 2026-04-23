@@ -393,7 +393,14 @@ function initMapaProd(filtradas, detallesFilt, kgPorCC, labelPorCC, prodPorCC) {
 
   // kgPorCC, labelPorCC, prodPorCC passed as params from renderProd
 
-  const puntos = Object.entries(COORD_MAP).map(([id, coord]) => {
+  const puntos = Object.entries(COORD_MAP)
+    .filter(([id]) => {
+      // Mostrar solo UPs de la temporada activa
+      if (!TEMPORADA_ACTIVA) return true;
+      const tmp = TEMP_MAP[id];
+      return tmp && tmp.temporada === TEMPORADA_ACTIVA;
+    })
+    .map(([id, coord]) => {
     const nombre = CC_MAP[id]||id;
     const fundo  = FUNDO_MAP[id]||"";
     const ha     = HA_MAP[id]||0;
@@ -884,7 +891,14 @@ function initMapaProd(filtradas, detallesFilt, kgPorCC, labelPorCC, prodPorCC) {
 
   // kgPorCC, labelPorCC, prodPorCC passed as params from renderProd
 
-  const puntos = Object.entries(COORD_MAP).map(([id, coord]) => {
+  const puntos = Object.entries(COORD_MAP)
+    .filter(([id]) => {
+      // Mostrar solo UPs de la temporada activa
+      if (!TEMPORADA_ACTIVA) return true;
+      const tmp = TEMP_MAP[id];
+      return tmp && tmp.temporada === TEMPORADA_ACTIVA;
+    })
+    .map(([id, coord]) => {
     const nombre = CC_MAP[id]||id;
     const fundo  = FUNDO_MAP[id]||"";
     const ha     = HA_MAP[id]||0;
