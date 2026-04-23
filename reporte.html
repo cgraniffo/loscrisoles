@@ -900,6 +900,13 @@ function renderResultados() {
   window._resTemp  = tempActiva;
   window._resModoProrr = modoProrr;
 
+  // Limpiar mapa previo ANTES de reescribir el innerHTML (evita que Leaflet
+  // pierda referencia al DOM cuando se destruya el div contenedor)
+  if (window._mapResLeaflet) {
+    try { window._mapResLeaflet.remove(); } catch(e) {}
+    window._mapResLeaflet = null;
+  }
+
   // ── HTML FINAL ───────────────────────────────────────────────────────────
   document.getElementById("app-resultados").innerHTML = `
     <!-- Filtros -->
@@ -1004,7 +1011,11 @@ function renderResultados() {
     <div class="footer">Click en una UP → detalle lateral · Ingresos: Fact + Ppto · Costos: Directos + Prorrateo · ${tempActiva} · Los Crisoles · BData</div>`;
 
   // Renderizar el mapa
-  setTimeout(() => renderMapaResultados(filas, tempActiva, unidad), 50);
+  // Renderizar el mapa con RAF + setTimeout combinados para asegurar que el
+  // div ya fue pintado por el browser antes de montar Leaflet
+  requestAnimationFrame(() => {
+    setTimeout(() => renderMapaResultados(filas, tempActiva, unidad), 100);
+  });
 }
 
 // ── MAPA del tab Resultados ───────────────────────────────────────────────
@@ -1012,10 +1023,14 @@ function renderMapaResultados(filas, tempActiva, unidad) {
   const mapDiv = document.getElementById("mapa-resultados");
   if (!mapDiv) return;
 
-  // Limpiar mapa previo
-  if (window._mapResLeaflet) {
-    window._mapResLeaflet.remove();
-    window._mapResLeaflet = null;
+  // Defensivo: si quedó algún mapa Leaflet pegado al div (_leaflet_id) lo limpiamos
+  if (mapDiv._leaflet_id) {
+    try {
+      if (window._mapResLeaflet) window._mapResLeaflet.remove();
+    } catch(e) {}
+    // Forzar reset del div por si Leaflet dejó atributos
+    mapDiv.innerHTML = "";
+    mapDiv._leaflet_id = null;
   }
 
   const puntos = filas.filter(r => COORD_MAP[r.id]);
@@ -1034,23 +1049,23 @@ function renderMapaResultados(filas, tempActiva, unidad) {
     attribution: "© Esri", maxZoom: 19
   }).addTo(mapa);
 
-  // Escala de radio por hectárea
-  const maxHa = Math.max(...puntos.map(p => p.ha), 1);
+  // Radio fijo para todos los markers — diferenciación solo por color (verde/rojo)
+  const RADIO_FIJO = 18;
+
   puntos.forEach(p => {
     const coords = COORD_MAP[p.id];
-    const radius = Math.max(12, 12 + (p.ha/maxHa)*24); // 12-36 px
     const mgnRef = p.mgnReal !== null ? p.mgnReal : p.mgnPpto;
     const color = mgnRef >= 0 ? "#1a6e3a" : "#cc2222";
     const medidaVal = unidad === "ton" ? p.mgnTon : p.mgnHa;
     const medidaLbl = unidad === "ton" ? "/t" : "/há";
 
     L.circleMarker([coords.lat, coords.lng], {
-      radius: radius,
+      radius: RADIO_FIJO,
       fillColor: color,
       color: "#fff",
       weight: 2,
       opacity: 1,
-      fillOpacity: 0.75
+      fillOpacity: 0.8
     }).addTo(mapa)
     .bindTooltip(`<div style="font-weight:700;">${p.nombre}</div>
       <div style="font-size:11px;color:#555;">${p.fundo} · ${p.ha}há</div>
@@ -1067,6 +1082,9 @@ function renderMapaResultados(filas, tempActiva, unidad) {
   // Ajustar zoom para incluir todos los puntos
   const latlngs = puntos.map(p => [COORD_MAP[p.id].lat, COORD_MAP[p.id].lng]);
   mapa.fitBounds(latlngs, { padding:[30,30] });
+
+  // Forzar recálculo de dimensiones por si el div tenía tamaño incorrecto al montar
+  setTimeout(() => { try { mapa.invalidateSize(); } catch(e) {} }, 100);
 }
 
 // ── DRAWER LATERAL: detalle UP ─────────────────────────────────────────────
