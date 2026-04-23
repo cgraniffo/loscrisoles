@@ -484,12 +484,14 @@
 
       // Count records per temporada
       var tempSet = {};
+      // Solo temporadas válidas — evita que aparezcan 2024-2025 u otras
+      var TEMPORADAS_VALIDAS = ["2025-2026", "2026-2027"];
       (Array.isArray(registros) ? registros : []).forEach(function(r) {
         var ccId = String(r["Centro_Costo"]||"").trim();
         var tmp  = TEMP_MAP[ccId];
         if (!tmp) return;
         var t = getTemporada(r["Fecha"], tmp.mesInicio);
-        if (t) tempSet[t] = (tempSet[t]||0) + 1;
+        if (t && TEMPORADAS_VALIDAS.indexOf(t) !== -1) tempSet[t] = (tempSet[t]||0) + 1;
       });
 
       var temps = Object.entries(tempSet).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){ return e[0]; });
