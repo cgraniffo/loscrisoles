@@ -1594,6 +1594,8 @@ function cambiarTemporada(temp) {
   renderCostos();
   renderIngresos();
   renderResultados();
+  initMap();       // refresca mapa de Labores filtrado por temporada
+  buildMapaPanel();
 }
 
 // ── UPDATE HEADER KPIS por temporada ────────────────────────────────────────
@@ -2359,7 +2361,16 @@ function initMap() {
     window._mapaLeaflet = null;
   }
 
-  const puntos = Object.entries(COORD_MAP).map(([id, coord]) => {
+  const tempActiva = TEMPORADA_ACTIVA || getTemporadaActiva();
+
+  const puntos = Object.entries(COORD_MAP)
+    .filter(([id]) => {
+      // Mostrar solo UPs de la temporada activa
+      if (!tempActiva) return true;
+      const tmp = TEMP_MAP[id];
+      return tmp && tmp.temporada === tempActiva;
+    })
+    .map(([id, coord]) => {
     const nombre   = CC_MAP[id] || id;
     const fundo    = FUNDO_MAP[id] || "";
     const ha       = HA_MAP[id] || 0;
@@ -2922,13 +2933,15 @@ async function main() {
     document.getElementById("hdr-refresh").innerHTML = `Actualizado<br>${now.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit"})}`;
 
     // Populate temporada selector from actual data
+    // Solo temporadas válidas — evita que aparezcan 2024-2025 u otras por registros viejos
+    const TEMPORADAS_VALIDAS = ["2025-2026", "2026-2027"];
     const tempsSet = new Set();
     (window.TODOS||[]).forEach(r => {
       const ccId = String(r["Centro_Costo"]||"").trim();
       const tmp  = TEMP_MAP[ccId];
       if (!tmp) return;
       const t = getTemporadaDeFecha(r["Fecha"], tmp.mesInicio);
-      if (t) tempsSet.add(t);
+      if (t && TEMPORADAS_VALIDAS.includes(t)) tempsSet.add(t);
     });
     const tempsArr = [...tempsSet].sort().reverse();
     TEMPORADA_ACTIVA = tempsArr[0] || "";
