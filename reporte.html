@@ -3050,7 +3050,11 @@ async function main() {
       if (t && TEMPORADAS_VALIDAS.includes(t)) tempsSet.add(t);
     });
     const tempsArr = [...tempsSet].sort().reverse();
-    TEMPORADA_ACTIVA = tempsArr[0] || "";
+    // No sobreescribir si el dashboard ya envió temporada via cambiarTemporada()
+    // antes de que main() terminara de cargar
+    if (!TEMPORADA_ACTIVA) {
+      TEMPORADA_ACTIVA = tempsArr[0] || "";
+    }
     const selTemp = document.getElementById("sel-temporada");
     if (selTemp && tempsArr.length) {
       selTemp.innerHTML = tempsArr.map(t =>
