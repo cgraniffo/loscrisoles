@@ -513,11 +513,16 @@
   }
 
   function costosDeLaTemporada(regs, asigs, temp) {
-    // BD_Registro: asumir TipoDTE=33 (todo /1.19 si vista=neto)
+    var FECHA_CORTE = "2026-03-30";  // mismo corte que reporte.html FECHA_CORTE_COSTOS
+    // BD_Registro: pre-corte, asumir TipoDTE=33 (todo /1.19 si vista=neto)
     var costoReg = (Array.isArray(regs) ? regs : []).filter(function(r) {
       var ccId = String(r["Centro_Costo"]||"").trim();
       var tmp  = TEMP_MAP[ccId];
       if (!tmp) return false;
+      // Excluir post-corte (esos van por Asignaciones_U)
+      var raw = String(r["Fecha"]||"");
+      var f   = raw.indexOf("T") !== -1 ? raw.split("T")[0] : raw.slice(0,10);
+      if (f !== "" && f >= FECHA_CORTE) return false;
       return tempDeMovimientoDash(r["Fecha"], ccId) === temp;
     }).reduce(function(s,r){ return s + aplicarIva(Number(r["Costo Total"]||0), true); }, 0);
     // Asignaciones_U: factura (incl. recibida) → /1.19; guia/contrato → tal cual
