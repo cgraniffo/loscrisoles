@@ -1616,6 +1616,46 @@ function cambiarTemporada(temp) {
   buildMapaPanel();
 }
 
+// ── VISTA IVA ───────────────────────────────────────────────────────────────
+// 'neto' = sin IVA (default, comparable con Ppto)
+// 'bruto' = con IVA (caja real)
+window.VISTA_IVA = (function(){
+  try { return localStorage.getItem('lc_vista_iva') || 'neto'; } catch(e) { return 'neto'; }
+})();
+
+// Mapa KEY_Documento → {neto, tipoDte} desde CargaHTML_Demo
+window.KEY_TO_NETO = {};
+
+function aplicarIvaMonto(monto, fuente, keyDoc, montoTotalDoc) {
+  if (window.VISTA_IVA === 'bruto') return monto;
+  if (!monto) return monto;
+  switch (fuente) {
+    case 'bd_registro':         return monto / 1.19;
+    case 'asig_factura': {
+      if (keyDoc && window.KEY_TO_NETO[keyDoc] && montoTotalDoc) {
+        const info = window.KEY_TO_NETO[keyDoc];
+        if (info.tipoDte === '34') return monto;  // exenta
+        return (monto / Number(montoTotalDoc)) * info.neto;
+      }
+      return monto / 1.19;
+    }
+    case 'asig_factura_emitida': return monto / 1.19;
+    case 'asig_guia':            return monto;
+    case 'proyeccion':           return monto;
+    default:                     return monto;
+  }
+}
+
+window.cambiarVistaIva = function(modo) {
+  if (modo !== 'neto' && modo !== 'bruto') return;
+  window.VISTA_IVA = modo;
+  try { localStorage.setItem('lc_vista_iva', modo); } catch(e) {}
+  if (typeof updateHeaderKPIs === 'function') updateHeaderKPIs();
+  if (typeof renderCostos    === 'function') renderCostos();
+  if (typeof renderIngresos  === 'function') renderIngresos();
+  if (typeof renderResultados=== 'function') renderResultados();
+};
+
 // ── UPDATE HEADER KPIS por temporada ────────────────────────────────────────
 // Aplica la misma lógica híbrida (BD_Registro pre-corte + Asignaciones_U post-corte)
 // que renderCostos, filtrando por temporada activa y excluyendo ingresos.
@@ -2875,6 +2915,15 @@ async function main() {
     ]);
     window.MILESTONES_NUECES = Array.isArray(milestonesNueces) ? milestonesNueces : [];
     window.PAGOS_NUECES      = Array.isArray(pagosNueces) ? pagosNueces : [];
+
+    // Poblar KEY_TO_NETO desde CargaHTML_Demo (para vista sin IVA)
+    (Array.isArray(documentos)?documentos:[]).forEach(d => {
+      const key = String(d["KEY"]||"").trim();
+      if (!key) return;
+      const neto = Number(String(d["MntNeto"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+      const tipoDte = String(d["TipoDTE"]||"").trim();
+      if (neto > 0) window.KEY_TO_NETO[key] = { neto, tipoDte };
+    });
 
     ccs.forEach(c => {
       const id = String(c["Id_CC"]||"").trim();
