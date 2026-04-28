@@ -526,7 +526,7 @@ function parseDate(val) {
   const s = String(val).trim();
   try {
     if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
-    if (/^\d{2}[-\/]\d{2}[-\/]\d{4}$/.test(s)) { const sep=s.includes("-")?"-":"/"; const [d,m,y]=s.split(sep); return new Date(+y,+m-1,+d); }
+    if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(s)) { const sep=s.includes("-")?"-":"/"; const [d,m,y]=s.split(sep); return new Date(+y,+m-1,+d); }
     if (/^\d{4}-\d{2}-\d{2}$/.test(s)) { const [y,m,d]=s.split("-"); return new Date(+y,+m-1,+d); }
   } catch(e) {}
   return null;
@@ -1578,7 +1578,7 @@ function renderIngresos() {
 
 
 function getTemporadaDeFecha(fecha, mesInicio) {
-  const d = typeof fecha === "string" ? new Date(fecha) : fecha;
+  const d = (fecha instanceof Date) ? fecha : parseDate(fecha);
   if (!d || isNaN(d)) return null;
   const anio = d.getFullYear();
   const mes  = d.getMonth() + 1; // 1-12
