@@ -500,23 +500,39 @@
     return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
   }
 
+  // Opción A: si UP es productiva (Es_Base_Prorrateo=true), la temporada es la del CC.
+  // Si no es productiva, se calcula por fecha del movimiento + mesInicio del CC.
+  // Para usar esto necesitamos saber qué CCs son productivos → BASE_PRORRATEO_MAP.
+  var BASE_PRORRATEO_MAP = {};
+
+  function tempDeMovimientoDash(fechaVal, ccId) {
+    var tmp = TEMP_MAP[ccId];
+    if (!tmp) return null;
+    if (BASE_PRORRATEO_MAP[ccId] === true) return tmp.temporada;  // productiva: temp fija
+    return getTemporada(fechaVal, tmp.mesInicio || 4);  // no productiva: por fecha
+  }
+
   function costosDeLaTemporada(regs, asigs, temp) {
     // BD_Registro: asumir TipoDTE=33 (todo /1.19 si vista=neto)
     var costoReg = (Array.isArray(regs) ? regs : []).filter(function(r) {
       var ccId = String(r["Centro_Costo"]||"").trim();
       var tmp  = TEMP_MAP[ccId];
       if (!tmp) return false;
-      return getTemporada(r["Fecha"], tmp.mesInicio) === temp;
+      return tempDeMovimientoDash(r["Fecha"], ccId) === temp;
     }).reduce(function(s,r){ return s + aplicarIva(Number(r["Costo Total"]||0), true); }, 0);
     // Asignaciones_U: factura (incl. recibida) → /1.19; guia/contrato → tal cual
     var costoAsig = (Array.isArray(asigs) ? asigs : []).filter(function(a) {
       var ccId  = String(a["UP_ID"]||a["UP_Nombre"]||"").trim();
       var tmp   = TEMP_MAP[ccId];
-      var fecha = a["Fecha_Documento"] || a["Fecha_Asignacion"];
+      var fecha = a["fecha_documento"] || a["Fecha_Documento"] || a["Fecha_Asignacion"];
       var tipo  = String(a["Tipo_Doc"]||"").toLowerCase();
+      // Excluir ingresos: facturas/guías emitidas + facturas con RUT_LC
+      var partes = String(a["KEY_Documento"]||"").split("-");
+      var rutEmis = partes.length < 4 ? "" : partes[1] + "-" + partes[2];
+      var esIngreso = tipo.indexOf("emit") !== -1 || (tipo.indexOf("factura") !== -1 && rutEmis === "76099766-8");
       if (!tmp) return false;
-      if (tipo.includes("emit")) return false;  // excluir ingresos (facturas/guías emitidas)
-      return getTemporada(fecha, tmp.mesInicio) === temp;
+      if (esIngreso) return false;
+      return tempDeMovimientoDash(fecha, ccId) === temp;
     }).reduce(function(s,a){
       var tipo = String(a["Tipo_Doc"]||"").toLowerCase();
       var esFactura = tipo === "factura"; // recibida con IVA típicamente
@@ -548,11 +564,18 @@
       // Costos (BD_Registro + Asignaciones_U)
       // Populate global TEMP_MAP from BD_CC
       Object.keys(TEMP_MAP).forEach(function(k){ delete TEMP_MAP[k]; });
+      Object.keys(BASE_PRORRATEO_MAP).forEach(function(k){ delete BASE_PRORRATEO_MAP[k]; });
       (Array.isArray(ccs) ? ccs : []).forEach(function(row) {
         var id   = String(row["Id_CC"]||"").trim();
         var temp = String(row["Temporada"]||"").trim();
         var mes  = parseInt(row["MES_INICIO_TEMPORADA"]||3)||3;
         if (id && temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
+        // Es_Base_Prorrateo acepta TRUE/FALSE/VERDADERO/FALSO booleano o texto
+        var rawBase = row["Es_Base_Prorrateo"];
+        if (id) {
+          BASE_PRORRATEO_MAP[id] = (rawBase === true)
+            || ["true","verdadero","si","sí","1"].indexOf(String(rawBase||"").trim().toLowerCase()) !== -1;
+        }
       });
 
       // Count records per temporada
