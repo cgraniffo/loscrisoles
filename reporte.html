@@ -603,7 +603,7 @@ function calcularProrrateo(tempActiva, modo, ingresosPorUP) {
     const tempMov = tempMovNoProd(r["Fecha"], ccId);
     if (tempMov !== tempActiva) return;
     if (Number(r["Costo Total"]||0) <= 0 || (f !== "" && f >= FECHA_CORTE)) return;
-    pool += Number(r["Costo Total"]||0);
+    pool += aplicarIvaMonto(Number(r["Costo Total"]||0), 'bd_registro');
   });
   (window.ASIGNACIONES||[]).forEach(r => {
     const ccId = String(r["UP_ID"]||r["UP_Nombre"]||"").trim();
@@ -616,7 +616,13 @@ function calcularProrrateo(tempActiva, modo, ingresosPorUP) {
     const rutEmis = partes.length < 4 ? "" : partes[1] + "-" + partes[2];
     const esIngreso = tipo.includes("emit") || (tipo.includes("factura") && rutEmis === RUT_LC);
     if (Number(r["Monto_Asignado"]||0) <= 0 || esIngreso) return;
-    pool += Number(r["Monto_Asignado"]||0);
+    let fuenteIva;
+    if (tipo === "factura")        fuenteIva = 'asig_factura';
+    else if (tipo.includes("guia")) fuenteIva = 'asig_guia';
+    else                            fuenteIva = 'otro';
+    const keyDoc = String(r["KEY_Documento"]||"").trim();
+    const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+    pool += aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, totalDoc);
   });
 
   if (pool <= 0) return { pool:0, prorrateoPorUP:{}, base:0, modo, factor:0 };
@@ -724,7 +730,7 @@ function renderResultados() {
     const ccId = String(r["Centro_Costo"]||"").trim();
     if (!esUpProd(ccId) || !passTemp(ccId)) return;
     if (Number(r["Costo Total"]||0) <= 0 || (f !== "" && f >= FECHA_CORTE)) return;
-    costosPorUP[ccId] = (costosPorUP[ccId]||0) + Number(r["Costo Total"]||0);
+    costosPorUP[ccId] = (costosPorUP[ccId]||0) + aplicarIvaMonto(Number(r["Costo Total"]||0), 'bd_registro');
   });
   (window.ASIGNACIONES||[]).forEach(r => {
     const id = getUpId(r);
@@ -733,7 +739,13 @@ function renderResultados() {
     const rut  = rutEmisor(r);
     const esIngreso = tipo.includes("emit") || (tipo.includes("factura") && rut === RUT_LC);
     if (Number(r["Monto_Asignado"]||0) <= 0 || esIngreso) return;
-    costosPorUP[id] = (costosPorUP[id]||0) + Number(r["Monto_Asignado"]||0);
+    let fuenteIva;
+    if (tipo === "factura")        fuenteIva = 'asig_factura';
+    else if (tipo.includes("guia")) fuenteIva = 'asig_guia';
+    else                            fuenteIva = 'otro';
+    const keyDoc = String(r["KEY_Documento"]||"").trim();
+    const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+    costosPorUP[id] = (costosPorUP[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, totalDoc);
   });
 
   // ── INGRESOS: Ppto (Proyecciones) + Facturado real ───────────────────────
@@ -741,7 +753,7 @@ function renderResultados() {
   (window.PROYECCIONES||[]).forEach(r => {
     const id = String(r["Unidad_Productiva"]||"").trim();
     if (!esUpProd(id) || !passTemp(id)) return;
-    ingPpto[id]   = (ingPpto[id]||0)   + Number(r["Monto_Total"]||0);
+    ingPpto[id]   = (ingPpto[id]||0)   + Number(r["Monto_Total"]||0);  // Proyecciones ya sin IVA
     kilosPpto[id] = (kilosPpto[id]||0) + Number(r["Kilos_Estimados"]||0);
   });
   (window.ASIGNACIONES||[]).forEach(r => {
@@ -751,7 +763,11 @@ function renderResultados() {
     const rut  = rutEmisor(r);
     const esIng = tipo.includes("emit") || (tipo.includes("factura") && rut === RUT_LC);
     if (!esIng || Number(r["Monto_Asignado"]||0) <= 0) return;
-    ingFact[id] = (ingFact[id]||0) + Number(r["Monto_Asignado"]||0);
+    // Factura emitida LC → DTE 33; guía emitida → tal cual
+    const keyDoc = String(r["KEY_Documento"]||"").trim();
+    const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+    const fuenteIng = tipo.includes("factura") ? 'asig_factura_emitida' : 'asig_guia';
+    ingFact[id] = (ingFact[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIng, keyDoc, totalDoc);
   });
 
   // ── PRORRATEO ───────────────────────────────────────────────────────────
@@ -1249,13 +1265,19 @@ function renderIngresos() {
     return tipo.includes("factura") && rutEmisor(r) === RUT_LC_ING
       && Number(r["Monto_Asignado"]||0) > 0
       && passTemp(fecha, id) && esProdI(id);
-  }).map(r => ({
-    _fuente: "factura",
-    up:      getUpId(r),
-    monto:   Number(r["Monto_Asignado"]||0),
-    fecha:   r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"",
-    kilos:   0
-  }));
+  }).map(r => {
+    // Facturas emitidas LC son típicamente DTE 33 (afectas IVA)
+    // Si KEY existe en CargaHTML_Demo, usar MntNeto exacto; sino /1.19
+    const keyDoc = String(r["KEY_Documento"]||"").trim();
+    const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+    return {
+      _fuente: "factura",
+      up:      getUpId(r),
+      monto:   aplicarIvaMonto(Number(r["Monto_Asignado"]||0), 'asig_factura_emitida', keyDoc, totalDoc),
+      fecha:   r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"",
+      kilos:   0
+    };
+  });
 
   // UPs que ya tienen factura real
   const upsConFactura = new Set(facturasAsig.map(r => r.up));
@@ -1631,15 +1653,16 @@ function aplicarIvaMonto(monto, fuente, keyDoc, montoTotalDoc) {
   if (!monto) return monto;
   switch (fuente) {
     case 'bd_registro':         return monto / 1.19;
-    case 'asig_factura': {
+    case 'asig_factura':
+    case 'asig_factura_emitida': {
+      // Cruzar con CargaHTML_Demo: si tenemos MntNeto del doc, prorratear exacto
       if (keyDoc && window.KEY_TO_NETO[keyDoc] && montoTotalDoc) {
         const info = window.KEY_TO_NETO[keyDoc];
         if (info.tipoDte === '34') return monto;  // exenta
         return (monto / Number(montoTotalDoc)) * info.neto;
       }
-      return monto / 1.19;
+      return monto / 1.19;  // fallback: asumir DTE 33
     }
-    case 'asig_factura_emitida': return monto / 1.19;
     case 'asig_guia':            return monto;
     case 'proyeccion':           return monto;
     default:                     return monto;
