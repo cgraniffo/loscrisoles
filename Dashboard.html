@@ -28,6 +28,18 @@
     }
     #dash-temporada option { background: #1a3a0a; color: #fff; }
 
+    /* Vista IVA toggle */
+    .iva-wrap { display: flex; align-items: center; gap: 6px; }
+    .iva-label { font-size: 10px; color: #9fe1cb; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+    .iva-pills { display: flex; background: rgba(255,255,255,0.1); border: 1px solid rgba(134,239,172,0.3); border-radius: 6px; padding: 2px; gap: 2px; }
+    .iva-pill {
+      font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 4px;
+      cursor: pointer; color: rgba(255,255,255,0.6); transition: all 0.15s;
+      border: none; background: transparent; outline: none;
+    }
+    .iva-pill.on { background: #86efac; color: #1a3a0a; font-weight: 700; }
+    .iva-pill:not(.on):hover { color: rgba(255,255,255,0.9); }
+
     /* ── KPIs ── */
     .dash-kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 0; }
     .kpi { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 12px; }
@@ -132,6 +144,13 @@
       </div>
     </div>
     <div class="dash-right">
+      <div class="iva-wrap">
+        <span class="iva-label">IVA</span>
+        <div class="iva-pills">
+          <button class="iva-pill on"  id="iva-pill-neto"  onclick="onVistaIvaChange('neto')">Sin IVA</button>
+          <button class="iva-pill"     id="iva-pill-bruto" onclick="onVistaIvaChange('bruto')">Con IVA</button>
+        </div>
+      </div>
       <div class="temp-wrap">
         <span class="temp-label">Temporada</span>
         <select id="dash-temporada" onchange="onTemporadaChange()">
@@ -227,6 +246,9 @@
   var currentTab  = 'home';
   var loaded      = {};
   var temporada   = '';
+  var vistaIva    = (function(){
+    try { return localStorage.getItem('lc_vista_iva') || 'neto'; } catch(e) { return 'neto'; }
+  })();
   var WIP_TABS    = { ingresos:1, costos:1, produccion:1, insumos:1 };
 
   // CSS injected into every iframe to hide internal header/tabs
@@ -293,6 +315,13 @@
     } catch(e) {}
   }
 
+  function pushVistaIva(iframe) {
+    try {
+      var win = iframe.contentWindow;
+      if (typeof win.cambiarVistaIva === 'function') win.cambiarVistaIva(vistaIva);
+    } catch(e) {}
+  }
+
   // ── LOADER ───────────────────────────────────────────────────
   function showLoader() {
     var l = document.getElementById('loader');
@@ -317,6 +346,9 @@
 
     // 3. Push current temporada
     pushTemporada(frame);
+
+    // 3b. Push current vista IVA
+    pushVistaIva(frame);
 
     // 4. Small delay then reveal (gives CSS time to apply)
     setTimeout(function() {
@@ -421,25 +453,62 @@
     });
   }
 
+  // ── VISTA IVA ────────────────────────────────────────────────
+  function onVistaIvaChange(modo) {
+    if (modo !== 'neto' && modo !== 'bruto') return;
+    vistaIva = modo;
+    try { localStorage.setItem('lc_vista_iva', modo); } catch(e) {}
+
+    // Toggle pill UI
+    document.getElementById('iva-pill-neto').classList.toggle('on',  modo === 'neto');
+    document.getElementById('iva-pill-bruto').classList.toggle('on', modo === 'bruto');
+
+    // Recalcular KPIs del header
+    if (window._kpiData) onTemporadaChange();
+
+    // Push to all loaded iframes
+    ['f-home','f-costos','f-ingresos','f-resultados','f-labores','f-caja','f-produccion','f-insumos'].forEach(function(id) {
+      var f = document.getElementById(id);
+      if (loaded[id.replace('f-','')] && f.contentWindow) pushVistaIva(f);
+    });
+  }
+
+  // Aplicar IVA según vista actual a un monto bruto (con IVA)
+  // Para BD_Registro y Asignaciones (Tipo_Doc factura) → /1.19 si vista=neto
+  function aplicarIva(monto, esFactura) {
+    if (vistaIva === 'bruto') return monto;
+    if (!esFactura) return monto;  // guías / contratos / honorarios → sin IVA igual
+    return monto / 1.19;
+  }
+
   // ── KPIs ─────────────────────────────────────────────────────
   // ── GLOBALS ──────────────────────────────────────────────────
   var TEMP_MAP = {};
 
   function getTemporada(fechaStr, mesInicio) {
-    var raw = String(fechaStr||"");
-    var d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
-    if (isNaN(d)) return null;
+    var raw = String(fechaStr||"").trim();
+    if (!raw) return null;
+    var d = null;
+    var mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (mISO) d = new Date(+mISO[1], +mISO[2]-1, +mISO[3]);
+    if (!d) {
+      var mCL = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+      if (mCL) d = new Date(+mCL[3], +mCL[2]-1, +mCL[1]);
+    }
+    if (!d || isNaN(d)) return null;
     var y = d.getFullYear(); var m = d.getMonth()+1;
     return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
   }
 
   function costosDeLaTemporada(regs, asigs, temp) {
+    // BD_Registro: asumir TipoDTE=33 (todo /1.19 si vista=neto)
     var costoReg = (Array.isArray(regs) ? regs : []).filter(function(r) {
       var ccId = String(r["Centro_Costo"]||"").trim();
       var tmp  = TEMP_MAP[ccId];
       if (!tmp) return false;
       return getTemporada(r["Fecha"], tmp.mesInicio) === temp;
-    }).reduce(function(s,r){ return s+Number(r["Costo Total"]||0); }, 0);
+    }).reduce(function(s,r){ return s + aplicarIva(Number(r["Costo Total"]||0), true); }, 0);
+    // Asignaciones_U: factura (incl. recibida) → /1.19; guia/contrato → tal cual
     var costoAsig = (Array.isArray(asigs) ? asigs : []).filter(function(a) {
       var ccId  = String(a["UP_ID"]||a["UP_Nombre"]||"").trim();
       var tmp   = TEMP_MAP[ccId];
@@ -448,7 +517,11 @@
       if (!tmp) return false;
       if (tipo.includes("emit")) return false;  // excluir ingresos (facturas/guías emitidas)
       return getTemporada(fecha, tmp.mesInicio) === temp;
-    }).reduce(function(s,a){ return s+Number(a["Monto_Asignado"]||0); }, 0);
+    }).reduce(function(s,a){
+      var tipo = String(a["Tipo_Doc"]||"").toLowerCase();
+      var esFactura = tipo === "factura"; // recibida con IVA típicamente
+      return s + aplicarIva(Number(a["Monto_Asignado"]||0), esFactura);
+    }, 0);
     return costoReg + costoAsig;
   }
 
@@ -556,6 +629,10 @@
       console.error("KPI error:", e);
     }
   }
+
+  // Reflejar vista IVA guardada en localStorage al cargar
+  document.getElementById('iva-pill-neto').classList.toggle('on',  vistaIva === 'neto');
+  document.getElementById('iva-pill-bruto').classList.toggle('on', vistaIva === 'bruto');
 
   loadKPIs();
 </script>
