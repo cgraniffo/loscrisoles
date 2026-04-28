@@ -712,9 +712,18 @@ const TEMP_MAP = {};
 let TEMPORADA_ACTIVA = null;
 
 function getTemporada(fechaVal, mesInicio) {
-  const raw = String(fechaVal||"");
-  const d   = new Date(raw.includes("T") ? raw.split("T")[0] : raw.slice(0,10));
-  if (isNaN(d)) return null;
+  const raw = String(fechaVal||"").trim();
+  if (!raw) return null;
+  let d = null;
+  // ISO con o sin T: 2027-02-15 / 2027-02-15T...
+  let mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (mISO) d = new Date(+mISO[1], +mISO[2]-1, +mISO[3]);
+  // Chileno d/m/yyyy o dd/mm/yyyy (1 o 2 dígitos en día/mes)
+  if (!d) {
+    let mCL = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (mCL) d = new Date(+mCL[3], +mCL[2]-1, +mCL[1]);
+  }
+  if (!d || isNaN(d)) return null;
   const y = d.getFullYear(), m = d.getMonth()+1;
   return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
 }
@@ -735,6 +744,7 @@ function parseDate(val) {
   const s = String(val).trim();
   try {
     if (/^\d{4}-\d{2}-\d{2}T/.test(s)) { const [y,m,d]=s.split("T")[0].split("-"); return new Date(+y,+m-1,+d); }
+    if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(s)) { const sep=s.includes("-")?"-":"/"; const [d,m,y]=s.split(sep); return new Date(+y,+m-1,+d); }
     if (/^\d{4}-\d{2}-\d{2}$/.test(s))  { const [y,m,d]=s.split("-"); return new Date(+y,+m-1,+d); }
   } catch(e) {}
   return null;
