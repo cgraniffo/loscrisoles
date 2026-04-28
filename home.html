@@ -733,6 +733,49 @@ window.cambiarTemporada = function(temp) {
   if (window._homeData) renderHome(window._homeData);
 };
 
+// ── VISTA IVA ───────────────────────────────────────────────────
+// 'neto' = sin IVA (default, comparable con Ppto)
+// 'bruto' = con IVA (caja real)
+window.VISTA_IVA = (function(){
+  try { return localStorage.getItem('lc_vista_iva') || 'neto'; } catch(e) { return 'neto'; }
+})();
+
+// Mapa KEY_Documento → MntNeto (poblado al cargar CargaHTML_Demo)
+window.KEY_TO_NETO = {};
+
+// Convierte un monto bruto a la vista actual.
+// fuente: 'bd_registro' | 'asig_factura' | 'asig_factura_emitida' | 'asig_guia' | 'proyeccion' | 'otro'
+// keyDoc: opcional, si está presente y existe en KEY_TO_NETO se usa proporcionalmente
+// montoTotalDoc: si keyDoc presente, monto bruto total del doc (para prorratear)
+function aplicarIvaMonto(monto, fuente, keyDoc, montoTotalDoc) {
+  if (window.VISTA_IVA === 'bruto') return monto;
+  if (!monto) return monto;
+  switch (fuente) {
+    case 'bd_registro':         return monto / 1.19;
+    case 'asig_factura': {
+      // Cruzar con CargaHTML_Demo: si tenemos MntNeto del doc, prorrateamos
+      if (keyDoc && window.KEY_TO_NETO[keyDoc] && montoTotalDoc) {
+        const neto = window.KEY_TO_NETO[keyDoc].neto;
+        const tipoDte = window.KEY_TO_NETO[keyDoc].tipoDte;
+        if (tipoDte === '34') return monto;  // exenta
+        return (monto / Number(montoTotalDoc)) * neto;
+      }
+      return monto / 1.19;  // fallback: asumir 33
+    }
+    case 'asig_factura_emitida': return monto / 1.19;  // facturas LC son 33
+    case 'asig_guia':            return monto;          // guía no es DTE de IVA
+    case 'proyeccion':           return monto;          // ya está sin IVA
+    default:                     return monto;
+  }
+}
+
+window.cambiarVistaIva = function(modo) {
+  if (modo !== 'neto' && modo !== 'bruto') return;
+  window.VISTA_IVA = modo;
+  try { localStorage.setItem('lc_vista_iva', modo); } catch(e) {}
+  if (window._homeData) renderHome(window._homeData);
+};
+
 async function fetchSheet(api, sheet) {
   const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
   const text = await res.text();
@@ -839,6 +882,15 @@ async function main() {
     // Saldo real desde BD_Banco
     const bancoDatos = Array.isArray(banco) ? banco : [];
     CAJA_ACTUAL = bancoDatos.reduce((s,r) => s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0), 0);
+
+    // Poblar KEY_TO_NETO desde CargaHTML_Demo (para vista sin IVA)
+    (Array.isArray(docs)?docs:[]).forEach(d => {
+      const key = String(d["KEY"]||"").trim();
+      if (!key) return;
+      const neto = Number(String(d["MntNeto"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+      const tipoDte = String(d["TipoDTE"]||"").trim();
+      if (neto > 0) window.KEY_TO_NETO[key] = { neto, tipoDte };
+    });
 
     // Build maps
     (Array.isArray(ccs)?ccs:[]).forEach(c => {
