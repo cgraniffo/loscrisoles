@@ -1683,7 +1683,7 @@ function updateHeaderKPIs() {
     const tempR = tempDeMov(r["Fecha"], ccId);
     if (Number(r["Costo Total"]||0) > 0 && (fecha === "" || fecha < FECHA_CORTE)
       && (!tempActiva || tempR === tempActiva)) {
-      totalReg += Number(r["Costo Total"]||0);
+      totalReg += aplicarIvaMonto(Number(r["Costo Total"]||0), 'bd_registro');
     }
   });
 
@@ -1699,7 +1699,13 @@ function updateHeaderKPIs() {
     const rutEmis = partes.length < 4 ? "" : partes[1] + "-" + partes[2];
     const esIngreso = tipo.includes("emit") || (tipo.includes("factura") && rutEmis === RUT_LC);
     if (Number(r["Monto_Asignado"]||0) > 0 && passTemp && !esIngreso) {
-      totalAsig += Number(r["Monto_Asignado"]||0);
+      let fuenteIva;
+      if (tipo === "factura")        fuenteIva = 'asig_factura';
+      else if (tipo.includes("guia")) fuenteIva = 'asig_guia';
+      else                            fuenteIva = 'otro';
+      const keyDoc = String(r["KEY_Documento"]||"").trim();
+      const montoTotalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+      totalAsig += aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, montoTotalDoc);
     }
   });
 
@@ -2616,7 +2622,7 @@ function renderCostos() {
     Centro_Costo: String(r["Centro_Costo"]||"").trim(),
     Fecha:        r["Fecha"],
     Tipo_Labor:   String(r["Tipo_Labor"]||"").trim(),
-    monto:        Number(r["Costo Total"]||0)
+    monto:        aplicarIvaMonto(Number(r["Costo Total"]||0), 'bd_registro')
   }));
 
   // Costos nuevos Asignaciones_U (desde el corte)
@@ -2637,13 +2643,23 @@ function renderCostos() {
     const esIngreso = tipo.includes("emit")
       || (tipo.includes("factura") && rutEmis === RUT_LC_COSTOS);
     return Number(r["Monto_Asignado"]||0) > 0 && passTemp && !esIngreso;
-  }).map(r => ({
-    _fuente:      "Asignaciones_U",
-    Centro_Costo: String(r["UP_ID"]||r["UP_Nombre"]||"").trim(),
-    Fecha:        r["Fecha_Documento"] || r["fecha_documento"] || r["Fecha_Asignacion"],
-    Tipo_Labor:   String(r["Tipo_Doc"]||"").trim(),
-    monto:        Number(r["Monto_Asignado"]||0)
-  }));
+  }).map(r => {
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    // factura recibida → cruzar con CargaHTML_Demo via KEY; guías → tal cual
+    let fuenteIva;
+    if (tipo === "factura")        fuenteIva = 'asig_factura';
+    else if (tipo.includes("guia")) fuenteIva = 'asig_guia';
+    else                            fuenteIva = 'otro';
+    const keyDoc = String(r["KEY_Documento"]||"").trim();
+    const montoTotalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+    return {
+      _fuente:      "Asignaciones_U",
+      Centro_Costo: String(r["UP_ID"]||r["UP_Nombre"]||"").trim(),
+      Fecha:        r["Fecha_Documento"] || r["fecha_documento"] || r["Fecha_Asignacion"],
+      Tipo_Labor:   String(r["Tipo_Doc"]||"").trim(),
+      monto:        aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, montoTotalDoc)
+    };
+  });
 
   const TODOS_COSTOS = [...costosHistoricos, ...costosNuevos];
   const nHistorico = costosHistoricos.length;
