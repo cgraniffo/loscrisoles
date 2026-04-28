@@ -481,6 +481,22 @@
     return monto / 1.19;
   }
 
+  // Mapa KEY_Documento → {neto, tipoDte} desde CargaHTML_Demo
+  // Permite calcular el neto exacto en lugar de /1.19 aproximado
+  var KEY_TO_NETO_DASH = {};
+
+  // Aplicar IVA a una asignación de factura usando MntNeto exacto si está disponible
+  function aplicarIvaFactura(montoAsignado, keyDoc, montoTotalDoc) {
+    if (vistaIva === 'bruto') return montoAsignado;
+    if (!montoAsignado) return montoAsignado;
+    var info = KEY_TO_NETO_DASH[keyDoc];
+    if (info && montoTotalDoc) {
+      if (info.tipoDte === '34') return montoAsignado;  // exenta
+      return (montoAsignado / Number(montoTotalDoc)) * info.neto;
+    }
+    return montoAsignado / 1.19;  // fallback
+  }
+
   // ── KPIs ─────────────────────────────────────────────────────
   // ── GLOBALS ──────────────────────────────────────────────────
   var TEMP_MAP = {};
@@ -540,8 +556,14 @@
       return tempDeMovimientoDash(fecha, ccId) === temp;
     }).reduce(function(s,a){
       var tipo = String(a["Tipo_Doc"]||"").toLowerCase();
-      var esFactura = tipo === "factura"; // recibida con IVA típicamente
-      return s + aplicarIva(Number(a["Monto_Asignado"]||0), esFactura);
+      var monto = Number(a["Monto_Asignado"]||0);
+      if (tipo === "factura") {
+        var keyDoc = String(a["KEY_Documento"]||"").trim();
+        var totalDoc = Number(String(a["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+        return s + aplicarIvaFactura(monto, keyDoc, totalDoc);
+      }
+      // guía y otros → tal cual
+      return s + monto;
     }, 0);
     return costoReg + costoAsig;
   }
@@ -565,6 +587,16 @@
         .reduce(function(s,r){ return s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0); }, 0);
       document.getElementById("k-caja").textContent = fmtPeso(caja);
       document.getElementById("k-caja").className = "kpi-val " + (caja >= 0 ? "green" : "red");
+
+      // Poblar KEY_TO_NETO_DASH desde CargaHTML_Demo (para vista sin IVA exacta)
+      Object.keys(KEY_TO_NETO_DASH).forEach(function(k){ delete KEY_TO_NETO_DASH[k]; });
+      (Array.isArray(docs) ? docs : []).forEach(function(d) {
+        var key = String(d["KEY"]||"").trim();
+        if (!key) return;
+        var neto = Number(String(d["MntNeto"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+        var tipoDte = String(d["TipoDTE"]||"").trim();
+        if (neto > 0) KEY_TO_NETO_DASH[key] = { neto: neto, tipoDte: tipoDte };
+      });
 
       // Costos (BD_Registro + Asignaciones_U)
       // Populate global TEMP_MAP from BD_CC
