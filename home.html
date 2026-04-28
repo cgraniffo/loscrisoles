@@ -752,19 +752,18 @@ function aplicarIvaMonto(monto, fuente, keyDoc, montoTotalDoc) {
   if (!monto) return monto;
   switch (fuente) {
     case 'bd_registro':         return monto / 1.19;
-    case 'asig_factura': {
-      // Cruzar con CargaHTML_Demo: si tenemos MntNeto del doc, prorrateamos
+    case 'asig_factura':
+    case 'asig_factura_emitida': {
+      // Cruzar con CargaHTML_Demo: si tenemos MntNeto del doc, prorratear exacto
       if (keyDoc && window.KEY_TO_NETO[keyDoc] && montoTotalDoc) {
-        const neto = window.KEY_TO_NETO[keyDoc].neto;
-        const tipoDte = window.KEY_TO_NETO[keyDoc].tipoDte;
-        if (tipoDte === '34') return monto;  // exenta
-        return (monto / Number(montoTotalDoc)) * neto;
+        const info = window.KEY_TO_NETO[keyDoc];
+        if (info.tipoDte === '34') return monto;  // exenta
+        return (monto / Number(montoTotalDoc)) * info.neto;
       }
-      return monto / 1.19;  // fallback: asumir 33
+      return monto / 1.19;  // fallback: asumir DTE 33
     }
-    case 'asig_factura_emitida': return monto / 1.19;  // facturas LC son 33
-    case 'asig_guia':            return monto;          // guía no es DTE de IVA
-    case 'proyeccion':           return monto;          // ya está sin IVA
+    case 'asig_guia':            return monto;
+    case 'proyeccion':           return monto;
     default:                     return monto;
   }
 }
@@ -1160,6 +1159,11 @@ function renderHome({ registros, asignaciones, proyecciones }) {
   }
 
   // ── COSTOS ────────────────────────────────────────────────────────────────
+  const RUT_LC = "76099766-8";
+  function rutEmisorH(r) {
+    const partes = String(r["KEY_Documento"]||"").split("-");
+    return partes.length < 4 ? "" : partes[1] + "-" + partes[2];
+  }
   const costosHist = (Array.isArray(registros)?registros:[]).filter(r => {
     const raw = String(r["Fecha"]||""); const f = raw.includes("T")?raw.split("T")[0]:raw.slice(0,10);
     const id  = String(r["Centro_Costo"]||"").trim();
@@ -1167,18 +1171,27 @@ function renderHome({ registros, asignaciones, proyecciones }) {
   });
   const costosNuevos = (Array.isArray(asignaciones)?asignaciones:[]).filter(r => {
     const id    = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
-    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
-    return Number(r["Monto_Asignado"]||0)>0 && enTemporada(fecha, id);
+    const fecha = r["fecha_documento"]||r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    const tipo  = String(r["Tipo_Doc"]||"").toLowerCase();
+    const esIngreso = tipo.includes("emit") || (tipo.includes("factura") && rutEmisorH(r) === RUT_LC);
+    return Number(r["Monto_Asignado"]||0)>0 && !esIngreso && enTemporada(fecha, id);
   });
 
   const costoPorCC = {};
   costosHist.forEach(r => {
     const id = String(r["Centro_Costo"]||"").trim();
-    costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Costo Total"]||0);
+    costoPorCC[id] = (costoPorCC[id]||0) + aplicarIvaMonto(Number(r["Costo Total"]||0), 'bd_registro');
   });
   costosNuevos.forEach(r => {
     const id = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
-    costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Monto_Asignado"]||0);
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    let fuenteIva;
+    if (tipo === "factura")        fuenteIva = 'asig_factura';
+    else if (tipo.includes("guia")) fuenteIva = 'asig_guia';
+    else                            fuenteIva = 'otro';
+    const keyDoc = String(r["KEY_Documento"]||"").trim();
+    const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+    costoPorCC[id] = (costoPorCC[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, totalDoc);
   });
   const costoTotal = Object.values(costoPorCC).reduce((s,v)=>s+v,0);
   const costoRows  = Object.entries(costoPorCC).map(([id,v])=>([CC_MAP[id]||id,v])).sort((a,b)=>b[1]-a[1]).slice(0,6);
