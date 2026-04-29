@@ -33,6 +33,7 @@ if (location.search.includes('embed=1')) {
     .doc-head { padding: 12px 16px; background: #fef9ec; border-bottom: 1px solid #f0ede6; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     .doc-head.factura          { background: #faece7; }
     .doc-head.factura-emitida  { background: #eaf3de; }
+    .doc-head.nota-credito     { background: #fde2e2; border-left: 3px solid #b91c1c; }
     .doc-nombre { font-size: 14px; font-weight: bold; }
     .doc-meta { font-size: 12px; color: #888; margin-top: 3px; }
     .doc-monto { font-size: 16px; font-weight: bold; color: #b45309; white-space: nowrap; }
@@ -215,6 +216,7 @@ if (location.search.includes('embed=1')) {
     <button class="fbtn"    id="f-guia"           onclick="setFiltro('guia')">Solo guías</button>
     <button class="fbtn"    id="f-factura"        onclick="setFiltro('factura')">Facturas recibidas</button>
     <button class="fbtn"    id="f-factura-emitida" onclick="setFiltro('factura-emitida')">🌾 Facturas emitidas</button>
+    <button class="fbtn"    id="f-nc"              onclick="setFiltro('nc')" style="border-color:#fca5a5;">🔴 Notas de Crédito</button>
     <div style="width:1px;background:#eee;align-self:stretch;"></div>
     <div style="width:1px;background:#eee;align-self:stretch;"></div>
     <div class="filter-label">Desde:</div>
@@ -266,7 +268,7 @@ function toggleDocCard(safeKey) {
 
 function setFiltro(f) {
   filtro = f;
-  ["todos","guia","factura","factura-emitida"].forEach(x => {
+  ["todos","guia","factura","factura-emitida","nc"].forEach(x => {
     document.getElementById("f-"+x).className = "fbtn" + (x===f?" on":"");
   });
   render();
@@ -467,9 +469,11 @@ function render() {
   const sinAsignar = DOCS.filter(d => !ASIGNADOS.has(d.KEY));
   const fechaDesde = document.getElementById("fecha-desde")?.value;
   const filtrados  = sinAsignar.filter(d => {
+    const esNC = String(d["TipoDTE"]||"").trim() === "61";
     if (filtro === "guia"            && d._tipo !== "guia")            return false;
     if (filtro === "factura"         && d._tipo !== "factura")         return false;
-    if (filtro === "factura-emitida" && d._tipo !== "factura-emitida") return false;
+    if (filtro === "factura-emitida" && (d._tipo !== "factura-emitida" || esNC)) return false;
+    if (filtro === "nc"              && !esNC)                         return false;
     if (fechaDesde) {
       const fe = String(d["Fecha Emisión"]||"").split("T")[0];
       if (fe < fechaDesde) return false;
@@ -544,12 +548,12 @@ function render() {
     const diff      = monto - totalAsig;
 
     return `<div class="doc-card">
-      <div class="doc-head ${tipo==="factura"?"factura":tipo==="factura-emitida"?"factura-emitida":""}"
+      <div class="doc-head ${(()=>{const esNC=String(doc["TipoDTE"]||"").trim()==="61";if(tipo==="factura-emitida"&&esNC)return"nota-credito";if(tipo==="factura")return"factura";if(tipo==="factura-emitida")return"factura-emitida";return"";})()}"
         onclick="toggleDocCard('${safeKey}')"
         style="cursor:pointer;user-select:none;">
         <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-            <span class="badge-tipo ${tipo==="guia"?"badge-guia":tipo==="guia-emitida"?"badge-asig":"badge-fact"}">${tipo==="guia"?"Guía recibida":tipo==="guia-emitida"?"Guía emitida":"Factura"}</span>
+            <span class="badge-tipo ${tipo==="guia"?"badge-guia":tipo==="guia-emitida"?"badge-asig":"badge-fact"}">${tipo==="guia"?"Guía recibida":tipo==="guia-emitida"?"Guía emitida":(String(doc["TipoDTE"]||"").trim()==="61"?"Nota de Crédito":"Factura")}</span>
             <span style="font-size:11px;color:#888;">F:${folio} · ${fecha}</span>
             <a href="https://cgraniffo.pythonanywhere.com/ver_documento/LOS%20CRISOLES/${encodeURIComponent(String(doc['RUT Emisor']||'').trim())}/${encodeURIComponent(String(folio||'').trim())}"
                target="_blank"
@@ -558,7 +562,7 @@ function render() {
               📄 Ver XML
             </a>
           </div>
-          <div class="doc-nombre">${proveedor}${tipo==="factura-emitida"?' <span style="font-size:10px;background:#1a3a0a;color:#86efac;padding:1px 6px;border-radius:3px;margin-left:4px;">🌾 INGRESO</span>':""}</div>
+          <div class="doc-nombre">${proveedor}${tipo==="factura-emitida"?(String(doc["TipoDTE"]||"").trim()==="61"?' <span style="font-size:10px;background:#7f1d1d;color:#fecaca;padding:1px 6px;border-radius:3px;margin-left:4px;">🔴 NOTA DE CRÉDITO</span>':' <span style="font-size:10px;background:#1a3a0a;color:#86efac;padding:1px 6px;border-radius:3px;margin-left:4px;">🌾 INGRESO</span>'):""}</div>
           ${doc["TermPagoGlosa"] ? `<div class="doc-meta">${doc["TermPagoGlosa"]}</div>` : ""}
           ${(()=>{
             // For facturas: key matches ID_Factura_Padre
@@ -590,7 +594,7 @@ function render() {
           })()}
         </div>
         <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
-          <div class="doc-monto">${fmtPeso(monto)}</div>
+          <div class="doc-monto" style="${String(doc["TipoDTE"]||"").trim()==="61"?"color:#b91c1c;":""}">${String(doc["TipoDTE"]||"").trim()==="61"?"−"+fmtPeso(Math.abs(monto)):fmtPeso(monto)}</div>
           <div id="doc-arrow-${safeKey}" style="font-size:13px;color:#aaa;transition:transform 0.2s;">▼</div>
         </div>
       </div>
