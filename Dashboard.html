@@ -682,12 +682,11 @@
       document.getElementById("k-vencidas").textContent = vencidas;
       document.getElementById("k-vencidas").className = "kpi-val " + (vencidas > 0 ? "amber" : "green");
 
-      // Sin asignar desde corte
+      // Sin asignar desde corte (incluye facturas emitidas LC)
       var sinAsignar = (Array.isArray(docs) ? docs : []).filter(function(d) {
         var fundo = String(d["Fundo"]||"").trim();
-        var rut   = String(d["RUT Emisor"]||"").trim();
         var fecha = String(d["Fecha Emisión"]||"").split("T")[0];
-        return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && rut!==RUT_LC && fecha>=CORTE;
+        return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && fecha>=CORTE;
       }).length;
       document.getElementById("k-sinasignar").textContent = sinAsignar;
       document.getElementById("k-sinasignar").className = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
