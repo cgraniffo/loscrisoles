@@ -516,7 +516,8 @@ let stateIngresos = { ups:[], fundos:[], estados:[], anios:[], meses:[] };
 let currentTab = "labores";
 
 async function fetchSheet(apiUrl, sheet) {
-  const res = await fetch(apiUrl + "?sheet=" + sheet, { redirect:"follow" });
+  // Cache-buster: timestamp único para evitar respuestas cacheadas por Cloudflare/CDN
+  const res = await fetch(apiUrl + "?sheet=" + sheet + "&_t=" + Date.now(), { redirect:"follow", cache:"no-store" });
   if (!res.ok) throw new Error("HTTP " + res.status + " — " + sheet);
   return res.json();
 }
