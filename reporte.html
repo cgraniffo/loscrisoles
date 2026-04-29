@@ -2838,31 +2838,17 @@ function renderCostos() {
 
   document.getElementById("app-costos").innerHTML = `
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-
-      <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#3b6d11;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">
-          📋 Operacional — BD Registro
+    <div style="background:linear-gradient(135deg,#fff 0%,#faf8f0 100%);border:2px solid #1a3a0a;border-radius:14px;padding:22px 26px;margin-bottom:16px;box-shadow:0 2px 8px rgba(26,58,10,0.08);">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#3b6d11;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">💰 Costos totales</div>
+          <div style="font-size:36px;font-weight:800;color:#1a3a0a;line-height:1;">${fmtPeso(totalGeneral)}</div>
         </div>
-        <div style="font-size:22px;font-weight:700;color:#1a3a0a;line-height:1;">${fmtPeso(totalReg)}</div>
-        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${nReg} registros · ${pctReg}% del total</div>
-        <div style="font-size:10px;color:#6b9e3a;margin-top:2px;">Antes del ${FECHA_CORTE_COSTOS}</div>
-      </div>
-
-      <div style="background:#e6f1fb;border:1px solid #9ec5e8;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#0c447c;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">
-          📎 Financiero — Asignaciones
+        <div style="text-align:right;font-size:12px;color:#666;">
+          <div>${conCosto.length} registros</div>
+          <div style="margin-top:2px;color:#888;font-size:11px;">${tempActiva || "todas las temporadas"}</div>
         </div>
-        <div style="font-size:22px;font-weight:700;color:#0c447c;line-height:1;">${fmtPeso(totalAsig)}</div>
-        <div style="font-size:11px;color:#0c447c;margin-top:4px;">${nAsig} registros · ${pctAsig}% del total</div>
-        <div style="font-size:10px;color:#3a7abf;margin-top:2px;">Desde el ${FECHA_CORTE_COSTOS}</div>
       </div>
-
-    </div>
-
-    <div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:12px;color:#555;">Total costos · ${conCosto.length} registros</div>
-      <div style="font-size:20px;font-weight:700;color:#1a3a0a;">${fmtPeso(totalGeneral)}</div>
     </div>
 
     ${filtrosHTML}
@@ -2914,6 +2900,30 @@ function renderCostos() {
       </div>
       </div>
     </div>
+
+    <details style="margin-top:14px;background:#fafaf7;border:1px solid #e5e2da;border-radius:10px;padding:0;">
+      <summary style="padding:10px 16px;cursor:pointer;font-size:11px;font-weight:600;color:#666;letter-spacing:0.05em;text-transform:uppercase;list-style:none;display:flex;align-items:center;justify-content:space-between;">
+        <span>🔍 Origen del registro (uso interno)</span>
+        <span style="font-size:10px;color:#999;">click para expandir</span>
+      </summary>
+      <div style="padding:0 16px 14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:8px;padding:12px 14px;">
+            <div style="font-size:10px;font-weight:700;color:#3b6d11;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">📋 Operacional — BD Registro</div>
+            <div style="font-size:18px;font-weight:700;color:#1a3a0a;line-height:1;">${fmtPeso(totalReg)}</div>
+            <div style="font-size:11px;color:#3b6d11;margin-top:3px;">${nReg} registros · ${pctReg}% del total</div>
+            <div style="font-size:10px;color:#6b9e3a;margin-top:1px;">Antes del ${FECHA_CORTE_COSTOS}</div>
+          </div>
+          <div style="background:#e6f1fb;border:1px solid #9ec5e8;border-radius:8px;padding:12px 14px;">
+            <div style="font-size:10px;font-weight:700;color:#0c447c;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">📎 Financiero — Asignaciones</div>
+            <div style="font-size:18px;font-weight:700;color:#0c447c;line-height:1;">${fmtPeso(totalAsig)}</div>
+            <div style="font-size:11px;color:#0c447c;margin-top:3px;">${nAsig} registros · ${pctAsig}% del total</div>
+            <div style="font-size:10px;color:#3a7abf;margin-top:1px;">Desde el ${FECHA_CORTE_COSTOS}</div>
+          </div>
+        </div>
+      </div>
+    </details>
+
     <div class="footer">Costos: BD_Registro pre-${FECHA_CORTE} (${nHistorico}) + Asignaciones_U (${nNuevo}) · Los Crisoles · BData</div>`;
 }
 
