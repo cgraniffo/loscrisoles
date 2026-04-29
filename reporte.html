@@ -1276,15 +1276,22 @@ function renderIngresos() {
       || (docOrigen ? String(docOrigen["Razón Social"]||docOrigen["Razon Social"]||"").trim() : "")
       || String(r["Proveedor"]||"").trim()
       || "—";
+    // Detectar Nota de Crédito vía TipoDTE en CargaHTML_Demo (Tipo_Doc en Asignaciones_U no distingue)
+    const tipoDte = docOrigen ? String(docOrigen["TipoDTE"]||"").trim() : "";
+    const esNC = tipoDte === "61";
+    let monto = aplicarIvaMonto(Number(r["Monto_Asignado"]||0), 'asig_factura_emitida', keyDoc, totalDoc);
+    if (esNC) monto = -Math.abs(monto);  // NC siempre resta, sin importar signo en Asignaciones_U
     return {
       _fuente: "factura",
       up:      getUpId(r),
-      monto:   aplicarIvaMonto(Number(r["Monto_Asignado"]||0), 'asig_factura_emitida', keyDoc, totalDoc),
+      monto:   monto,
       fecha:   r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"",
       kilos:   0,
       folio:   String(r["Folio"]||"").trim(),
       razon:   razon,
-      keyDoc:  keyDoc
+      keyDoc:  keyDoc,
+      esNC:    esNC,
+      tipoDte: tipoDte
     };
   });
 
@@ -1443,7 +1450,7 @@ function renderIngresos() {
       razon:  r.razon || "—",
       up:     r.up,
       monto:  r.monto,
-      tipo:   "factura"
+      tipo:   r.esNC ? "nc" : "factura"
     });
   });
   (filtEst || []).forEach(r => {
@@ -1519,31 +1526,38 @@ function renderIngresos() {
       return tb - ta;  // más reciente primero
     });
     const facturasHTML = facturasOrdenadas.length > 0 ? `
-      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #ccc;">
-        <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:6px;">
-          Detalle facturado real · ${facturasOrdenadas.length} ${facturasOrdenadas.length===1?'documento':'documentos'}
+      <details style="margin-top:12px;border-top:1px dashed #ccc;padding-top:8px;">
+        <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;color:#555;font-weight:600;user-select:none;">
+          <span><span style="display:inline-block;transition:transform 0.15s;" class="det-fact-chevron">▶</span> Ver detalle facturado · ${facturasOrdenadas.length} ${facturasOrdenadas.length===1?'documento':'documentos'}</span>
+          <span style="font-size:10px;color:#888;font-weight:400;">${fmtPeso(facturasOrdenadas.reduce((s,f)=>s+f.monto,0))}</span>
+        </summary>
+        <div style="padding-top:8px;">
+          <div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
+            <div>Fecha</div>
+            <div>Folio</div>
+            <div>Razón Social</div>
+            <div>UP</div>
+            <div style="text-align:right;">Neto</div>
+          </div>
+          ${facturasOrdenadas.map(f => {
+            const fd = parseDate(f.fecha);
+            const fechaTxt = fd ? fd.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "—";
+            const upTxt = f.up && f.up !== "—" ? (CC_MAP[f.up] || f.up) : "—";
+            let tipoIcon = "";
+            let montoColor = "#1a6e3a";
+            if (f.tipo === "anticipo") tipoIcon = '<span title="Anticipo nueces" style="color:#b45309;">●</span> ';
+            else if (f.tipo === "nc")  { tipoIcon = '<span title="Nota de crédito" style="color:#b91c1c;">●</span> '; montoColor = "#b91c1c"; }
+            const montoTxt = f.tipo === "nc" ? "−" + fmtPeso(Math.abs(f.monto)) : fmtPeso(f.monto);
+            return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
+              <div style="color:#555;">${tipoIcon}${fechaTxt}</div>
+              <div style="color:#555;font-family:monospace;">${f.folio || "—"}</div>
+              <div style="color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.razon}">${f.razon || "—"}</div>
+              <div style="color:#888;font-size:10px;">${upTxt}</div>
+              <div style="text-align:right;color:${montoColor};font-weight:600;">${montoTxt}</div>
+            </div>`;
+          }).join("")}
         </div>
-        <div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
-          <div>Fecha</div>
-          <div>Folio</div>
-          <div>Razón Social</div>
-          <div>UP</div>
-          <div style="text-align:right;">Neto</div>
-        </div>
-        ${facturasOrdenadas.map(f => {
-          const fd = parseDate(f.fecha);
-          const fechaTxt = fd ? fd.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "—";
-          const upTxt = f.up && f.up !== "—" ? (CC_MAP[f.up] || f.up) : "—";
-          const tipoIcon = f.tipo === "anticipo" ? '<span title="Anticipo nueces" style="color:#b45309;">●</span> ' : "";
-          return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
-            <div style="color:#555;">${tipoIcon}${fechaTxt}</div>
-            <div style="color:#555;font-family:monospace;">${f.folio || "—"}</div>
-            <div style="color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.razon}">${f.razon || "—"}</div>
-            <div style="color:#888;font-size:10px;">${upTxt}</div>
-            <div style="text-align:right;color:#1a6e3a;font-weight:600;">${fmtPeso(f.monto)}</div>
-          </div>`;
-        }).join("")}
-      </div>
+      </details>
     ` : "";
 
     return `<details style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:6px;background:#fff;" ${idx===0?'open':''}>
@@ -1642,7 +1656,7 @@ function renderIngresos() {
       <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
         <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real)</div>
         <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado)}</div>
-        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.length} facturas${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
+        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
       </div>
 
     </div>
