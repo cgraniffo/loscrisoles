@@ -753,7 +753,7 @@ function renderResultados() {
   (window.PROYECCIONES||[]).forEach(r => {
     const id = String(r["Unidad_Productiva"]||"").trim();
     if (!esUpProd(id) || !passTemp(id)) return;
-    ingPpto[id]   = (ingPpto[id]||0)   + Number(r["Monto_Total"]||0);  // Proyecciones ya sin IVA
+    ingPpto[id]   = (ingPpto[id]||0)   + aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion');
     kilosPpto[id] = (kilosPpto[id]||0) + Number(r["Kilos_Estimados"]||0);
   });
   (window.ASIGNACIONES||[]).forEach(r => {
@@ -1291,7 +1291,7 @@ function renderIngresos() {
   }).map(r => ({
     _fuente: "estimado",
     up:      String(r["Unidad_Productiva"]||"").trim(),
-    monto:   Number(r["Monto_Total"]||0),
+    monto:   aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion'),
     fecha:   r["Fecha_Estimada"]||"",
     kilos:   Number(r["Kilos_Estimados"]||0)
   }));
@@ -1649,8 +1649,13 @@ window.VISTA_IVA = (function(){
 window.KEY_TO_NETO = {};
 
 function aplicarIvaMonto(monto, fuente, keyDoc, montoTotalDoc) {
-  if (window.VISTA_IVA === 'bruto') return monto;
   if (!monto) return monto;
+  // Proyecciones_Manuales se cargan SIN IVA → en bruto +19%, en neto tal cual
+  if (fuente === 'proyeccion') {
+    return window.VISTA_IVA === 'bruto' ? monto * 1.19 : monto;
+  }
+  // Resto: si vista=bruto, ya viene con IVA → tal cual
+  if (window.VISTA_IVA === 'bruto') return monto;
   switch (fuente) {
     case 'bd_registro':         return monto / 1.19;
     case 'asig_factura':
@@ -1664,7 +1669,6 @@ function aplicarIvaMonto(monto, fuente, keyDoc, montoTotalDoc) {
       return monto / 1.19;  // fallback: asumir DTE 33
     }
     case 'asig_guia':            return monto;
-    case 'proyeccion':           return monto;
     default:                     return monto;
   }
 }
@@ -1755,7 +1759,7 @@ function updateHeaderKPIs() {
     const tmp = TEMP_MAP[id];
     if (tempActiva && (!tmp || tmp.temporada !== tempActiva)) return;
     const est = String(r["Estado"]||"").trim();
-    const m = Number(r["Monto_Total"]||0);
+    const m = aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion');
     if (est === "Real")     ingReal += m;
     if (est === "Estimado") ingEst  += m;
     kilosTot += Number(r["Kilos_Estimados"]||0);
