@@ -1270,12 +1270,21 @@ function renderIngresos() {
     // Si KEY existe en CargaHTML_Demo, usar MntNeto exacto; sino /1.19
     const keyDoc = String(r["KEY_Documento"]||"").trim();
     const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+    // Cliente: priorizar CLIENTE_MAP (DetallesFacturas) > Razón Social del doc origen > Proveedor
+    const docOrigen = (window.DOCUMENTOS||[]).find(d => String(d["KEY"]||"").trim() === keyDoc);
+    const razon = (window.CLIENTE_MAP && window.CLIENTE_MAP[keyDoc])
+      || (docOrigen ? String(docOrigen["Razón Social"]||docOrigen["Razon Social"]||"").trim() : "")
+      || String(r["Proveedor"]||"").trim()
+      || "—";
     return {
       _fuente: "factura",
       up:      getUpId(r),
       monto:   aplicarIvaMonto(Number(r["Monto_Asignado"]||0), 'asig_factura_emitida', keyDoc, totalDoc),
       fecha:   r["Fecha_Documento"]||r["fecha_documento"]||r["Fecha_Asignacion"]||"",
-      kilos:   0
+      kilos:   0,
+      folio:   String(r["Folio"]||"").trim(),
+      razon:   razon,
+      keyDoc:  keyDoc
     };
   });
 
@@ -1424,23 +1433,58 @@ function renderIngresos() {
   const cultivoRows = {};
   (filtFact || []).forEach(r => {
     const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {} };
+    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
     cultivoRows[cultivo].fact += r.monto;
     if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
     cultivoRows[cultivo].ups[r.up].fact += r.monto;
+    cultivoRows[cultivo].facturas.push({
+      fecha:  r.fecha,
+      folio:  r.folio || "—",
+      razon:  r.razon || "—",
+      up:     r.up,
+      monto:  r.monto,
+      tipo:   "factura"
+    });
   });
   (filtEst || []).forEach(r => {
     const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {} };
+    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
     cultivoRows[cultivo].ppto += r.monto;
     if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
     cultivoRows[cultivo].ups[r.up].ppto += r.monto;
   });
   if (cobradoContratos > 0) {
-    if (!cultivoRows["Nuez"]) cultivoRows["Nuez"] = { ppto: 0, fact: 0, cobrado: 0, ups: {} };
+    if (!cultivoRows["Nuez"]) cultivoRows["Nuez"] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
     cultivoRows["Nuez"].cobrado = cobradoContratos;
     if (pptoContratos > 0 && cultivoRows["Nuez"].ppto === 0) {
       cultivoRows["Nuez"].ppto = pptoContratos;
+    }
+    // Detalle de anticipos/liquidaciones nueces
+    const cd = window.CONTRATOS_DATA;
+    if (cd && cd.loaded) {
+      Object.keys(cd.pagos || {}).forEach(mid => {
+        const p = cd.pagos[mid] || {};
+        const m = (cd.milestones || []).find(x => x.milestone_id === mid) || {};
+        const clpRaw = p.monto_real_clp;
+        let monto = 0;
+        if (clpRaw !== null && clpRaw !== undefined && clpRaw !== '' && !isNaN(Number(clpRaw)) && Number(clpRaw) > 0) {
+          monto = Number(clpRaw);
+        } else if (m.usd_kg_opt !== null && m.usd_kg_opt !== undefined && m.usd_kg_opt !== '') {
+          monto = Number(m.usd_kg_opt) * Number(m.kg || 0) * cd.tc;
+        }
+        if (monto <= 0) return;
+        const fechaP = p.fecha_pago || p.fecha || m.fecha_pago || m.fecha || "";
+        const folio  = p.folio || p.nro_comprobante || mid || "—";
+        const label  = m.label || m.nombre || m.descripcion || mid || "Anticipo nueces";
+        cultivoRows["Nuez"].facturas.push({
+          fecha:  fechaP,
+          folio:  String(folio),
+          razon:  String(label),
+          up:     "—",
+          monto:  monto,
+          tipo:   "anticipo"
+        });
+      });
     }
   }
 
@@ -1467,6 +1511,41 @@ function renderIngresos() {
         </div>`;
       }).join("");
     const cobradoHint = data.cobrado > 0 ? ` · cobrado contratos ${fmtPeso(data.cobrado)}` : "";
+
+    // Tabla detalle de facturas/anticipos que componen el Real
+    const facturasOrdenadas = (data.facturas || []).slice().sort((a,b) => {
+      const da = parseDate(a.fecha); const db = parseDate(b.fecha);
+      const ta = da ? da.getTime() : 0; const tb = db ? db.getTime() : 0;
+      return tb - ta;  // más reciente primero
+    });
+    const facturasHTML = facturasOrdenadas.length > 0 ? `
+      <div style="margin-top:12px;padding-top:10px;border-top:1px dashed #ccc;">
+        <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:6px;">
+          Detalle facturado real · ${facturasOrdenadas.length} ${facturasOrdenadas.length===1?'documento':'documentos'}
+        </div>
+        <div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
+          <div>Fecha</div>
+          <div>Folio</div>
+          <div>Razón Social</div>
+          <div>UP</div>
+          <div style="text-align:right;">Neto</div>
+        </div>
+        ${facturasOrdenadas.map(f => {
+          const fd = parseDate(f.fecha);
+          const fechaTxt = fd ? fd.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "—";
+          const upTxt = f.up && f.up !== "—" ? (CC_MAP[f.up] || f.up) : "—";
+          const tipoIcon = f.tipo === "anticipo" ? '<span title="Anticipo nueces" style="color:#b45309;">●</span> ' : "";
+          return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
+            <div style="color:#555;">${tipoIcon}${fechaTxt}</div>
+            <div style="color:#555;font-family:monospace;">${f.folio || "—"}</div>
+            <div style="color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.razon}">${f.razon || "—"}</div>
+            <div style="color:#888;font-size:10px;">${upTxt}</div>
+            <div style="text-align:right;color:#1a6e3a;font-weight:600;">${fmtPeso(f.monto)}</div>
+          </div>`;
+        }).join("")}
+      </div>
+    ` : "";
+
     return `<details style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:6px;background:#fff;" ${idx===0?'open':''}>
       <summary style="display:grid;grid-template-columns:30px 1.4fr 0.9fr 0.9fr 0.6fr;gap:10px;padding:10px 12px;background:#fafafa;align-items:center;cursor:pointer;list-style:none;">
         <span style="font-size:13px;color:#888;" class="cultivo-chevron">▶</span>
@@ -1498,6 +1577,7 @@ function renderIngresos() {
           </div>
           ${upsRows}
         ` : '<div style="color:#888;font-size:11px;font-style:italic;padding:6px 0;">Sin datos por UP (solo contratos)</div>'}
+        ${facturasHTML}
       </div>
     </details>`;
   }).join("");
