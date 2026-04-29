@@ -440,7 +440,7 @@
         return s + (vistaIva === 'bruto' ? m * 1.19 : m);
       }, 0);
       document.getElementById('k-ppto').textContent = fmtPeso(pptoIng);
-      document.getElementById('k-ppto-label').textContent = '🌾 Ppto ' + (temporada || '');
+      document.getElementById('k-ppto-label').textContent = '🌾 Ppto ingresos ' + (temporada || '');
 
       // Margen ppto
       var margenPpto = pptoIng - costoTemp;
@@ -663,7 +663,7 @@
       }, 0);
       document.getElementById("k-ppto").textContent = fmtPeso(pptoIng);
       document.getElementById("k-ppto").className = "kpi-val amber";
-      document.getElementById("k-ppto-label").textContent = "🌾 Ppto " + (temporada || "");
+      document.getElementById("k-ppto-label").textContent = "🌾 Ppto ingresos " + (temporada || "");
 
       // Margen ppto = Ppto ingresos - Costos
       var margenPpto = pptoIng - costoTemp;
