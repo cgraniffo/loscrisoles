@@ -748,8 +748,12 @@ window.KEY_TO_NETO = {};
 // keyDoc: opcional, si está presente y existe en KEY_TO_NETO se usa proporcionalmente
 // montoTotalDoc: si keyDoc presente, monto bruto total del doc (para prorratear)
 function aplicarIvaMonto(monto, fuente, keyDoc, montoTotalDoc) {
-  if (window.VISTA_IVA === 'bruto') return monto;
   if (!monto) return monto;
+  // Proyecciones_Manuales se cargan SIN IVA → en bruto +19%, en neto tal cual
+  if (fuente === 'proyeccion') {
+    return window.VISTA_IVA === 'bruto' ? monto * 1.19 : monto;
+  }
+  if (window.VISTA_IVA === 'bruto') return monto;
   switch (fuente) {
     case 'bd_registro':         return monto / 1.19;
     case 'asig_factura':
@@ -763,7 +767,6 @@ function aplicarIvaMonto(monto, fuente, keyDoc, montoTotalDoc) {
       return monto / 1.19;  // fallback: asumir DTE 33
     }
     case 'asig_guia':            return monto;
-    case 'proyeccion':           return monto;
     default:                     return monto;
   }
 }
@@ -1219,11 +1222,11 @@ function renderHome({ registros, asignaciones, proyecciones }) {
     const fecha = r["Fecha_Estimada"]||"";
     return enTemporada(fecha, id);
   });
-  const ingTotal = proy.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
+  const ingTotal = proy.reduce((s,r)=>s + aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion'),0);
   const ingPorUP = {};
   proy.forEach(r => {
     const up = CC_MAP[String(r["Unidad_Productiva"]||"").trim()]||String(r["Unidad_Productiva"]||"").trim();
-    ingPorUP[up] = (ingPorUP[up]||0) + Number(r["Monto_Total"]||0);
+    ingPorUP[up] = (ingPorUP[up]||0) + aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion');
   });
   const ingRows = Object.entries(ingPorUP).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const ingMax  = ingRows[0]?.[1]||1;
