@@ -675,10 +675,23 @@ async function main() {
 
     // Filter docs without UP + classify type
     const RUT_LC = "76099766-8";
+    // KEYs ya con asignación real en Asignaciones_U (no solo Fundo poblado en CargaHTML_Demo)
+    const KEYS_CON_ASIG = new Set(
+      (Array.isArray(asignaciones) ? asignaciones : [])
+        .map(a => String(a["KEY_Documento"]||"").trim())
+        .filter(k => k)
+    );
     const sinAsignarFiltro = (arr) => (Array.isArray(arr)?arr:[]).filter(d => {
+      if (!d["KEY"]) return false;
       const fundo = String(d["Fundo"]||"").trim();
+      const tipoDte = String(d["TipoDTE"]||"").trim();
+      const key = String(d["KEY"]||"").trim();
+      // NC (TipoDTE 61): mostrar si NO tiene registro real en Asignaciones_U
+      // (ignora el campo Fundo de CargaHTML_Demo, que puede estar poblado sin asignación efectiva)
+      if (tipoDte === "61") return !KEYS_CON_ASIG.has(key);
+      // Resto: lógica original por campo Fundo
       const sinAsig = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO" || fundo === "CC_NO_ENCONTRADO";
-      return sinAsig && d["KEY"];
+      return sinAsig;
     });
 
     // Facturas: solo de proveedores externos (excluir TODO lo de Los Crisoles)
