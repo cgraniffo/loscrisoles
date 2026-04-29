@@ -2055,6 +2055,9 @@ function renderCaja() {
   };
 
   document.getElementById("app-caja").innerHTML =
+    `<div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:11px;color:#78350f;">
+      ⓘ <b>Caja siempre se muestra con IVA</b> — refleja el flujo real de fondos. El toggle Sin IVA / Con IVA no aplica en esta sección.
+    </div>` +
     cascHTML + chartHTML +
     periodoBlock("venc",  "🔴 Vencido",        true,  cobrarVenc,  tCobrarV,  pagarVenc,   tPagarV,  [],          0)      +
     periodoBlock("p15",   "📅 0 — 15 días",     false, cobrar15,    tCobrar15, pagar15,     tPagar15,  ing15Rows,  ing15)  +
