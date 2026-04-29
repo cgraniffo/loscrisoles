@@ -241,13 +241,15 @@ let filtro = "todos";
 const docState = {};
 
 async function fetchSheet(api, sheet) {
-  // Use worker proxy for FIN api to avoid CORS/redirect issues
+  // Cache-buster: timestamp único por request para evitar respuestas cacheadas
+  // (Cloudflare Worker cachea GETs y no refleja escrituras recientes)
+  const cacheBust = "&_t=" + Date.now();
   if (api === API_FIN) {
-    const url = api + "?sheet=" + encodeURIComponent(sheet);
-    const res = await fetch(WORKER + "?url=" + encodeURIComponent(url), { redirect:"follow" });
+    const url = api + "?sheet=" + encodeURIComponent(sheet) + cacheBust;
+    const res = await fetch(WORKER + "?url=" + encodeURIComponent(url), { redirect:"follow", cache:"no-store" });
     return res.json();
   }
-  const res = await fetch(api + "?sheet=" + sheet, { redirect:"follow" });
+  const res = await fetch(api + "?sheet=" + sheet + cacheBust, { redirect:"follow", cache:"no-store" });
   return res.json();
 }
 
