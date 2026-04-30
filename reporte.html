@@ -346,20 +346,27 @@ if (location.search.includes('embed=1')) {
     .gantt-fchip { font-size:10px; padding:3px 9px; border-radius:99px; border:1px solid #ddd; background:#fff; color:#555; cursor:pointer; }
     .gantt-fchip.on { background:#1a3a0a; color:#fff; border-color:#1a3a0a; }
 
-    .gantt-scroll { overflow-x:auto; max-height:500px; overflow-y:auto; background:#fff; }
+    .gantt-scroll { overflow-x:auto; max-height:600px; overflow-y:auto; background:#fff; }
     .gantt-grid { display:grid; min-width:100%; position:relative; }
     .gantt-row { display:contents; }
+
+    /* Header (sticky top + sticky left para esquina) */
+    .gantt-cell-label.head { background:#f0ede6; border-bottom:2px solid #1a3a0a; position:sticky; top:0; left:0; z-index:7; padding:8px 10px; border-right:2px solid #e5e2da; min-width:240px; max-width:240px; }
+    .gantt-cell-day.head { background:#f0ede6; border-bottom:2px solid #1a3a0a; color:#1a3a0a; font-weight:bold; position:sticky; top:0; z-index:6; padding:6px 4px; border-right:1px solid #f0ede6; text-align:center; font-size:10px; min-width:38px; }
+
+    /* Columna izquierda (tareas, sticky left) */
     .gantt-cell-label { background:#fafaf7; padding:8px 10px; border-bottom:1px solid #ececec; border-right:2px solid #e5e2da; position:sticky; left:0; z-index:5; min-width:240px; max-width:240px; }
-    .gantt-cell-label.head { background:#f0ede6; border-bottom:2px solid #1a3a0a; }
-    .gantt-cell-label-title { font-size:11px; font-weight:bold; color:#1a3a0a; letter-spacing:0.05em; text-transform:uppercase; }
+    .gantt-cell-task { background:#fff; padding:8px 10px; border-bottom:1px solid #ececec; border-right:2px solid #e5e2da; position:sticky; left:0; z-index:5; min-width:240px; max-width:240px; }
+
+    /* Días */
     .gantt-cell-day { background:#fafaf7; padding:6px 4px; border-bottom:1px solid #ececec; border-right:1px solid #f0ede6; text-align:center; font-size:10px; min-width:38px; }
-    .gantt-cell-day.head { background:#f0ede6; border-bottom:2px solid #1a3a0a; color:#1a3a0a; font-weight:bold; }
     .gantt-cell-day.weekend { background:#f5f3ee; }
     .gantt-cell-day.today { background:rgba(45,106,79,0.12); border-left:2px solid #2d6a4f; border-right:2px solid #2d6a4f; }
     .gantt-day-num { color:#1a1a1a; font-weight:bold; font-size:12px; line-height:1.2; }
     .gantt-day-name { color:#888; font-size:9px; text-transform:uppercase; }
     .gantt-day-mes { color:#2d6a4f; font-size:9px; font-weight:bold; }
-    .gantt-cell-task { background:#fff; padding:8px 10px; border-bottom:1px solid #ececec; border-right:2px solid #e5e2da; position:sticky; left:0; z-index:4; min-width:240px; max-width:240px; }
+
+    /* Tracks (celdas vacías por día) */
     .gantt-cell-track { background:#fff; border-bottom:1px solid #ececec; border-right:1px solid #f5f3ef; position:relative; min-height:36px; }
     .gantt-cell-track.weekend { background:#fafaf7; }
     .gantt-cell-track.today { background:rgba(45,106,79,0.05); }
@@ -369,13 +376,18 @@ if (location.search.includes('embed=1')) {
     .gantt-task-line3 { font-size:9px; color:#888; margin-top:3px; display:flex; gap:4px; flex-wrap:wrap; }
     .gantt-resp-chip { background:#f0ede6; color:#1a3a0a; padding:1px 6px; border-radius:99px; font-size:9px; font-weight:bold; border:1px solid #e5e2da; }
 
-    .gantt-bar { position:absolute; top:6px; height:24px; border-radius:5px; cursor:pointer; padding:3px 8px; display:flex; align-items:center; font-size:11px; font-weight:bold; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:0 1px 3px rgba(0,0,0,0.15); transition:transform 0.1s, box-shadow 0.1s; }
+    /* Barras: se posicionan absolutamente dentro de la celda track inicial,
+       pero con overflow:visible en la celda para que el width del rango completo
+       se extienda hacia las celdas siguientes sin ser cortado por borders */
+    .gantt-bar { position:absolute; height:24px; border-radius:5px; cursor:pointer; padding:3px 10px; display:flex; align-items:center; font-size:11px; font-weight:bold; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:0 1px 3px rgba(0,0,0,0.15); transition:transform 0.1s, box-shadow 0.1s; }
     .gantt-bar:hover { transform:translateY(-1px); box-shadow:0 3px 8px rgba(0,0,0,0.25); z-index:10; }
-    .gantt-bar.estado-planificada { background:#94a3b8; }
-    .gantt-bar.estado-encurso     { background:#3b82f6; }
-    .gantt-bar.estado-completada  { background:#10b981; }
-    .gantt-bar.estado-atrasada    { background:#ef4444; }
-    .gantt-bar.prio-urgente { box-shadow:0 0 0 2px #f59e0b, 0 1px 3px rgba(0,0,0,0.15); }
+
+    /* Colores con contraste correcto */
+    .gantt-bar.estado-planificada { background:#94a3b8; color:#fff; }                    /* plomo + texto blanco */
+    .gantt-bar.estado-encurso     { background:#fbbf24; color:#1a1a1a; border:1px solid #d97706; }   /* amarillo + texto NEGRO */
+    .gantt-bar.estado-completada  { background:#10b981; color:#fff; }                    /* verde + texto blanco */
+    .gantt-bar.estado-atrasada    { background:#dc2626; color:#fff; }                    /* rojo + texto blanco */
+    .gantt-bar.prio-urgente       { box-shadow:0 0 0 2px #f59e0b, 0 1px 3px rgba(0,0,0,0.15); }
 
     .gantt-empty { color:#888; font-size:12px; text-align:center; padding:30px; background:#fff; }
 
@@ -3772,9 +3784,11 @@ function _renderGanttUI(cont, fcont, data) {
       if (endIdx === -1) endIdx = cols.length - 1;
     }
 
+    // Pintar todas las celdas track vacías
     cols.forEach((c, i) => {
       const isWE = window._ganttState.vista === "diaria" && (c.start.getDay()===0 || c.start.getDay()===6);
       const isToday = i === todayIdx;
+      // Si esta celda es la primera del rango, ponemos la barra absoluta cubriendo todo el span
       let barHtml = "";
       if (i === startIdx && !fueraRango) {
         const span = endIdx - startIdx + 1;
@@ -3782,9 +3796,10 @@ function _renderGanttUI(cont, fcont, data) {
         const prioClass = r.prioridad === "Urgente" ? "prio-urgente" : "";
         const w = span * colW - 6;
         const upTxt = r.up ? r.up + " · " : "";
-        barHtml = `<div class="gantt-bar ${estClass} ${prioClass}" style="left:3px; width:${w}px;" onclick="event.stopPropagation(); ganttOpenModal('${r.id}')" title="${escapeHtml(r.tarea)} (${r.estado})">${upTxt}${escapeHtml(r.tarea)}</div>`;
+        // top:6px para centrar verticalmente; z-index:3 para flotar sobre los borders de las track adyacentes
+        barHtml = `<div class="gantt-bar ${estClass} ${prioClass}" style="left:3px; top:6px; width:${w}px; z-index:3;" onclick="event.stopPropagation(); ganttOpenModal('${r.id}')" title="${escapeHtml(r.tarea)} (${r.estado})">${upTxt}${escapeHtml(r.tarea)}</div>`;
       }
-      html += `<div class="gantt-cell-track ${isWE?'weekend':''} ${isToday?'today':''}">${barHtml}</div>`;
+      html += `<div class="gantt-cell-track ${isWE?'weekend':''} ${isToday?'today':''}" style="overflow:visible;">${barHtml}</div>`;
     });
   });
 
