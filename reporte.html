@@ -2599,48 +2599,89 @@ function buildMapaPanel() {
   const panel = document.getElementById("mapa-panel-labores");
   if (!panel) return;
 
-  // Datos: usar el cache del Gantt (Plan_Labores). Aplica filtros del Gantt para sync.
-  const todasLasLabores = window._ganttState?.cache || [];
-  const labores = ganttFilterData(todasLasLabores);
+  const todasLasLabores = (window._ganttState && window._ganttState.cache) || [];
+  // Filtradas según los chips del Gantt (para KPI 3)
+  const laboresFiltradas = (typeof ganttFilterData === "function") ? ganttFilterData(todasLasLabores) : todasLasLabores;
 
-  // Mapeo nombre UP → CC ID (para asociar labores a marcadores)
-  const nombreToId = {};
-  Object.entries(CC_MAP || {}).forEach(([id, nom]) => { nombreToId[nom] = id; });
-
-  // UPs únicas que tienen labores
-  const upsConLabor = new Set();
-  let atrasadas = 0;
-  labores.forEach(l => {
-    if (l.up && nombreToId[l.up] && COORD_MAP[nombreToId[l.up]]) {
-      upsConLabor.add(nombreToId[l.up]);
+  // Helper: matching tolerante de UP de labor → CC ID de BD_CC
+  // Las labores legacy tienen up="VEGA", "PIV1", "NOG12"; BD_CC tiene "Vega", "Piv 1", "Nogales 25-26"
+  function normalizar(s) {
+    return String(s||"").toLowerCase().replace(/\s+/g,"").replace(/[áàä]/g,"a").replace(/[éèë]/g,"e").replace(/[íìï]/g,"i").replace(/[óòö]/g,"o").replace(/[úùü]/g,"u").replace(/ñ/g,"n");
+  }
+  function matchUpToCC(upStr) {
+    if (!upStr) return null;
+    const norm = normalizar(upStr);
+    // 1. Match exacto contra CC_MAP
+    for (const [id, nom] of Object.entries(CC_MAP || {})) {
+      if (normalizar(nom) === norm) return id;
     }
-    if (l.estado === "Atrasada") atrasadas++;
-  });
+    // 2. Match parcial: la UP de la labor está contenida en el nombre del CC (ej: NOG12 → Nogales 25-26)
+    for (const [id, nom] of Object.entries(CC_MAP || {})) {
+      const nomNorm = normalizar(nom);
+      if (nomNorm.startsWith(norm) || norm.startsWith(nomNorm)) return id;
+    }
+    // 3. Match por prefijo lógico (PIV1 → Piv 1, POT3 → Pot 3, NOG12 → Nogales)
+    const m = norm.match(/^(piv|pot|nog|par)(\d+)?/);
+    if (m) {
+      const prefijo = m[1];
+      const num = m[2];
+      const objetivo = prefijo === "nog" ? "nogales" : (prefijo + (num || ""));
+      for (const [id, nom] of Object.entries(CC_MAP || {})) {
+        const nomNorm = normalizar(nom);
+        if (nomNorm === objetivo || nomNorm.startsWith(objetivo)) return id;
+      }
+    }
+    return null;
+  }
 
-  // Total UPs con coordenadas (UPs visibles en el mapa)
-  const upsEnMapa = Object.keys(COORD_MAP || {}).length;
+  // Detectar UPs productivas
+  function esUpProductivaMapa(ccId) {
+    const nombre = String(CC_MAP[ccId] || "").toLowerCase();
+    const fundo  = String(FUNDO_MAP[ccId] || "").toLowerCase();
+    if (/^(piv|pot|nogales|vega|parcela|par)/.test(nombre)) return true;
+    if (["gastos generales","maquinarias","pivote","remuneraciones","carrete"].includes(fundo)) return false;
+    return false;
+  }
+
+  // KPI 1: UPs productivas con coordenadas
+  const upsProductivas = Object.keys(COORD_MAP || {}).filter(id => esUpProductivaMapa(id));
+
+  // KPI 2: Total labores activas (SIN filtro, excluye completadas)
+  const laboresActivas = todasLasLabores.filter(l => l.estado !== "Completada");
+
+  // KPI 3: Atrasadas (CON filtros del Gantt)
+  const atrasadasFiltro = laboresFiltradas.filter(l => l.estado === "Atrasada").length;
+
+  // KPI 4: UPs con labores Atrasadas o En curso (sin filtros)
+  const upsConAtencion = new Set();
+  todasLasLabores.forEach(l => {
+    if (l.estado === "Atrasada" || l.estado === "En curso") {
+      const ccId = matchUpToCC(l.up);
+      if (ccId) upsConAtencion.add(ccId);
+    }
+  });
 
   panel.innerHTML = `
     <div class="mapa-stats-row">
       <div class="mapa-stat">
         <div class="mapa-stat-icon">📍</div>
-        <div class="mapa-stat-val">${upsEnMapa}</div>
-        <div class="mapa-stat-label">UPs en mapa</div>
+        <div class="mapa-stat-val">${upsProductivas.length}</div>
+        <div class="mapa-stat-label">UPs productivas</div>
       </div>
       <div class="mapa-stat">
         <div class="mapa-stat-icon">📋</div>
-        <div class="mapa-stat-val">${labores.length}</div>
-        <div class="mapa-stat-label">Labores planificadas</div>
+        <div class="mapa-stat-val">${laboresActivas.length}</div>
+        <div class="mapa-stat-label">Labores activas</div>
       </div>
       <div class="mapa-stat">
         <div class="mapa-stat-icon">⚠️</div>
-        <div class="mapa-stat-val" style="color:${atrasadas>0?"#e76f51":"#4ade80"}">${atrasadas}</div>
-        <div class="mapa-stat-label">Atrasadas</div>
+        <div class="mapa-stat-val" style="color:${atrasadasFiltro>0?"#e76f51":"#4ade80"}">${atrasadasFiltro}</div>
+        <div class="mapa-stat-label">Atrasadas (filtro)</div>
       </div>
       <div class="mapa-stat">
-        <div class="mapa-stat-icon">🌾</div>
-        <div class="mapa-stat-val">${upsConLabor.size}</div>
-        <div class="mapa-stat-label">UPs con labor</div>
+        <div class="mapa-stat-icon">🔥</div>
+        <div class="mapa-stat-val" style="color:${upsConAtencion.size>0?"#f4a261":"#4ade80"}">${upsConAtencion.size}</div>
+        <div class="mapa-stat-label">UPs con atención</div>
       </div>
     </div>
   `;
@@ -2659,14 +2700,35 @@ function initMap() {
   const todasLasLabores = (window._ganttState && window._ganttState.cache) || [];
   const labores = (typeof ganttFilterData === "function") ? ganttFilterData(todasLasLabores) : todasLasLabores;
 
-  // Mapeo nombre UP → CC ID
-  const nombreToId = {};
-  Object.entries(CC_MAP || {}).forEach(([id, nom]) => { nombreToId[nom] = id; });
+  // Helper: matching tolerante (mismo que en buildMapaPanel)
+  function _normMap(s) {
+    return String(s||"").toLowerCase().replace(/\s+/g,"").replace(/[áàä]/g,"a").replace(/[éèë]/g,"e").replace(/[íìï]/g,"i").replace(/[óòö]/g,"o").replace(/[úùü]/g,"u").replace(/ñ/g,"n");
+  }
+  function _matchUpCC(upStr) {
+    if (!upStr) return null;
+    const norm = _normMap(upStr);
+    for (const [id, nom] of Object.entries(CC_MAP || {})) {
+      if (_normMap(nom) === norm) return id;
+    }
+    for (const [id, nom] of Object.entries(CC_MAP || {})) {
+      const nomNorm = _normMap(nom);
+      if (nomNorm.startsWith(norm) || norm.startsWith(nomNorm)) return id;
+    }
+    const m = norm.match(/^(piv|pot|nog|par)(\d+)?/);
+    if (m) {
+      const objetivo = m[1] === "nog" ? "nogales" : (m[1] + (m[2] || ""));
+      for (const [id, nom] of Object.entries(CC_MAP || {})) {
+        const nomNorm = _normMap(nom);
+        if (nomNorm === objetivo || nomNorm.startsWith(objetivo)) return id;
+      }
+    }
+    return null;
+  }
 
-  // Agrupar labores por CC ID
+  // Agrupar labores por CC ID usando matching tolerante
   const laboresPorCC = {};
   labores.forEach(l => {
-    const ccId = l.up && nombreToId[l.up] ? nombreToId[l.up] : null;
+    const ccId = _matchUpCC(l.up);
     if (!ccId) return;
     if (!laboresPorCC[ccId]) laboresPorCC[ccId] = [];
     laboresPorCC[ccId].push(l);
