@@ -1682,15 +1682,38 @@ function renderIngresos() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
 
       <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Presupuesto total</div>
+        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Presupuesto total${TEMPORADA_ACTIVA?` · ${TEMPORADA_ACTIVA}`:""}</div>
         <div style="font-size:22px;font-weight:700;color:#b45309;line-height:1;">${fmtPeso(tEstF)}</div>
         <div style="font-size:11px;color:#b45309;margin-top:4px;">${filtEst.length} registros · Proyecciones_Manuales</div>
       </div>
 
       <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real)</div>
+        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real + Proyectado)${TEMPORADA_ACTIVA?` · ${TEMPORADA_ACTIVA}`:""}</div>
         <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado)}</div>
-        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${filtFutura.length>0?` + ${filtFutura.length} proy. futuras ${fmtPeso(tFutF)}`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
+        ${(()=>{
+          const realFact = tFactF + cobradoContratos;
+          const proyect  = tFutF;
+          const pctReal  = tEstF > 0 ? Math.round(realFact/tEstF*100) : 0;
+          const pctTotal = tEstF > 0 ? Math.round(tFactCombinado/tEstF*100) : 0;
+          // Barra de composición (Real verde oscuro + Proyectado verde claro)
+          const totalBar = realFact + proyect;
+          const wReal = totalBar > 0 ? (realFact / totalBar * 100) : 0;
+          const wProy = totalBar > 0 ? (proyect  / totalBar * 100) : 0;
+          return `
+          <div style="display:flex;height:6px;border-radius:4px;overflow:hidden;margin-top:8px;background:#dde8d0;">
+            <div style="width:${wReal}%;background:#1a6e3a;" title="Real facturado"></div>
+            <div style="width:${wProy}%;background:#7ab86b;" title="Proyectado futuro"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:6px;color:#3b6d11;">
+            <span><span style="display:inline-block;width:8px;height:8px;background:#1a6e3a;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Real <strong>${fmtPeso(realFact)}</strong></span>
+            <span><span style="display:inline-block;width:8px;height:8px;background:#7ab86b;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Proyectado <strong>${fmtPeso(proyect)}</strong></span>
+          </div>
+          <div style="font-size:11px;color:#3b6d11;margin-top:8px;border-top:1px dotted #b8d199;padding-top:6px;">
+            <strong>${pctReal}%</strong> real · <strong>${pctTotal}%</strong> real + proyectado <span style="color:#888;">(vs. presupuesto)</span>
+          </div>
+          <div style="font-size:10px;color:#7a8c5a;margin-top:4px;">${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${filtFutura.length>0?` · ${filtFutura.length} proy. futuras`:""}${cobradoContratos>0?` · anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
+          `;
+        })()}
       </div>
 
     </div>
