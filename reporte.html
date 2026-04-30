@@ -162,11 +162,27 @@ if (location.search.includes('embed=1')) {
     }
     .mapa-stat {
       background: rgba(255,255,255,0.03); border: 1px solid #2a4a35;
-      border-radius: 9px; padding: 8px 10px; text-align: center;
+      border-radius: 9px; padding: 8px 10px; text-align: center; position: relative;
     }
     .mapa-stat-icon { font-size: 14px; margin-bottom: 2px; }
     .mapa-stat-val { font-size: 16px; font-weight: 800; color: #e8f5ee; font-family: 'DM Mono', monospace; line-height: 1.1; }
-    .mapa-stat-label { font-size: 8.5px; color: #6b9e7a; margin-top: 2px; }
+    .mapa-stat-label { font-size: 8.5px; color: #6b9e7a; margin-top: 2px; cursor: help; }
+    .mapa-stat-tooltip {
+      position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: #0a1813; color: #e8f5ee; border: 1px solid #2a4a35;
+      padding: 8px 10px; border-radius: 6px;
+      font-size: 10px; font-weight: normal; line-height: 1.4;
+      width: 180px; text-align: left;
+      opacity: 0; visibility: hidden; transition: opacity 0.15s;
+      pointer-events: none; z-index: 100;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .mapa-stat-tooltip::after {
+      content: ""; position: absolute; top: 100%; left: 50%;
+      transform: translateX(-50%); border: 5px solid transparent;
+      border-top-color: #2a4a35;
+    }
+    .mapa-stat:hover .mapa-stat-tooltip { opacity: 1; visibility: visible; }
     .mapa-labores-title {
       font-size: 9.5px; font-weight: 600; letter-spacing: 0.12em;
       text-transform: uppercase; color: #6b9e7a;
@@ -2667,21 +2683,25 @@ function buildMapaPanel() {
         <div class="mapa-stat-icon">📍</div>
         <div class="mapa-stat-val">${upsProductivas.length}</div>
         <div class="mapa-stat-label">UPs productivas</div>
+        <div class="mapa-stat-tooltip">Unidades productivas con coordenadas en el mapa: Pivotes, Potreros, Nogales, Vegas y Parcelas. Excluye Maquinarias, Casa, etc.</div>
       </div>
       <div class="mapa-stat">
         <div class="mapa-stat-icon">📋</div>
         <div class="mapa-stat-val">${laboresActivas.length}</div>
         <div class="mapa-stat-label">Labores activas</div>
+        <div class="mapa-stat-tooltip">Total de labores planificadas, en curso y atrasadas. No incluye las completadas. <b>No reacciona a filtros del Gantt.</b></div>
       </div>
       <div class="mapa-stat">
         <div class="mapa-stat-icon">⚠️</div>
         <div class="mapa-stat-val" style="color:${atrasadasFiltro>0?"#e76f51":"#4ade80"}">${atrasadasFiltro}</div>
         <div class="mapa-stat-label">Atrasadas (filtro)</div>
+        <div class="mapa-stat-tooltip">Labores en estado <b>Atrasada</b>. <b>Reacciona a los filtros del Gantt</b> (cultivo, estado).</div>
       </div>
       <div class="mapa-stat">
         <div class="mapa-stat-icon">🔥</div>
         <div class="mapa-stat-val" style="color:${upsConAtencion.size>0?"#f4a261":"#4ade80"}">${upsConAtencion.size}</div>
         <div class="mapa-stat-label">UPs con atención</div>
+        <div class="mapa-stat-tooltip">Unidades productivas con al menos una labor <b>Atrasada o En curso</b>. Indica dónde hay trabajo que requiere foco.</div>
       </div>
     </div>
   `;
