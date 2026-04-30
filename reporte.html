@@ -328,56 +328,56 @@ if (location.search.includes('embed=1')) {
     details > summary::-webkit-details-marker { display: none; }
 
     /* ============ GANTT LABORES ============ */
-    .gantt-wrap { background:#0f1f17; border-radius:12px; padding:0; margin-bottom:16px; overflow:hidden; border:1px solid #1f3a2a; }
-    .gantt-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #1f3a2a; flex-wrap:wrap; gap:10px; }
-    .gantt-title { color:#86efac; font-size:14px; font-weight:bold; letter-spacing:0.04em; }
+    .gantt-wrap { background:#fff; border-radius:10px; padding:0; margin-bottom:16px; overflow:hidden; border:1px solid #e5e2da; }
+    .gantt-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #e5e2da; flex-wrap:wrap; gap:10px; background:#fafaf7; }
+    .gantt-title { color:#1a3a0a; font-size:13px; font-weight:bold; letter-spacing:0.04em; text-transform:uppercase; }
     .gantt-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .gantt-view-btns { display:flex; background:#1f3a2a; border-radius:6px; padding:2px; }
-    .gantt-vbtn { padding:5px 12px; font-size:11px; font-weight:bold; color:#9fe1cb; background:transparent; border:none; cursor:pointer; border-radius:4px; }
-    .gantt-vbtn.on { background:#2d6a4f; color:#fff; }
+    .gantt-view-btns { display:flex; background:#f0ede6; border-radius:6px; padding:2px; border:1px solid #e5e2da; }
+    .gantt-vbtn { padding:5px 12px; font-size:11px; font-weight:bold; color:#666; background:transparent; border:none; cursor:pointer; border-radius:4px; }
+    .gantt-vbtn.on { background:#1a3a0a; color:#fff; }
     .gantt-nav { display:flex; align-items:center; gap:6px; }
-    .gantt-nav-btn { background:#1f3a2a; color:#9fe1cb; border:none; width:26px; height:26px; border-radius:4px; cursor:pointer; font-size:13px; }
-    .gantt-nav-btn:hover { background:#2d6a4f; color:#fff; }
-    .gantt-today-btn { background:#2d6a4f; color:#fff; border:none; padding:5px 10px; font-size:11px; border-radius:4px; cursor:pointer; font-weight:bold; }
-    .gantt-add-btn { background:#52b788; color:#0f1f17; border:none; padding:6px 12px; font-size:11px; font-weight:bold; border-radius:6px; cursor:pointer; }
-    .gantt-add-btn:hover { background:#74c69d; }
+    .gantt-nav-btn { background:#f0ede6; color:#555; border:1px solid #e5e2da; width:26px; height:26px; border-radius:4px; cursor:pointer; font-size:13px; }
+    .gantt-nav-btn:hover { background:#1a3a0a; color:#fff; border-color:#1a3a0a; }
+    .gantt-today-btn { background:#1a3a0a; color:#fff; border:none; padding:5px 10px; font-size:11px; border-radius:4px; cursor:pointer; font-weight:bold; }
+    .gantt-add-btn { background:#2d6a4f; color:#fff; border:none; padding:6px 12px; font-size:11px; font-weight:bold; border-radius:6px; cursor:pointer; }
+    .gantt-add-btn:hover { background:#1e4d36; }
 
-    .gantt-filters { display:flex; gap:6px; padding:10px 16px; background:#0a1813; border-bottom:1px solid #1f3a2a; flex-wrap:wrap; }
-    .gantt-fchip { font-size:10px; padding:3px 9px; border-radius:99px; border:1px solid #1f3a2a; background:#0f1f17; color:#9fe1cb; cursor:pointer; }
-    .gantt-fchip.on { background:#2d6a4f; color:#fff; border-color:#52b788; }
+    .gantt-filters { display:flex; gap:6px; padding:10px 16px; background:#fafaf7; border-bottom:1px solid #e5e2da; flex-wrap:wrap; align-items:center; }
+    .gantt-fchip { font-size:10px; padding:3px 9px; border-radius:99px; border:1px solid #ddd; background:#fff; color:#555; cursor:pointer; }
+    .gantt-fchip.on { background:#1a3a0a; color:#fff; border-color:#1a3a0a; }
 
-    .gantt-scroll { overflow-x:auto; max-height:500px; overflow-y:auto; }
+    .gantt-scroll { overflow-x:auto; max-height:500px; overflow-y:auto; background:#fff; }
     .gantt-grid { display:grid; min-width:100%; position:relative; }
     .gantt-row { display:contents; }
-    .gantt-cell-label { background:#0a1813; padding:8px 10px; border-bottom:1px solid #1f3a2a; border-right:2px solid #1f3a2a; position:sticky; left:0; z-index:5; min-width:240px; max-width:240px; }
-    .gantt-cell-label.head { background:#0f1f17; border-bottom:2px solid #2d6a4f; }
-    .gantt-cell-label-title { font-size:11px; font-weight:bold; color:#86efac; letter-spacing:0.05em; text-transform:uppercase; }
-    .gantt-cell-day { background:#0a1813; padding:6px 4px; border-bottom:1px solid #1f3a2a; border-right:1px solid #1a2e22; text-align:center; font-size:10px; min-width:38px; }
-    .gantt-cell-day.head { background:#0f1f17; border-bottom:2px solid #2d6a4f; color:#9fe1cb; font-weight:bold; }
-    .gantt-cell-day.weekend { background:#0d1a14; }
-    .gantt-cell-day.today { background:rgba(82,183,136,0.15); border-left:2px solid #52b788; border-right:2px solid #52b788; }
-    .gantt-day-num { color:#fff; font-weight:bold; font-size:12px; line-height:1.2; }
-    .gantt-day-name { color:#6b9e7a; font-size:9px; text-transform:uppercase; }
-    .gantt-day-mes { color:#52b788; font-size:9px; font-weight:bold; }
-    .gantt-cell-task { background:#0a1813; padding:8px 10px; border-bottom:1px solid #1f3a2a; border-right:2px solid #1f3a2a; position:sticky; left:0; z-index:4; min-width:240px; max-width:240px; }
-    .gantt-cell-track { background:#0a1813; border-bottom:1px solid #1f3a2a; border-right:1px solid #1a2e22; position:relative; min-height:36px; }
-    .gantt-cell-track.weekend { background:#0d1a14; }
-    .gantt-cell-track.today { background:rgba(82,183,136,0.08); }
+    .gantt-cell-label { background:#fafaf7; padding:8px 10px; border-bottom:1px solid #ececec; border-right:2px solid #e5e2da; position:sticky; left:0; z-index:5; min-width:240px; max-width:240px; }
+    .gantt-cell-label.head { background:#f0ede6; border-bottom:2px solid #1a3a0a; }
+    .gantt-cell-label-title { font-size:11px; font-weight:bold; color:#1a3a0a; letter-spacing:0.05em; text-transform:uppercase; }
+    .gantt-cell-day { background:#fafaf7; padding:6px 4px; border-bottom:1px solid #ececec; border-right:1px solid #f0ede6; text-align:center; font-size:10px; min-width:38px; }
+    .gantt-cell-day.head { background:#f0ede6; border-bottom:2px solid #1a3a0a; color:#1a3a0a; font-weight:bold; }
+    .gantt-cell-day.weekend { background:#f5f3ee; }
+    .gantt-cell-day.today { background:rgba(45,106,79,0.12); border-left:2px solid #2d6a4f; border-right:2px solid #2d6a4f; }
+    .gantt-day-num { color:#1a1a1a; font-weight:bold; font-size:12px; line-height:1.2; }
+    .gantt-day-name { color:#888; font-size:9px; text-transform:uppercase; }
+    .gantt-day-mes { color:#2d6a4f; font-size:9px; font-weight:bold; }
+    .gantt-cell-task { background:#fff; padding:8px 10px; border-bottom:1px solid #ececec; border-right:2px solid #e5e2da; position:sticky; left:0; z-index:4; min-width:240px; max-width:240px; }
+    .gantt-cell-track { background:#fff; border-bottom:1px solid #ececec; border-right:1px solid #f5f3ef; position:relative; min-height:36px; }
+    .gantt-cell-track.weekend { background:#fafaf7; }
+    .gantt-cell-track.today { background:rgba(45,106,79,0.05); }
 
-    .gantt-task-line1 { font-size:12px; color:#fff; font-weight:600; line-height:1.2; }
-    .gantt-task-line2 { font-size:10px; color:#9fe1cb; margin-top:2px; }
-    .gantt-task-line3 { font-size:9px; color:#6b9e7a; margin-top:2px; display:flex; gap:4px; flex-wrap:wrap; }
-    .gantt-resp-chip { background:#1f3a2a; color:#86efac; padding:1px 6px; border-radius:99px; font-size:9px; font-weight:bold; }
+    .gantt-task-line1 { font-size:12px; color:#1a1a1a; font-weight:600; line-height:1.2; }
+    .gantt-task-line2 { font-size:10px; color:#666; margin-top:2px; }
+    .gantt-task-line3 { font-size:9px; color:#888; margin-top:3px; display:flex; gap:4px; flex-wrap:wrap; }
+    .gantt-resp-chip { background:#f0ede6; color:#1a3a0a; padding:1px 6px; border-radius:99px; font-size:9px; font-weight:bold; border:1px solid #e5e2da; }
 
-    .gantt-bar { position:absolute; top:6px; height:24px; border-radius:5px; cursor:pointer; padding:3px 8px; display:flex; align-items:center; font-size:11px; font-weight:bold; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:0 1px 3px rgba(0,0,0,0.3); transition:transform 0.1s, box-shadow 0.1s; }
-    .gantt-bar:hover { transform:translateY(-1px); box-shadow:0 3px 8px rgba(0,0,0,0.5); z-index:10; }
-    .gantt-bar.estado-planificada { background:#475569; }
+    .gantt-bar { position:absolute; top:6px; height:24px; border-radius:5px; cursor:pointer; padding:3px 8px; display:flex; align-items:center; font-size:11px; font-weight:bold; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:0 1px 3px rgba(0,0,0,0.15); transition:transform 0.1s, box-shadow 0.1s; }
+    .gantt-bar:hover { transform:translateY(-1px); box-shadow:0 3px 8px rgba(0,0,0,0.25); z-index:10; }
+    .gantt-bar.estado-planificada { background:#94a3b8; }
     .gantt-bar.estado-encurso     { background:#3b82f6; }
     .gantt-bar.estado-completada  { background:#10b981; }
     .gantt-bar.estado-atrasada    { background:#ef4444; }
-    .gantt-bar.prio-urgente { box-shadow:0 0 0 2px #f59e0b, 0 1px 3px rgba(0,0,0,0.3); }
+    .gantt-bar.prio-urgente { box-shadow:0 0 0 2px #f59e0b, 0 1px 3px rgba(0,0,0,0.15); }
 
-    .gantt-empty { color:#6b9e7a; font-size:12px; text-align:center; padding:30px; background:#0a1813; }
+    .gantt-empty { color:#888; font-size:12px; text-align:center; padding:30px; background:#fff; }
 
     /* Modal */
     .glmodal-back { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; display:none; align-items:center; justify-content:center; padding:20px; }
@@ -3636,12 +3636,12 @@ function renderGantt() {
   // Filtros chips
   if (fcont) {
     const f = window._ganttState.filtros;
-    let html = `<span style="font-size:10px;color:#6b9e7a;margin-right:4px;align-self:center;">FILTROS:</span>`;
+    let html = `<span style="font-size:10px;color:#888;margin-right:4px;align-self:center;font-weight:bold;">FILTROS:</span>`;
     html += `<button class="gantt-fchip ${!f.cultivo?'on':''}" onclick="ganttFilter('cultivo','')">Todos cultivos</button>`;
     CULTIVOS_GANTT.forEach(c => {
       html += `<button class="gantt-fchip ${f.cultivo===c?'on':''}" onclick="ganttFilter('cultivo','${c}')">${c}</button>`;
     });
-    html += `<span style="border-left:1px solid #1f3a2a;margin:0 4px;"></span>`;
+    html += `<span style="border-left:1px solid #e5e2da;margin:0 4px;height:18px;"></span>`;
     html += `<button class="gantt-fchip ${!f.estado?'on':''}" onclick="ganttFilter('estado','')">Todos estados</button>`;
     ESTADOS_LABOR.forEach(e => {
       html += `<button class="gantt-fchip ${f.estado===e?'on':''}" onclick="ganttFilter('estado','${e}')">${e}</button>`;
