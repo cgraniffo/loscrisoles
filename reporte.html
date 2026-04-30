@@ -1522,9 +1522,10 @@ function renderIngresos() {
 
     // Tabla detalle de facturas/anticipos que componen el Real
     const facturasOrdenadas = (data.facturas || []).slice().sort((a,b) => {
-      const da = parseDate(a.fecha); const db = parseDate(b.fecha);
-      const ta = da ? da.getTime() : 0; const tb = db ? db.getTime() : 0;
-      return tb - ta;  // más reciente primero
+      // Orden por folio descendente (mayor a menor)
+      const fa = Number(String(a.folio||"").replace(/[^0-9]/g,"")) || 0;
+      const fb = Number(String(b.folio||"").replace(/[^0-9]/g,"")) || 0;
+      return fb - fa;
     });
     const facturasHTML = facturasOrdenadas.length > 0 ? `
       <details style="margin-top:12px;border-top:1px dashed #ccc;padding-top:8px;">
@@ -1561,7 +1562,7 @@ function renderIngresos() {
       </details>
     ` : "";
 
-    return `<details style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:6px;background:#fff;" ${idx===0?'open':''}>
+    return `<details style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:6px;background:#fff;">
       <summary style="display:grid;grid-template-columns:30px 1.4fr 0.9fr 0.9fr 0.6fr;gap:10px;padding:10px 12px;background:#fafafa;align-items:center;cursor:pointer;list-style:none;">
         <span style="font-size:13px;color:#888;" class="cultivo-chevron">▶</span>
         <div>
