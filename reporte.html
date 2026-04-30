@@ -3862,37 +3862,45 @@ function ganttOpenModal(id) {
 
 function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().slice(0,10);
 
-  // Construir lista de UPs desde BD_CC (filtrando por temporada activa)
+  // Construir lista de UPs desde BD_CC
   // Cultivo = campo FUNDO de BD_CC (ej: "Trigo 26-27", "Nogales 25-26")
   // UP      = campo NOMBRE CC de BD_CC (ej: "Piv 1", "Pot 5")
   const tempActiva = window.TEMPORADA_ACTIVA || (typeof getTemporadaActiva==="function" ? getTemporadaActiva() : "");
+  const ccMapEntries = Object.entries(CC_MAP||{});
+
+  // Si BD_CC no cargó, avisar en el modal
+  if (ccMapEntries.length === 0) {
+    alert("BD_CC no se ha cargado todavía. Espera unos segundos y reintenta.");
+    return;
+  }
+
   const upsBD_CC = [];
-  try {
-    Object.entries(CC_MAP||{}).forEach(([ccId, ccNombre]) => {
-      if (tempActiva && TEMP_MAP && TEMP_MAP[ccId]) {
-        if (TEMP_MAP[ccId].temporada !== tempActiva) return;
-      }
-      if (typeof esUpProd==="function" && !esUpProd(ccId)) return;
-      const fundo = (FUNDO_MAP[ccId] || "").trim();
-      if (!fundo) return; // saltar UPs sin fundo definido
-      upsBD_CC.push({
-        id: ccId,
-        ccNombre: ccNombre,
-        fundo: fundo,
-        ha: HA_MAP[ccId] || 0
-      });
+  ccMapEntries.forEach(([ccId, ccNombre]) => {
+    const fundo = (FUNDO_MAP[ccId] || "").trim();
+    if (!fundo) return; // saltar UPs sin fundo definido
+    upsBD_CC.push({
+      id: ccId,
+      ccNombre: String(ccNombre || ccId).trim(),
+      fundo: fundo,
+      ha: HA_MAP[ccId] || 0,
+      temporada: (TEMP_MAP && TEMP_MAP[ccId]) ? TEMP_MAP[ccId].temporada : ""
     });
-  } catch(e) {}
+  });
   upsBD_CC.sort((a,b)=> (a.fundo+a.ccNombre).localeCompare(b.fundo+b.ccNombre));
 
-  // Cultivos = lista única de Fundos presentes en BD_CC
+  // Cultivos = lista única de Fundos (TODOS, sin filtrar por temporada en el dropdown
+  // así el usuario puede crear labores de cualquier temporada)
   const cultivosUnicos = [...new Set(upsBD_CC.map(u => u.fundo))].sort();
-  const cultivosLista = cultivosUnicos.length > 0
-    ? cultivosUnicos
-    : ["Sin datos BD_CC"];
+  const cultivosLista = cultivosUnicos.slice();
 
   const upSelectedNombre = r && r.up ? r.up : "";
-  const cultivoSelected = r ? r.cultivo : (cultivosLista[0] || "");
+  const cultivoSelected = r && r.cultivo ? r.cultivo : (cultivosLista[0] || "");
+
+  // Si el cultivo guardado no está en la lista (data legacy), agregarlo al final
+  if (cultivoSelected && !cultivosLista.includes(cultivoSelected)) {
+    cultivosLista.push(cultivoSelected + " (legacy)");
+    // Importante: el value sigue siendo el original para no romper el guardado
+  }
   const estadoSelected = r ? r.estado : "Planificada";
   const prioSelected = r ? r.prioridad : "Normal";
   const inicio = r ? r.inicio : todayStr;
@@ -3901,20 +3909,29 @@ function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().s
   const respSel = new Set(r ? (r.responsables||[]) : []);
   const respHtml = RESPONSABLES_LISTA.map(p => `<span class="glmodal-resp-chip ${respSel.has(p)?'on':''}" onclick="this.classList.toggle('on')" data-resp="${p}">${p}</span>`).join("");
 
-  const cultivoOpts = cultivosLista.map(c => `<option value="${escapeHtml(c)}" ${c===cultivoSelected?'selected':''}>${escapeHtml(c)}</option>`).join("");
+  // Construir options de cultivo: marcar como seleccionado al actual (sea de BD_CC o legacy)
+  const cultivoOpts = cultivosLista.map(c => {
+    const cleanValue = c.replace(/ \(legacy\)$/, "");
+    const isSel = cleanValue === cultivoSelected;
+    return `<option value="${escapeHtml(cleanValue)}" ${isSel?'selected':''}>${escapeHtml(c)}</option>`;
+  }).join("");
   const estadoOpts = ESTADOS_LABOR.map(e => `<option value="${e}" ${e===estadoSelected?'selected':''}>${e}</option>`).join("");
   const prioOpts = PRIORIDADES.map(p => `<option value="${p}" ${p===prioSelected?'selected':''}>${p}</option>`).join("");
 
   // Guardamos las UPs en window para usarlas en handler de cambio de cultivo
   window._ganttState.upsBD_CC = upsBD_CC;
 
-  // UP filtradas por Fundo seleccionado (si Fundo no está en la lista, mostrar todas)
+  // UP filtradas por Fundo seleccionado
   const upsFiltradas = upsBD_CC.filter(u => u.fundo === cultivoSelected);
-  const upOptsHtml = `<option value="">— sin UP específica —</option>` +
+  let upOptsHtml = `<option value="">— sin UP específica —</option>` +
     upsFiltradas.map(u => {
       const label = u.ccNombre + (u.ha ? " (" + u.ha + " há)" : "");
       return `<option value="${escapeHtml(u.ccNombre)}" data-id="${u.id}" ${u.ccNombre===upSelectedNombre?'selected':''}>${escapeHtml(label)}</option>`;
     }).join("");
+  // Si la UP guardada no está en la lista filtrada, agregarla como legacy
+  if (upSelectedNombre && !upsFiltradas.find(u => u.ccNombre === upSelectedNombre)) {
+    upOptsHtml += `<option value="${escapeHtml(upSelectedNombre)}" selected>${escapeHtml(upSelectedNombre)} (legacy)</option>`;
+  }
 
   let modal = document.getElementById("gl-modal-back");
   if (!modal) {
