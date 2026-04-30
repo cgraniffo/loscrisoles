@@ -4381,6 +4381,14 @@ function ganttOpenCCModal() {
     `<option value="${t}" ${t===tempActiva?'selected':''}>${t}</option>`
   ).join("");
 
+  // Fundos existentes en BD_CC (ej: "Trigo 26-27", "Nogales 25-26", "Gastos Generales", etc.)
+  // Sugerimos por defecto "{Especie} {Temp corta}" pero permitimos elegir uno existente
+  const fundosExistentes = [...new Set(Object.values(FUNDO_MAP || {}).filter(Boolean))].sort();
+  const fundoSugerido = "Trigo " + tempActiva.replace(/\d{2}(\d{2})-\d{2}(\d{2})/, "$1-$2");
+  const fundoOpts = fundosExistentes.map(f =>
+    `<option value="${escapeHtml(f)}" ${f===fundoSugerido?'selected':''}>${escapeHtml(f)}</option>`
+  ).join("");
+
   modal.innerHTML = `
     <div class="glmodal" style="max-width:520px">
       <div class="glmodal-head" style="background:#7c3aed">
@@ -4389,7 +4397,7 @@ function ganttOpenCCModal() {
       </div>
       <div class="glmodal-body">
         <div class="glmodal-row">
-          <label class="glmodal-label">Nombre del CC *</label>
+          <label class="glmodal-label">Nombre UP *</label>
           <input type="text" id="glcc-nombre" class="glmodal-input" placeholder="Ej: Pot 7, Piv 4, Nogales Sector 3">
         </div>
         <div class="glmodal-grid2">
@@ -4413,9 +4421,15 @@ function ganttOpenCCModal() {
           </div>
         </div>
         <div class="glmodal-row">
-          <label class="glmodal-label">Fundo (auto)</label>
-          <input type="text" id="glcc-fundo" class="glmodal-input" placeholder="Auto-construido" value="Trigo 26-27">
-          <div style="font-size:10px; color:#888; margin-top:3px;">Se construye automáticamente como "{Especie} {Temporada}". Puedes editarlo si quieres.</div>
+          <label class="glmodal-label">Centro de Costos</label>
+          <div style="display:flex; gap:6px;">
+            <select id="glcc-fundo-select" class="glmodal-select" style="flex:1;" onchange="ganttCCFundoSelectChange()">
+              ${fundoOpts}
+              <option value="__custom__">+ Crear nuevo...</option>
+            </select>
+            <input type="text" id="glcc-fundo" class="glmodal-input" style="flex:1; display:none;" placeholder="Escribe nuevo CC">
+          </div>
+          <div style="font-size:10px; color:#888; margin-top:3px;">Selecciona un CC existente o crea uno nuevo. Por defecto se sugiere "{Especie} {Temporada}".</div>
         </div>
         <div class="glmodal-grid2">
           <div class="glmodal-row">
@@ -4456,11 +4470,47 @@ function ganttCloseCCModal() {
 function ganttCCUpdateFundo() {
   const especieSel = document.getElementById("glcc-especie");
   const tempSel = document.getElementById("glcc-temporada");
+  const fundoSel = document.getElementById("glcc-fundo-select");
   const fundoInput = document.getElementById("glcc-fundo");
-  if (!especieSel || !tempSel || !fundoInput) return;
+  if (!especieSel || !tempSel || !fundoSel) return;
   const nombreEspecie = especieSel.options[especieSel.selectedIndex].text;
   const tempCorta = String(tempSel.value).replace(/\d{2}(\d{2})-\d{2}(\d{2})/, "$1-$2");
-  fundoInput.value = nombreEspecie + " " + tempCorta;
+  const sugerido = nombreEspecie + " " + tempCorta;
+
+  // Si el fundo sugerido existe en el dropdown, seleccionarlo
+  let encontrado = false;
+  for (let i = 0; i < fundoSel.options.length; i++) {
+    if (fundoSel.options[i].value === sugerido) {
+      fundoSel.selectedIndex = i;
+      encontrado = true;
+      break;
+    }
+  }
+
+  // Si no existe, cambiar a modo "custom" con el sugerido en el input
+  if (!encontrado && fundoInput) {
+    fundoSel.value = "__custom__";
+    fundoInput.value = sugerido;
+    fundoInput.style.display = "block";
+    fundoSel.style.flex = "0 0 140px";
+  } else if (fundoInput) {
+    fundoInput.style.display = "none";
+    fundoSel.style.flex = "1";
+  }
+}
+
+function ganttCCFundoSelectChange() {
+  const fundoSel = document.getElementById("glcc-fundo-select");
+  const fundoInput = document.getElementById("glcc-fundo");
+  if (!fundoSel || !fundoInput) return;
+  if (fundoSel.value === "__custom__") {
+    fundoInput.style.display = "block";
+    fundoInput.focus();
+    fundoSel.style.flex = "0 0 140px";
+  } else {
+    fundoInput.style.display = "none";
+    fundoSel.style.flex = "1";
+  }
 }
 
 async function ganttSaveCC() {
@@ -4471,7 +4521,12 @@ async function ganttSaveCC() {
   const temporada = document.getElementById("glcc-temporada").value;
   const hectareas = document.getElementById("glcc-hectareas").value;
   const mes = document.getElementById("glcc-mes").value;
-  const fundo = document.getElementById("glcc-fundo").value.trim();
+  // Fundo: si está en modo "custom", leer del input; si no, del dropdown
+  const fundoSel = document.getElementById("glcc-fundo-select");
+  const fundoInput = document.getElementById("glcc-fundo");
+  const fundo = (fundoSel.value === "__custom__")
+    ? fundoInput.value.trim()
+    : fundoSel.value;
   const sector = document.getElementById("glcc-sector").value.trim();
   const esBase = document.getElementById("glcc-base").checked;
   const coordenadas = document.getElementById("glcc-coord").value.trim();
