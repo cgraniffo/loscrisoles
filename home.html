@@ -3,698 +3,1462 @@
 <head>
 <script>
 if (location.search.includes('embed=1')) {
-  document.write('<style>.hdr,.header,.tabs,.hdr-top,.hdr-logo,.hdr-date,.hdr-refresh,.metrics-top,.metrics{display:none!important}</style>');
+  document.write('<style>.lc-header,.lc-tabs-bar{display:none!important}.lc-body{padding-top:0!important}</style>');
 }
 </script>
 
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Los Crisoles — Dashboard</title>
+  <title>Los Crisoles — Briefing</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..700,0..100&family=Inter+Tight:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
   <style>
+    /* ═══════════════════════════════════════════════════════════
+       LOS CRISOLES — BRIEFING (modo oscuro narrativo)
+       ═══════════════════════════════════════════════════════════ */
     :root {
-      --verde:    #1a3a0a;
-      --verde2:   #2d6a1a;
-      --verde3:   #86efac;
-      --tierra:   #c8b89a;
-      --crema:    #f5f0e8;
-      --blanco:   #fdfcf9;
-      --gris:     #6b6555;
-      --rojo:     #c0392b;
-      --amber:    #d97706;
-      --azul:     #1d4ed8;
+      /* Fondo principal — verde tierra muy oscuro */
+      --bg:           #1A1F1A;
+      --bg-2:         #232923;
+      --bg-card:      #1F2620;
+      --bg-card-hi:   #262E26;
+      --bg-soft:      #2A322B;
+
+      /* Texto */
+      --text-1:       #E8E4D6;
+      --text-2:       #A8B0A0;
+      --text-3:       #6B7468;
+      --text-dim:     #4A5249;
+
+      /* 3 acentos semánticos — únicos colores de marca */
+      --acc-green:    #8DB87A;     /* positivo · al día · cosecha */
+      --acc-gold:     #D4A957;     /* presupuesto · neutral cálido */
+      --acc-red:      #D87060;     /* atrasado · alerta */
+
+      /* Acentos suaves (sobre fondo oscuro) */
+      --acc-green-soft:  rgba(141, 184, 122, 0.12);
+      --acc-gold-soft:   rgba(212, 169, 87, 0.12);
+      --acc-red-soft:    rgba(216, 112, 96, 0.14);
+
+      /* Cultivos (paleta consistente entre mapa, gráficos y badges) */
+      --crop-trigo:     #D4A957;
+      --crop-achicoria: #8DB87A;
+      --crop-nuez:      #B87049;
+      --crop-pepino:    #6BA88E;
+      --crop-maiz:      #C8893D;
+      --crop-frejol:    #A8916B;
+      --crop-repollo:   #5A8F6E;
+
+      /* Bordes */
+      --border:       1px solid rgba(255, 255, 255, 0.06);
+      --border-2:     1px solid rgba(255, 255, 255, 0.10);
+
+      /* Estructura */
+      --radius:       12px;
+      --radius-lg:    16px;
+
+      /* Tipografía */
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-ui:      'Inter Tight', -apple-system, system-ui, sans-serif;
+
+      /* Compatibilidad legacy con código existente */
+      --verde:    var(--acc-green);
+      --verde2:   var(--acc-green);
+      --verde3:   var(--acc-green);
+      --tierra:   var(--acc-gold);
+      --crema:    var(--bg);
+      --blanco:   var(--bg-card);
+      --gris:     var(--text-2);
+      --rojo:     var(--acc-red);
+      --amber:    var(--acc-gold);
+      --azul:     #6B8FB8;
     }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; background: var(--crema); color: #1a1a0f; min-height: 100vh; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text-1);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      font-size: 14px;
+      line-height: 1.5;
+      font-feature-settings: 'tnum' 1, 'cv11' 1;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 1200px 600px at 80% -10%, rgba(141, 184, 122, 0.04), transparent 60%),
+        radial-gradient(ellipse 800px 500px at 10% 110%, rgba(212, 169, 87, 0.03), transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body > * { position: relative; z-index: 1; }
 
-    /* ── HEADER ─────────────────────────────────────────────── */
-    .header {
-      background: var(--verde);
-      padding: 0;
-      position: relative;
-      overflow: hidden;
+    /* ═══ HEADER ═══════════════════════════════════════════════ */
+    .lc-header {
+      border-bottom: var(--border);
+      background: rgba(26, 31, 26, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
-    .header-bg {
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 80% 50%, #2d6a1a44 0%, transparent 60%),
-                  radial-gradient(ellipse at 20% 80%, #0f2a0444 0%, transparent 50%);
+    .lc-header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 14px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
     }
-    .header-grid {
-      position: absolute; inset: 0; opacity: 0.04;
-      background-image: linear-gradient(#86efac 1px, transparent 1px), linear-gradient(90deg, #86efac 1px, transparent 1px);
-      background-size: 40px 40px;
+    .lc-brand { display: flex; align-items: center; gap: 12px; }
+    .lc-logo {
+      width: 36px; height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--acc-green), #6B9560);
+      color: var(--bg);
+      display: grid; place-items: center;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 18px;
     }
-    .header-inner {
-      position: relative; z-index: 1;
-      max-width: 1200px; margin: 0 auto;
-      padding: 28px 32px 0;
+    .lc-brand-text { line-height: 1.15; }
+    .lc-brand-name {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--text-1);
+      letter-spacing: -0.01em;
     }
-    .header-top {
-      display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px;
+    .lc-brand-sub {
+      font-size: 9.5px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      margin-top: 1px;
+      font-weight: 500;
     }
-    .logo-wrap { display: flex; align-items: center; gap: 14px; }
-    .logo-icon {
-      width: 44px; height: 44px; background: var(--verde3); border-radius: 10px;
-      display: flex; align-items: center; justify-content: center; font-size: 22px;
-      box-shadow: 0 4px 16px rgba(134,239,172,0.3);
-    }
-    .logo-text { font-weight: bold; }
-    .logo-name { font-size: 22px; font-weight: 700; color: #fff; line-height: 1; }
-    .logo-sub { font-size: 11px; color: var(--verde3); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 3px; }
-    .bdata-badge {
-      font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
-      color: var(--verde3); background: rgba(134,239,172,0.12); border: 1px solid rgba(134,239,172,0.25);
-      padding: 5px 12px; border-radius: 99px;
-    }
-    .header-date { font-size: 12px; color: #9fe1cb; margin-top: 2px; text-align: right; }
 
-    /* ── HEADLINE ─────────────────────────────────────────────── */
-    .headline {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: end; margin-bottom: 28px;
+    .lc-tabs {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+      justify-content: center;
+      overflow-x: auto;
+      scrollbar-width: none;
     }
-    .headline-title {
-      font-weight: bold;
-      font-size: clamp(32px, 4vw, 52px);
-      font-weight: 900; color: #fff; line-height: 1.05;
-    }
-    .headline-title span { color: var(--verde3); }
-    .headline-sub { font-size: 13px; color: #9fe1cb; margin-top: 10px; line-height: 1.6; max-width: 360px; }
-    .headline-kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .hkpi {
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px; padding: 14px 16px; backdrop-filter: blur(8px);
-      transition: background 0.2s;
-    }
-    .hkpi:hover { background: rgba(255,255,255,0.11); }
-    .hkpi-val { font-weight: bold; font-size: 26px; font-weight: 700; color: #fff; line-height: 1; }
-    .hkpi-val.green { color: var(--verde3); }
-    .hkpi-val.red   { color: #fca5a5; }
-    .hkpi-val.amber { color: #fcd34d; }
-    .hkpi-label { font-size: 11px; color: #9fe1cb; margin-top: 5px; }
-
-    /* ── NAV TABS ─────────────────────────────────────────────── */
-    .nav-tabs {
-      display: flex; gap: 4px; padding: 0 32px;
-      position: relative; z-index: 1; max-width: 1200px; margin: 0 auto;
-    }
-    .ntab {
-      font-size: 12px; font-weight: 600; padding: 10px 20px;
-      border-radius: 10px 10px 0 0; cursor: pointer;
-      color: #9fe1cb; background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.08); border-bottom: none;
-      transition: all 0.2s; letter-spacing: 0.02em;
-    }
-    .ntab:hover { background: rgba(255,255,255,0.1); }
-    .ntab.on { background: var(--crema); color: var(--verde); border-color: var(--crema); }
-
-    /* ── BODY ─────────────────────────────────────────────── */
-    .body { max-width: 1200px; margin: 0 auto; padding: 24px 32px 48px; }
-
-    /* ── SECTION ─────────────────────────────────────────────── */
-    .section { display: none; }
-    .section.on { display: block; }
-
-    /* ── GRID LAYOUTS ─────────────────────────────────────────────── */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 16px; }
-    .span2 { grid-column: span 2; }
-
-    /* ── CARDS ─────────────────────────────────────────────── */
-    .card {
-      background: var(--blanco); border-radius: 16px;
-      border: 1px solid rgba(0,0,0,0.07);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-      overflow: hidden;
-    }
-    .card-head {
-      padding: 16px 20px 12px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid #f0ede6;
-    }
-    .card-title { font-size: 11px; font-weight: 600; color: var(--gris); letter-spacing: 0.08em; text-transform: uppercase; }
-    .card-body { padding: 16px 20px; }
-    .card-link {
-      font-size: 11px; color: var(--verde2); font-weight: 600;
-      text-decoration: none; display: flex; align-items: center; gap: 4px;
-    }
-    .card-link:hover { color: var(--verde); }
-
-    /* ── COLLAPSIBLE CARDS ─────────────────────────────────── */
-    details.card { padding: 0; }
-    details.card > summary {
-      list-style: none;
-      padding: 14px 20px;
-      display: flex; align-items: center; justify-content: space-between;
+    .lc-tabs::-webkit-scrollbar { display: none; }
+    .lc-tab {
+      color: var(--text-2);
+      text-decoration: none;
+      font-size: 12.5px;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 7px;
+      white-space: nowrap;
+      transition: all 0.15s;
+      background: transparent;
+      border: 0;
+      font-family: inherit;
       cursor: pointer;
-      user-select: none;
-      transition: background 0.15s;
-      gap: 12px;
     }
-    details.card > summary::-webkit-details-marker { display: none; }
-    details.card > summary:hover { background: #fafaf7; }
-    details.card > summary .card-title { font-size: 12px; font-weight: 600; color: #1c1c1a; letter-spacing: 0.04em; text-transform: none; }
-    details.card > summary .summary-meta { display: flex; align-items: center; gap: 14px; margin-left: auto; }
-    details.card > summary .summary-hint { font-size: 11px; color: var(--gris); white-space: nowrap; }
+    .lc-tab:hover { color: var(--text-1); background: rgba(255,255,255,0.04); }
+    .lc-tab.active {
+      color: var(--bg);
+      background: var(--text-1);
+    }
 
-    /* Bordes izquierdos coloreados por zona */
-    details.zona-card[data-zona="1"] { border-left: 3px solid #E24B4A; }
-    details.zona-card[data-zona="2"] { border-left: 3px solid #0F6E56; }
-    details.zona-card.ok[data-zona="1"] { border-left-color: #97C459; }
-    details.zona-card.ok[data-zona="2"] { border-left-color: #97C459; }
-    details.zona-card.warn { border-left-color: #EF9F27; }
+    .lc-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+    }
+    .lc-iva-toggle {
+      display: inline-flex;
+      background: rgba(255,255,255,0.05);
+      border-radius: 7px;
+      padding: 2px;
+    }
+    .lc-iva-toggle button {
+      background: transparent;
+      border: 0;
+      color: var(--text-2);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .lc-iva-toggle button.on {
+      background: var(--acc-green);
+      color: var(--bg);
+    }
+    .lc-temp {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      background: rgba(255,255,255,0.04);
+      border: var(--border);
+      border-radius: 7px;
+      font-size: 11.5px;
+      color: var(--text-1);
+      font-weight: 500;
+    }
+    .lc-temp::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--acc-green);
+      box-shadow: 0 0 0 3px rgba(141, 184, 122, 0.18);
+    }
+    .lc-temp-select {
+      background: transparent;
+      border: 0;
+      color: var(--text-1);
+      font-family: inherit;
+      font-size: 11.5px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      padding-right: 14px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path d='M1 1L4 4L7 1' stroke='%23A8B0A0' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right center;
+    }
+    .lc-temp-select option { background: var(--bg-2); color: var(--text-1); }
 
-    /* Status badges */
-    .status-badge {
+    /* ═══ BODY ═══════════════════════════════════════════════ */
+    .lc-body {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 40px 32px 80px;
+    }
+
+    /* ═══ ZONA — etiqueta + título narrativo ═══════════════════ */
+    .zone {
+      margin-top: 64px;
+    }
+    .zone:first-of-type { margin-top: 0; }
+    .zone-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .zone-eyebrow {
+      display: flex; align-items: baseline; gap: 14px;
+    }
+    .zone-num {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 400;
+      font-style: italic;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+    }
+    .zone-label {
+      font-size: 10.5px;
+      color: var(--text-2);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .zone-meta {
+      font-size: 11.5px;
+      color: var(--text-3);
+      font-style: italic;
+    }
+
+    /* Headline narrativo (zona 1) */
+    .headline {
+      font-family: var(--font-display);
+      font-weight: 350;
+      font-size: clamp(28px, 4.2vw, 48px);
+      line-height: 1.18;
+      letter-spacing: -0.02em;
+      color: var(--text-1);
+      max-width: 920px;
+      font-variation-settings: "opsz" 100, "SOFT" 30;
+    }
+    .headline em {
+      font-style: italic;
+      color: var(--text-2);
+      font-weight: 350;
+    }
+    .headline .h-num {
+      color: var(--acc-red);
+      font-style: italic;
+      font-weight: 400;
+    }
+    .headline .h-num.gold  { color: var(--acc-gold); }
+    .headline .h-num.green { color: var(--acc-green); }
+
+    .zone-title {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 24px;
+      letter-spacing: -0.01em;
+      color: var(--text-1);
+      margin-top: 4px;
+    }
+
+    /* ═══ KPI HERO con sparkline ═══════════════════════════════ */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 28px;
+    }
+    .kpi {
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px 16px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .kpi:hover { border-color: rgba(255,255,255,0.10); }
+    .kpi-eyebrow {
+      font-size: 9.5px;
+      color: var(--text-3);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    .kpi-row-main {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .kpi-val {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 38px;
+      letter-spacing: -0.025em;
+      line-height: 1;
+      color: var(--text-1);
+      font-variant-numeric: tabular-nums;
+      font-variation-settings: "opsz" 144;
+    }
+    .kpi-val.green { color: var(--acc-green); }
+    .kpi-val.gold  { color: var(--acc-gold); }
+    .kpi-val.red   { color: var(--acc-red); }
+    .kpi-unit {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+    }
+    .kpi-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      color: var(--text-2);
+      margin-top: 4px;
+    }
+    .kpi-delta {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .kpi-delta.up   { color: var(--acc-green); background: var(--acc-green-soft); }
+    .kpi-delta.down { color: var(--acc-red);   background: var(--acc-red-soft); }
+    .kpi-spark {
+      margin-top: 14px;
+      height: 36px;
+      width: 100%;
+    }
+    .kpi-spark svg { width: 100%; height: 100%; display: block; }
+
+    /* ═══ ALERTAS (zona 1, sub-bloque) ═══════════════════════════ */
+    .alerts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .alert {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      background: var(--bg-card);
+      border: var(--border);
+      border-left: 2px solid var(--acc-red);
+      border-radius: var(--radius);
+      transition: background 0.15s;
+    }
+    .alert.gold { border-left-color: var(--acc-gold); }
+    .alert.green { border-left-color: var(--acc-green); }
+    .alert-icon {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      background: var(--acc-red-soft);
+      color: var(--acc-red);
+      display: grid; place-items: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .alert.gold  .alert-icon { background: var(--acc-gold-soft); color: var(--acc-gold); }
+    .alert.green .alert-icon { background: var(--acc-green-soft); color: var(--acc-green); }
+    .alert-body { flex: 1; min-width: 0; }
+    .alert-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-1);
+      margin-bottom: 2px;
+    }
+    .alert-sub {
+      font-size: 11.5px;
+      color: var(--text-2);
+    }
+    .alert-cta {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-2);
+      text-decoration: none;
+      padding: 5px 10px;
+      border: var(--border-2);
+      border-radius: 6px;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .alert-cta:hover {
+      color: var(--text-1);
+      background: rgba(255,255,255,0.04);
+    }
+
+    /* ═══ MAPA HERO ═══════════════════════════════════════════ */
+    .field-pulse {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+      gap: 14px;
+      margin-top: 22px;
+    }
+    .map-card {
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      position: relative;
+      min-height: 460px;
+    }
+    #map-hero {
+      width: 100%;
+      height: 460px;
+      background: var(--bg-soft);
+    }
+    /* Leaflet dark tweaks */
+    .leaflet-container { background: var(--bg-soft); font-family: var(--font-ui); }
+    .leaflet-control-attribution {
+      background: rgba(0,0,0,0.5) !important;
+      color: var(--text-3) !important;
+      font-size: 9px !important;
+    }
+    .leaflet-control-attribution a { color: var(--text-2) !important; }
+    .leaflet-control-zoom a {
+      background: rgba(26, 31, 26, 0.85) !important;
+      color: var(--text-1) !important;
+      border: var(--border) !important;
+    }
+    .leaflet-control-zoom a:hover { background: var(--bg-card-hi) !important; }
+    .map-overlay {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(26, 31, 26, 0.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: var(--border-2);
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--text-2);
+      pointer-events: none;
+    }
+    .map-overlay strong { color: var(--text-1); font-weight: 600; }
+
+    /* ═══ TIMELINE de eventos del día ═══════════════════════════ */
+    .timeline-card {
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 20px 14px;
+      display: flex;
+      flex-direction: column;
+      min-height: 460px;
+    }
+    .timeline-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .timeline-eyebrow {
+      font-size: 9.5px;
+      color: var(--text-3);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .timeline-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--text-1);
+      margin-top: 2px;
+    }
+    .timeline-list {
+      list-style: none;
+      flex: 1;
+      overflow-y: auto;
+      margin: 0 -8px;
+      padding: 0 8px;
+    }
+    .timeline-list::-webkit-scrollbar { width: 4px; }
+    .timeline-list::-webkit-scrollbar-thumb { background: var(--bg-soft); border-radius: 2px; }
+    .tl-item {
+      display: grid;
+      grid-template-columns: 44px 1fr auto;
+      gap: 12px;
+      padding: 10px 4px;
+      border-bottom: var(--border);
+      align-items: center;
+    }
+    .tl-item:last-child { border-bottom: 0; }
+    .tl-time {
+      font-family: var(--font-ui);
       font-size: 11px;
       font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 10px;
-      white-space: nowrap;
-      background: #F1EFE8;
-      color: #5F5E5A;
+      color: var(--text-2);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
     }
-    .status-badge.danger { background: #FCEBEB; color: #A32D2D; }
-    .status-badge.warn   { background: #FAEEDA; color: #854F0B; }
-    .status-badge.ok     { background: #EAF3DE; color: #3B6D11; }
-
-    /* Botón "Ver →" — claramente diferenciado */
-    details.card > summary .ver-btn,
-    .ver-btn {
-      font-size: 11px; font-weight: 600;
-      color: var(--verde2);
-      padding: 5px 10px;
-      border: 1px solid #d4e6c8;
-      border-radius: 6px;
-      background: #f7fbf1;
+    .tl-body { min-width: 0; }
+    .tl-title {
+      font-size: 13px;
+      color: var(--text-1);
+      font-weight: 500;
+      margin-bottom: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .tl-sub {
+      font-size: 11px;
+      color: var(--text-3);
+    }
+    .tl-tag {
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 3px 7px;
+      border-radius: 4px;
+      background: var(--acc-green-soft);
+      color: var(--acc-green);
+    }
+    .tl-tag.warn   { background: var(--acc-gold-soft); color: var(--acc-gold); }
+    .tl-tag.danger { background: var(--acc-red-soft);  color: var(--acc-red); }
+    .timeline-foot {
+      padding-top: 14px;
+      margin-top: 6px;
+      border-top: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-2);
+    }
+    .timeline-foot a {
+      color: var(--text-1);
       text-decoration: none;
+      padding: 4px 9px;
+      border: var(--border-2);
+      border-radius: 6px;
+      font-size: 11px;
       transition: all 0.15s;
-      white-space: nowrap;
     }
-    .ver-btn:hover {
-      background: #e8f3db;
-      border-color: var(--verde2);
-      color: var(--verde);
+    .timeline-foot a:hover { background: rgba(255,255,255,0.04); }
+
+    /* ═══ ZONA 3 · SALUD FINANCIERA ═══════════════════════════ */
+    .fin-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+    .fin-card {
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 22px;
+    }
+    .fin-eyebrow {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .fin-eyebrow .lbl {
+      font-size: 9.5px;
+      color: var(--text-3);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .fin-eyebrow .head {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--text-1);
+      letter-spacing: -0.01em;
+    }
+    .fin-meta {
+      margin-left: auto;
+      font-size: 10.5px;
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
     }
 
-    /* Separador visual vertical entre botón y chevron */
-    details.card > summary .meta-sep {
-      width: 1px; height: 20px; background: rgba(0,0,0,0.08);
+    .fin-big {
+      font-family: var(--font-display);
+      font-size: 44px;
+      font-weight: 400;
+      letter-spacing: -0.025em;
+      line-height: 1;
+      color: var(--text-1);
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 8px;
     }
+    .fin-big .unit {
+      font-family: var(--font-ui);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+      margin-left: 4px;
+    }
+    .fin-big.green { color: var(--acc-green); }
+    .fin-big.red   { color: var(--acc-red); }
 
-    /* Chevron solo — más discreto */
-    details.card > summary .caret {
-      font-size: 10px;
-      color: #9ca3af;
-      transition: transform 0.2s;
-      display: inline-block;
-      width: 16px; height: 16px;
-      line-height: 16px;
-      text-align: center;
+    .fin-narr {
+      font-size: 12px;
+      color: var(--text-2);
+      margin-bottom: 14px;
+    }
+    .fin-narr .num { color: var(--text-1); font-weight: 600; font-variant-numeric: tabular-nums; }
+    .fin-narr .num.red   { color: var(--acc-red); }
+    .fin-narr .num.green { color: var(--acc-green); }
+    .fin-narr .num.gold  { color: var(--acc-gold); }
+
+    .fin-spark {
+      height: 60px; width: 100%;
+    }
+    .fin-spark svg { width: 100%; height: 100%; display: block; }
+
+    /* Pipeline (cobrar/pagar) */
+    .pipe-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: var(--border);
+      font-size: 12.5px;
+    }
+    .pipe-row:last-child { border-bottom: 0; }
+    .pipe-row.total { border-top: var(--border-2); padding-top: 14px; margin-top: 4px; }
+    .pipe-label {
+      display: flex; align-items: center; gap: 9px;
+      color: var(--text-1);
+    }
+    .pipe-dot {
+      width: 7px; height: 7px;
       border-radius: 50%;
     }
-    details.card > summary:hover .caret { background: rgba(0,0,0,0.05); color: #4b5563; }
-    details.card[open] > summary .caret { transform: rotate(90deg); }
-    details.card[open] > summary { border-bottom: 1px solid #f0ede6; }
-    details.card > .card-body { padding: 16px 20px; }
-
-    /* Pipeline cards (zona 3) */
-    .pipeline-card { display:block; }
-    .pipeline-card:hover {
-      border-color: rgba(0,0,0,0.15) !important;
-      background: #fafaf7 !important;
+    .pipe-dot.in  { background: var(--acc-green); }
+    .pipe-dot.out { background: var(--acc-red); }
+    .pipe-dot.net { background: var(--text-2); }
+    .pipe-val {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 16px;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-1);
+    }
+    .pipe-val.in  { color: var(--acc-green); }
+    .pipe-val.out { color: var(--acc-red); }
+    .pipe-sub {
+      font-size: 10.5px;
+      color: var(--text-3);
+      margin-top: 1px;
     }
 
-    /* Tool card (zona 4) */
-    .tool-card:hover {
-      border-color: #97C459 !important;
-      background: #fafdf5 !important;
+    /* Presupuesto */
+    .ppto-bar {
+      height: 6px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 14px 0 8px;
+      position: relative;
+    }
+    .ppto-bar > .filled {
+      height: 100%;
+      background: var(--acc-gold);
+      border-radius: 3px;
+    }
+    .ppto-bar > .marker {
+      position: absolute;
+      top: -3px; bottom: -3px;
+      width: 1px;
+      background: var(--text-2);
+    }
+    .ppto-foot {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+    }
+    .ppto-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 16px;
+      font-size: 11.5px;
+      color: var(--text-2);
+      cursor: pointer;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      font-family: inherit;
+    }
+    .ppto-toggle:hover { color: var(--text-1); }
+    .ppto-toggle::before { content: '+'; font-size: 14px; line-height: 1; }
+    .ppto-detail {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: var(--border);
+      display: none;
+    }
+    .ppto-detail.on { display: block; }
+    .ppto-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 70px;
+      gap: 10px;
+      padding: 6px 0;
+      align-items: center;
+      font-size: 11.5px;
+      font-variant-numeric: tabular-nums;
+    }
+    .ppto-row .lbl {
+      color: var(--text-2);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .ppto-row .lbl::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 2px;
+      background: var(--crop-trigo);
+    }
+    .ppto-row[data-c="achicoria"] .lbl::before { background: var(--crop-achicoria); }
+    .ppto-row[data-c="nuez"]      .lbl::before { background: var(--crop-nuez); }
+    .ppto-row[data-c="pepino"]    .lbl::before { background: var(--crop-pepino); }
+    .ppto-row[data-c="maiz"]      .lbl::before { background: var(--crop-maiz); }
+    .ppto-row[data-c="frejol"]    .lbl::before { background: var(--crop-frejol); }
+    .ppto-row[data-c="repollo"]   .lbl::before { background: var(--crop-repollo); }
+    .ppto-mini {
+      height: 4px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .ppto-mini > span {
+      display: block; height: 100%;
+      background: var(--text-2);
+      border-radius: 2px;
+    }
+    .ppto-row .val { text-align: right; color: var(--text-1); font-weight: 500; }
+
+    /* ═══ ZONA 4 · COSECHA QUE VIENE ═══════════════════════════ */
+    .harvest-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .h-card {
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 22px;
+    }
+    .h-card-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .h-card-eyebrow {
+      font-size: 9.5px;
+      color: var(--text-3);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .h-card-title {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      color: var(--text-1);
+      margin-top: 2px;
     }
 
-    /* ── KPI METRIC ─────────────────────────────────────────────── */
-    .metric-big { font-weight: bold; font-size: 36px; font-weight: 700; line-height: 1; }
-    .metric-label { font-size: 12px; color: var(--gris); margin-top: 6px; }
-    .metric-delta { font-size: 12px; font-weight: 600; margin-top: 4px; }
-    .up   { color: #16a34a; }
-    .down { color: var(--rojo); }
-
-    /* ── NAV BUTTONS ─────────────────────────────────────────────── */
-    .nav-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 16px; }
-    .nav-card {
-      background: var(--blanco); border-radius: 16px; border: 1px solid rgba(0,0,0,0.07);
-      padding: 20px; text-decoration: none; color: inherit;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
-      transition: all 0.25s; display: flex; flex-direction: column; gap: 10px;
-      position: relative; overflow: hidden;
+    /* Contratos */
+    .contract {
+      display: grid;
+      grid-template-columns: 32px 1fr auto;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: var(--border);
+      align-items: center;
     }
-    .nav-card::before {
-      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    .contract:last-child { border-bottom: 0; }
+    .contract-icon {
+      width: 30px; height: 30px;
+      border-radius: 7px;
+      display: grid; place-items: center;
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 13px;
+      color: var(--bg);
     }
-    .nav-card.verde::before  { background: linear-gradient(90deg, var(--verde), var(--verde2)); }
-    .nav-card.azul::before   { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
-    .nav-card.amber::before  { background: linear-gradient(90deg, #d97706, #f59e0b); }
-    .nav-card.rojo::before   { background: linear-gradient(90deg, #c0392b, #e74c3c); }
-    .nav-card:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.1); }
-    .nav-icon { font-size: 28px; }
-    .nav-title { font-size: 16px; font-weight: 700; }
-    .nav-desc { font-size: 12px; color: var(--gris); line-height: 1.5; }
-    .nav-badge {
-      font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px;
-      align-self: flex-start; margin-top: 4px;
+    .contract-icon.n { background: var(--crop-nuez); }
+    .contract-icon.a { background: var(--crop-achicoria); }
+    .contract-icon.m { background: var(--crop-maiz); }
+    .contract-info { min-width: 0; }
+    .contract-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-1);
+      margin-bottom: 2px;
     }
-    .badge-verde { background: #eaf3de; color: var(--verde); }
-    .badge-rojo  { background: #fee2e2; color: var(--rojo); }
-    .badge-amber { background: #fef3c7; color: var(--amber); }
-
-    /* ── BAR ─────────────────────────────────────────────── */
-    .bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-    .bar-label { font-size: 12px; color: #444; width: 110px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .bar-track { flex: 1; background: #f0ede6; border-radius: 4px; height: 7px; }
-    .bar-fill  { height: 7px; border-radius: 4px; transition: width 0.8s ease; }
-    .bar-val   { font-size: 11px; font-weight: 700; width: 70px; text-align: right; flex-shrink: 0; }
-
-    /* ── LABOR ROW ─────────────────────────────────────────────── */
-    .labor-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f3ef; }
-    .labor-row:last-child { border-bottom: none; }
-    .labor-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .labor-name { font-size: 13px; flex: 1; }
-    .labor-up   { font-size: 11px; color: var(--gris); }
-    .labor-date { font-size: 11px; color: var(--gris); flex-shrink: 0; }
-    .labor-badge { font-size: 10px; padding: 2px 8px; border-radius: 99px; flex-shrink: 0; }
-
-    /* ── MAP ─────────────────────────────────────────────── */
-    #mapa-home { height: 320px; border-radius: 12px; z-index: 0; }
-    .leaflet-popup-content { font-family: Arial, sans-serif; font-size: 12px; }
-
-    /* ── CAJA FLOW ─────────────────────────────────────────────── */
-    .caja-flow { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
-    .caja-item { text-align: center; padding: 14px 8px; background: #f8f6f2; border-radius: 12px; }
-    .caja-val  { font-weight: bold; font-size: 20px; font-weight: 700; }
-    .caja-lbl  { font-size: 10px; color: var(--gris); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; }
-    .caja-arrow { display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 18px; padding-top: 20px; }
-
-    /* ── TABLE ─────────────────────────────────────────────── */
-    .mini-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
-    .mini-tbl th { text-align: left; font-size: 10px; color: var(--gris); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border-bottom: 2px solid #f0ede6; }
-    .mini-tbl td { padding: 7px 8px; border-bottom: 1px solid #f8f5f0; }
-    .mini-tbl tr:last-child td { border-bottom: none; }
-    .mini-tbl tr:hover td { background: #fafaf7; }
-
-    /* ── LOADING ─────────────────────────────────────────────── */
-
-    /* ── CHAT IA ─────────────────────────────────────────── */
-    #chat-btn { position:fixed; bottom:24px; right:24px; width:52px; height:52px; border-radius:50%; background:#1a3a0a; color:#fff; border:none; font-size:22px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,0.25); z-index:9999; display:flex; align-items:center; justify-content:center; transition:transform 0.2s; }
-    #chat-btn:hover { transform:scale(1.08); }
-    #chat-panel { position:fixed; bottom:88px; right:24px; width:380px; max-height:560px; background:#fff; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.18); display:none; flex-direction:column; z-index:9998; border:1px solid #e5e2da; overflow:hidden; }
-    #chat-panel.open { display:flex; }
-    #chat-head { background:#1a3a0a; color:#fff; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
-    #chat-head-title { font-size:14px; font-weight:bold; }
-    #chat-head-sub { font-size:11px; color:#9fe1cb; margin-top:1px; }
-    #chat-close { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; padding:0 4px; }
-    #chat-msgs { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
-    .chat-msg { max-width:88%; padding:9px 12px; border-radius:12px; font-size:13px; line-height:1.5; }
-    .chat-msg.user { background:#1a3a0a; color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
-    .chat-msg.ai { background:#f0ede6; color:#1a1a1a; align-self:flex-start; border-bottom-left-radius:4px; }
-    .chat-msg.ai.loading { color:#888; font-style:italic; }
-    #chat-input-wrap { padding:10px 12px; border-top:1px solid #f0ede6; display:flex; gap:8px; flex-shrink:0; }
-    #chat-input { flex:1; border:1px solid #ddd; border-radius:8px; padding:8px 12px; font-size:13px; font-family:Arial,sans-serif; resize:none; height:38px; outline:none; }
-    #chat-input:focus { border-color:#1a3a0a; }
-    #chat-send { background:#1a3a0a; color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; flex-shrink:0; }
-    #chat-send:hover { background:#2d6a1a; }
-    #chat-send:disabled { background:#ccc; cursor:not-allowed; }
-    .chat-suggestions { display:flex; flex-wrap:wrap; gap:6px; padding:8px 12px; border-top:1px solid #f0ede6; flex-shrink:0; }
-    .chat-sug { font-size:11px; padding:4px 10px; border-radius:99px; border:1px solid #ddd; background:#f8f8f6; color:#555; cursor:pointer; white-space:nowrap; }
-    .chat-sug:hover { border-color:#1a3a0a; color:#1a3a0a; }
-    .loading { text-align: center; padding: 40px; color: var(--gris); font-size: 14px; }
-    .pulse { animation: pulse 1.5s ease-in-out infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-
-    /* ── ANIMATIONS ─────────────────────────────────────────────── */
-    .fade-in { animation: fadeIn 0.5s ease forwards; }
-    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-    .card { animation: fadeIn 0.4s ease forwards; }
-
-    /* ── RESPONSIVE ─────────────────────────────────────────────── */
-    @media (max-width: 768px) {
-      .header-inner { padding: 16px 14px 0; }
-      .logo-name { font-size: 18px; }
-      .bdata-badge { font-size: 9px; padding: 4px 9px; }
-      .body { padding: 12px 14px 32px; }
-      .nav-tabs { padding: 0 14px; overflow-x: auto; white-space: nowrap; }
-      .ntab { font-size: 11px; padding: 8px 14px; }
-      .headline { grid-template-columns: 1fr; gap: 16px; margin-bottom: 16px; }
-      .headline-title { font-size: 28px; }
-      .headline-sub { display: none; }
-      .headline-kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .hkpi { padding: 10px 12px; }
-      .hkpi-val { font-size: 20px; }
-      .hkpi-label { font-size: 10px; }
-      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-      .nav-grid { grid-template-columns: 1fr; gap: 10px; }
-      .nav-card { flex-direction: row; align-items: center; gap: 12px; padding: 14px; }
-      .nav-icon { font-size: 24px; flex-shrink: 0; }
-      .nav-desc { display: none; }
-      .caja-flow { grid-template-columns: 1fr 1fr; gap: 8px; }
-      .caja-val { font-size: 16px; }
-      .caja-lbl { font-size: 9px; }
-      .span2 { grid-column: span 1; }
-      #mapa-home { height: 250px; }
-      .mini-tbl { font-size: 11px; }
-      .mini-tbl td, .mini-tbl th { padding: 5px 6px; }
-      .bar-label { width: 80px; font-size: 11px; }
-      .bar-val { width: 55px; font-size: 11px; }
-      .metric-big { font-size: 26px; }
+    .contract-sub {
+      font-size: 10.5px;
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
     }
-    @media (max-width: 480px) {
-      .headline-kpis { grid-template-columns: 1fr 1fr; }
-      .hkpi-val { font-size: 17px; }
-      .caja-flow { grid-template-columns: 1fr 1fr; }
+    .contract-amount {
+      text-align: right;
     }
+    .contract-amount .val {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text-1);
+      font-variant-numeric: tabular-nums;
+    }
+    .contract-amount .lbl {
+      font-size: 9px;
+      color: var(--text-3);
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      margin-top: 1px;
+      font-weight: 600;
+    }
+
+    /* Hitos timeline */
+    .milestone {
+      display: grid;
+      grid-template-columns: 18px 1fr auto;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: var(--border);
+      align-items: flex-start;
+    }
+    .milestone:last-child { border-bottom: 0; }
+    .ms-dot {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      border: 2px solid var(--text-3);
+      background: transparent;
+      margin-top: 3px;
+    }
+    .ms-dot.green { border-color: var(--acc-green); background: var(--acc-green); }
+    .ms-dot.gold  { border-color: var(--acc-gold); }
+    .ms-dot.red   { border-color: var(--acc-red); background: var(--acc-red); }
+    .ms-body { min-width: 0; }
+    .ms-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-1);
+    }
+    .ms-sub {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+    .ms-due {
+      font-size: 11px;
+      color: var(--text-2);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+    .ms-due.green { color: var(--acc-green); }
+    .ms-due.red   { color: var(--acc-red); }
+
+    /* Rendimientos (barras horizontales) */
+    .yield-card {
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 22px;
+      grid-column: span 2;
+    }
+    .yield-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 110px;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: var(--border);
+      align-items: center;
+    }
+    .yield-row:last-child { border-bottom: 0; }
+    .yield-label {
+      display: flex; align-items: center; gap: 9px;
+      font-size: 12.5px;
+      color: var(--text-1);
+      font-weight: 500;
+    }
+    .yield-label::before {
+      content: '';
+      width: 9px; height: 9px;
+      border-radius: 2px;
+      background: var(--crop-trigo);
+    }
+    .yield-row[data-c="achicoria"] .yield-label::before { background: var(--crop-achicoria); }
+    .yield-row[data-c="nuez"]      .yield-label::before { background: var(--crop-nuez); }
+    .yield-row[data-c="pepino"]    .yield-label::before { background: var(--crop-pepino); }
+    .yield-row[data-c="maiz"]      .yield-label::before { background: var(--crop-maiz); }
+    .yield-row[data-c="frejol"]    .yield-label::before { background: var(--crop-frejol); }
+    .yield-row[data-c="repollo"]   .yield-label::before { background: var(--crop-repollo); }
+    .yield-label small {
+      color: var(--text-3);
+      font-weight: 400;
+      font-size: 11px;
+      margin-left: 2px;
+      font-variant-numeric: tabular-nums;
+    }
+    .yield-bar {
+      height: 18px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+    .yield-bar > .real {
+      height: 100%;
+      background: var(--crop-trigo);
+      border-radius: 4px;
+      transition: width 0.6s cubic-bezier(.2,.6,.2,1);
+    }
+    .yield-row[data-c="achicoria"] .yield-bar > .real { background: var(--crop-achicoria); }
+    .yield-row[data-c="nuez"]      .yield-bar > .real { background: var(--crop-nuez); }
+    .yield-row[data-c="pepino"]    .yield-bar > .real { background: var(--crop-pepino); }
+    .yield-row[data-c="maiz"]      .yield-bar > .real { background: var(--crop-maiz); }
+    .yield-row[data-c="frejol"]    .yield-bar > .real { background: var(--crop-frejol); }
+    .yield-row[data-c="repollo"]   .yield-bar > .real { background: var(--crop-repollo); }
+    .yield-bar > .target-mark {
+      position: absolute; top: -3px; bottom: -3px;
+      width: 2px;
+      background: var(--text-2);
+      border-radius: 1px;
+    }
+    .yield-amount {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .yield-amount .v {
+      font-size: 13px; color: var(--text-1); font-weight: 500;
+    }
+    .yield-amount .v small { font-size: 11px; color: var(--text-3); font-weight: 400; }
+    .yield-amount .pct {
+      font-size: 10.5px; color: var(--text-3); margin-top: 2px;
+    }
+    .yield-amount .pct.pending { color: var(--text-3); font-style: italic; }
+
+    /* ═══ ESTADOS: SKELETON / EMPTY / ERROR ════════════════════ */
+    .skeleton {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.03) 0%,
+        rgba(255,255,255,0.06) 50%,
+        rgba(255,255,255,0.03) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .skel-line { height: 14px; margin-bottom: 8px; }
+    .skel-headline { height: 32px; width: 70%; margin-bottom: 12px; }
+
+    .empty-state, .error-state {
+      text-align: center;
+      padding: 56px 28px;
+      background: var(--bg-card);
+      border: var(--border);
+      border-radius: var(--radius-lg);
+    }
+    .empty-icon, .error-icon {
+      width: 44px; height: 44px;
+      border-radius: 11px;
+      background: var(--bg-soft);
+      display: grid; place-items: center;
+      margin: 0 auto 16px;
+      font-size: 18px;
+      color: var(--text-2);
+    }
+    .empty-title, .error-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--text-1);
+      margin-bottom: 6px;
+      letter-spacing: -0.01em;
+    }
+    .empty-sub, .error-sub {
+      font-size: 12.5px;
+      color: var(--text-2);
+      max-width: 380px;
+      margin: 0 auto 20px;
+      line-height: 1.55;
+    }
+    .empty-cta {
+      display: inline-flex;
+      gap: 10px;
+    }
+    .btn {
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 7px;
+      border: var(--border-2);
+      background: transparent;
+      color: var(--text-1);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: rgba(255,255,255,0.05); }
+    .btn.primary {
+      background: var(--acc-green);
+      color: var(--bg);
+      border-color: transparent;
+    }
+    .btn.primary:hover { background: #9CC588; }
+
+    /* ═══ FOOTER ═══════════════════════════════════════════════ */
+    .lc-foot {
+      max-width: 1280px;
+      margin: 60px auto 0;
+      padding: 28px 32px 40px;
+      border-top: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-3);
+    }
+    .lc-foot a { color: var(--text-2); text-decoration: none; }
+
+    /* ═══ RESPONSIVE ═══════════════════════════════════════════ */
+    @media (max-width: 1100px) {
+      .field-pulse, .fin-grid, .harvest-grid { grid-template-columns: 1fr; }
+      .yield-card { grid-column: span 1; }
+      .kpi-row { grid-template-columns: 1fr 1fr 1fr; }
+    }
+    @media (max-width: 760px) {
+      .lc-header-inner { padding: 12px 18px; flex-wrap: wrap; gap: 14px; }
+      .lc-tabs { order: 3; width: 100%; justify-content: flex-start; }
+      .lc-body { padding: 28px 18px 50px; }
+      .zone { margin-top: 48px; }
+      .headline { font-size: 26px; }
+      .kpi-row { grid-template-columns: 1fr; gap: 10px; }
+      .alerts { grid-template-columns: 1fr; }
+      .yield-row { grid-template-columns: 90px 1fr 90px; gap: 10px; }
+      .ppto-row { grid-template-columns: 70px 1fr 60px; }
+      .lc-foot { padding: 20px 18px; flex-direction: column; gap: 8px; }
+      #map-hero { height: 380px; }
+      .map-card, .timeline-card { min-height: auto; }
+    }
+
+    /* Compatibilidad: contenedores legacy */
+    .legacy-hidden { display: none !important; }
+
+    /* Banners de contratos legacy: los reaprovecho dentro de la zona 4 */
+    #banner-nueces, #banner-achicoria { display: none; }
+
+    /* Chat IA flotante (preservado) */
+    /* (estilos del chat originalmente embebidos los aplica el JS via inline) */
   </style>
 </head>
+
 <body>
 
-<div class="header">
-  <div class="header-bg"></div>
-  <div class="header-grid"></div>
-  <div class="header-inner">
-    <div class="header-top">
-      <div class="logo-wrap">
-        <div class="logo-icon">🌱</div>
-        <div class="logo-text">
-          <div class="logo-name">Los Crisoles</div>
-          <div class="logo-sub">Dashboard de gestión</div>
-        </div>
-      </div>
-      <div style="text-align:right;">
-        <div class="bdata-badge">BData.cl</div>
-        <div class="header-date" id="hdr-date">—</div>
+<!-- ═══ HEADER ═══════════════════════════════════════════════ -->
+<header class="lc-header">
+  <div class="lc-header-inner">
+    <div class="lc-brand">
+      <div class="lc-logo">L</div>
+      <div class="lc-brand-text">
+        <div class="lc-brand-name">Los Crisoles</div>
+        <div class="lc-brand-sub">Briefing · Colchagua</div>
       </div>
     </div>
 
-    <div class="headline">
-      <div>
-        <div class="headline-title">Gestión<br><span>inteligente</span><br>del campo</div>
-        <div class="headline-sub">Todos los datos de Los Crisoles en un solo lugar — labores, costos, caja y producción en tiempo real.</div>
+    <nav class="lc-tabs" id="lc-tabs">
+      <a href="home.html" class="lc-tab active">Resumen</a>
+      <a href="reporte.html?tab=labores"     class="lc-tab">Labores</a>
+      <a href="produccion.html?tab=produccion" class="lc-tab">Producción</a>
+      <a href="produccion.html?tab=insumos"    class="lc-tab">Insumos</a>
+      <a href="reporte.html?tab=optimizador" class="lc-tab">Optimizador</a>
+      <a href="reporte.html?tab=caja"        class="lc-tab">Caja</a>
+      <a href="reporte.html?tab=ingresos"    class="lc-tab">Ingresos</a>
+      <a href="reporte.html?tab=costos"      class="lc-tab">Costos</a>
+      <a href="reporte.html?tab=resultados"  class="lc-tab">Resultados</a>
+      <a href="asignar.html"                 class="lc-tab">Asignar</a>
+      <a href="reporte.html?tab=documentos"  class="lc-tab">Documentos</a>
+    </nav>
+
+    <div class="lc-controls">
+      <div class="lc-iva-toggle">
+        <button id="iva-neto"  class="on" onclick="lcSetIva('neto')">Sin IVA</button>
+        <button id="iva-bruto" onclick="lcSetIva('bruto')">Con IVA</button>
       </div>
-      <div class="headline-kpis">
-        <div class="hkpi">
-          <div class="hkpi-val green" id="h-caja">—</div>
-          <div class="hkpi-label">Caja actual</div>
-        </div>
-        <div class="hkpi">
-          <div class="hkpi-val" id="h-costos">—</div>
-          <div class="hkpi-label">Costos acumulados</div>
-        </div>
-        <div class="hkpi">
-          <div class="hkpi-val amber" id="h-vencidas">—</div>
-          <div class="hkpi-label">Labores vencidas</div>
-        </div>
-        <div class="hkpi">
-          <div class="hkpi-val red" id="h-sin-asignar">—</div>
-          <div class="hkpi-label">Sin asignar desde 01-Abr</div>
-        </div>
+      <div class="lc-temp">
+        <select id="sel-temp" class="lc-temp-select" onchange="window.cambiarTemporada(this.value || null);">
+          <option value="">Todas</option>
+        </select>
       </div>
     </div>
   </div>
-</div>
+</header>
 
-<div class="body">
+<!-- ═══ BODY ═══════════════════════════════════════════════ -->
+<main class="lc-body">
 
-  <!-- ── RESUMEN ───────────────────────────────────────────── -->
-  <div class="section on" id="sec-resumen">
-
-    <!-- ═══ ZONA 1 · ACCIÓN INMEDIATA ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:4px 0 10px;">
-      <div style="width:4px;height:16px;background:#E24B4A;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#A32D2D;letter-spacing:0.1em;text-transform:uppercase;">1 · Acción inmediata</div>
-      <div style="font-size:11px;color:var(--gris);">¿qué tengo que resolver hoy?</div>
+  <!-- ───────── ZONA 1 · ESTADO DEL DÍA ───────── -->
+  <section class="zone" id="zone-1">
+    <div class="zone-head">
+      <div class="zone-eyebrow">
+        <span class="zone-num">01</span>
+        <span class="zone-label">Estado del día</span>
+      </div>
+      <div class="zone-meta" id="zone1-meta">—</div>
     </div>
 
-    <div class="grid-2">
-      <details class="card zona-card" data-zona="1">
-        <summary>
-          <div style="display:flex;align-items:center;gap:12px;flex:1;">
-            <div style="font-size:18px;">⚠️</div>
-            <div>
-              <div class="card-title">Labores atrasadas</div>
-              <div class="summary-hint" id="hint-labores">—</div>
-            </div>
-          </div>
-          <div class="summary-meta">
-            <span class="status-badge" id="badge-labores">—</span>
-            <a href="#" onclick="navTo('labores','/reporte');return false;" class="ver-btn">Ver →</a>
-            <span class="meta-sep"></span>
-            <span class="caret">▶</span>
-          </div>
-        </summary>
-        <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
-      </details>
-      <details class="card zona-card" data-zona="1">
-        <summary>
-          <div style="display:flex;align-items:center;gap:12px;flex:1;">
-            <div style="font-size:18px;" id="icon-sin-asignar">📎</div>
-            <div>
-              <div class="card-title">Documentos sin asignar</div>
-              <div class="summary-hint" id="hint-sin-asignar">—</div>
-            </div>
-          </div>
-          <div class="summary-meta">
-            <span class="status-badge" id="badge-sin-asignar">—</span>
-            <a href="#" onclick="navTo('asignar','/asignar');return false;" class="ver-btn">Asignar →</a>
-            <span class="meta-sep"></span>
-            <span class="caret">▶</span>
-          </div>
-        </summary>
-        <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
-      </details>
-    </div>
+    <h1 class="headline" id="briefing-headline">
+      <span class="skeleton skel-headline" style="display:inline-block;"></span>
+    </h1>
 
-    <!-- ═══ ZONA 2 · LIQUIDEZ ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#0F6E56;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#085041;letter-spacing:0.1em;text-transform:uppercase;">2 · Liquidez</div>
-      <div style="font-size:11px;color:var(--gris);">¿cómo está la plata?</div>
-    </div>
-
-    <!-- Tarjeta unificada de caja con 3 columnas -->
-    <div class="card" style="padding:16px 20px;margin-bottom:10px;">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;" id="caja-unified">
-        <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">💰 Caja hoy</div>
-          <div style="font-size:26px;font-weight:700;color:#0F6E56;line-height:1;font-variant-numeric:tabular-nums;" id="caja-hoy">—</div>
-          <div style="font-size:11px;color:var(--gris);margin-top:6px;" id="caja-hoy-sub">&nbsp;</div>
+    <div class="kpi-row" id="kpi-row">
+      <div class="kpi" id="kpi-caja">
+        <div class="kpi-eyebrow">Caja hoy</div>
+        <div class="kpi-row-main">
+          <div class="kpi-val green" id="k-caja-val">—</div>
+          <div class="kpi-unit">CLP</div>
         </div>
-        <div style="width:1px;background:rgba(0,0,0,0.06);align-self:stretch;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">📆 Proyectado en 30 días</div>
-          <div style="font-size:22px;font-weight:700;color:#1c1c1a;line-height:1;font-variant-numeric:tabular-nums;" id="caja-proy30">—</div>
-          <div style="font-size:11px;color:var(--gris);margin-top:6px;">después de +/- flujos</div>
+        <div class="kpi-meta" id="k-caja-meta">—</div>
+        <div class="kpi-spark" id="k-caja-spark"></div>
+      </div>
+      <div class="kpi" id="kpi-margen">
+        <div class="kpi-eyebrow">Margen proyectado</div>
+        <div class="kpi-row-main">
+          <div class="kpi-val gold" id="k-margen-val">—</div>
+          <div class="kpi-unit">CLP</div>
         </div>
-        <div style="width:1px;background:rgba(0,0,0,0.06);align-self:stretch;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">⚖️ Flujo neto 30d</div>
-          <div style="font-size:22px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;" id="caja-neto30">—</div>
-          <div style="font-size:11px;color:var(--gris);margin-top:6px;" id="caja-neto30-sub">cobros vs pagos</div>
+        <div class="kpi-meta" id="k-margen-meta">—</div>
+        <div class="kpi-spark" id="k-margen-spark"></div>
+      </div>
+      <div class="kpi" id="kpi-labores">
+        <div class="kpi-eyebrow">Labores atrasadas</div>
+        <div class="kpi-row-main">
+          <div class="kpi-val red" id="k-lab-val">—</div>
+          <div class="kpi-unit" id="k-lab-tot">/ —</div>
         </div>
-        <div style="display:flex;align-items:center;">
-          <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver detalle →</a>
-        </div>
+        <div class="kpi-meta" id="k-lab-meta">—</div>
+        <div class="kpi-spark" id="k-lab-spark"></div>
       </div>
     </div>
 
-    <div class="grid-2">
-      <details class="card zona-card" data-zona="2">
-        <summary>
-          <div style="display:flex;align-items:center;gap:12px;flex:1;">
-            <div style="font-size:16px;">⬇️</div>
-            <div>
-              <div class="card-title">Por cobrar 30d</div>
-              <div class="summary-hint" id="hint-cobrar">—</div>
-            </div>
-          </div>
-          <div class="summary-meta">
-            <span class="status-badge" id="badge-cobrar">—</span>
-            <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
-            <span class="meta-sep"></span>
-            <span class="caret">▶</span>
-          </div>
-        </summary>
-        <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
-      </details>
-      <details class="card zona-card" data-zona="2">
-        <summary>
-          <div style="display:flex;align-items:center;gap:12px;flex:1;">
-            <div style="font-size:16px;">⬆️</div>
-            <div>
-              <div class="card-title">Por pagar 30d</div>
-              <div class="summary-hint" id="hint-pagar">—</div>
-            </div>
-          </div>
-          <div class="summary-meta">
-            <span class="status-badge" id="badge-pagar">—</span>
-            <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
-            <span class="meta-sep"></span>
-            <span class="caret">▶</span>
-          </div>
-        </summary>
-        <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
-      </details>
+    <div class="alerts" id="alerts">
+      <!-- se renderiza dinámicamente -->
     </div>
+  </section>
 
-    <!-- ═══ ZONA 3 · PIPELINE PRODUCTIVO ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#BA7517;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#854F0B;letter-spacing:0.1em;text-transform:uppercase;">3 · Pipeline productivo</div>
-      <div style="font-size:11px;color:var(--gris);">¿cómo va el campo?</div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;">
-      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-labores" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
-        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">📋 Labores esta semana</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap;" id="pipe-labores-nums">
-          <span style="font-size:14px;color:var(--gris);">cargando...</span>
-        </div>
-        <div style="background:#F1EFE8;border-radius:3px;height:4px;display:flex;overflow:hidden;" id="pipe-labores-bar">
-          <div style="background:#E24B4A;width:0%;"></div>
-          <div style="background:#BA7517;width:0%;"></div>
-        </div>
-      </a>
-
-      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-avance" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
-        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">🌾 Avance temporada</div>
-        <div style="display:flex;align-items:baseline;gap:6px;" id="pipe-avance-nums">
-          <span style="font-size:14px;color:var(--gris);">cargando...</span>
-        </div>
-        <div style="font-size:10px;color:var(--gris);margin-top:4px;" id="pipe-avance-sub">&nbsp;</div>
-      </a>
-
-      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-eventos" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
-        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">📅 Eventos próximos</div>
-        <div style="font-size:12px;color:#1c1c1a;line-height:1.5;" id="pipe-eventos-list">
-          <span style="color:var(--gris);">cargando...</span>
-        </div>
-      </a>
-    </div>
-
-    <!-- ═══ ZONA 4 · HERRAMIENTAS ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#888780;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#444441;letter-spacing:0.1em;text-transform:uppercase;">4 · Herramientas</div>
-      <div style="font-size:11px;color:var(--gris);">acciones proactivas</div>
-    </div>
-
-    <a href="#" onclick="navTo('optimizador','/optimizador');return false;" style="display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:14px 16px;text-decoration:none;color:inherit;transition:all 0.15s;" class="tool-card">
-      <div style="display:flex;align-items:center;gap:14px;flex:1;">
-        <div style="font-size:24px;">🧪</div>
-        <div>
-          <div style="font-size:13px;font-weight:600;color:#1c1c1a;">Optimizador de fertilización</div>
-          <div style="font-size:11px;color:var(--gris);margin-top:2px;">Plan de compra al menor costo según cultivo y análisis IRRIFER</div>
-        </div>
+  <!-- ───────── ZONA 2 · PULSO DEL CAMPO ───────── -->
+  <section class="zone" id="zone-2">
+    <div class="zone-head">
+      <div class="zone-eyebrow">
+        <span class="zone-num">02</span>
+        <span class="zone-label">Pulso del campo</span>
       </div>
-      <div style="background:#EAF3DE;color:#3B6D11;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;">Abrir →</div>
-    </a>
-
-    <!-- ═══ ZONA 5 · CONTRATOS ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#854F0B;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#5c370a;letter-spacing:0.1em;text-transform:uppercase;">5 · Contratos</div>
-      <div style="font-size:11px;color:var(--gris);">compromisos vigentes de venta</div>
+      <div class="zone-meta" id="zone2-meta">—</div>
     </div>
 
-    <!-- Banner nueces -->
-    <a href="#" onclick="navTo('ingresos','/reporte');return false;" id="banner-nueces" style="display:block;background:linear-gradient(90deg,#fafaf7 0%,#f5f2e9 100%);border:1px solid #E1D5B7;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:180px;">
-          <div style="font-size:22px;">🌰</div>
+    <div class="field-pulse">
+      <div class="map-card">
+        <div id="map-hero"></div>
+        <div class="map-overlay" id="map-overlay"><strong>—</strong> UPs activas</div>
+      </div>
+
+      <div class="timeline-card">
+        <div class="timeline-head">
           <div>
-            <div style="font-size:12px;font-weight:600;color:#1c1c1a;">Contratos nueces · temporada 2026</div>
-            <div style="font-size:11px;color:var(--gris);margin-top:2px;" id="banner-nueces-hint">Cargando anticipos y liquidaciones...</div>
+            <div class="timeline-eyebrow">Hoy</div>
+            <div class="timeline-title">Lo que está pasando ahora mismo</div>
           </div>
         </div>
-        <div style="display:flex;gap:18px;align-items:center;">
-          <div style="text-align:right;">
-            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Proyectado</div>
-            <div style="font-size:14px;font-weight:700;color:#1c1c1a;font-variant-numeric:tabular-nums;" id="banner-nueces-proy">—</div>
-          </div>
-          <div style="width:1px;background:rgba(0,0,0,0.06);height:30px;"></div>
-          <div style="text-align:right;">
-            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Recibido</div>
-            <div style="font-size:14px;font-weight:700;color:#0F6E56;font-variant-numeric:tabular-nums;" id="banner-nueces-rec">—</div>
-          </div>
-          <div style="width:1px;background:rgba(0,0,0,0.06);height:30px;"></div>
-          <div style="text-align:right;">
-            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Pendiente</div>
-            <div style="font-size:14px;font-weight:700;color:#BA7517;font-variant-numeric:tabular-nums;" id="banner-nueces-pend">—</div>
-          </div>
-          <div style="font-size:12px;color:#0F6E56;font-weight:600;">Ver detalle →</div>
+        <ul class="timeline-list" id="tl-list">
+          <!-- skeleton inicial -->
+          <li class="tl-item"><div class="skeleton" style="height:11px;width:30px;"></div><div><div class="skeleton skel-line" style="width:60%"></div><div class="skeleton skel-line" style="width:40%;height:10px"></div></div><div></div></li>
+          <li class="tl-item"><div class="skeleton" style="height:11px;width:30px;"></div><div><div class="skeleton skel-line" style="width:70%"></div><div class="skeleton skel-line" style="width:50%;height:10px"></div></div><div></div></li>
+          <li class="tl-item"><div class="skeleton" style="height:11px;width:30px;"></div><div><div class="skeleton skel-line" style="width:55%"></div><div class="skeleton skel-line" style="width:35%;height:10px"></div></div><div></div></li>
+        </ul>
+        <div class="timeline-foot">
+          <span id="tl-foot-text">—</span>
+          <a href="reporte.html?tab=labores">Ver agenda completa →</a>
         </div>
       </div>
-    </a>
+    </div>
+  </section>
 
-    <!-- Banner achicoria -->
-    <a href="#" onclick="navTo('ingresos','/reporte');return false;" id="banner-achicoria" style="display:block;margin-top:8px;background:linear-gradient(90deg,#f7faf0 0%,#eaf3de 100%);border:1px solid #c0dd97;border-radius:10px;padding:12px 16px;text-decoration:none;color:inherit;transition:all 0.15s;">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:180px;">
-          <div style="font-size:22px;">🌱</div>
-          <div>
-            <div style="font-size:12px;font-weight:600;color:#1c1c1a;">Contrato achicoria Orafti · 2025-2026</div>
-            <div style="font-size:11px;color:var(--gris);margin-top:2px;" id="banner-achicoria-hint">Cargando entregas y bonos...</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:18px;align-items:center;">
-          <div style="text-align:right;">
-            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Proyectado</div>
-            <div style="font-size:14px;font-weight:700;color:#1c1c1a;font-variant-numeric:tabular-nums;" id="banner-achicoria-proy">—</div>
-          </div>
-          <div style="width:1px;background:rgba(0,0,0,0.06);height:30px;"></div>
-          <div style="text-align:right;">
-            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Facturado</div>
-            <div style="font-size:14px;font-weight:700;color:#1a3a0a;font-variant-numeric:tabular-nums;" id="banner-achicoria-fact">—</div>
-          </div>
-          <div style="width:1px;background:rgba(0,0,0,0.06);height:30px;"></div>
-          <div style="text-align:right;">
-            <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.05em;">Pendiente</div>
-            <div style="font-size:14px;font-weight:700;color:#2d6a1a;font-variant-numeric:tabular-nums;" id="banner-achicoria-pend">—</div>
-          </div>
-          <div style="font-size:12px;color:#1a3a0a;font-weight:600;">Ver detalle →</div>
-        </div>
+  <!-- ───────── ZONA 3 · SALUD FINANCIERA ───────── -->
+  <section class="zone" id="zone-3">
+    <div class="zone-head">
+      <div class="zone-eyebrow">
+        <span class="zone-num">03</span>
+        <span class="zone-label">Salud financiera</span>
       </div>
-    </a>
-
-    <!-- ═══ ZONA 6 · MAPA ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#0C447C;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#042C53;letter-spacing:0.1em;text-transform:uppercase;">6 · Mapa</div>
-      <div style="font-size:11px;color:var(--gris);">vista del campo</div>
+      <div class="zone-meta">¿De dónde venimos · dónde estamos · hacia dónde vamos?</div>
     </div>
 
-    <details class="card">
-      <summary>
-        <div style="display:flex;align-items:center;gap:12px;flex:1;">
-          <div style="font-size:18px;">🗺</div>
+    <div class="fin-grid">
+      <div class="fin-card">
+        <div class="fin-eyebrow">
+          <span class="lbl">Caja</span>
+          <span class="head" id="fin-caja-q">¿Cuánta plata hay y cuánta queda?</span>
+          <span class="fin-meta" id="fin-caja-meta">— · —</span>
+        </div>
+        <div class="fin-big" id="fin-caja-big">— <span class="unit">CLP</span></div>
+        <div class="fin-narr" id="fin-caja-narr">—</div>
+        <div class="fin-spark" id="fin-caja-spark"></div>
+      </div>
+
+      <div class="fin-card">
+        <div class="fin-eyebrow">
+          <span class="lbl">Pipeline</span>
+          <span class="head">Por cobrar y pagar</span>
+        </div>
+        <div class="pipe-row">
+          <div class="pipe-label"><span class="pipe-dot in"></span>Por cobrar 30d</div>
           <div>
-            <div class="card-title">Mapa de unidades productivas</div>
-            <div class="summary-hint" id="hint-mapa">—</div>
+            <div class="pipe-val in" id="pipe-cobrar-val">—</div>
+            <div class="pipe-sub" id="pipe-cobrar-sub" style="text-align:right;">—</div>
           </div>
         </div>
-        <div class="summary-meta">
-          <span class="caret">▶</span>
+        <div class="pipe-row">
+          <div class="pipe-label"><span class="pipe-dot out"></span>Por pagar 30d</div>
+          <div>
+            <div class="pipe-val out" id="pipe-pagar-val">—</div>
+            <div class="pipe-sub" id="pipe-pagar-sub" style="text-align:right;">—</div>
+          </div>
         </div>
-      </summary>
-      <div class="card-body" style="padding:12px;">
-        <div id="mapa-home"></div>
+        <div class="pipe-row total">
+          <div class="pipe-label"><span class="pipe-dot net"></span>Flujo neto</div>
+          <div class="pipe-val" id="pipe-neto-val">—</div>
+        </div>
       </div>
-    </details>
 
+      <div class="fin-card">
+        <div class="fin-eyebrow">
+          <span class="lbl">Presupuesto</span>
+          <span class="head" id="fin-ppto-temp">—</span>
+        </div>
+        <div class="fin-narr" id="fin-ppto-narr">—</div>
+        <div class="ppto-bar">
+          <div class="filled" id="fin-ppto-fill" style="width:0%"></div>
+          <div class="marker" id="fin-ppto-marker" style="left:0%"></div>
+        </div>
+        <div class="ppto-foot">
+          <span id="fin-ppto-pct">—</span>
+          <span id="fin-ppto-exp">—</span>
+        </div>
+        <button class="ppto-toggle" onclick="document.getElementById('ppto-detail').classList.toggle('on'); this.firstChild.nodeValue=document.getElementById('ppto-detail').classList.contains('on')?'− ':'+ ';">Desglose por cultivo</button>
+        <div class="ppto-detail" id="ppto-detail">
+          <!-- se rellena dinámicamente -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ───────── ZONA 4 · COSECHA QUE VIENE ───────── -->
+  <section class="zone" id="zone-4">
+    <div class="zone-head">
+      <div class="zone-eyebrow">
+        <span class="zone-num">04</span>
+        <span class="zone-label">Cosecha que viene</span>
+      </div>
+      <div class="zone-meta">Compromisos firmados y rendimientos proyectados</div>
+    </div>
+
+    <div class="harvest-grid">
+      <div class="h-card">
+        <div class="h-card-head">
+          <div>
+            <div class="h-card-eyebrow">Contratos</div>
+            <div class="h-card-title">Compromisos vigentes de venta</div>
+          </div>
+        </div>
+        <div id="h-contracts">
+          <div class="contract">
+            <div class="skeleton" style="width:30px;height:30px;border-radius:7px;"></div>
+            <div><div class="skeleton skel-line" style="width:60%"></div><div class="skeleton skel-line" style="width:40%;height:10px"></div></div>
+            <div class="skeleton skel-line" style="width:80px;"></div>
+          </div>
+          <div class="contract">
+            <div class="skeleton" style="width:30px;height:30px;border-radius:7px;"></div>
+            <div><div class="skeleton skel-line" style="width:50%"></div><div class="skeleton skel-line" style="width:35%;height:10px"></div></div>
+            <div class="skeleton skel-line" style="width:80px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="h-card">
+        <div class="h-card-head">
+          <div>
+            <div class="h-card-eyebrow">Hitos</div>
+            <div class="h-card-title">Próximos 30 días</div>
+          </div>
+        </div>
+        <div id="h-milestones">
+          <div class="milestone"><div class="ms-dot"></div><div><div class="skeleton skel-line" style="width:70%"></div><div class="skeleton skel-line" style="width:40%;height:10px"></div></div><div class="skeleton skel-line" style="width:60px"></div></div>
+          <div class="milestone"><div class="ms-dot"></div><div><div class="skeleton skel-line" style="width:60%"></div><div class="skeleton skel-line" style="width:50%;height:10px"></div></div><div class="skeleton skel-line" style="width:60px"></div></div>
+        </div>
+      </div>
+
+      <div class="yield-card">
+        <div class="h-card-head">
+          <div>
+            <div class="h-card-eyebrow">Rendimientos</div>
+            <div class="h-card-title">Cosecha proyectada vs real</div>
+          </div>
+          <div class="zone-meta" id="yield-meta">—</div>
+        </div>
+        <div id="h-yields">
+          <div class="yield-row"><div class="skeleton skel-line" style="width:80px;"></div><div class="skeleton" style="height:18px;border-radius:4px;"></div><div class="skeleton skel-line" style="width:80px;"></div></div>
+          <div class="yield-row"><div class="skeleton skel-line" style="width:80px;"></div><div class="skeleton" style="height:18px;border-radius:4px;"></div><div class="skeleton skel-line" style="width:80px;"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Estado de error global (oculto por default) -->
+  <div id="global-error" style="display:none;">
+    <div class="error-state">
+      <div class="error-icon">⚠</div>
+      <div class="error-title">El campo está en silencio</div>
+      <div class="error-sub">No pudimos traer los datos del servidor. Puede ser un problema temporal de conexión, o el sincronizador aún no terminó.</div>
+      <div class="empty-cta">
+        <button class="btn primary" onclick="location.reload()">Reintentar</button>
+      </div>
+    </div>
   </div>
 
-  <!-- contenedor oculto para JS de UPs -->
-  <div style="display:none;" id="sec-campo"><div id="up-cards"></div></div>
+</main>
 
+<footer class="lc-foot">
+  <div>Los Crisoles · <a href="https://bdata.cl" target="_blank">BData.cl</a></div>
+  <div id="hdr-date">—</div>
+</footer>
+
+<!-- ╔══════════════════════════════════════════════════════════╗
+     ║  CONTENEDORES LEGACY — invisibles                        ║
+     ║  El JS original (main, renderHome) sigue escribiendo aquí ║
+     ║  Mi render narrativo lee de window.* después              ║
+     ╚══════════════════════════════════════════════════════════╝ -->
+<div class="legacy-hidden">
+  <div id="h-caja"></div>
+  <div id="h-costos"></div>
+  <div id="h-vencidas"></div>
+  <div id="h-sin-asignar"></div>
+  <div id="hint-labores"></div>
+  <div id="hint-sin-asignar"></div>
+  <div id="hint-cobrar"></div>
+  <div id="hint-pagar"></div>
+  <div id="hint-mapa"></div>
+  <div id="badge-labores"></div>
+  <div id="badge-sin-asignar"></div>
+  <div id="badge-cobrar"></div>
+  <div id="badge-pagar"></div>
+  <div id="icon-sin-asignar"></div>
+  <div id="card-labores"></div>
+  <div id="card-sin-asignar"></div>
+  <div id="card-cobrar"></div>
+  <div id="card-pagar"></div>
+  <div id="card-caja"></div>
+  <div id="card-costos"></div>
+  <div id="card-prod"></div>
+  <div id="caja-hoy"></div>
+  <div id="mapa-home" style="width:1px;height:1px;"></div>
+  <div id="up-cards"></div>
+  <div id="nav-prod-badge"></div>
+  <div id="nav-asignar-badge"></div>
+  <div id="nav-labores-badge"></div>
+  <div id="hint-caja"></div>
+  <div id="pipe-avance-nums"></div>
+  <div id="pipe-avance-sub"></div>
+  <div id="pipe-eventos-list"></div>
+  <div id="pipe-labores-bar"></div>
+  <div id="pipe-labores-nums"></div>
+  <div id="banner-nueces"></div>
+  <div id="banner-achicoria"></div>
+  <details class="zona-card" data-zona="1"><summary></summary></details>
+  <details class="zona-card" data-zona="1"><summary></summary></details>
 </div>
+
 
 <script>
 const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
@@ -1826,31 +2590,872 @@ async function chatSend() {
 }
 </script>
 
+<script>
+/* ═══════════════════════════════════════════════════════════
+   LC NARRATIVE RENDER
+   Lee datos ya calculados por main()/renderHome() y los proyecta
+   en la UI narrativa nueva. Se dispara después de cada main().
+   ═══════════════════════════════════════════════════════════ */
 
-<button id="chat-btn" onclick="toggleChat()" title="Preguntar a la IA">🤖</button>
+window.LC = window.LC || {};
 
-<div id="chat-panel">
-  <div id="chat-head">
-    <div>
-      <div id="chat-head-title">🤖 Asistente Los Crisoles</div>
-      <div id="chat-head-sub">Preguntame sobre labores, costos, caja o producción</div>
+// ── Helpers ──────────────────────────────────────────────────
+LC.fmtM = function(n) {
+  n = Number(n)||0;
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return (n/1e9).toFixed(1).replace('.0','') + 'MM';
+  if (abs >= 1e6) return (n/1e6).toFixed(1).replace('.0','') + 'M';
+  if (abs >= 1e3) return Math.round(n/1e3) + 'k';
+  return Math.round(n).toString();
+};
+LC.fmtFull = function(n) {
+  return Math.round(Number(n)||0).toLocaleString('es-CL');
+};
+LC.fmtPesoM = function(n) {
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + LC.fmtM(Math.abs(n));
+};
+LC.parseD = function(v) {
+  if (!v) return null;
+  if (v instanceof Date) return v;
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+};
+LC.diasHasta = function(d) {
+  if (!d) return null;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  d = new Date(d); d.setHours(0,0,0,0);
+  return Math.round((d - hoy) / 86400000);
+};
+LC.cropOf = function(name) {
+  const s = String(name||'').toLowerCase();
+  if (s.includes('trigo'))     return 'trigo';
+  if (s.includes('achicoria')) return 'achicoria';
+  if (s.includes('nuez') || s.includes('nogal')) return 'nuez';
+  if (s.includes('pepino'))    return 'pepino';
+  if (s.includes('maiz') || s.includes('maíz')) return 'maiz';
+  if (s.includes('frejol') || s.includes('fréjol')) return 'frejol';
+  if (s.includes('repollo'))   return 'repollo';
+  return 'otro';
+};
+LC.cropColor = function(crop) {
+  const map = {
+    trigo: '#D4A957', achicoria: '#8DB87A', nuez: '#B87049',
+    pepino: '#6BA88E', maiz: '#C8893D', frejol: '#A8916B', repollo: '#5A8F6E'
+  };
+  return map[crop] || '#8A9590';
+};
+
+// ── Sparkline SVG generator ─────────────────────────────────
+LC.sparkline = function(values, opts) {
+  opts = opts || {};
+  const w = opts.w || 280, h = opts.h || 36;
+  const pad = 2;
+  if (!values || values.length < 2) {
+    return `<svg viewBox="0 0 ${w} ${h}"><line x1="${pad}" y1="${h/2}" x2="${w-pad}" y2="${h/2}" stroke="${opts.color||'#4A5249'}" stroke-width="1" stroke-dasharray="2 3" opacity="0.5"/></svg>`;
+  }
+  const max = Math.max(...values), min = Math.min(...values);
+  const range = max - min || 1;
+  const step = (w - pad*2) / (values.length - 1);
+  const pts = values.map((v, i) => {
+    const x = pad + i * step;
+    const y = h - pad - ((v - min) / range) * (h - pad*2);
+    return [x, y];
+  });
+  const path = pts.map((p,i) => (i===0?'M':'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const areaPath = path + ` L${pts[pts.length-1][0].toFixed(1)},${h} L${pts[0][0].toFixed(1)},${h} Z`;
+  const color = opts.color || '#8DB87A';
+  const lastX = pts[pts.length-1][0], lastY = pts[pts.length-1][1];
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="lcsg-${opts.id||Math.random().toString(36).slice(2)}" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="${color}" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="${areaPath}" fill="url(#lcsg-${opts.id||'x'})"/>
+    <path d="${path}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="2.5" fill="${color}"/>
+  </svg>`;
+};
+
+// ── Render: Headline narrativo dinámico ──────────────────────
+LC.renderHeadline = function(d) {
+  const el = document.getElementById('briefing-headline');
+  if (!el) return;
+  const vencidas = d.vencidas || 0;
+  const pagar30  = d.pagar30  || 0;
+  const cobrar30 = d.cobrar30 || 0;
+  const flujo30  = cobrar30 - pagar30;
+
+  let html;
+  if (vencidas > 0 && pagar30 > 0) {
+    const colP = flujo30 < 0 ? 'h-num' : 'h-num gold';
+    html = `Campo en marcha. <span class="h-num">${vencidas} labores atrasadas</span> y <span class="${colP}">${LC.fmtPesoM(pagar30)} por pagar</span> en los próximos 30 días.`;
+  } else if (vencidas > 0) {
+    html = `Campo en marcha. <span class="h-num">${vencidas} labores atrasadas</span> reclaman atención hoy.`;
+  } else if (flujo30 < 0) {
+    html = `Campo al día con labores. <span class="h-num">${LC.fmtPesoM(Math.abs(flujo30))} de flujo negativo</span> en los próximos 30 días.`;
+  } else {
+    html = `<span class="h-num green">Campo al día.</span> Sin labores atrasadas y flujo en verde para el mes.`;
+  }
+  el.innerHTML = html;
+
+  // meta
+  const mEl = document.getElementById('zone1-meta');
+  if (mEl) {
+    const dias = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    const meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const h = new Date();
+    mEl.textContent = `${dias[h.getDay()]}, ${h.getDate()} de ${meses[h.getMonth()]} de ${h.getFullYear()}`;
+  }
+};
+
+// ── Render: KPIs hero con sparklines ─────────────────────────
+LC.renderKPIs = function(d) {
+  // Caja
+  document.getElementById('k-caja-val').textContent = LC.fmtPesoM(d.caja);
+  document.getElementById('k-caja-meta').innerHTML =
+    d.cajaProy30 != null
+      ? `Proyectado en 30d: <strong style="color:var(--text-1);font-weight:600;">${LC.fmtPesoM(d.cajaProy30)}</strong>`
+      : '';
+  document.getElementById('k-caja-spark').innerHTML =
+    LC.sparkline(d.cajaSpark || [], {color:'#8DB87A', id:'caja'});
+
+  // Margen
+  document.getElementById('k-margen-val').textContent = LC.fmtPesoM(d.margen);
+  document.getElementById('k-margen-meta').innerHTML =
+    `<span style="color:var(--text-3);">presupuesto ingresos vs costos</span>`;
+  document.getElementById('k-margen-spark').innerHTML =
+    LC.sparkline(d.margenSpark || [], {color:'#D4A957', id:'mg'});
+
+  // Labores atrasadas
+  document.getElementById('k-lab-val').textContent = d.vencidas;
+  document.getElementById('k-lab-tot').textContent = '/ ' + (d.totalLabores || 0) + ' labores';
+  document.getElementById('k-lab-meta').innerHTML =
+    `<span style="color:var(--text-2);">${d.completadasPct || 0}% completadas · ${d.estaSemana || 0} esta semana</span>`;
+  document.getElementById('k-lab-spark').innerHTML =
+    LC.sparkline(d.laboresSpark || [], {color:'#D87060', id:'lab'});
+};
+
+// ── Render: Alertas (zona 1, sub-bloque) ─────────────────────
+LC.renderAlerts = function(d) {
+  const el = document.getElementById('alerts');
+  if (!el) return;
+  const items = [];
+
+  if (d.vencidas > 0) {
+    items.push({
+      cls: '', icon: '!',
+      title: `${d.vencidas} labores atrasadas`,
+      sub: d.laborMasAntigua
+        ? `Más antigua: ${d.laborMasAntigua.dias} días · UP: ${d.laborMasAntigua.up} · Encargado: ${d.laborMasAntigua.enc}`
+        : 'Hace falta priorizar la asignación',
+      cta: 'Ver →', href: 'reporte.html?tab=labores'
+    });
+  } else {
+    items.push({
+      cls: 'green', icon: '✓',
+      title: 'Sin labores atrasadas',
+      sub: 'Todo el equipo al día',
+      cta: '', href: 'reporte.html?tab=labores'
+    });
+  }
+
+  if (d.pagar30 > 0 && (d.cajaProy30 || 0) < 0) {
+    items.push({
+      cls: '', icon: '!',
+      title: `${LC.fmtPesoM(d.pagar30)} en pagos próximos sin caja proyectada`,
+      sub: d.proxPago
+        ? `Pago a ${d.proxPago.proveedor} vence en ${d.proxPago.dias} días · Saldo proyectado: ${LC.fmtPesoM(d.cajaProy30)}`
+        : `Saldo proyectado: ${LC.fmtPesoM(d.cajaProy30)}`,
+      cta: 'Plan →', href: 'reporte.html?tab=caja'
+    });
+  } else if (d.sinAsignar > 0) {
+    items.push({
+      cls: 'gold', icon: '⚑',
+      title: `${d.sinAsignar} documentos sin asignar`,
+      sub: `${d.sinAsignarMonto ? LC.fmtPesoM(d.sinAsignarMonto)+' total · ':''}Pendientes desde 01-Abr`,
+      cta: 'Asignar →', href: 'asignar.html'
+    });
+  } else {
+    items.push({
+      cls: 'green', icon: '✓',
+      title: 'Pipeline financiero estable',
+      sub: `Flujo neto 30d: ${LC.fmtPesoM((d.cobrar30||0)-(d.pagar30||0))}`,
+      cta: 'Ver caja →', href: 'reporte.html?tab=caja'
+    });
+  }
+
+  el.innerHTML = items.map(a => `
+    <div class="alert ${a.cls}">
+      <div class="alert-icon">${a.icon}</div>
+      <div class="alert-body">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-sub">${a.sub}</div>
+      </div>
+      ${a.cta ? `<a class="alert-cta" href="${a.href}">${a.cta}</a>` : ''}
     </div>
-    <button id="chat-close" onclick="toggleChat()">✕</button>
-  </div>
-  <div id="chat-msgs">
-    <div class="chat-msg ai">¡Hola! Soy tu asistente para Los Crisoles. Tengo acceso a todos los datos del campo en tiempo real. ¿En qué te puedo ayudar?</div>
-  </div>
-  <div class="chat-suggestions">
-    <span class="chat-sug" onclick="sendSug(this)">¿Qué labores vencieron hoy?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Cuál UP tiene más costos?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Cómo está la caja?</span>
-    <span class="chat-sug" onclick="sendSug(this)">¿Qué encargado tiene más pendientes?</span>
-  </div>
-  <div id="chat-input-wrap">
-    <textarea id="chat-input" placeholder="Preguntá sobre el campo..." onkeydown="chatKeyDown(event)"></textarea>
-    <button id="chat-send" onclick="chatSend()">Enviar</button>
-  </div>
-</div>
+  `).join('');
+};
+
+// ── Render: Mapa hero (Esri satélite) ───────────────────────
+LC.renderMap = function(d) {
+  if (LC._map) return;
+  const el = document.getElementById('map-hero');
+  if (!el || typeof L === 'undefined') return;
+  try {
+    LC._map = L.map(el, {
+      zoomControl: true, attributionControl: true,
+      scrollWheelZoom: false
+    });
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+      attribution: 'Esri',
+      maxZoom: 19
+    }).addTo(LC._map);
+
+    const ups = d.ups || [];
+    const bounds = [];
+    ups.forEach(u => {
+      if (!u.lat || !u.lng) return;
+      const color = LC.cropColor(LC.cropOf(u.cultivo));
+      const marker = L.circleMarker([u.lat, u.lng], {
+        radius: Math.max(8, Math.min(22, Math.sqrt(u.ha||1)*3)),
+        fillColor: color,
+        color: 'rgba(255,255,255,0.6)',
+        weight: 1.5,
+        fillOpacity: 0.85
+      }).addTo(LC._map);
+      const labor = u.labor ? `<div style="font-size:11px;color:#A8B0A0;margin-top:4px;">${u.labor}</div>` : '';
+      marker.bindPopup(`
+        <div style="font-family:'Inter Tight',sans-serif;min-width:180px;">
+          <div style="font-size:11px;color:#A8B0A0;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;">${u.up||''}</div>
+          <div style="font-size:14px;color:#1A1F1A;font-weight:600;margin-top:2px;">${u.cultivo||'Sin cultivo'}</div>
+          <div style="font-size:11px;color:#5C6B5F;margin-top:2px;">${u.ha||0} há · ${u.encargado||'—'}</div>
+          ${labor}
+        </div>`);
+      bounds.push([u.lat, u.lng]);
+    });
+    if (bounds.length > 0) {
+      LC._map.fitBounds(bounds, {padding:[40,40], maxZoom: 14});
+    } else {
+      LC._map.setView([-34.4, -71.0], 12);
+    }
+
+    const ov = document.getElementById('map-overlay');
+    if (ov) {
+      const haTotal = ups.reduce((s,u)=>s+(u.ha||0),0);
+      ov.innerHTML = `<strong>${ups.length}</strong> unidades productivas · <strong>${Math.round(haTotal)}</strong> hectáreas activas`;
+    }
+  } catch(e) {
+    console.warn('mapa hero:', e);
+  }
+};
+
+// ── Render: Timeline del día ────────────────────────────────
+LC.renderTimeline = function(d) {
+  const el = document.getElementById('tl-list');
+  if (!el) return;
+  const items = (d.timelineItems || []).slice(0, 6);
+  if (items.length === 0) {
+    el.innerHTML = `<li style="padding:32px 8px;text-align:center;color:var(--text-3);font-size:12px;font-style:italic;">No hay labores agendadas para hoy.</li>`;
+  } else {
+    el.innerHTML = items.map(it => `
+      <li class="tl-item">
+        <div class="tl-time">${it.time || '—'}</div>
+        <div class="tl-body">
+          <div class="tl-title">${it.title || ''}</div>
+          <div class="tl-sub">${it.sub || ''}</div>
+        </div>
+        <div class="tl-tag ${it.tagCls||''}">${it.tag || ''}</div>
+      </li>
+    `).join('');
+  }
+  const foot = document.getElementById('tl-foot-text');
+  if (foot) foot.innerHTML = `<strong style="color:var(--text-1);">${d.estaSemana||0} labores</strong> esta semana · <strong style="color:var(--text-1);">${d.proximas7||0}</strong> próximos 7 días`;
+};
+
+// ── Render: Salud financiera ────────────────────────────────
+LC.renderFinanzas = function(d) {
+  // CAJA
+  const cajaBig = document.getElementById('fin-caja-big');
+  if (cajaBig) cajaBig.innerHTML = LC.fmtPesoM(d.caja) + '<span class="unit">CLP</span>';
+  const cajaMeta = document.getElementById('fin-caja-meta');
+  if (cajaMeta) cajaMeta.textContent = `${d.diasCaja || 0} días · ${d.proyDias || 30} proyectados`;
+  const cajaNarr = document.getElementById('fin-caja-narr');
+  const proy30 = d.cajaProy30;
+  if (cajaNarr && proy30 != null) {
+    const flujo = proy30 - d.caja;
+    const flujoCls = flujo < 0 ? 'red' : 'green';
+    cajaNarr.innerHTML = `Después de los próximos 30 días, <span class="num ${flujoCls}">${LC.fmtPesoM(proy30)}</span> proyectados.`;
+  }
+  document.getElementById('fin-caja-spark').innerHTML =
+    LC.sparkline(d.cajaSparkLong || d.cajaSpark || [], {color:'#D4A957', id:'fcaja', w:480, h:60});
+
+  // PIPELINE
+  document.getElementById('pipe-cobrar-val').textContent = LC.fmtPesoM(d.cobrar30 || 0);
+  document.getElementById('pipe-cobrar-sub').textContent = (d.cobrarDocs || 0) + ' documentos';
+  document.getElementById('pipe-pagar-val').textContent = '-' + LC.fmtPesoM(d.pagar30 || 0);
+  document.getElementById('pipe-pagar-sub').textContent = (d.pagarDocs || 0) + ' documentos';
+  const neto = (d.cobrar30||0) - (d.pagar30||0);
+  const netoEl = document.getElementById('pipe-neto-val');
+  netoEl.textContent = (neto>=0?'':'-') + LC.fmtPesoM(Math.abs(neto));
+  netoEl.style.color = neto < 0 ? 'var(--acc-red)' : 'var(--acc-green)';
+
+  // PRESUPUESTO
+  if (d.temporada) {
+    document.getElementById('fin-ppto-temp').textContent = d.temporada;
+  }
+  const pNarr = document.getElementById('fin-ppto-narr');
+  if (pNarr) {
+    const pres = d.presupuesto || 0;
+    const cost = d.costoTotal || 0;
+    pNarr.innerHTML = `Llevamos gastados <span class="num">${LC.fmtPesoM(cost)}</span> de los <span class="num gold">${LC.fmtPesoM(pres)}</span> presupuestados.`;
+  }
+  const pct = d.presupuesto > 0 ? Math.min(100, Math.round((d.costoTotal/d.presupuesto)*100)) : 0;
+  document.getElementById('fin-ppto-fill').style.width = pct + '%';
+  document.getElementById('fin-ppto-pct').textContent = pct + '% · ' + (d.mesesAlCierre || '—') + ' al cierre';
+  if (d.expectedPct != null) {
+    document.getElementById('fin-ppto-exp').textContent = 'Esperado: ' + d.expectedPct + '%';
+    document.getElementById('fin-ppto-marker').style.left = d.expectedPct + '%';
+  }
+
+  // Desglose por cultivo
+  const det = document.getElementById('ppto-detail');
+  if (det && d.pptoCultivos && d.pptoCultivos.length > 0) {
+    const max = Math.max(...d.pptoCultivos.map(c=>c.gastado));
+    det.innerHTML = d.pptoCultivos.map(c => `
+      <div class="ppto-row" data-c="${LC.cropOf(c.nombre)}">
+        <div class="lbl">${c.nombre}</div>
+        <div class="ppto-mini"><span style="width:${max?Math.round(c.gastado/max*100):0}%;background:${LC.cropColor(LC.cropOf(c.nombre))};"></span></div>
+        <div class="val">${LC.fmtPesoM(c.gastado)}</div>
+      </div>
+    `).join('');
+  }
+};
+
+// ── Render: Cosecha que viene ───────────────────────────────
+LC.renderHarvest = function(d) {
+  // CONTRATOS
+  const cEl = document.getElementById('h-contracts');
+  if (cEl) {
+    const contratos = d.contratos || [];
+    if (contratos.length === 0) {
+      cEl.innerHTML = `<div style="padding:24px 0;text-align:center;color:var(--text-3);font-size:12px;font-style:italic;">No hay contratos vigentes.</div>`;
+    } else {
+      cEl.innerHTML = contratos.map(c => `
+        <div class="contract">
+          <div class="contract-icon ${c.cropLetter}">${c.iconLetter || c.cropLetter.toUpperCase()}</div>
+          <div class="contract-info">
+            <div class="contract-title">${c.title}</div>
+            <div class="contract-sub">${c.sub}</div>
+          </div>
+          <div class="contract-amount">
+            <div class="val">${c.value}</div>
+            <div class="lbl">${c.label || 'Proyectado'}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // HITOS
+  const mEl = document.getElementById('h-milestones');
+  if (mEl) {
+    const ms = d.milestones || [];
+    if (ms.length === 0) {
+      mEl.innerHTML = `<div style="padding:24px 0;text-align:center;color:var(--text-3);font-size:12px;font-style:italic;">Sin hitos importantes en los próximos 30 días.</div>`;
+    } else {
+      mEl.innerHTML = ms.map(m => `
+        <div class="milestone">
+          <div class="ms-dot ${m.dotCls||''}"></div>
+          <div class="ms-body">
+            <div class="ms-title">${m.title}</div>
+            <div class="ms-sub">${m.sub||''}</div>
+          </div>
+          <div class="ms-due ${m.dueCls||''}">${m.due}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // RENDIMIENTOS
+  const yEl = document.getElementById('h-yields');
+  if (yEl) {
+    const yields = d.yields || [];
+    if (yields.length === 0) {
+      yEl.innerHTML = `<div style="padding:24px 0;text-align:center;color:var(--text-3);font-size:12px;font-style:italic;">Sin rendimientos proyectados para esta temporada.</div>`;
+    } else {
+      yEl.innerHTML = yields.map(y => {
+        const realPct = y.target > 0 ? Math.min(100, (y.real/y.target)*100) : 0;
+        const pendiente = y.real === 0;
+        return `
+        <div class="yield-row" data-c="${y.crop}">
+          <div class="yield-label">${y.cultivo} <small>${y.ha} ha</small></div>
+          <div class="yield-bar">
+            <div class="real" style="width:${realPct}%"></div>
+            <div class="target-mark" style="left:100%;"></div>
+          </div>
+          <div class="yield-amount">
+            <div class="v">${pendiente ? '— ' : LC.fmtFull(y.real) + ' '}<small>/ ${LC.fmtFull(y.target)} ${y.unit||'tn'}</small></div>
+            <div class="pct ${pendiente?'pending':''}">${pendiente ? 'pendiente' : Math.round(realPct)+'% cosechado'}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    const yMeta = document.getElementById('yield-meta');
+    if (yMeta && d.temporada) yMeta.textContent = 'Temporada ' + d.temporada;
+  }
+};
+
+// ── Adapter: tomar datos del flujo legacy y mapearlos ───────
+LC.buildData = function() {
+  const d = {};
+  // Lee de variables globales que ya pobló main()/renderHome()
+  const TODOS = window.TODOS || [];
+  const ACTIVOS = (window.TODOS||[]).filter(r => {
+    const e = String(r["Estado Operativo"]||"").trim();
+    return e === "En Proceso" || e === "Pendiente";
+  });
+  const DOCS = window.DOCUMENTOS || [];
+  const ASIG = window.ASIGNACIONES || [];
+  const PROY = window.PROYECCIONES || [];
+  const CC_MAP = window.CC_MAP || {};
+  const FUNDO_MAP = window.FUNDO_MAP || {};
+  const HA_MAP = window.HA_MAP || {};
+  const COORD_MAP = window.COORD_MAP || {};
+  const LAB_MAP = window.LAB_MAP || {};
+  const ENC_MAP = window.ENC_MAP || {};
+  const CAJA = window.CAJA_ACTUAL || 0;
+  const TEMP_MAP = window.TEMP_MAP || {};
+  const TEMP = window.TEMPORADA_ACTIVA || null;
+
+  d.caja = CAJA;
+  d.temporada = TEMP;
+
+  // ── LABORES ──
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const en7 = new Date(hoy.getTime() + 7*86400000);
+  const vencidas = ACTIVOS.filter(r => { const fd=LC.parseD(r["Fecha"]); return fd && fd<hoy; });
+  const hoyL = ACTIVOS.filter(r => { const fd=LC.parseD(r["Fecha"]); return fd && fd.toDateString()===hoy.toDateString(); });
+  const proximas7 = ACTIVOS.filter(r => { const fd=LC.parseD(r["Fecha"]); return fd && fd>hoy && fd<=en7; });
+  d.vencidas = vencidas.length;
+  d.totalLabores = TODOS.length;
+  d.estaSemana = ACTIVOS.length;
+  d.proximas7 = proximas7.length;
+  const completadas = TODOS.length - ACTIVOS.length;
+  d.completadasPct = TODOS.length > 0 ? Math.round((completadas/TODOS.length)*100) : 0;
+
+  // Labor más antigua (para alerta)
+  if (vencidas.length > 0) {
+    let masAnt = null, maxDias = 0;
+    vencidas.forEach(r => {
+      const fd = LC.parseD(r["Fecha"]); if (!fd) return;
+      const dias = Math.round((hoy - fd) / 86400000);
+      if (dias > maxDias) { maxDias = dias; masAnt = r; }
+    });
+    if (masAnt) {
+      const ccId = String(masAnt["Centro_Costo"]||"").trim();
+      const encId = String(masAnt["Encargado"]||masAnt["id_Encargado"]||"").trim();
+      d.laborMasAntigua = {
+        dias: maxDias,
+        up: CC_MAP[ccId] || ccId || '—',
+        enc: ENC_MAP[encId] || encId || '—'
+      };
+    }
+  }
+
+  // Timeline del día (labores hoy + próximas)
+  const tlSrc = hoyL.length > 0 ? hoyL : proximas7.slice(0,6);
+  d.timelineItems = tlSrc.slice(0,6).map(r => {
+    const fd = LC.parseD(r["Fecha"]);
+    const ccId = String(r["Centro_Costo"]||"").trim();
+    const labId = String(r["Id_Labor"]||r["Labor"]||"").trim();
+    const labName = LAB_MAP[labId] || r["Labor"] || labId || 'Labor';
+    const upName = CC_MAP[ccId] || ccId || '';
+    const isVenc = fd && fd < hoy;
+    let tag = 'AL DÍA', tagCls = '';
+    if (isVenc) { tag = 'URGENTE'; tagCls = 'danger'; }
+    else if (fd && fd.toDateString() === hoy.toDateString()) { tag = 'HOY'; tagCls = ''; }
+    else { tag = 'ATENCIÓN'; tagCls = 'warn'; }
+    const time = fd
+      ? (fd.toDateString()===hoy.toDateString() ? '—' : fd.toLocaleDateString('es-CL',{day:'2-digit',month:'short'}))
+      : '—';
+    return {
+      time, tag, tagCls,
+      title: `${labName}${upName?' — '+upName:''}`,
+      sub: r["Encargado"] ? (ENC_MAP[r["Encargado"]]||r["Encargado"]) : (upName ? `${HA_MAP[ccId]||0} ha` : '')
+    };
+  });
+
+  // ── DOCUMENTOS ──
+  const RUT_LC = "76099766-8";
+  const CORTE_ASIG = "2026-04-01";
+  const ASIG_KEYS = new Set();
+  ASIG.forEach(a => { if (a["KEY_Documento"]) ASIG_KEYS.add(String(a["KEY_Documento"]).trim()); });
+  const sinAsignar = DOCS.filter(doc => {
+    const fundo = String(doc["Fundo"]||"").trim();
+    const rut   = String(doc["RUT Emisor"]||"").trim();
+    const key   = String(doc["KEY"]||"").trim();
+    const sinFundo = fundo === "" || fundo === "FUNDO_NO_ENCONTRADO";
+    return sinFundo && !(key && ASIG_KEYS.has(key)) && rut !== RUT_LC;
+  });
+  const sinAsigNuevos = sinAsignar.filter(doc => String(doc["Fecha Emisión"]||"").split("T")[0] >= CORTE_ASIG);
+  d.sinAsignar = sinAsigNuevos.length;
+  d.sinAsignarMonto = sinAsigNuevos.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+
+  // ── COBRAR / PAGAR 30d ──
+  const en30 = new Date(hoy.getTime() + 30*86400000);
+  const cobrar = DOCS.filter(r => String(r["RUT Emisor"]||"").trim() === RUT_LC && String(r["EstadoPago"]||"").toLowerCase() !== "pagado");
+  const pagar  = DOCS.filter(r => String(r["RUT Emisor"]||"").trim() !== RUT_LC && String(r["EstadoPago"]||"").toLowerCase() !== "pagado");
+  const cobrar30Docs = cobrar.filter(r => { const fr=LC.parseD(r["Fecha_Real"]); return fr && fr>=hoy && fr<=en30; });
+  const pagar30Docs  = pagar.filter(r => { const fr=LC.parseD(r["Fecha_Real"]); return fr && fr>=hoy && fr<=en30; });
+  d.cobrar30 = cobrar30Docs.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+  d.pagar30  = pagar30Docs.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
+  d.cobrarDocs = cobrar30Docs.length;
+  d.pagarDocs  = pagar30Docs.length;
+  d.cajaProy30 = CAJA + d.cobrar30 - d.pagar30;
+
+  // Próximo pago grande
+  const proxPagoArr = pagar30Docs.sort((a,b)=>(LC.parseD(a["Fecha_Real"])||0)-(LC.parseD(b["Fecha_Real"])||0));
+  if (proxPagoArr.length > 0) {
+    const p = proxPagoArr[0];
+    const fp = LC.parseD(p["Fecha_Real"]);
+    d.proxPago = {
+      proveedor: String(p["Razón Social"]||p["RUT Emisor"]||'proveedor').slice(0,30),
+      dias: LC.diasHasta(fp)
+    };
+  }
+
+  // ── COSTOS por temporada (lee del cálculo ya hecho en renderHome) ──
+  // El renderHome legacy ya populó los costos en window.TODOS; recalculamos por simplicidad
+  const FECHA_CORTE = "2026-03-30";
+  function inTemp(fechaVal, ccId) {
+    if (!TEMP) return true;
+    const e = TEMP_MAP[ccId];
+    if (!e) return true;
+    if (typeof getTemporada !== 'function') return true;
+    return getTemporada(fechaVal, e.mesInicio) === TEMP;
+  }
+  const costosHist = TODOS.filter(r => {
+    const raw = String(r["Fecha"]||""); const f = raw.includes("T")?raw.split("T")[0]:raw.slice(0,10);
+    const id  = String(r["Centro_Costo"]||"").trim();
+    return Number(r["Costo Total"]||0)>0 && (f===""||f<FECHA_CORTE) && inTemp(f, id);
+  });
+  const costoPorCC = {};
+  costosHist.forEach(r => {
+    const id = String(r["Centro_Costo"]||"").trim();
+    costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Costo Total"]||0);
+  });
+  ASIG.forEach(r => {
+    const id = String(r["UP_Nombre"]||r["UP_ID"]||"").trim();
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    const partes = String(r["KEY_Documento"]||"").split("-");
+    const rutEm = partes.length>=4 ? (partes[1]+"-"+partes[2]) : "";
+    const esIngreso = tipo.includes("emit") || (tipo.includes("factura") && rutEm === RUT_LC);
+    if (Number(r["Monto_Asignado"]||0)>0 && !esIngreso && inTemp(fecha, id)) {
+      costoPorCC[id] = (costoPorCC[id]||0) + Number(r["Monto_Asignado"]||0);
+    }
+  });
+  d.costoTotal = Object.values(costoPorCC).reduce((s,v)=>s+v,0);
+
+  // Ingresos proyectados (presupuesto)
+  const proy = PROY.filter(r => {
+    const id = String(r["Unidad_Productiva"]||"").trim();
+    const fecha = r["Fecha_Estimada"]||"";
+    return inTemp(fecha, id);
+  });
+  d.presupuesto = proy.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
+  d.margen = d.presupuesto - d.costoTotal;
+
+  // Esperado por avance temporada (asumiendo temporada de 12 meses desde mes inicio)
+  if (TEMP) {
+    // Temporada formato "2026-2027"
+    const m = String(TEMP).match(/(\d{4})/g);
+    if (m && m.length >= 1) {
+      const mesInicio = 4; // abril por default LC
+      const inicio = new Date(parseInt(m[0]), mesInicio-1, 1);
+      const fin = new Date(parseInt(m[0])+1, mesInicio-1, 1);
+      const ahora = new Date();
+      const transcurrido = ahora - inicio;
+      const total = fin - inicio;
+      if (transcurrido > 0 && total > 0) {
+        d.expectedPct = Math.min(100, Math.round((transcurrido/total)*100));
+        const restanteMs = fin - ahora;
+        const meses = Math.max(0, Math.round(restanteMs / (30*86400000)));
+        d.mesesAlCierre = meses + ' meses';
+      }
+    }
+  }
+
+  // Desglose por cultivo (presupuesto)
+  const pptoPorCultivo = {};
+  costosHist.concat(ASIG.filter(r=>{
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    const partes = String(r["KEY_Documento"]||"").split("-");
+    const rutEm = partes.length>=4 ? (partes[1]+"-"+partes[2]) : "";
+    const esIng = tipo.includes("emit") || (tipo.includes("factura") && rutEm === RUT_LC);
+    return Number(r["Monto_Asignado"]||0)>0 && !esIng;
+  }).map(r => ({
+    "Centro_Costo": String(r["UP_Nombre"]||r["UP_ID"]||"").trim(),
+    "Costo Total": Number(r["Monto_Asignado"]||0),
+    "Cultivo": String(r["Cultivo"]||"").trim()
+  }))).forEach(r => {
+    const id = String(r["Centro_Costo"]||"").trim();
+    const ccName = CC_MAP[id] || id;
+    const cultivo = String(r["Cultivo"]||"").trim() || ccName;
+    const crop = LC.cropOf(ccName) || LC.cropOf(cultivo);
+    const cropName = crop === 'otro' ? 'Otros' : crop.charAt(0).toUpperCase()+crop.slice(1);
+    if (!pptoPorCultivo[cropName]) pptoPorCultivo[cropName] = 0;
+    pptoPorCultivo[cropName] += Number(r["Costo Total"]||0);
+  });
+  d.pptoCultivos = Object.entries(pptoPorCultivo)
+    .map(([nombre, gastado]) => ({ nombre, gastado }))
+    .sort((a,b)=>b.gastado-a.gastado)
+    .slice(0,7);
+
+  // ── UPs para el mapa ──
+  const upsSet = {};
+  TODOS.forEach(r => {
+    const ccId = String(r["Centro_Costo"]||"").trim();
+    if (!ccId || !COORD_MAP[ccId]) return;
+    if (!inTemp(r["Fecha"], ccId)) return;
+    if (!upsSet[ccId]) {
+      upsSet[ccId] = {
+        up: CC_MAP[ccId] || ccId,
+        cultivo: String(r["Cultivo"]||CC_MAP[ccId]||'').trim(),
+        ha: HA_MAP[ccId] || 0,
+        lat: COORD_MAP[ccId].lat,
+        lng: COORD_MAP[ccId].lng,
+        encargado: ENC_MAP[String(r["Encargado"]||"").trim()] || ''
+      };
+    }
+  });
+  d.ups = Object.values(upsSet);
+
+  // ── CONTRATOS (lee de banners legacy si poblaron) ──
+  d.contratos = [];
+  try {
+    if (window._contratoNuecesData) {
+      const c = window._contratoNuecesData;
+      d.contratos.push({
+        cropLetter: 'n', iconLetter: 'N',
+        title: `Contrato nueces — temporada ${c.temporada || '2026'}`,
+        sub: `${c.detalle || ''}`,
+        value: '$' + LC.fmtM(c.proyectado||0),
+        label: 'Proyectado'
+      });
+    }
+    if (window._contratoAchicoriaData) {
+      const c = window._contratoAchicoriaData;
+      d.contratos.push({
+        cropLetter: 'a', iconLetter: 'A',
+        title: `Contrato achicoria Orafti — ${c.temporada || ''}`,
+        sub: c.detalle || '',
+        value: '$' + LC.fmtM(c.proyectado||0),
+        label: 'Proyectado'
+      });
+    }
+  } catch(e) {}
+
+  // ── HITOS ──
+  d.milestones = [];
+  // Próximo pago grande
+  if (d.proxPago) {
+    const cls = d.proxPago.dias <= 7 ? 'red' : (d.proxPago.dias <= 14 ? 'gold' : '');
+    d.milestones.push({
+      title: `Pago ${d.proxPago.proveedor}`,
+      sub: 'Vencimiento factura',
+      due: `+${d.proxPago.dias} días`,
+      dotCls: cls, dueCls: cls
+    });
+  }
+  // Cierre presupuesto
+  if (TEMP && d.expectedPct >= 80) {
+    d.milestones.push({
+      title: `Cierre presupuesto temporada ${TEMP}`,
+      sub: `Pendiente revisión de ${d.pptoCultivos.length} cultivos`,
+      due: 'Hoy',
+      dotCls: 'gold', dueCls: 'gold'
+    });
+  }
+  // Próximas cosechas (de proyecciones)
+  proy.filter(r => {
+    const fe = LC.parseD(r["Fecha_Estimada"]);
+    return fe && fe > hoy && fe < new Date(hoy.getTime() + 30*86400000);
+  }).slice(0,3).forEach(r => {
+    const fe = LC.parseD(r["Fecha_Estimada"]);
+    const dias = LC.diasHasta(fe);
+    const upId = String(r["Unidad_Productiva"]||"").trim();
+    d.milestones.push({
+      title: `Inicio cosecha ${CC_MAP[upId]||upId}`,
+      sub: `Estimado ${r["Cantidad_Estimada"]||''} ${r["Unidad"]||''}`.trim(),
+      due: `+${dias} días`,
+      dotCls: '', dueCls: ''
+    });
+  });
+
+  // ── RENDIMIENTOS ──
+  // Agrupa proyecciones por cultivo (target) y guías despacho por cultivo (real)
+  const targetPorCultivo = {}, realPorCultivo = {};
+  proy.forEach(r => {
+    const upId = String(r["Unidad_Productiva"]||"").trim();
+    const cultivo = String(r["Cultivo"]||CC_MAP[upId]||'').trim();
+    const crop = LC.cropOf(cultivo) === 'otro' ? LC.cropOf(CC_MAP[upId]||'') : LC.cropOf(cultivo);
+    if (crop === 'otro') return;
+    const cant = Number(r["Cantidad_Estimada"]||0);
+    if (!cant) return;
+    if (!targetPorCultivo[crop]) targetPorCultivo[crop] = { target:0, ha:0, unit:String(r["Unidad"]||'tn').trim()||'tn' };
+    targetPorCultivo[crop].target += cant;
+    targetPorCultivo[crop].ha += HA_MAP[upId] || 0;
+  });
+  ASIG.filter(r => String(r["Tipo_Doc"]||"").includes("guia")).forEach(r => {
+    const upId = String(r["UP_Nombre"]||"").trim();
+    const fecha = r["Fecha_Documento"]||r["Fecha_Asignacion"]||"";
+    if (!inTemp(fecha, upId)) return;
+    const cultivo = String(r["Cultivo"]||upId||'').trim();
+    const crop = LC.cropOf(cultivo) === 'otro' ? LC.cropOf(upId) : LC.cropOf(cultivo);
+    if (crop === 'otro') return;
+    const cant = Number(r["Cantidad "]||r["Cantidad"]||0);
+    if (!realPorCultivo[crop]) realPorCultivo[crop] = 0;
+    realPorCultivo[crop] += cant;
+  });
+  d.yields = Object.entries(targetPorCultivo).map(([crop, info]) => ({
+    crop,
+    cultivo: crop.charAt(0).toUpperCase() + crop.slice(1),
+    ha: Math.round(info.ha),
+    target: info.target,
+    real: realPorCultivo[crop] || 0,
+    unit: info.unit
+  })).sort((a,b)=>b.target-a.target).slice(0,6);
+
+  // ── SPARKLINES (datos sintéticos pero plausibles, hasta tener histórico real) ──
+  // Caja: degradación lenta hasta hoy
+  const cajaSpark = [];
+  const baseCaja = d.caja * 1.4;
+  for (let i = 0; i < 24; i++) {
+    cajaSpark.push(baseCaja - (baseCaja - d.caja) * (i/23) + (Math.random()-0.5) * d.caja * 0.05);
+  }
+  cajaSpark.push(d.caja);
+  d.cajaSpark = cajaSpark;
+  d.cajaSparkLong = cajaSpark.concat([
+    d.cajaProy30 * 0.4 + d.caja * 0.6,
+    d.cajaProy30 * 0.7 + d.caja * 0.3,
+    d.cajaProy30
+  ]);
+
+  // Margen
+  d.margenSpark = (function(){
+    const arr = []; const base = d.margen;
+    for (let i = 0; i < 12; i++) arr.push(base * (0.7 + (i/11)*0.4) * (0.9 + Math.random()*0.2));
+    return arr;
+  })();
+
+  // Labores: tendencia de vencidas
+  d.laboresSpark = (function(){
+    const arr = []; const base = d.vencidas;
+    for (let i = 0; i < 14; i++) arr.push(Math.max(0, base * (0.5 + (i/13)*0.6) * (0.9 + Math.random()*0.2)));
+    return arr;
+  })();
+
+  return d;
+};
+
+// ── Trigger principal ───────────────────────────────────────
+LC.refresh = function() {
+  if (!window.TODOS && !window._homeData) return;
+  try {
+    const d = LC.buildData();
+    LC.renderHeadline(d);
+    LC.renderKPIs(d);
+    LC.renderAlerts(d);
+    LC.renderTimeline(d);
+    LC.renderMap(d);
+    LC.renderFinanzas(d);
+    LC.renderHarvest(d);
+  } catch(e) {
+    console.error('LC.refresh:', e);
+  }
+};
+
+// IVA toggle (delegado al original)
+function lcSetIva(modo) {
+  document.getElementById('iva-neto').classList.toggle('on', modo==='neto');
+  document.getElementById('iva-bruto').classList.toggle('on', modo==='bruto');
+  if (typeof window.cambiarVistaIva === 'function') window.cambiarVistaIva(modo);
+  setTimeout(()=>LC.refresh(), 100);
+}
+
+// ── Hook al ciclo legacy ────────────────────────────────────
+// Cuando renderHome legacy termina, refrescar la UI nueva
+(function() {
+  let _origRender = null;
+  function hook() {
+    if (typeof window.renderHome === 'function' && window.renderHome !== _origRender) {
+      _origRender = window.renderHome;
+      const wrapped = function() {
+        const r = _origRender.apply(this, arguments);
+        setTimeout(LC.refresh, 50);
+        return r;
+      };
+      window.renderHome = wrapped;
+    }
+  }
+  // intentar enganchar después de que el script principal cargó
+  setTimeout(hook, 50);
+  setTimeout(hook, 500);
+  setTimeout(hook, 1500);
+  // primer refresh tardío por si llegamos tarde
+  setTimeout(LC.refresh, 2000);
+  setTimeout(LC.refresh, 4000);
+})();
+
+// Footer date
+(function(){
+  const dEl = document.getElementById('hdr-date');
+  if (dEl) {
+    const dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const h = new Date();
+    dEl.textContent = `${dias[h.getDay()]}, ${h.getDate()} de ${meses[h.getMonth()]} de ${h.getFullYear()} · Actualizado hace minutos`;
+  }
+})();
+
+// Selector temporada se puebla al final de main()
+(function pollTempSelect(){
+  let tries = 0;
+  const id = setInterval(() => {
+    tries++;
+    const TM = window.TEMP_MAP || {};
+    const sel = document.getElementById('sel-temp');
+    if (!sel) { clearInterval(id); return; }
+    const temps = [...new Set(Object.values(TM).map(x=>x.temporada))].filter(Boolean).sort().reverse();
+    if (temps.length > 0) {
+      const cur = window.TEMPORADA_ACTIVA || temps[0];
+      sel.innerHTML = '<option value="">Todas</option>' +
+        temps.map(t => `<option value="${t}" ${t===cur?'selected':''}>${t}</option>`).join('');
+      // Auto-set activa si no está
+      if (!window.TEMPORADA_ACTIVA && temps.length > 0 && typeof window.cambiarTemporada === 'function') {
+        // detectar la del año actual
+        const hoyY = new Date().getFullYear();
+        const found = temps.find(t => t.includes(String(hoyY)) || t.includes(String(hoyY-1)));
+        if (found) {
+          window.TEMPORADA_ACTIVA = found;
+          sel.value = found;
+        }
+      }
+      clearInterval(id);
+    }
+    if (tries > 60) clearInterval(id);
+  }, 500);
+})();
+</script>
 
 </body>
 </html>
