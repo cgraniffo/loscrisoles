@@ -1300,25 +1300,29 @@ function renderIngresos() {
   const upsConFactura = new Set(facturasAsig.map(r => r.up));
 
   // ── FUENTE 2: Proyecciones Estimado ───────────────────────────────────────
+  // Proyecciones para Ppto: todas (sin filtro de fecha) — el Ppto refleja el plan completo
   const proyEstimado = (window.PROYECCIONES||[]).filter(r => {
     const id    = String(r["Unidad_Productiva"]||"").trim();
     const est   = String(r["Estado"]||"").trim();
     const fecha = r["Fecha_Estimada"]||"";
-    if (!(est === "Estimado" || est === "Real")) return false;
-    if (!passTemp(fecha, id) || !esProdI(id)) return false;
-    // Solo considerar proyecciones con fecha FUTURA (estrictamente > hoy)
-    // Las pasadas se ignoran porque se asume ya están reflejadas vía DTE oficial
-    const fd = parseDate(fecha);
-    if (!fd) return false;  // sin fecha válida → no se considera
-    const hoy = today0();
-    if (fd.getTime() <= hoy.getTime()) return false;
-    return true;
+    return (est === "Estimado" || est === "Real") && passTemp(fecha, id) && esProdI(id);
   }).map(r => ({
     _fuente: "estimado",
     up:      String(r["Unidad_Productiva"]||"").trim(),
     monto:   aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion'),
     fecha:   r["Fecha_Estimada"]||"",
     kilos:   Number(r["Kilos_Estimados"]||0)
+  }));
+
+  // Proyecciones FUTURAS: subset de proyEstimado con Fecha_Estimada > hoy
+  // Estas suman al Real porque "se asume que llegarán"
+  const hoyMs = today0().getTime();
+  const proyFuturas = proyEstimado.filter(r => {
+    const fd = parseDate(r.fecha);
+    return fd && fd.getTime() > hoyMs;
+  }).map(r => ({
+    ...r,
+    _fuente: "proyeccion-futura"
   }));
 
   // ── TOTALES POR FUENTE ────────────────────────────────────────────────────
@@ -1353,8 +1357,9 @@ function renderIngresos() {
     });
   }
 
-  const filtFact  = applyFilters(facturasAsig);
-  const filtEst   = applyFilters(proyEstimado);
+  const filtFact   = applyFilters(facturasAsig);
+  const filtEst    = applyFilters(proyEstimado);
+  const filtFutura = applyFilters(proyFuturas);
   const filtTodos = [...filtFact, ...filtEst];
 
   // ── TABLA POR UP ──────────────────────────────────────────────────────────
@@ -1442,8 +1447,10 @@ function renderIngresos() {
   const cobradoContratos = getCobradoContratos();
   const pptoContratos = getPptoContratos();
   const tFactF = sumF(filtFact);
+  const tFutF  = sumF(filtFutura);
   const tEstF  = sumF(filtEst);
-  const tFactCombinado = tFactF + cobradoContratos;
+  // Real combinado = DTE oficiales + proyecciones futuras (asumidas) + cobrado contratos nueces
+  const tFactCombinado = tFactF + tFutF + cobradoContratos;
   const pFactCombinado = tEstF>0 ? Math.round(tFactCombinado/tEstF*100) : (tFactCombinado>0?100:0);
 
   const cultivoRows = {};
@@ -1460,6 +1467,22 @@ function renderIngresos() {
       up:     r.up,
       monto:  r.monto,
       tipo:   r.esNC ? "nc" : "factura"
+    });
+  });
+  // Sumar proyecciones futuras al Real del cultivo y al detalle
+  (filtFutura || []).forEach(r => {
+    const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
+    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
+    cultivoRows[cultivo].fact += r.monto;
+    if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
+    cultivoRows[cultivo].ups[r.up].fact += r.monto;
+    cultivoRows[cultivo].facturas.push({
+      fecha:  r.fecha,
+      folio:  "—",
+      razon:  "Proyección esperada",
+      up:     r.up,
+      monto:  r.monto,
+      tipo:   "proyeccion"
     });
   });
   (filtEst || []).forEach(r => {
@@ -1557,6 +1580,7 @@ function renderIngresos() {
             let montoColor = "#1a6e3a";
             if (f.tipo === "anticipo") tipoIcon = '<span title="Anticipo nueces (contrato)" style="color:#b45309;">●</span> ';
             else if (f.tipo === "nc")  { tipoIcon = '<span title="Nota de crédito" style="color:#b91c1c;">●</span> '; montoColor = "#b91c1c"; }
+            else if (f.tipo === "proyeccion") { tipoIcon = '<span title="Proyección futura — se asume que llegará" style="color:#b45309;">○</span> '; montoColor = "#b45309"; }
             const montoTxt = f.tipo === "nc" ? "−" + fmtPeso(Math.abs(f.monto)) : fmtPeso(f.monto);
             return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
               <div style="color:#555;">${tipoIcon}${fechaTxt}</div>
@@ -1666,7 +1690,7 @@ function renderIngresos() {
       <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
         <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real)</div>
         <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado)}</div>
-        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
+        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${filtFutura.length>0?` + ${filtFutura.length} proy. futuras ${fmtPeso(tFutF)}`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
       </div>
 
     </div>
