@@ -854,6 +854,31 @@ function renderResultados() {
     ingFact[id] = (ingFact[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIng, keyDoc, totalDoc);
   });
 
+  // ── ANTICIPOS / LIQUIDACIONES CONTRATOS NUECES ──────────────────────────
+  // Los contratos de nueces (USD) se cargan en Milestones_Nueces / Pagos_Nueces
+  // y NO viven en Asignaciones_U. Hay que sumarlos manualmente al ingFact y
+  // ppto de las UPs cuyo cultivo sea "Nuez", prorrateado por hectáreas.
+  // Contratos USD son export → SIN IVA, se usan tal cual en ambas vistas.
+  const cobradoContratosRes = (typeof getCobradoContratos === 'function') ? getCobradoContratos() : 0;
+  const pptoContratosRes    = (typeof getPptoContratos    === 'function') ? getPptoContratos()    : 0;
+  if (cobradoContratosRes > 0 || pptoContratosRes > 0) {
+    const upsNuez = Object.keys(TEMP_MAP).filter(id =>
+      esUpProd(id) && passTemp(id) && (CULTIVO_MAP[id] || "").trim() === "Nuez"
+    );
+    const haNuezTot = upsNuez.reduce((s, id) => s + (HA_MAP[id] || 0), 0);
+    // Si ya hay ppto desde Proyecciones_Manuales para Nuez, NO duplicar con contratos
+    const pptoNuezExistente = upsNuez.reduce((s, id) => s + (ingPpto[id] || 0), 0);
+    if (upsNuez.length > 0) {
+      upsNuez.forEach(id => {
+        const peso = haNuezTot > 0 ? (HA_MAP[id] || 0) / haNuezTot : 1 / upsNuez.length;
+        if (cobradoContratosRes > 0) ingFact[id] = (ingFact[id] || 0) + cobradoContratosRes * peso;
+        if (pptoContratosRes > 0 && pptoNuezExistente === 0) {
+          ingPpto[id] = (ingPpto[id] || 0) + pptoContratosRes * peso;
+        }
+      });
+    }
+  }
+
   // ── PRORRATEO ───────────────────────────────────────────────────────────
   const modoProrr = stateResultados.prorrateo = (stateMargenes.prorrateo || "ha");
   const prorr     = calcularProrrateo(tempActiva, modoProrr, ingPpto);
