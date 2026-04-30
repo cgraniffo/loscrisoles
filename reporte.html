@@ -2599,52 +2599,50 @@ function buildMapaPanel() {
   const panel = document.getElementById("mapa-panel-labores");
   if (!panel) return;
 
-  // Calcular KPIs desde ACTIVOS
-  const _act = window.ACTIVOS||[];
-  const encs = [...new Set(_act.map(r=>String(r["Encargado"]||"").trim()).filter(Boolean))];
-  const upsConLabor = [...new Set(_act.map(r=>String(r["Centro_Costo"]||"").trim()).filter(Boolean))];
-  const vencidas = _act.filter(r=>dateStatus(r["Fecha"])==="venc");
-  const enProceso = _act.filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
-  const avancePct = enProceso.length > 0
-    ? Math.round(enProceso.reduce((s,r)=>s+parseFloat(r["Avance_%"]||r["Avance"]||0),0)/enProceso.length)
-    : 0;
+  // Datos: usar el cache del Gantt (Plan_Labores). Aplica filtros del Gantt para sync.
+  const todasLasLabores = window._ganttState?.cache || [];
+  const labores = ganttFilterData(todasLasLabores);
 
-  // Colores por índice para encargados
-  const COLORES = ["#2d6a4f","#1e5fa8","#c4621a","#9b3a22","#5a3e9b","#7a6a1a"];
-  const COLORES_BORDE = ["rgba(82,183,136,","rgba(72,149,239,","rgba(244,162,97,","rgba(231,111,81,","rgba(150,120,220,","rgba(200,190,80,"];
+  // Mapeo nombre UP → CC ID (para asociar labores a marcadores)
+  const nombreToId = {};
+  Object.entries(CC_MAP || {}).forEach(([id, nom]) => { nombreToId[nom] = id; });
 
-  // Lista de labores en proceso (max 5)
-  const laboresHtml = enProceso.slice(0,5).map((r,i) => {
-    const encId  = String(r["Encargado"]||"").trim();
-    const encNom = ENC_MAP[encId]||encId||"—";
-    const labId  = String(r["Labor"]||"").trim();
-    const labNom = LAB_MAP[labId]||labId||"—";
-    const upId   = String(r["Centro_Costo"]||"").trim();
-    const upNom  = (CC_MAP[upId]||upId||"—").replace("Pivote","Piv").replace("Potrero","Pot");
-    const avance = parseFloat(r["Avance_%"]||r["Avance"]||0);
-    const ci = i % COLORES.length;
-    const pctClass = avance >= 65 ? "mpct-ok" : avance >= 35 ? "mpct-mid" : "mpct-low";
-    const pctColor = avance >= 65 ? "#4ade80" : avance >= 35 ? "#f4a261" : "#e76f51";
-    const dotColor = pctColor;
-    const encInicial = encNom.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    return `<div class="mapa-labor-row">
-      <div class="mapa-labor-dot" style="background:${dotColor}"></div>
-      <span class="mapa-labor-up" style="color:${COLORES_BORDE[ci]}0.9);background:${COLORES_BORDE[ci]}0.12);border:1px solid ${COLORES_BORDE[ci]}0.3)">${upNom}</span>
-      <span class="mapa-labor-desc">${labNom}</span>
-      <div class="mapa-enc-chip" style="background:${COLORES[ci]}">${encInicial}</div>
-      <span class="mapa-labor-enc">${encNom.split(" ")[0]}</span>
-      <span class="mapa-labor-pct ${pctClass}">${avance>0?avance+"%":"—"}</span>
-    </div>`;
-  }).join("");
+  // UPs únicas que tienen labores
+  const upsConLabor = new Set();
+  let atrasadas = 0;
+  labores.forEach(l => {
+    if (l.up && nombreToId[l.up] && COORD_MAP[nombreToId[l.up]]) {
+      upsConLabor.add(nombreToId[l.up]);
+    }
+    if (l.estado === "Atrasada") atrasadas++;
+  });
+
+  // Total UPs con coordenadas (UPs visibles en el mapa)
+  const upsEnMapa = Object.keys(COORD_MAP || {}).length;
 
   panel.innerHTML = `
     <div class="mapa-stats-row">
-      <div class="mapa-stat"><div class="mapa-stat-icon">👷</div><div class="mapa-stat-val">${encs.length}</div><div class="mapa-stat-label">Encargados activos</div></div>
-      <div class="mapa-stat"><div class="mapa-stat-icon">🌾</div><div class="mapa-stat-val">${upsConLabor.length}</div><div class="mapa-stat-label">UPs en labor</div></div>
-      <div class="mapa-stat"><div class="mapa-stat-icon">✅</div><div class="mapa-stat-val">${avancePct>0?avancePct+"%":"—"}</div><div class="mapa-stat-label">Avance promedio</div></div>
-      <div class="mapa-stat"><div class="mapa-stat-icon">⚠️</div><div class="mapa-stat-val" style="color:${vencidas.length>0?"#e76f51":"#4ade80"}">${vencidas.length}</div><div class="mapa-stat-label">Labores vencidas</div></div>
+      <div class="mapa-stat">
+        <div class="mapa-stat-icon">📍</div>
+        <div class="mapa-stat-val">${upsEnMapa}</div>
+        <div class="mapa-stat-label">UPs en mapa</div>
+      </div>
+      <div class="mapa-stat">
+        <div class="mapa-stat-icon">📋</div>
+        <div class="mapa-stat-val">${labores.length}</div>
+        <div class="mapa-stat-label">Labores planificadas</div>
+      </div>
+      <div class="mapa-stat">
+        <div class="mapa-stat-icon">⚠️</div>
+        <div class="mapa-stat-val" style="color:${atrasadas>0?"#e76f51":"#4ade80"}">${atrasadas}</div>
+        <div class="mapa-stat-label">Atrasadas</div>
+      </div>
+      <div class="mapa-stat">
+        <div class="mapa-stat-icon">🌾</div>
+        <div class="mapa-stat-val">${upsConLabor.size}</div>
+        <div class="mapa-stat-label">UPs con labor</div>
+      </div>
     </div>
-    ${enProceso.length > 0 ? '<div class="mapa-labores-title">Labores en proceso</div>' + laboresHtml : '<div style="font-size:11px;color:#6b9e7a;text-align:center;padding:8px 0;">Sin labores en proceso actualmente</div>'}
   `;
 }
 
@@ -2657,33 +2655,54 @@ function initMap() {
     window._mapaLeaflet = null;
   }
 
-  const tempActiva = TEMPORADA_ACTIVA || getTemporadaActiva();
+  // Datos: cache del Gantt filtrado para sincronización Gantt↔mapa
+  const todasLasLabores = (window._ganttState && window._ganttState.cache) || [];
+  const labores = (typeof ganttFilterData === "function") ? ganttFilterData(todasLasLabores) : todasLasLabores;
+
+  // Mapeo nombre UP → CC ID
+  const nombreToId = {};
+  Object.entries(CC_MAP || {}).forEach(([id, nom]) => { nombreToId[nom] = id; });
+
+  // Agrupar labores por CC ID
+  const laboresPorCC = {};
+  labores.forEach(l => {
+    const ccId = l.up && nombreToId[l.up] ? nombreToId[l.up] : null;
+    if (!ccId) return;
+    if (!laboresPorCC[ccId]) laboresPorCC[ccId] = [];
+    laboresPorCC[ccId].push(l);
+  });
+
+  const tempActiva = (typeof TEMPORADA_ACTIVA !== "undefined" && TEMPORADA_ACTIVA) ||
+                     (typeof getTemporadaActiva === "function" ? getTemporadaActiva() : "");
 
   const puntos = Object.entries(COORD_MAP)
     .filter(([id]) => {
-      // Mostrar solo UPs de la temporada activa
       if (!tempActiva) return true;
       const tmp = TEMP_MAP[id];
       return tmp && tmp.temporada === tempActiva;
     })
     .map(([id, coord]) => {
-    const nombre   = CC_MAP[id] || id;
-    const fundo    = FUNDO_MAP[id] || "";
-    const ha       = HA_MAP[id] || 0;
-    // Usar window.TODOS directamente para evitar stale reference del var inicial
-    const laboresCC = (window.TODOS||[]).filter(r => String(r["Centro_Costo"]||"").trim() === id);
-    const activas   = laboresCC.filter(r => { const e=String(r["Estado Operativo"]||"").trim(); return e==="En Proceso"||e==="Pendiente"; });
-    const vencidas  = activas.filter(r => dateStatus(r["Fecha"]) === "venc").length;
-    const hoy       = activas.filter(r => dateStatus(r["Fecha"]) === "hoy").length;
-    const total     = activas.length;
-    let color = "#aaa";
-    if (total > 0) {
-      if (vencidas > 0) color = "#cc2222";
-      else if (hoy > 0) color = "#b45309";
-      else color = "#1a3a0a";
-    }
-    return { id, nombre, fundo, ha, total, vencidas, hoy, color, lat: coord.lat, lng: coord.lng, laboresCC: activas };
-  });
+      const nombre = CC_MAP[id] || id;
+      const fundo  = FUNDO_MAP[id] || "";
+      const ha     = HA_MAP[id] || 0;
+      const labCC  = laboresPorCC[id] || [];
+      const total     = labCC.length;
+      const atrasadas = labCC.filter(l => l.estado === "Atrasada").length;
+      const enCurso   = labCC.filter(l => l.estado === "En curso").length;
+      const planif    = labCC.filter(l => l.estado === "Planificada").length;
+
+      // Color por estado de labores
+      let color = "#888"; // gris: sin labores
+      if (total > 0) {
+        if (atrasadas > 0) color = "#dc2626"; // rojo: hay atrasadas
+        else color = "#10b981"; // verde: tiene labores pero ninguna atrasada
+      }
+
+      return {
+        id, nombre, fundo, ha, total, atrasadas, enCurso, planif, color,
+        lat: coord.lat, lng: coord.lng, labCC
+      };
+    });
 
   if (puntos.length === 0) return;
 
@@ -2693,7 +2712,6 @@ function initMap() {
   const mapa = L.map("mapa-campo").setView([avgLat, avgLng], 14);
   window._mapaLeaflet = mapa;
 
-  // Base layers
   const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap", maxZoom: 19
   });
@@ -2704,7 +2722,7 @@ function initMap() {
     attribution: "© OpenTopoMap", maxZoom: 17
   });
 
-  satelite.addTo(mapa); // default to satellite
+  satelite.addTo(mapa);
 
   L.control.layers({
     "🛰 Satélite": satelite,
@@ -2713,90 +2731,81 @@ function initMap() {
   }, {}, { position: "topright" }).addTo(mapa);
 
   puntos.forEach(p => {
-    const isSelected = state.ups.includes(p.id);
-
-    // Outer ring for selected state
-    if (isSelected) {
-      L.circleMarker([p.lat, p.lng], {
-        radius: 24,
-        fillColor: p.color,
-        color: p.color,
-        weight: 2,
-        opacity: 0.35,
-        fillOpacity: 0.15,
-        interactive: false
-      }).addTo(mapa);
-      L.circleMarker([p.lat, p.lng], {
-        radius: 19,
-        fillColor: "transparent",
-        color: "#fff",
-        weight: 2.5,
-        opacity: 0.8,
-        fillOpacity: 0,
-        interactive: false
-      }).addTo(mapa);
-    }
-
     const marker = L.circleMarker([p.lat, p.lng], {
-      radius: isSelected ? 16 : 13,
+      radius: 13,
       fillColor: p.color,
       color: "#fff",
-      weight: isSelected ? 3 : 2,
+      weight: 2,
       opacity: 1,
-      fillOpacity: isSelected ? 1 : 0.82
+      fillOpacity: 0.85
     }).addTo(mapa);
 
-    // Calcular labor principal y encargado para el popup
-    const labEnProceso = (p.laboresCC||[]).filter(r=>String(r["Estado Operativo"]||"").trim()==="En Proceso");
-    const labPrinc = labEnProceso[0] || (p.laboresCC||[])[0];
-    const labNomPop = labPrinc ? (LAB_MAP[String(labPrinc["Labor"]||"").trim()]||String(labPrinc["Labor"]||"—")) : "Sin labores activas";
-    const encIdPop = labPrinc ? String(labPrinc["Encargado"]||"").trim() : "";
-    const encNomPop = encIdPop ? (ENC_MAP[encIdPop]||encIdPop) : "—";
-    const encInicPop = encNomPop.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    const avancePop = labPrinc ? parseFloat(labPrinc["Avance_%"]||labPrinc["Avance"]||0) : 0;
-    const pctColorPop = avancePop>=65?"#4ade80":avancePop>=35?"#f4a261":"#e76f51";
-    const barColorPop = avancePop>=65?"linear-gradient(90deg,#2d6a4f,#52b788)":avancePop>=35?"linear-gradient(90deg,#c4621a,#f4a261)":"linear-gradient(90deg,#9b3a22,#e76f51)";
-    const tagColor = p.color; const tagBg = p.color+"22"; const tagBorder = p.color+"55";
-    const upLabel = p.nombre.replace("Pivote","Piv").replace("Potrero","Pot").slice(0,8);
+    const tagBg = p.color + "22";
+    const tagBorder = p.color + "55";
+    const upLabel = p.nombre.replace("Pivote","Piv").replace("Potrero","Pot").slice(0,12);
 
-    const popupHTML = `
-      <div class="popup-inner">
-        <div class="popup-top">
-          <span class="popup-tag" style="color:${tagColor};background:${tagBg};border:1px solid ${tagBorder}">${upLabel}</span>
-          <span class="popup-nombre">${p.ha?p.ha+" há":""}</span>
-        </div>
-        <div class="popup-labor">${labNomPop}</div>
-        ${avancePop>0?`<div class="popup-progress-bg"><div class="popup-progress-fill" style="width:${avancePop}%;background:${barColorPop}"></div></div>`:""}
-        <div class="popup-bottom">
-          <div class="popup-enc">
-            <div class="enc-av" style="background:${p.color}">${encInicPop}</div>
-            ${encNomPop.split(" ")[0]}
-          </div>
-          ${avancePop>0?`<span class="popup-pct" style="color:${pctColorPop}">${avancePop}%</span>`:""}
-        </div>
-        ${p.vencidas>0?`<div style="margin-top:6px;font-size:10px;color:#e76f51;font-weight:600;">⚠️ ${p.vencidas} labor${p.vencidas>1?"es":""} vencida${p.vencidas>1?"s":""}</div>`:""}
-        <button class="popup-btn-filter" onclick="filtrarPorUP('${p.id}')">
-          ${isSelected ? "✓ Filtrado — clic para quitar" : "🔍 Filtrar por esta UP"}
-        </button>
-      </div>`;
+    let laboresLista = "";
+    if (p.labCC.length === 0) {
+      laboresLista = '<div style="font-size:11px;color:#888;padding:6px 0;text-align:center;">Sin labores planificadas</div>';
+    } else {
+      const ordenEstado = { "Atrasada": 0, "En curso": 1, "Planificada": 2, "Completada": 3 };
+      const labOrd = p.labCC.slice().sort((a,b) => (ordenEstado[a.estado]||9) - (ordenEstado[b.estado]||9));
+      laboresLista = labOrd.slice(0, 6).map(l => {
+        const estColor = {
+          "Atrasada":   "#dc2626",
+          "En curso":   "#fbbf24",
+          "Completada": "#10b981",
+          "Planificada":"#94a3b8"
+        }[l.estado] || "#888";
+        const estTxt = {
+          "Atrasada":   "Atrasada",
+          "En curso":   "En curso",
+          "Completada": "Completada ✓",
+          "Planificada":"Planificada"
+        }[l.estado] || l.estado;
+        const fini = String(l.inicio || "").slice(5);
+        const ffin = String(l.fin || "").slice(5);
+        const rango = (fini === ffin || !ffin) ? fini : (fini + " → " + ffin);
+        return '<div style="padding:5px 0;border-bottom:1px solid #eee;">' +
+          '<div style="font-size:11px;font-weight:600;color:#1a1a1a;line-height:1.25;">' + escapeHtml(l.tarea || "—") + '</div>' +
+          '<div style="font-size:10px;color:#666;margin-top:2px;display:flex;justify-content:space-between;gap:6px;">' +
+            '<span style="color:' + estColor + ';font-weight:600;">' + estTxt + '</span>' +
+            '<span>' + rango + '</span>' +
+          '</div>' +
+        '</div>';
+      }).join("");
+      if (p.labCC.length > 6) {
+        laboresLista += '<div style="font-size:10px;color:#888;text-align:center;padding:4px 0;">+' + (p.labCC.length-6) + ' más</div>';
+      }
+    }
 
-    marker.bindPopup(popupHTML);
+    const popupHTML = '<div class="popup-inner" style="min-width:220px;">' +
+      '<div class="popup-top">' +
+        '<span class="popup-tag" style="color:' + p.color + ';background:' + tagBg + ';border:1px solid ' + tagBorder + '">' + upLabel + '</span>' +
+        '<span class="popup-nombre">' + (p.ha?p.ha+" há":"") + '</span>' +
+      '</div>' +
+      '<div style="font-size:10px;color:#888;margin:2px 0 6px;">' + escapeHtml(p.fundo || "") + '</div>' +
+      (p.atrasadas > 0 ? '<div style="margin:4px 0 6px;font-size:11px;color:#dc2626;font-weight:600;">⚠️ ' + p.atrasadas + ' atrasada' + (p.atrasadas>1?"s":"") + '</div>' : "") +
+      laboresLista +
+    '</div>';
+
+    marker.bindPopup(popupHTML, { maxWidth: 320 });
 
     const labelNom = (p.fundo || p.nombre).replace("Pivote","Piv").replace("Potrero","Pot").replace("Nogales","NOG").replace("Vega","VEGA").replace("Parcela","PAR");
     const icon = L.divIcon({
       className: "",
-      html: `<div style="
-        background:${p.color}22;
-        border:1px solid ${p.color}66;
-        border-radius:6px;
-        padding:2px 7px;
-        font-size:9.5px;font-weight:700;
-        color:${p.color};
-        white-space:nowrap;
-        backdrop-filter:blur(4px);
-        box-shadow:0 1px 6px rgba(0,0,0,0.5);
-        font-family:Arial,sans-serif;
-      ">${labelNom}</div>`,
+      html: '<div style="' +
+        'background:' + p.color + '22;' +
+        'border:1px solid ' + p.color + '66;' +
+        'border-radius:6px;' +
+        'padding:2px 7px;' +
+        'font-size:9.5px;font-weight:700;' +
+        'color:' + p.color + ';' +
+        'white-space:nowrap;' +
+        'backdrop-filter:blur(4px);' +
+        'box-shadow:0 1px 6px rgba(0,0,0,0.5);' +
+        'font-family:Arial,sans-serif;' +
+      '">' + labelNom + '</div>',
       iconSize: [70, 20],
       iconAnchor: [35, -10]
     });
@@ -3744,6 +3753,11 @@ function renderGantt() {
   ganttFetchData().then(rawData => {
     const data = ganttFilterData(rawData);
     _renderGanttUI(cont, fcont, data);
+    // Cuando llegan datos del Plan_Labores, sincronizar el mapa
+    if (typeof initMap === "function" && document.getElementById("mapa-campo")) {
+      initMap();
+      if (typeof buildMapaPanel === "function") buildMapaPanel();
+    }
   });
 }
 
@@ -3849,6 +3863,11 @@ function _renderGanttUI(cont, fcont, data) {
 function ganttFilter(key, val) {
   window._ganttState.filtros[key] = val;
   renderGantt();
+  // Sincronizar mapa con el filtro del Gantt
+  if (typeof initMap === "function" && document.getElementById("mapa-campo")) {
+    initMap();
+    if (typeof buildMapaPanel === "function") buildMapaPanel();
+  }
 }
 
 function escapeHtml(s) {
