@@ -832,41 +832,37 @@ function renderResultados() {
     costosPorUP[id] = (costosPorUP[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, totalDoc);
   });
 
-  // ── INGRESOS: Ppto (Proyecciones) + Facturado real ───────────────────────
+  // ── INGRESOS: usar EXACTAMENTE los mismos datos que la pestaña Ingresos ──
+  // Si Ingresos no se ha renderizado aún, forzar su cálculo silencioso.
+  if (!window.INGRESOS_DATA && typeof renderIngresos === 'function') {
+    try { renderIngresos(); } catch(e) { console.warn('No se pudo precalcular Ingresos:', e); }
+  }
   const ingPpto = {}, ingFact = {}, kilosPpto = {};
-  (window.PROYECCIONES||[]).forEach(r => {
-    const id = String(r["Unidad_Productiva"]||"").trim();
-    if (!esUpProd(id) || !passTemp(id)) return;
-    ingPpto[id]   = (ingPpto[id]||0)   + aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion');
-    kilosPpto[id] = (kilosPpto[id]||0) + Number(r["Kilos_Estimados"]||0);
-  });
-  (window.ASIGNACIONES||[]).forEach(r => {
-    const id   = getUpId(r);
-    if (!esUpProd(id) || !passTemp(id)) return;
-    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
-    const rut  = rutEmisor(r);
-    const esIng = tipo.includes("emit") || (tipo.includes("factura") && rut === RUT_LC);
-    if (!esIng || Number(r["Monto_Asignado"]||0) <= 0) return;
-    // Factura emitida LC → DTE 33; guía emitida → tal cual
-    const keyDoc = String(r["KEY_Documento"]||"").trim();
-    const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
-    const fuenteIng = tipo.includes("factura") ? 'asig_factura_emitida' : 'asig_guia';
-    ingFact[id] = (ingFact[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIng, keyDoc, totalDoc);
+  const D = window.INGRESOS_DATA || { facturasAsig: [], proyEstimado: [], cobradoContratos: 0, pptoContratos: 0 };
+
+  // Facturas emitidas LC (ya con IVA aplicado según VISTA_IVA y NCs en negativo)
+  (D.facturasAsig || []).forEach(r => {
+    if (!esUpProd(r.up) || !passTemp(r.up)) return;
+    ingFact[r.up] = (ingFact[r.up] || 0) + Number(r.monto || 0);
   });
 
-  // ── ANTICIPOS / LIQUIDACIONES CONTRATOS NUECES ──────────────────────────
-  // Los contratos de nueces (USD) se cargan en Milestones_Nueces / Pagos_Nueces
-  // y NO viven en Asignaciones_U. Hay que sumarlos manualmente al ingFact y
-  // ppto de las UPs cuyo cultivo sea "Nuez", prorrateado por hectáreas.
-  // Contratos USD son export → SIN IVA, se usan tal cual en ambas vistas.
-  const cobradoContratosRes = (typeof getCobradoContratos === 'function') ? getCobradoContratos() : 0;
-  const pptoContratosRes    = (typeof getPptoContratos    === 'function') ? getPptoContratos()    : 0;
+  // Proyecciones (Estimado + Real) — fuente única para presupuesto y kilos
+  (D.proyEstimado || []).forEach(r => {
+    if (!esUpProd(r.up) || !passTemp(r.up)) return;
+    ingPpto[r.up]   = (ingPpto[r.up]   || 0) + Number(r.monto || 0);
+    kilosPpto[r.up] = (kilosPpto[r.up] || 0) + Number(r.kilos || 0);
+  });
+
+  // Contratos nueces (anticipos/liquidaciones USD) — viven en Milestones_Nueces/Pagos_Nueces
+  // Los distribuimos por há entre las UPs de Nuez activas en la temporada.
+  // Export → SIN IVA, se usan tal cual.
+  const cobradoContratosRes = Number(D.cobradoContratos || 0);
+  const pptoContratosRes    = Number(D.pptoContratos    || 0);
   if (cobradoContratosRes > 0 || pptoContratosRes > 0) {
     const upsNuez = Object.keys(TEMP_MAP).filter(id =>
       esUpProd(id) && passTemp(id) && (CULTIVO_MAP[id] || "").trim() === "Nuez"
     );
     const haNuezTot = upsNuez.reduce((s, id) => s + (HA_MAP[id] || 0), 0);
-    // Si ya hay ppto desde Proyecciones_Manuales para Nuez, NO duplicar con contratos
     const pptoNuezExistente = upsNuez.reduce((s, id) => s + (ingPpto[id] || 0), 0);
     if (upsNuez.length > 0) {
       upsNuez.forEach(id => {
@@ -1420,6 +1416,15 @@ function renderIngresos() {
     fecha:   r["Fecha_Estimada"]||"",
     kilos:   Number(r["Kilos_Estimados"]||0)
   }));
+
+  // Exponer datos a window para que renderResultados use exactamente lo mismo
+  window.INGRESOS_DATA = {
+    facturasAsig: facturasAsig,
+    proyEstimado: proyEstimado,
+    cobradoContratos: (typeof getCobradoContratos === 'function') ? getCobradoContratos() : 0,
+    pptoContratos:    (typeof getPptoContratos    === 'function') ? getPptoContratos()    : 0,
+    tempActiva: tempActiva
+  };
 
   // ── TOTALES POR FUENTE ────────────────────────────────────────────────────
   const sumF   = arr => arr.reduce((s,r)=>s+r.monto,0);
