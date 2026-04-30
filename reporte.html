@@ -3661,6 +3661,7 @@ function renderGanttBlock() {
             <button class="gantt-nav-btn" onclick="ganttNav(1)" title="Siguiente">›</button>
           </div>
           <button class="gantt-add-btn" onclick="ganttOpenModal()">+ Nueva labor</button>
+          <button class="gantt-add-btn" style="background:#7c3aed;" onclick="ganttOpenCCModal()" title="Crear nueva Unidad Productiva">+ Nueva UP</button>
         </div>
       </div>
       <div class="gantt-filters" id="gantt-filters"></div>
@@ -4000,6 +4001,8 @@ function _renderGanttModal(id, r, encargados) {  const todayStr = new Date().toI
   if (upSelectedNombre && !upsFiltradas.find(u => u.ccNombre === upSelectedNombre)) {
     upOptsHtml += `<option value="${escapeHtml(upSelectedNombre)}" selected>${escapeHtml(upSelectedNombre)} (legacy)</option>`;
   }
+  // Opción especial para crear nueva UP desde el dropdown
+  upOptsHtml += `<option value="__crear_nueva__" style="font-weight:bold;color:#7c3aed;">+ Crear nueva UP...</option>`;
 
   let modal = document.getElementById("gl-modal-back");
   if (!modal) {
@@ -4028,7 +4031,10 @@ function _renderGanttModal(id, r, encargados) {  const todayStr = new Date().toI
           </div>
           <div class="glmodal-row">
             <label class="glmodal-label">Unidad Productiva</label>
-            <select id="glm-up" class="glmodal-select">${upOptsHtml}</select>
+            <div style="display:flex; gap:6px;">
+              <select id="glm-up" class="glmodal-select" style="flex:1;" onchange="ganttOnUpChange()">${upOptsHtml}</select>
+              <button type="button" onclick="ganttOpenCCModal()" title="Crear nueva UP" style="background:#7c3aed; color:#fff; border:none; border-radius:6px; padding:0 12px; font-size:14px; font-weight:bold; cursor:pointer;">+</button>
+            </div>
           </div>
         </div>
         <div class="glmodal-row">
@@ -4080,6 +4086,16 @@ function ganttCloseModal() {
   window._ganttState.editId = null;
 }
 
+function ganttOnUpChange() {
+  const upSel = document.getElementById("glm-up");
+  if (!upSel) return;
+  if (upSel.value === "__crear_nueva__") {
+    // Volver a la opción anterior y abrir modal CC
+    upSel.value = "";
+    ganttOpenCCModal();
+  }
+}
+
 function ganttOnCultivoChange() {
   const fundoSel = document.getElementById("glm-cultivo").value;
   const upSel = document.getElementById("glm-up");
@@ -4090,6 +4106,7 @@ function ganttOnCultivoChange() {
     const label = u.ccNombre + (u.ha ? " (" + u.ha + " há)" : "");
     html += `<option value="${escapeHtml(u.ccNombre)}" data-id="${u.id}">${escapeHtml(label)}</option>`;
   });
+  html += `<option value="__crear_nueva__" style="font-weight:bold;color:#7c3aed;">+ Crear nueva UP...</option>`;
   upSel.innerHTML = html;
 }
 
@@ -4315,6 +4332,216 @@ async function ganttSaveCierre(idPlan) {
   // Limpiar cache para que el próximo render traiga datos frescos
   window._ganttState.cache = null;
   renderGantt();
+}
+
+/* ============================================================
+   CREAR NUEVA UP (CC) — guarda en BD_CC
+============================================================ */
+
+const ESPECIES_GANTT = [
+  { id: "1375af62", nombre: "Trigo" },
+  { id: "ba014ad5", nombre: "Nuez" },
+  { id: "1375af79", nombre: "Maiz" },
+  { id: "1375af63", nombre: "Pepino" },
+  { id: "1375af65", nombre: "Achicoria" },
+  { id: "1375af67", nombre: "Repollo" },
+  { id: "1375af69", nombre: "Frejol" },
+  { id: "de607423", nombre: "Nativos" },
+  { id: "f2ecb567", nombre: "Otros" }
+];
+
+const TEMPORADAS_GANTT = ["2024-2025","2025-2026","2026-2027","2027-2028"];
+
+function ganttOpenCCModal() {
+  // Cerrar modal de labor si está abierto, recordar si estaba para reabrirlo después
+  const labModalOpen = document.getElementById("gl-modal-back")?.classList.contains("on");
+  const cierreModalOpen = document.getElementById("gl-cierre-back")?.classList.contains("on");
+  // Guardar estado del modal de labor por si hay que reabrir
+  if (labModalOpen) {
+    window._ganttState._reopenLabor = window._ganttState.editId || "__new__";
+    document.getElementById("gl-modal-back").classList.remove("on");
+  }
+
+  let modal = document.getElementById("gl-cc-back");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "gl-cc-back";
+    modal.className = "glmodal-back";
+    modal.onclick = (e) => { if (e.target === modal) ganttCloseCCModal(); };
+    document.body.appendChild(modal);
+  }
+
+  const tempActiva = window.TEMPORADA_ACTIVA || (typeof getTemporadaActiva==="function" ? getTemporadaActiva() : "2026-2027");
+
+  const especieOpts = ESPECIES_GANTT.map(e =>
+    `<option value="${e.id}" ${e.nombre==="Trigo"?'selected':''}>${e.nombre}</option>`
+  ).join("");
+
+  const tempOpts = TEMPORADAS_GANTT.map(t =>
+    `<option value="${t}" ${t===tempActiva?'selected':''}>${t}</option>`
+  ).join("");
+
+  modal.innerHTML = `
+    <div class="glmodal" style="max-width:520px">
+      <div class="glmodal-head" style="background:#7c3aed">
+        <span class="glmodal-title">+ Nueva Unidad Productiva (BD_CC)</span>
+        <button class="glmodal-close" onclick="ganttCloseCCModal()">×</button>
+      </div>
+      <div class="glmodal-body">
+        <div class="glmodal-row">
+          <label class="glmodal-label">Nombre del CC *</label>
+          <input type="text" id="glcc-nombre" class="glmodal-input" placeholder="Ej: Pot 7, Piv 4, Nogales Sector 3">
+        </div>
+        <div class="glmodal-grid2">
+          <div class="glmodal-row">
+            <label class="glmodal-label">Especie / Cultivo *</label>
+            <select id="glcc-especie" class="glmodal-select" onchange="ganttCCUpdateFundo()">${especieOpts}</select>
+          </div>
+          <div class="glmodal-row">
+            <label class="glmodal-label">Temporada *</label>
+            <select id="glcc-temporada" class="glmodal-select" onchange="ganttCCUpdateFundo()">${tempOpts}</select>
+          </div>
+        </div>
+        <div class="glmodal-grid2">
+          <div class="glmodal-row">
+            <label class="glmodal-label">Hectáreas</label>
+            <input type="number" step="0.01" min="0" id="glcc-hectareas" class="glmodal-input" placeholder="Ej: 5.5">
+          </div>
+          <div class="glmodal-row">
+            <label class="glmodal-label">Mes inicio temporada (1-12)</label>
+            <input type="number" min="1" max="12" id="glcc-mes" class="glmodal-input" placeholder="Ej: 3" value="3">
+          </div>
+        </div>
+        <div class="glmodal-row">
+          <label class="glmodal-label">Fundo (auto)</label>
+          <input type="text" id="glcc-fundo" class="glmodal-input" placeholder="Auto-construido" value="Trigo 26-27">
+          <div style="font-size:10px; color:#888; margin-top:3px;">Se construye automáticamente como "{Especie} {Temporada}". Puedes editarlo si quieres.</div>
+        </div>
+        <div class="glmodal-grid2">
+          <div class="glmodal-row">
+            <label class="glmodal-label">Sector (opcional)</label>
+            <input type="text" id="glcc-sector" class="glmodal-input" placeholder="Ej: Norte, Sur">
+          </div>
+          <div class="glmodal-row">
+            <label class="glmodal-label">Es Base Prorrateo</label>
+            <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f8f8f6; border-radius:6px; cursor:pointer; height:24px;">
+              <input type="checkbox" id="glcc-base" checked style="width:16px; height:16px; cursor:pointer;">
+              <span style="font-size:13px;">Sí (productiva)</span>
+            </label>
+          </div>
+        </div>
+        <div class="glmodal-row">
+          <label class="glmodal-label">Coordenadas (opcional)</label>
+          <input type="text" id="glcc-coord" class="glmodal-input" placeholder="Ej: -36.83128, -72.10810">
+          <div style="font-size:10px; color:#888; margin-top:3px;">Formato: latitud, longitud. Si la dejas vacía, no aparecerá en el mapa.</div>
+        </div>
+        <div style="font-size:11px;color:#666;background:#f3e8ff;padding:10px;border-radius:6px;border-left:3px solid #7c3aed;line-height:1.4;">
+          Esta UP se creará en BD_CC. Se reflejará en todos los reportes después de recargar el dashboard.
+        </div>
+      </div>
+      <div class="glmodal-foot">
+        <button class="glmodal-btn ghost" onclick="ganttCloseCCModal()">Cancelar</button>
+        <button class="glmodal-btn primary" style="background:#7c3aed" onclick="ganttSaveCC()">Crear UP</button>
+      </div>
+    </div>
+  `;
+  modal.classList.add("on");
+}
+
+function ganttCloseCCModal() {
+  const m = document.getElementById("gl-cc-back");
+  if (m) m.classList.remove("on");
+}
+
+function ganttCCUpdateFundo() {
+  const especieSel = document.getElementById("glcc-especie");
+  const tempSel = document.getElementById("glcc-temporada");
+  const fundoInput = document.getElementById("glcc-fundo");
+  if (!especieSel || !tempSel || !fundoInput) return;
+  const nombreEspecie = especieSel.options[especieSel.selectedIndex].text;
+  const tempCorta = String(tempSel.value).replace(/\d{2}(\d{2})-\d{2}(\d{2})/, "$1-$2");
+  fundoInput.value = nombreEspecie + " " + tempCorta;
+}
+
+async function ganttSaveCC() {
+  const nombre = document.getElementById("glcc-nombre").value.trim();
+  if (!nombre) { alert("Falta nombre del CC"); return; }
+
+  const especieId = document.getElementById("glcc-especie").value;
+  const temporada = document.getElementById("glcc-temporada").value;
+  const hectareas = document.getElementById("glcc-hectareas").value;
+  const mes = document.getElementById("glcc-mes").value;
+  const fundo = document.getElementById("glcc-fundo").value.trim();
+  const sector = document.getElementById("glcc-sector").value.trim();
+  const esBase = document.getElementById("glcc-base").checked;
+  const coordenadas = document.getElementById("glcc-coord").value.trim();
+
+  // Validación de coordenadas en frontend (mensaje más amable)
+  if (coordenadas) {
+    const m = coordenadas.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (!m) { alert("Coordenadas mal formadas. Formato esperado: lat, lng (ej: -36.83, -72.11)"); return; }
+  }
+
+  const btn = document.querySelector("#gl-cc-back .glmodal-btn.primary");
+  const orig = ganttSetBtnLoading(btn, "Creando UP...");
+  ganttToast("Creando UP en BD_CC...", "warn");
+
+  const result = await ganttPostAction("add_cc", {
+    data: {
+      nombre_cc: nombre,
+      especie_id: especieId,
+      temporada: temporada,
+      hectareas: hectareas,
+      mes_inicio: mes,
+      fundo: fundo,
+      sector: sector,
+      es_base_prorrateo: esBase,
+      coordenadas: coordenadas
+    }
+  });
+
+  if (!result || !result.ok) {
+    ganttRestoreBtn(btn, orig);
+    return;
+  }
+
+  ganttToast("UP creada ✓ ID: " + result.id_cc + ". Recarga la página para verla en mapas y filtros.", "");
+  ganttCloseCCModal();
+
+  // Actualizar caches locales en runtime para no tener que recargar para ver la UP
+  // en el dropdown del modal de labor
+  CC_MAP[result.id_cc] = nombre;
+  FUNDO_MAP[result.id_cc] = result.fundo;
+  CULTIVO_MAP[result.id_cc] = result.especie;
+  HA_MAP[result.id_cc] = parseFloat(hectareas) || 0;
+  if (coordenadas) {
+    const m = coordenadas.match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (m) COORD_MAP[result.id_cc] = { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+  }
+  if (typeof TEMP_MAP !== "undefined") {
+    TEMP_MAP[result.id_cc] = { temporada: temporada, mesInicio: parseInt(mes,10) || 0 };
+  }
+
+  // Si veníamos del modal de labor, reabrirlo con la UP recién creada preseleccionada
+  if (window._ganttState._reopenLabor) {
+    const editId = window._ganttState._reopenLabor === "__new__" ? null : window._ganttState._reopenLabor;
+    window._ganttState._reopenLabor = null;
+    setTimeout(() => {
+      ganttOpenModal(editId);
+      // Después de que el modal se renderice, preseleccionar el cultivo + UP recién creados
+      setTimeout(() => {
+        const selCultivo = document.getElementById("glm-cultivo");
+        const selUp = document.getElementById("glm-up");
+        if (selCultivo && result.fundo) {
+          selCultivo.value = result.fundo;
+          ganttOnCultivoChange();
+        }
+        if (selUp && result.nombre) {
+          selUp.value = result.nombre;
+        }
+      }, 200);
+    }, 300);
+  }
 }
 </script>
 
