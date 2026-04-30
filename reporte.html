@@ -1259,6 +1259,16 @@ function renderIngresos() {
   }
   const RUT_LC_ING = "76099766-8";
 
+  // Detectar anticipos por nombre del proveedor/cliente
+  // (TRASPASO DE..., PAGO:PROVEEDORES, Pago: Proveedores, Anticipos...)
+  function esAnticipoProveedor(prov) {
+    const p = String(prov||"").trim();
+    if (!p) return false;
+    return /^traspaso\s/i.test(p)
+        || /^pago:?\s/i.test(p)
+        || /anticipo/i.test(p);
+  }
+
   const facturasAsig = (window.ASIGNACIONES||[]).filter(r => {
     const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
     const id   = getUpId(r);
@@ -1280,6 +1290,9 @@ function renderIngresos() {
     // Detectar Nota de Crédito vía TipoDTE en CargaHTML_Demo (Tipo_Doc en Asignaciones_U no distingue)
     const tipoDte = docOrigen ? String(docOrigen["TipoDTE"]||"").trim() : "";
     const esNC = tipoDte === "61";
+    // Detectar Anticipo: si el proveedor/razón social tiene patrones TRASPASO/PAGO/Anticipo
+    const provRaw = String(r["Proveedor"]||"").trim();
+    const esAntic = !esNC && esAnticipoProveedor(provRaw);
     let monto = aplicarIvaMonto(Number(r["Monto_Asignado"]||0), 'asig_factura_emitida', keyDoc, totalDoc);
     if (esNC) monto = -Math.abs(monto);  // NC siempre resta, sin importar signo en Asignaciones_U
     return {
@@ -1292,6 +1305,7 @@ function renderIngresos() {
       razon:   razon,
       keyDoc:  keyDoc,
       esNC:    esNC,
+      esAntic: esAntic,
       tipoDte: tipoDte
     };
   });
@@ -1433,7 +1447,12 @@ function renderIngresos() {
 
   const cobradoContratos = getCobradoContratos();
   const pptoContratos = getPptoContratos();
-  const tFactF = sumF(filtFact);
+  // Helper: sumar solo lo que cuenta como facturado (excluye anticipos)
+  const sumFSinAntic = arr => (arr||[]).reduce((s,r) => s + (r.esAntic ? 0 : r.monto), 0);
+  const sumAntic    = arr => (arr||[]).reduce((s,r) => s + (r.esAntic ? r.monto : 0), 0);
+
+  const tFactF      = sumFSinAntic(filtFact);
+  const tAnticF     = sumAntic(filtFact);
   const tEstF  = sumF(filtEst);
   const tFactCombinado = tFactF + cobradoContratos;
   const pFactCombinado = tEstF>0 ? Math.round(tFactCombinado/tEstF*100) : (tFactCombinado>0?100:0);
@@ -1441,28 +1460,33 @@ function renderIngresos() {
   const cultivoRows = {};
   (filtFact || []).forEach(r => {
     const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
-    cultivoRows[cultivo].fact += r.monto;
-    if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
-    cultivoRows[cultivo].ups[r.up].fact += r.monto;
+    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, antic: 0, cobrado: 0, ups: {}, facturas: [] };
+    if (r.esAntic) {
+      // Anticipo: NO suma al fact (KPI Real). Solo se acumula aparte y se muestra en detalle.
+      cultivoRows[cultivo].antic += r.monto;
+    } else {
+      cultivoRows[cultivo].fact += r.monto;
+      if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
+      cultivoRows[cultivo].ups[r.up].fact += r.monto;
+    }
     cultivoRows[cultivo].facturas.push({
       fecha:  r.fecha,
       folio:  r.folio || "—",
       razon:  r.razon || "—",
       up:     r.up,
       monto:  r.monto,
-      tipo:   r.esNC ? "nc" : "factura"
+      tipo:   r.esNC ? "nc" : (r.esAntic ? "antic" : "factura")
     });
   });
   (filtEst || []).forEach(r => {
     const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
+    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, antic: 0, cobrado: 0, ups: {}, facturas: [] };
     cultivoRows[cultivo].ppto += r.monto;
     if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
     cultivoRows[cultivo].ups[r.up].ppto += r.monto;
   });
   if (cobradoContratos > 0) {
-    if (!cultivoRows["Nuez"]) cultivoRows["Nuez"] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
+    if (!cultivoRows["Nuez"]) cultivoRows["Nuez"] = { ppto: 0, fact: 0, antic: 0, cobrado: 0, ups: {}, facturas: [] };
     cultivoRows["Nuez"].cobrado = cobradoContratos;
     if (pptoContratos > 0 && cultivoRows["Nuez"].ppto === 0) {
       cultivoRows["Nuez"].ppto = pptoContratos;
@@ -1530,7 +1554,11 @@ function renderIngresos() {
       <details style="margin-top:12px;border-top:1px dashed #ccc;padding-top:8px;">
         <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;color:#555;font-weight:600;user-select:none;">
           <span><span style="display:inline-block;transition:transform 0.15s;" class="det-fact-chevron">▶</span> Ver detalle facturado · ${facturasOrdenadas.length} ${facturasOrdenadas.length===1?'documento':'documentos'}</span>
-          <span style="font-size:10px;color:#888;font-weight:400;">${fmtPeso(facturasOrdenadas.reduce((s,f)=>s+f.monto,0))}</span>
+          <span style="font-size:10px;color:#888;font-weight:400;">${(()=>{
+            const sumReal = facturasOrdenadas.filter(f=>f.tipo!=="antic").reduce((s,f)=>s+f.monto,0);
+            const sumAntic = facturasOrdenadas.filter(f=>f.tipo==="antic").reduce((s,f)=>s+f.monto,0);
+            return sumAntic > 0 ? `${fmtPeso(sumReal)} <span style="color:#1d4ed8;">+ ${fmtPeso(sumAntic)} antic.</span>` : fmtPeso(sumReal);
+          })()}</span>
         </summary>
         <div style="padding-top:8px;">
           <div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
@@ -1546,7 +1574,8 @@ function renderIngresos() {
             const upTxt = f.up && f.up !== "—" ? (CC_MAP[f.up] || f.up) : "—";
             let tipoIcon = "";
             let montoColor = "#1a6e3a";
-            if (f.tipo === "anticipo") tipoIcon = '<span title="Anticipo nueces" style="color:#b45309;">●</span> ';
+            if (f.tipo === "anticipo") tipoIcon = '<span title="Anticipo nueces (contrato)" style="color:#b45309;">●</span> ';
+            else if (f.tipo === "antic") { tipoIcon = '<span title="Anticipo (no incluido en KPI Real)" style="color:#1d4ed8;">●</span> '; montoColor = "#1d4ed8"; }
             else if (f.tipo === "nc")  { tipoIcon = '<span title="Nota de crédito" style="color:#b91c1c;">●</span> '; montoColor = "#b91c1c"; }
             const montoTxt = f.tipo === "nc" ? "−" + fmtPeso(Math.abs(f.monto)) : fmtPeso(f.monto);
             return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
@@ -1657,7 +1686,7 @@ function renderIngresos() {
       <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
         <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real)</div>
         <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado)}</div>
-        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
+        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC && !r.esAntic).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${filtFact.filter(r=>r.esAntic).length>0?` · ${filtFact.filter(r=>r.esAntic).length} anticipos ${fmtPeso(tAnticF)} (no incluido)`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
       </div>
 
     </div>
