@@ -391,6 +391,17 @@ if (location.search.includes('embed=1')) {
 
     .gantt-empty { color:#888; font-size:12px; text-align:center; padding:30px; background:#fff; }
 
+    /* Spinner para botones de guardado */
+    @keyframes glm-spin { to { transform: rotate(360deg); } }
+    .glm-spinner { display:inline-block; width:12px; height:12px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:glm-spin 0.7s linear infinite; vertical-align:middle; margin-right:6px; }
+    .glmodal-btn[disabled] { opacity:0.65; cursor:not-allowed; }
+
+    /* Toast de feedback */
+    .glm-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a3a0a; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:bold; box-shadow:0 4px 12px rgba(0,0,0,0.25); z-index:2000; opacity:0; transition:opacity 0.25s; pointer-events:none; }
+    .glm-toast.on { opacity:1; }
+    .glm-toast.error { background:#dc2626; }
+    .glm-toast.warn  { background:#f59e0b; color:#000; }
+
     /* Modal */
     .glmodal-back { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; display:none; align-items:center; justify-content:center; padding:20px; }
     .glmodal-back.on { display:flex; }
@@ -3845,6 +3856,39 @@ function escapeHtml(s) {
   return String(s||"").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 }
 
+/* ============ FEEDBACK VISUAL ============ */
+
+function ganttToast(msg, type) {
+  let t = document.getElementById("glm-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "glm-toast";
+    t.className = "glm-toast";
+    document.body.appendChild(t);
+  }
+  t.className = "glm-toast" + (type ? " " + type : "");
+  t.textContent = msg;
+  // Forzar reflow para que la transición funcione
+  t.offsetHeight;
+  t.classList.add("on");
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove("on"), 3000);
+}
+
+function ganttSetBtnLoading(btn, loadingText) {
+  if (!btn) return null;
+  const original = { html: btn.innerHTML, disabled: btn.disabled };
+  btn.disabled = true;
+  btn.innerHTML = `<span class="glm-spinner"></span>${loadingText || "Guardando..."}`;
+  return original;
+}
+
+function ganttRestoreBtn(btn, original) {
+  if (!btn || !original) return;
+  btn.disabled = original.disabled;
+  btn.innerHTML = original.html;
+}
+
 /* ============ MODAL ============ */
 
 function ganttOpenModal(id) {
@@ -3854,13 +3898,14 @@ function ganttOpenModal(id) {
     ? Promise.resolve(window._ganttState.cache)
     : ganttFetchData();
 
-  dataPromise.then(data => {
+  // Cargar también encargados (para los chips)
+  Promise.all([dataPromise, ganttFetchEncargados()]).then(([data, encargados]) => {
     const r = id ? data.find(x => x.id === id) : null;
-    _renderGanttModal(id, r);
+    _renderGanttModal(id, r, encargados);
   });
 }
 
-function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().slice(0,10);
+function _renderGanttModal(id, r, encargados) {  const todayStr = new Date().toISOString().slice(0,10);
 
   // Construir lista de UPs desde BD_CC
   // Cultivo = campo FUNDO de BD_CC (ej: "Trigo 26-27", "Nogales 25-26")
@@ -3921,7 +3966,16 @@ function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().s
   const fin = r ? fmtFecha(r.fin) : todayStr;
 
   const respSel = new Set(r ? (r.responsables||[]) : []);
-  const respHtml = RESPONSABLES_LISTA.map(p => `<span class="glmodal-resp-chip ${respSel.has(p)?'on':''}" onclick="this.classList.toggle('on')" data-resp="${p}">${p}</span>`).join("");
+  // Lista de chips: catálogo Encargados (nombres). Si una labor tiene un responsable
+  // que NO está en el catálogo, lo agregamos al final como legacy para no perder data.
+  const nombresCatalogo = (encargados || []).map(e => e.nombre).filter(Boolean);
+  const todosLosResp = [...nombresCatalogo];
+  Array.from(respSel).forEach(n => {
+    if (n && !nombresCatalogo.includes(n)) todosLosResp.push(n);
+  });
+  // Si el catálogo no cargó por algún motivo, fallback a la lista hardcoded
+  const respLista = todosLosResp.length > 0 ? todosLosResp : RESPONSABLES_LISTA;
+  const respHtml = respLista.map(p => `<span class="glmodal-resp-chip ${respSel.has(p)?'on':''}" onclick="this.classList.toggle('on')" data-resp="${escapeHtml(p)}">${escapeHtml(p)}</span>`).join("");
 
   // Construir options de cultivo: marcar como seleccionado al actual (sea de BD_CC o legacy)
   const cultivoOpts = cultivosLista.map(c => {
@@ -4098,22 +4152,44 @@ async function ganttSaveLabor() {
   };
 
   let result;
+  // Spinner en el botón de guardar
+  const btnSave = document.querySelector("#gl-modal-back .glmodal-btn.primary");
+  const orig = ganttSetBtnLoading(btnSave, editId ? "Guardando..." : "Creando...");
+  ganttToast(editId ? "Guardando cambios..." : "Creando labor...", "warn");
+
   if (editId) {
     result = await ganttPostAction("update_plan", { id: editId, data: payload });
   } else {
     result = await ganttPostAction("add_plan", { data: payload });
   }
-  if (!result || !result.ok) return;
 
+  if (!result || !result.ok) {
+    ganttRestoreBtn(btnSave, orig);
+    ganttToast("Error al guardar", "error");
+    return;
+  }
+
+  ganttToast(editId ? "Cambios guardados ✓" : "Labor creada ✓");
   ganttCloseModal();
+  // Limpiar cache para que el render traiga datos frescos
+  window._ganttState.cache = null;
   renderGantt();
 }
 
 async function ganttDeleteLabor() {
   if (!confirm("¿Eliminar esta labor del plan?")) return;
+  const btn = document.querySelector("#gl-modal-back .glmodal-btn.danger");
+  const orig = ganttSetBtnLoading(btn, "Eliminando...");
+  ganttToast("Eliminando labor...", "warn");
   const result = await ganttPostAction("delete_plan", { id: window._ganttState.editId });
-  if (!result || !result.ok) return;
+  if (!result || !result.ok) {
+    ganttRestoreBtn(btn, orig);
+    ganttToast("Error al eliminar", "error");
+    return;
+  }
+  ganttToast("Labor eliminada ✓");
   ganttCloseModal();
+  window._ganttState.cache = null;
   renderGantt();
 }
 
@@ -4214,7 +4290,8 @@ async function ganttSaveCierre(idPlan) {
   if (hi && hf && hi >= hf) { alert("La hora de inicio debe ser anterior a la de fin"); return; }
 
   const btn = document.querySelector("#gl-cierre-back .glmodal-btn.primary");
-  if (btn) { btn.disabled = true; btn.textContent = "Cerrando..."; }
+  const orig = ganttSetBtnLoading(btn, "Cerrando labor...");
+  ganttToast("Cerrando labor y registrando...", "warn");
 
   const result = await ganttPostAction("close_plan", {
     id: idPlan,
@@ -4228,19 +4305,16 @@ async function ganttSaveCierre(idPlan) {
   });
 
   if (!result || !result.ok) {
-    if (btn) { btn.disabled = false; btn.textContent = "Cerrar labor"; }
+    ganttRestoreBtn(btn, orig);
+    ganttToast("Error al cerrar la labor", "error");
     return;
   }
 
+  ganttToast("Labor cerrada ✓ ID Registro: " + result.id_registro);
   ganttCloseCierreModal();
   // Limpiar cache para que el próximo render traiga datos frescos
   window._ganttState.cache = null;
   renderGantt();
-
-  // Pequeño feedback
-  setTimeout(() => {
-    alert("Labor cerrada. ID Registro creado: " + result.id_registro);
-  }, 100);
 }
 </script>
 
