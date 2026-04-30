@@ -3543,6 +3543,26 @@ async function ganttFetchData() {
   }
 }
 
+async function ganttFetchEncargados() {
+  // Cache simple para no pegarle al backend cada vez
+  if (window._ganttState.encargadosCache) return window._ganttState.encargadosCache;
+  if (!GANTT_USE_BACKEND) {
+    // fallback mock con la lista de chips actual
+    return RESPONSABLES_LISTA.map(n => ({ id: n.toLowerCase(), nombre: n }));
+  }
+  try {
+    const sep = GANTT_API_URL.includes("?") ? "&" : "?";
+    const resp = await fetch(GANTT_API_URL + sep + "action=list_encargados");
+    const json = await resp.json();
+    if (json.error) { console.error("Encargados error:", json.error); return []; }
+    window._ganttState.encargadosCache = json.data || [];
+    return json.data || [];
+  } catch (e) {
+    console.error("Encargados fetch error:", e);
+    return [];
+  }
+}
+
 async function ganttPostAction(action, payload) {
   if (!GANTT_USE_BACKEND) return ganttPostLocal(action, payload);
   try {
@@ -3796,8 +3816,9 @@ function _renderGanttUI(cont, fcont, data) {
         const prioClass = r.prioridad === "Urgente" ? "prio-urgente" : "";
         const w = span * colW - 6;
         const upTxt = r.up ? r.up + " · " : "";
+        const cerradoIcon = r.id_registro_ejec ? '<span style="margin-right:4px;font-size:10px;">✓</span>' : '';
         // top:6px para centrar verticalmente; z-index:3 para flotar sobre los borders de las track adyacentes
-        barHtml = `<div class="gantt-bar ${estClass} ${prioClass}" style="left:3px; top:6px; width:${w}px; z-index:3;" onclick="event.stopPropagation(); ganttOpenModal('${r.id}')" title="${escapeHtml(r.tarea)} (${r.estado})">${upTxt}${escapeHtml(r.tarea)}</div>`;
+        barHtml = `<div class="gantt-bar ${estClass} ${prioClass}" style="left:3px; top:6px; width:${w}px; z-index:3;" onclick="event.stopPropagation(); ganttOpenModal('${r.id}')" title="${escapeHtml(r.tarea)} (${r.estado})${r.id_registro_ejec ? ' [Registrada en BD_Registro: ' + r.id_registro_ejec + ']' : ''}">${cerradoIcon}${upTxt}${escapeHtml(r.tarea)}</div>`;
       }
       html += `<div class="gantt-cell-track ${isWE?'weekend':''} ${isToday?'today':''}" style="overflow:visible;">${barHtml}</div>`;
     });
@@ -3962,6 +3983,37 @@ async function ganttSaveLabor() {
   const editId = window._ganttState.editId;
   const tempActiva = window.TEMPORADA_ACTIVA || (typeof getTemporadaActiva==="function" ? getTemporadaActiva() : "");
 
+  // Detectar cambio a "Completada" → derivar al flujo de cierre
+  if (editId && estado === "Completada") {
+    const data = window._ganttState.cache || (await ganttFetchData());
+    const r = data.find(x => x.id === editId);
+    const yaCerrada = r && r.id_registro_ejec;
+    const eraCompletada = r && r.estado === "Completada";
+
+    if (yaCerrada) {
+      alert("Esta labor ya fue cerrada anteriormente (ID Registro: " + r.id_registro_ejec + "). No se puede modificar el cierre desde acá.");
+      return;
+    }
+    if (!eraCompletada) {
+      // Pasar al form de cierre (no guarda update_plan todavía)
+      const datosBasicos = { tarea, cultivo, up, inicio, fin, prioridad, notas, responsables, temporada: tempActiva };
+      // Antes guardamos los datos básicos (sin tocar estado), luego abrimos cierre
+      await ganttPostAction("update_plan", { id: editId, data: datosBasicos });
+      ganttOpenCierreModal(editId, r);
+      return;
+    }
+  }
+
+  // Bloqueo: si ya fue cerrada, no permitir cambio de estado a algo distinto de Completada
+  if (editId) {
+    const data = window._ganttState.cache || (await ganttFetchData());
+    const r = data.find(x => x.id === editId);
+    if (r && r.id_registro_ejec && estado !== "Completada") {
+      alert("Esta labor ya tiene un registro creado en BD_Registro (ID: " + r.id_registro_ejec + "). No se puede reabrir desde acá.");
+      return;
+    }
+  }
+
   const payload = {
     tarea, cultivo, up, inicio, fin, estado, prioridad, notas, responsables,
     temporada: tempActiva
@@ -3985,6 +4037,132 @@ async function ganttDeleteLabor() {
   if (!result || !result.ok) return;
   ganttCloseModal();
   renderGantt();
+}
+
+/* ============================================================
+   CIERRE DE LABOR: form mini que crea fila en BD_Registro
+============================================================ */
+
+async function ganttOpenCierreModal(idPlan, planData) {
+  // Cerrar modal de edición primero
+  ganttCloseModal();
+
+  const encargados = await ganttFetchEncargados();
+  const todayStr = new Date().toISOString().slice(0,10);
+
+  // Default encargado: si el plan tiene 1 responsable que matchea con el catálogo, preseleccionar
+  let defaultEncargadoId = "";
+  if (planData.responsables && planData.responsables.length === 1) {
+    const norm = s => String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const target = norm(planData.responsables[0]);
+    const match = encargados.find(e => norm(e.nombre) === target || norm(e.nombre).includes(target));
+    if (match) defaultEncargadoId = match.id;
+  }
+
+  const encOpts = `<option value="">— Seleccionar encargado —</option>` +
+    encargados.map(e => `<option value="${e.id}" ${e.id===defaultEncargadoId?'selected':''}>${escapeHtml(e.nombre)}</option>`).join("");
+
+  let modal = document.getElementById("gl-cierre-back");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "gl-cierre-back";
+    modal.className = "glmodal-back";
+    modal.onclick = (e) => { if (e.target === modal) ganttCloseCierreModal(); };
+    document.body.appendChild(modal);
+  }
+
+  const cultUp = (planData.cultivo || "") + (planData.up ? " · " + planData.up : "");
+
+  modal.innerHTML = `
+    <div class="glmodal" style="max-width:460px">
+      <div class="glmodal-head" style="background:#10b981">
+        <span class="glmodal-title">✓ Cerrar labor y registrar</span>
+        <button class="glmodal-close" onclick="ganttCloseCierreModal()">×</button>
+      </div>
+      <div style="padding:14px 20px; background:#f0fdf4; border-bottom:1px solid #d1fae5; font-size:12px;">
+        <div style="font-weight:600; color:#065f46; margin-bottom:3px;">${escapeHtml(planData.tarea)}</div>
+        <div style="color:#047857;">${escapeHtml(cultUp)}</div>
+      </div>
+      <div class="glmodal-body">
+        <div class="glmodal-row">
+          <label class="glmodal-label">Fecha real ejecución</label>
+          <input type="date" id="glc-fecha" class="glmodal-input" value="${todayStr}">
+        </div>
+        <div class="glmodal-grid2">
+          <div class="glmodal-row">
+            <label class="glmodal-label">Hora inicio</label>
+            <input type="time" id="glc-hi" class="glmodal-input" value="08:00">
+          </div>
+          <div class="glmodal-row">
+            <label class="glmodal-label">Hora fin</label>
+            <input type="time" id="glc-hf" class="glmodal-input" value="17:00">
+          </div>
+        </div>
+        <div class="glmodal-row">
+          <label class="glmodal-label">Encargado real *</label>
+          <select id="glc-enc" class="glmodal-select">${encOpts}</select>
+        </div>
+        <div class="glmodal-row">
+          <label class="glmodal-label">Observaciones</label>
+          <textarea id="glc-obs" class="glmodal-textarea" placeholder="Detalles adicionales del cierre..."></textarea>
+        </div>
+        <div style="font-size:11px;color:#666;background:#fef3c7;padding:10px;border-radius:6px;border-left:3px solid #f59e0b;line-height:1.4;">
+          Esto crea una fila en <b>BD_Registro</b> con Estado_Administrativo=Pendiente. Los campos de costo, tipo de labor y catálogos los completa el admin después.
+        </div>
+      </div>
+      <div class="glmodal-foot">
+        <button class="glmodal-btn ghost" onclick="ganttCloseCierreModal()">Cancelar</button>
+        <button class="glmodal-btn primary" style="background:#10b981" onclick="ganttSaveCierre('${idPlan}')">Cerrar labor</button>
+      </div>
+    </div>
+  `;
+  modal.classList.add("on");
+}
+
+function ganttCloseCierreModal() {
+  const m = document.getElementById("gl-cierre-back");
+  if (m) m.classList.remove("on");
+}
+
+async function ganttSaveCierre(idPlan) {
+  const fecha = document.getElementById("glc-fecha").value;
+  const hi = document.getElementById("glc-hi").value;
+  const hf = document.getElementById("glc-hf").value;
+  const idEnc = document.getElementById("glc-enc").value;
+  const obs = document.getElementById("glc-obs").value.trim();
+
+  if (!fecha) { alert("Falta fecha real"); return; }
+  if (!idEnc) { alert("Selecciona el encargado real"); return; }
+  if (hi && hf && hi >= hf) { alert("La hora de inicio debe ser anterior a la de fin"); return; }
+
+  const btn = document.querySelector("#gl-cierre-back .glmodal-btn.primary");
+  if (btn) { btn.disabled = true; btn.textContent = "Cerrando..."; }
+
+  const result = await ganttPostAction("close_plan", {
+    id: idPlan,
+    data: {
+      fecha: fecha,
+      hora_inicio: hi,
+      hora_fin: hf,
+      id_encargado: idEnc,
+      observaciones: obs
+    }
+  });
+
+  if (!result || !result.ok) {
+    if (btn) { btn.disabled = false; btn.textContent = "Cerrar labor"; }
+    return;
+  }
+
+  ganttCloseCierreModal();
+  // Limpiar cache para que el próximo render traiga datos frescos
+  window._ganttState.cache = null;
+  renderGantt();
+
+  // Pequeño feedback
+  setTimeout(() => {
+    alert("Labor cerrada. ID Registro creado: " + result.id_registro);
+  }, 100);
 }
 </script>
 
