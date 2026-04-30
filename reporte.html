@@ -2746,7 +2746,7 @@ function initMap() {
 
     let laboresLista = "";
     if (p.labCC.length === 0) {
-      laboresLista = '<div style="font-size:11px;color:#888;padding:6px 0;text-align:center;">Sin labores planificadas</div>';
+      laboresLista = '<div style="font-size:11px;color:#9fc4ad;padding:6px 0;text-align:center;">Sin labores planificadas</div>';
     } else {
       const ordenEstado = { "Atrasada": 0, "En curso": 1, "Planificada": 2, "Completada": 3 };
       const labOrd = p.labCC.slice().sort((a,b) => (ordenEstado[a.estado]||9) - (ordenEstado[b.estado]||9));
@@ -2766,16 +2766,16 @@ function initMap() {
         const fini = String(l.inicio || "").slice(5);
         const ffin = String(l.fin || "").slice(5);
         const rango = (fini === ffin || !ffin) ? fini : (fini + " → " + ffin);
-        return '<div style="padding:5px 0;border-bottom:1px solid #eee;">' +
-          '<div style="font-size:11px;font-weight:600;color:#1a1a1a;line-height:1.25;">' + escapeHtml(l.tarea || "—") + '</div>' +
-          '<div style="font-size:10px;color:#666;margin-top:2px;display:flex;justify-content:space-between;gap:6px;">' +
+        return '<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.12);">' +
+          '<div style="font-size:11px;font-weight:600;color:#e8f5ee;line-height:1.25;">' + escapeHtml(l.tarea || "—") + '</div>' +
+          '<div style="font-size:10px;color:#9fc4ad;margin-top:2px;display:flex;justify-content:space-between;gap:6px;">' +
             '<span style="color:' + estColor + ';font-weight:600;">' + estTxt + '</span>' +
             '<span>' + rango + '</span>' +
           '</div>' +
         '</div>';
       }).join("");
       if (p.labCC.length > 6) {
-        laboresLista += '<div style="font-size:10px;color:#888;text-align:center;padding:4px 0;">+' + (p.labCC.length-6) + ' más</div>';
+        laboresLista += '<div style="font-size:10px;color:#9fc4ad;text-align:center;padding:4px 0;">+' + (p.labCC.length-6) + ' más</div>';
       }
     }
 
@@ -2784,7 +2784,7 @@ function initMap() {
         '<span class="popup-tag" style="color:' + p.color + ';background:' + tagBg + ';border:1px solid ' + tagBorder + '">' + upLabel + '</span>' +
         '<span class="popup-nombre">' + (p.ha?p.ha+" há":"") + '</span>' +
       '</div>' +
-      '<div style="font-size:10px;color:#888;margin:2px 0 6px;">' + escapeHtml(p.fundo || "") + '</div>' +
+      '<div style="font-size:10px;color:#9fc4ad;margin:2px 0 6px;">' + escapeHtml(p.fundo || "") + '</div>' +
       (p.atrasadas > 0 ? '<div style="margin:4px 0 6px;font-size:11px;color:#dc2626;font-weight:600;">⚠️ ' + p.atrasadas + ' atrasada' + (p.atrasadas>1?"s":"") + '</div>' : "") +
       laboresLista +
     '</div>';
