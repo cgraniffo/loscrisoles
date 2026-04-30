@@ -449,6 +449,317 @@ if (location.search.includes('embed=1')) {
       .glmodal-grid2 { grid-template-columns:1fr; }
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Inter+Tight:wght@400;500;600;700&display=swap">
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       LOS CRISOLES — Header unificado + paleta clara
+       Reskin compartido entre reporte/produccion/asignar
+       ═══════════════════════════════════════════════════════════ */
+    :root {
+      --bg:           #F5F0E8;
+      --bg-2:         #EDE7D8;
+      --bg-card:      #FDFCF9;
+      --bg-soft:      #F0EBDC;
+
+      --text-1:       #1A2E1D;
+      --text-2:       #5C6B5F;
+      --text-3:       #8A9590;
+      --text-dim:     #B5BCB0;
+
+      --acc-green:    #2D6A1A;
+      --acc-green-bright: #4A8F2A;
+      --acc-gold:     #B8860B;
+      --acc-red:      #C0392B;
+
+      --acc-green-soft:  #E8F2DC;
+      --acc-gold-soft:   #FBF4E0;
+      --acc-red-soft:    #FBEAEC;
+
+      --header-bg:    #1A3A0A;
+
+      --verde:    var(--acc-green);
+      --verde2:   var(--acc-green-bright);
+      --verde3:   #86efac;
+      --tierra:   var(--acc-gold);
+      --crema:    var(--bg);
+      --blanco:   var(--bg-card);
+      --gris:     var(--text-2);
+      --rojo:     var(--acc-red);
+      --amber:    var(--acc-gold);
+      --azul:     #1d4ed8;
+
+      --border:       1px solid #E8E1CE;
+      --border-2:     1px solid #DDD5BD;
+      --radius:       10px;
+      --radius-lg:    14px;
+      --shadow-sm:    0 1px 2px rgba(20,40,25,.04);
+      --shadow-md:    0 2px 10px rgba(20,40,25,.06);
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-ui:      'Inter Tight', -apple-system, system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text-1);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
+      line-height: 1.5;
+      font-feature-settings: 'tnum' 1, 'cv11' 1;
+    }
+
+    /* ═══ HEADER UNIFICADO ═══════════════════════════════════════ */
+    .lc-header {
+      background: var(--header-bg);
+      color: #F5F2E8;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(0,0,0,0.2);
+    }
+    .lc-header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+    .lc-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .lc-logo {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      background: #86EFAC;
+      color: var(--header-bg);
+      display: grid; place-items: center;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .lc-brand-text { line-height: 1.15; }
+    .lc-brand-name {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 500;
+      color: #F5F2E8;
+      letter-spacing: -0.01em;
+    }
+    .lc-brand-sub {
+      font-size: 8.5px;
+      color: rgba(245, 242, 232, 0.6);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      margin-top: 1px;
+      font-weight: 500;
+    }
+
+    .lc-tabs {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+      justify-content: center;
+      overflow-x: auto;
+      scrollbar-width: none;
+      min-width: 0;
+    }
+    .lc-tabs::-webkit-scrollbar { display: none; }
+    .lc-tab {
+      color: rgba(245, 242, 232, 0.65);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 7px;
+      white-space: nowrap;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .lc-tab:hover { color: #F5F2E8; background: rgba(255,255,255,0.06); }
+    .lc-tab.active {
+      color: var(--header-bg);
+      background: #86EFAC;
+    }
+
+    .lc-ctrl {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .lc-iva-toggle {
+      display: inline-flex;
+      background: rgba(255,255,255,0.08);
+      border-radius: 7px;
+      padding: 2px;
+    }
+    .lc-iva-toggle button {
+      background: transparent;
+      border: 0;
+      color: rgba(245, 242, 232, 0.7);
+      font-size: 11px;
+      padding: 4px 9px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 500;
+    }
+    .lc-iva-toggle button.on {
+      background: #86EFAC;
+      color: var(--header-bg);
+    }
+    .lc-temp-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px;
+      font-size: 11px;
+      color: #F5F2E8;
+      font-weight: 500;
+    }
+    .lc-temp-pill::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #86EFAC;
+      box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.18);
+    }
+    .lc-temp-pill select {
+      background: transparent;
+      border: 0;
+      color: #F5F2E8;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      padding-right: 14px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path d='M1 1L4 4L7 1' stroke='%23F5F2E8' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right center;
+    }
+    .lc-temp-pill select option { background: var(--header-bg); color: #F5F2E8; }
+
+    /* Subhead — métricas de página + título contextual */
+    .lc-subhead {
+      background: var(--bg-card);
+      border-bottom: var(--border);
+    }
+    .lc-subhead-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 18px 24px 16px;
+    }
+    .lc-page-title {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: -0.015em;
+      color: var(--text-1);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .lc-page-title-eyebrow {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-style: italic;
+      color: var(--text-3);
+      letter-spacing: 0.04em;
+    }
+
+    /* Métricas top (reskin) */
+    .metrics-top, .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .metrics-top .m, .metrics .m {
+      background: var(--bg-soft);
+      border: var(--border);
+      border-radius: var(--radius);
+      padding: 10px 14px;
+    }
+    .metrics-top .m-val, .metrics .m-val {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+      color: var(--text-1);
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+    .metrics-top .m-val.green, .metrics .m-val.green { color: var(--acc-green); }
+    .metrics-top .m-val.amber, .metrics .m-val.amber { color: var(--acc-gold); }
+    .metrics-top .m-val.red,   .metrics .m-val.red   { color: var(--acc-red); }
+    .metrics-top .m-label, .metrics .m-label {
+      font-size: 10px;
+      color: var(--text-2);
+      margin-top: 3px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+    }
+
+    /* Tabs internos (reporte/produccion) */
+    .tabs-internal {
+      display: flex;
+      gap: 4px;
+      margin-top: 16px;
+      border-bottom: var(--border);
+    }
+    .tabs-internal .tab,
+    .tabs-internal .tab.on {
+      padding: 10px 16px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-2);
+      background: transparent;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .tabs-internal .tab:hover { color: var(--text-1); }
+    .tabs-internal .tab.on {
+      color: var(--acc-green);
+      border-bottom-color: var(--acc-green);
+      background: var(--bg-soft);
+    }
+
+    .lc-body-wrap {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* ═══ RESPONSIVE ═══════════════════════════════════════════ */
+    @media (max-width: 1100px) {
+      .metrics-top { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .lc-header-inner { padding: 12px 14px; flex-wrap: wrap; gap: 10px; }
+      .lc-tabs { order: 3; width: 100%; justify-content: flex-start; }
+      .lc-subhead-inner, .lc-body-wrap { padding-left: 14px; padding-right: 14px; }
+      .metrics-top { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .lc-page-title { font-size: 18px; }
+      .tabs-internal { overflow-x: auto; }
+    }
+  </style>
+
+
 <script>
 (function(){
   var params = new URLSearchParams(location.search);
@@ -469,61 +780,82 @@ if (location.search.includes('embed=1')) {
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap">
 </head>
 <body>
-<div class="hdr">
-  <div class="hdr-top">
-    <div>
-      <div class="hdr-logo">Los Crisoles · BData</div>
-      <div class="hdr-title">Reporte diario Los Crisoles</div>
-      <div class="hdr-date" id="hdr-date">—</div>
+<header class="lc-header">
+  <div class="lc-header-inner">
+    <div class="lc-brand">
+      <div class="lc-logo">L</div>
+      <div class="lc-brand-text">
+        <div class="lc-brand-name">Los Crisoles</div>
+        <div class="lc-brand-sub">Briefing · Colchagua</div>
+      </div>
     </div>
-    <div class="hdr-refresh" id="hdr-refresh"></div>
+    <nav class="lc-tabs">
+      <a href="home.html" class="lc-tab">Resumen</a>
+      <a href="reporte.html?tab=labores" class="lc-tab active">Labores</a>
+      <a href="produccion.html?tab=produccion" class="lc-tab">Producción</a>
+      <a href="produccion.html?tab=insumos" class="lc-tab">Insumos</a>
+      <a href="reporte.html?tab=optimizador" class="lc-tab">Optimizador</a>
+      <a href="reporte.html?tab=caja" class="lc-tab">Caja</a>
+      <a href="reporte.html?tab=ingresos" class="lc-tab">Ingresos</a>
+      <a href="reporte.html?tab=costos" class="lc-tab">Costos</a>
+      <a href="reporte.html?tab=resultados" class="lc-tab">Resultados</a>
+      <a href="asignar.html" class="lc-tab">Asignar</a>
+      <a href="reporte.html?tab=documentos" class="lc-tab">Docs</a>
+    </nav>
+    <div class="lc-ctrl">
+      <div class="lc-iva-toggle">
+        <button id="iva-neto"  class="on" onclick="lcSetIva('neto')">Sin IVA</button>
+        <button id="iva-bruto" onclick="lcSetIva('bruto')">Con IVA</button>
+      </div>
+      <div class="lc-temp-pill">
+        <select id="sel-temp" onchange="lcSetTemp(this.value || null);">
+          <option value="">Todas</option>
+        </select>
+      </div>
+    </div>
+    <div id="hdr-date" style="display:none;"></div>
   </div>
-  <div class="metrics-top" id="metrics-labores">
+</header>
+
+<div class="lc-subhead"><div class="lc-subhead-inner">
+<div class="lc-page-title"><span class="lc-page-title-eyebrow">Operación · </span>Reporte diario</div>
+<div class="metrics-top" id="metrics-labores">
     <div class="m"><div class="m-val" id="m-total">—</div><div class="m-label">Total activas</div></div>
     <div class="m"><div class="m-val red" id="m-venc">—</div><div class="m-label">Vencidas</div></div>
     <div class="m"><div class="m-val amber" id="m-hoy">—</div><div class="m-label">Vencen hoy</div></div>
     <div class="m"><div class="m-val green" id="m-prox">—</div><div class="m-label">Próximas</div></div>
   </div>
-  <div class="metrics-top" id="metrics-costos" style="display:none;">
+<div class="metrics-top" id="metrics-costos" style="display:none;">
     <div class="m"><div class="m-val green" id="m-costo-total">—</div><div class="m-label">Costo total acumulado</div></div>
     <div class="m"><div class="m-val" id="m-costo-ha">—</div><div class="m-label">Costo por hectárea</div></div>
   </div>
-  <div class="metrics-top" id="metrics-ingresos" style="display:none;">
+<div class="metrics-top" id="metrics-ingresos" style="display:none;">
     <div class="m"><div class="m-val green" id="m-ing-total">—</div><div class="m-label">Ingreso total</div></div>
     <div class="m"><div class="m-val" id="m-ing-real">—</div><div class="m-label">Real</div></div>
     <div class="m"><div class="m-val amber" id="m-ing-estimado">—</div><div class="m-label">Estimado</div></div>
     <div class="m"><div class="m-val" id="m-ing-kilos">—</div><div class="m-label">Kilos totales</div></div>
     <div class="m"><div class="m-val" id="m-ing-precio">—</div><div class="m-label">Precio promedio</div></div>
   </div>
-  <div class="metrics-top" id="metrics-caja" style="display:none;grid-template-columns:repeat(5,1fr);">
+<div class="metrics-top" id="metrics-caja" style="display:none;grid-template-columns:repeat(5,1fr);">
     <div class="m"><div class="m-val" id="m-caja-actual">—</div><div class="m-label">Caja actual</div></div>
     <div class="m"><div class="m-val green" id="m-caja-saldo">—</div><div class="m-label">Proyectado 15d</div></div>
     <div class="m"><div class="m-val" id="m-caja-p30">—</div><div class="m-label">Proyectado 30d</div></div>
     <div class="m"><div class="m-val" id="m-caja-p60">—</div><div class="m-label">Proyectado 60d</div></div>
     <div class="m"><div class="m-val" id="m-caja-pm60">—</div><div class="m-label">Proyectado +60d</div></div>
   </div>
-  <div class="metrics-top" id="metrics-resultados" style="display:none;">
+<div class="metrics-top" id="metrics-resultados" style="display:none;">
     <div class="m"><div class="m-val amber" id="m-margen-total">—</div><div class="m-label">Margen total</div></div>
     <div class="m"><div class="m-val" id="m-margen-ton">—</div><div class="m-label">Margen por tonelada</div></div>
     <div class="m"><div class="m-val" id="m-margen-ha">—</div><div class="m-label">Margen por hectárea</div></div>
   </div>
-  <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-    <div class="tabs">
+<div class="tabs-internal">
       <div class="tab on" id="tab-labores" onclick="switchTab('labores')">📋 Labores</div>
       <div class="tab" id="tab-caja" onclick="switchTab('caja')">🏦 Caja</div>
       <div class="tab" id="tab-costos" onclick="switchTab('costos')">💰 Costos</div>
       <div class="tab" id="tab-ingresos" onclick="switchTab('ingresos')">🌾 Ingresos</div>
       <div class="tab" id="tab-resultados" onclick="switchTab('resultados')">📊 Resultados</div>
     </div>
-    <div style="padding:0 12px 4px;display:flex;align-items:center;gap:8px;">
-      <span style="font-size:11px;color:#9fe1cb;">Temporada:</span>
-      <select id="sel-temporada" onchange="cambiarTemporada(this.value)"
-        style="font-size:12px;font-weight:bold;background:#2d6a1a;color:#fff;border:1px solid #86efac;border-radius:6px;padding:4px 10px;cursor:pointer;outline:none;">
-      </select>
-    </div>
-  </div>
-</div>
-
+</div></div>
 <div class="body">
   <div id="app-labores"><div class="loading">Cargando reporte...</div></div>
   <div id="app-costos" style="display:none;"><div class="loading">Cargando costos...</div></div>
@@ -4728,6 +5060,57 @@ async function ganttSaveCC() {
     <button id="chat-send" onclick="chatSend()">Enviar</button>
   </div>
 </div>
+
+
+<script>
+function lcSetIva(modo) {
+  var a = document.getElementById('iva-neto');
+  var b = document.getElementById('iva-bruto');
+  if (a) a.classList.toggle('on', modo === 'neto');
+  if (b) b.classList.toggle('on', modo === 'bruto');
+  if (typeof window.cambiarVistaIva === 'function') window.cambiarVistaIva(modo);
+}
+function lcSetTemp(t) {
+  var legacy = document.getElementById('sel-temporada');
+  if (legacy) legacy.value = t || '';
+  if (typeof window.cambiarTemporada === 'function') window.cambiarTemporada(t);
+}
+(function() {
+  var tries = 0;
+  var iv = setInterval(function() {
+    tries++;
+    var TM = window.TEMP_MAP || {};
+    var sel = document.getElementById('sel-temp');
+    if (!sel) { clearInterval(iv); return; }
+    var temps = Object.values(TM).map(function(x){return x.temporada;}).filter(Boolean);
+    var uniq = []; temps.forEach(function(t){ if (uniq.indexOf(t)<0) uniq.push(t); });
+    uniq.sort().reverse();
+    if (uniq.length > 0) {
+      var cur = window.TEMPORADA_ACTIVA || uniq[0];
+      var html = '<option value="">Todas</option>';
+      uniq.forEach(function(t) {
+        html += '<option value="'+t+'"'+(t===cur?' selected':'')+'>'+t+'</option>';
+      });
+      sel.innerHTML = html;
+      var legacy = document.getElementById('sel-temporada');
+      if (legacy && (legacy.options.length === 0 || legacy.options.length !== uniq.length)) {
+        legacy.innerHTML = uniq.map(function(t){return '<option value="'+t+'"'+(t===cur?' selected':'')+'>'+t+'</option>';}).join('');
+      }
+      clearInterval(iv);
+    }
+    if (tries > 60) clearInterval(iv);
+  }, 500);
+  setTimeout(function() {
+    var modo = window.VISTA_IVA || 'neto';
+    var a = document.getElementById('iva-neto');
+    var b = document.getElementById('iva-bruto');
+    if (a && b) {
+      a.classList.toggle('on', modo === 'neto');
+      b.classList.toggle('on', modo === 'bruto');
+    }
+  }, 200);
+})();
+</script>
 
 </body>
 </html>
