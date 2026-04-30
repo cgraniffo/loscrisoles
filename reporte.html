@@ -3511,7 +3511,9 @@ async function chatSend() {
 const RESPONSABLES_LISTA = ["Nino","Carlín","Cocho","Juan","Daniel","Víctor","José","Hugo"];
 const ESTADOS_LABOR = ["Planificada","En curso","Completada","Atrasada"];
 const PRIORIDADES = ["Normal","Urgente"];
-const CULTIVOS_GANTT = ["Trigo","Nuez","Achicoria","Pepino","Maíz","Repollo","Frejol","Otros"];
+// Lista fallback de cultivos. En el modal se usan los cultivos reales de BD_CC.
+// Esta lista se usa para los chips de filtro arriba del Gantt si BD_CC aún no está cargado.
+const CULTIVOS_GANTT = ["Trigo","Nuez","Achicoria","Pepino","Maíz","Repollo","Frejol","Nativos","Otros"];
 
 // Flag de modo: false = localStorage (mock), true = backend Apps Script
 const GANTT_USE_BACKEND = true;
@@ -3741,8 +3743,14 @@ function _renderGanttUI(cont, fcont, data) {
     const f = window._ganttState.filtros;
     let html = `<span style="font-size:10px;color:#888;margin-right:4px;align-self:center;font-weight:bold;">FILTROS:</span>`;
     html += `<button class="gantt-fchip ${!f.cultivo?'on':''}" onclick="ganttFilter('cultivo','')">Todos cultivos</button>`;
-    CULTIVOS_GANTT.forEach(c => {
-      html += `<button class="gantt-fchip ${f.cultivo===c?'on':''}" onclick="ganttFilter('cultivo','${c}')">${c}</button>`;
+    // Cultivos: preferir los reales de BD_CC, sino la lista fallback
+    let listaCultivos = CULTIVOS_GANTT;
+    try {
+      const reales = [...new Set(Object.values(CULTIVO_MAP||{}).filter(Boolean))];
+      if (reales.length > 0) listaCultivos = reales.sort();
+    } catch(e) {}
+    listaCultivos.forEach(c => {
+      html += `<button class="gantt-fchip ${f.cultivo===c?'on':''}" onclick="ganttFilter('cultivo','${escapeHtml(c).replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`;
     });
     html += `<span style="border-left:1px solid #e5e2da;margin:0 4px;height:18px;"></span>`;
     html += `<button class="gantt-fchip ${!f.estado?'on':''}" onclick="ganttFilter('estado','')">Todos estados</button>`;
@@ -3854,22 +3862,38 @@ function ganttOpenModal(id) {
 
 function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().slice(0,10);
 
-  // UPs disponibles desde CC_MAP filtradas por temporada activa si existe
-  let upOpts = [];
+  // Construir lista de UPs desde BD_CC (filtrando por temporada activa)
+  // Estructura: { upId, ccNombre, cultivo, fundo, ha, temporada }
+  const tempActiva = window.TEMPORADA_ACTIVA || (typeof getTemporadaActiva==="function" ? getTemporadaActiva() : "");
+  const upsBD_CC = [];
   try {
-    const tempActiva = window.TEMPORADA_ACTIVA || (typeof getTemporadaActiva==="function" ? getTemporadaActiva() : "");
-    Object.entries(CC_MAP||{}).forEach(([ccId, nombre]) => {
+    Object.entries(CC_MAP||{}).forEach(([ccId, ccNombre]) => {
       if (tempActiva && TEMP_MAP && TEMP_MAP[ccId]) {
         if (TEMP_MAP[ccId].temporada !== tempActiva) return;
       }
       if (typeof esUpProd==="function" && !esUpProd(ccId)) return;
-      upOpts.push({ id:ccId, nombre });
+      const cultivo = (CULTIVO_MAP[ccId] || "").trim();
+      const fundo = (FUNDO_MAP[ccId] || "").trim();
+      upsBD_CC.push({
+        id: ccId,
+        ccNombre: ccNombre,
+        cultivo: cultivo || "Otros",
+        fundo: fundo,
+        ha: HA_MAP[ccId] || 0
+      });
     });
   } catch(e) {}
-  upOpts.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  upsBD_CC.sort((a,b)=> (a.cultivo+a.ccNombre).localeCompare(b.cultivo+b.ccNombre));
+
+  // Lista de cultivos únicos presentes en BD_CC (en vez de hardcoded)
+  const cultivosUnicos = [...new Set(upsBD_CC.map(u => u.cultivo))].filter(Boolean).sort();
+  // Si no hay datos de BD_CC todavía cargados (caso edge), fallback a lista mínima
+  const cultivosLista = cultivosUnicos.length > 0
+    ? cultivosUnicos
+    : Object.values(ESPECIE_NAMES || {});
 
   const upSelectedNombre = r && r.up ? r.up : "";
-  const cultivoSelected = r ? r.cultivo : "";
+  const cultivoSelected = r ? r.cultivo : (cultivosLista[0] || "");
   const estadoSelected = r ? r.estado : "Planificada";
   const prioSelected = r ? r.prioridad : "Normal";
   const inicio = r ? r.inicio : todayStr;
@@ -3878,11 +3902,20 @@ function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().s
   const respSel = new Set(r ? (r.responsables||[]) : []);
   const respHtml = RESPONSABLES_LISTA.map(p => `<span class="glmodal-resp-chip ${respSel.has(p)?'on':''}" onclick="this.classList.toggle('on')" data-resp="${p}">${p}</span>`).join("");
 
-  const cultivoOpts = CULTIVOS_GANTT.map(c => `<option value="${c}" ${c===cultivoSelected?'selected':''}>${c}</option>`).join("");
+  const cultivoOpts = cultivosLista.map(c => `<option value="${escapeHtml(c)}" ${c===cultivoSelected?'selected':''}>${escapeHtml(c)}</option>`).join("");
   const estadoOpts = ESTADOS_LABOR.map(e => `<option value="${e}" ${e===estadoSelected?'selected':''}>${e}</option>`).join("");
   const prioOpts = PRIORIDADES.map(p => `<option value="${p}" ${p===prioSelected?'selected':''}>${p}</option>`).join("");
+
+  // Guardamos las UPs de BD_CC en window para usarlas en el handler de cambio de cultivo
+  window._ganttState.upsBD_CC = upsBD_CC;
+
+  // UP Options filtradas por cultivo seleccionado
+  const upsFiltradas = upsBD_CC.filter(u => u.cultivo === cultivoSelected);
   const upOptsHtml = `<option value="">— sin UP específica —</option>` +
-    upOpts.map(u => `<option value="${u.nombre}" ${u.nombre===upSelectedNombre?'selected':''}>${u.nombre}</option>`).join("");
+    upsFiltradas.map(u => {
+      const label = u.ccNombre + (u.ha ? " (" + u.ha + " há)" : "");
+      return `<option value="${escapeHtml(u.ccNombre)}" data-id="${u.id}" ${u.ccNombre===upSelectedNombre?'selected':''}>${escapeHtml(label)}</option>`;
+    }).join("");
 
   let modal = document.getElementById("gl-modal-back");
   if (!modal) {
@@ -3907,7 +3940,7 @@ function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().s
         <div class="glmodal-grid2">
           <div class="glmodal-row">
             <label class="glmodal-label">Cultivo</label>
-            <select id="glm-cultivo" class="glmodal-select">${cultivoOpts}</select>
+            <select id="glm-cultivo" class="glmodal-select" onchange="ganttOnCultivoChange()">${cultivoOpts}</select>
           </div>
           <div class="glmodal-row">
             <label class="glmodal-label">Unidad Productiva</label>
@@ -3963,12 +3996,27 @@ function ganttCloseModal() {
   window._ganttState.editId = null;
 }
 
+function ganttOnCultivoChange() {
+  const cultivoSel = document.getElementById("glm-cultivo").value;
+  const upSel = document.getElementById("glm-up");
+  if (!upSel) return;
+  const ups = (window._ganttState.upsBD_CC || []).filter(u => u.cultivo === cultivoSel);
+  let html = `<option value="">— sin UP específica —</option>`;
+  ups.forEach(u => {
+    const label = u.ccNombre + (u.ha ? " (" + u.ha + " há)" : "");
+    html += `<option value="${escapeHtml(u.ccNombre)}" data-id="${u.id}">${escapeHtml(label)}</option>`;
+  });
+  upSel.innerHTML = html;
+}
+
 async function ganttSaveLabor() {
   const tarea = document.getElementById("glm-tarea").value.trim();
   if (!tarea) { alert("La tarea no puede estar vacía"); return; }
 
   const cultivo = document.getElementById("glm-cultivo").value;
-  const up = document.getElementById("glm-up").value;
+  const upSelect = document.getElementById("glm-up");
+  const up = upSelect.value;
+  const centro_costo = upSelect.selectedOptions[0]?.dataset.id || "";
   const inicio = document.getElementById("glm-inicio").value;
   const fin = document.getElementById("glm-fin").value;
   const estado = document.getElementById("glm-estado").value;
@@ -3996,7 +4044,7 @@ async function ganttSaveLabor() {
     }
     if (!eraCompletada) {
       // Pasar al form de cierre (no guarda update_plan todavía)
-      const datosBasicos = { tarea, cultivo, up, inicio, fin, prioridad, notas, responsables, temporada: tempActiva };
+      const datosBasicos = { tarea, cultivo, up, centro_costo, inicio, fin, prioridad, notas, responsables, temporada: tempActiva };
       // Antes guardamos los datos básicos (sin tocar estado), luego abrimos cierre
       await ganttPostAction("update_plan", { id: editId, data: datosBasicos });
       ganttOpenCierreModal(editId, r);
@@ -4015,7 +4063,7 @@ async function ganttSaveLabor() {
   }
 
   const payload = {
-    tarea, cultivo, up, inicio, fin, estado, prioridad, notas, responsables,
+    tarea, cultivo, up, centro_costo, inicio, fin, estado, prioridad, notas, responsables,
     temporada: tempActiva
   };
 
