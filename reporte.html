@@ -326,6 +326,89 @@ if (location.search.includes('embed=1')) {
     details[open] > summary .cultivo-chevron { transform: rotate(90deg); display: inline-block; transition: transform 0.15s; }
     details > summary .cultivo-chevron { transition: transform 0.15s; display: inline-block; }
     details > summary::-webkit-details-marker { display: none; }
+
+    /* ============ GANTT LABORES ============ */
+    .gantt-wrap { background:#fff; border-radius:10px; padding:0; margin-bottom:16px; overflow:hidden; border:1px solid #e5e2da; }
+    .gantt-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #e5e2da; flex-wrap:wrap; gap:10px; background:#fafaf7; }
+    .gantt-title { color:#1a3a0a; font-size:13px; font-weight:bold; letter-spacing:0.04em; text-transform:uppercase; }
+    .gantt-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .gantt-view-btns { display:flex; background:#f0ede6; border-radius:6px; padding:2px; border:1px solid #e5e2da; }
+    .gantt-vbtn { padding:5px 12px; font-size:11px; font-weight:bold; color:#666; background:transparent; border:none; cursor:pointer; border-radius:4px; }
+    .gantt-vbtn.on { background:#1a3a0a; color:#fff; }
+    .gantt-nav { display:flex; align-items:center; gap:6px; }
+    .gantt-nav-btn { background:#f0ede6; color:#555; border:1px solid #e5e2da; width:26px; height:26px; border-radius:4px; cursor:pointer; font-size:13px; }
+    .gantt-nav-btn:hover { background:#1a3a0a; color:#fff; border-color:#1a3a0a; }
+    .gantt-today-btn { background:#1a3a0a; color:#fff; border:none; padding:5px 10px; font-size:11px; border-radius:4px; cursor:pointer; font-weight:bold; }
+    .gantt-add-btn { background:#2d6a4f; color:#fff; border:none; padding:6px 12px; font-size:11px; font-weight:bold; border-radius:6px; cursor:pointer; }
+    .gantt-add-btn:hover { background:#1e4d36; }
+
+    .gantt-filters { display:flex; gap:6px; padding:10px 16px; background:#fafaf7; border-bottom:1px solid #e5e2da; flex-wrap:wrap; align-items:center; }
+    .gantt-fchip { font-size:10px; padding:3px 9px; border-radius:99px; border:1px solid #ddd; background:#fff; color:#555; cursor:pointer; }
+    .gantt-fchip.on { background:#1a3a0a; color:#fff; border-color:#1a3a0a; }
+
+    .gantt-scroll { overflow-x:auto; max-height:500px; overflow-y:auto; background:#fff; }
+    .gantt-grid { display:grid; min-width:100%; position:relative; }
+    .gantt-row { display:contents; }
+    .gantt-cell-label { background:#fafaf7; padding:8px 10px; border-bottom:1px solid #ececec; border-right:2px solid #e5e2da; position:sticky; left:0; z-index:5; min-width:240px; max-width:240px; }
+    .gantt-cell-label.head { background:#f0ede6; border-bottom:2px solid #1a3a0a; }
+    .gantt-cell-label-title { font-size:11px; font-weight:bold; color:#1a3a0a; letter-spacing:0.05em; text-transform:uppercase; }
+    .gantt-cell-day { background:#fafaf7; padding:6px 4px; border-bottom:1px solid #ececec; border-right:1px solid #f0ede6; text-align:center; font-size:10px; min-width:38px; }
+    .gantt-cell-day.head { background:#f0ede6; border-bottom:2px solid #1a3a0a; color:#1a3a0a; font-weight:bold; }
+    .gantt-cell-day.weekend { background:#f5f3ee; }
+    .gantt-cell-day.today { background:rgba(45,106,79,0.12); border-left:2px solid #2d6a4f; border-right:2px solid #2d6a4f; }
+    .gantt-day-num { color:#1a1a1a; font-weight:bold; font-size:12px; line-height:1.2; }
+    .gantt-day-name { color:#888; font-size:9px; text-transform:uppercase; }
+    .gantt-day-mes { color:#2d6a4f; font-size:9px; font-weight:bold; }
+    .gantt-cell-task { background:#fff; padding:8px 10px; border-bottom:1px solid #ececec; border-right:2px solid #e5e2da; position:sticky; left:0; z-index:4; min-width:240px; max-width:240px; }
+    .gantt-cell-track { background:#fff; border-bottom:1px solid #ececec; border-right:1px solid #f5f3ef; position:relative; min-height:36px; }
+    .gantt-cell-track.weekend { background:#fafaf7; }
+    .gantt-cell-track.today { background:rgba(45,106,79,0.05); }
+
+    .gantt-task-line1 { font-size:12px; color:#1a1a1a; font-weight:600; line-height:1.2; }
+    .gantt-task-line2 { font-size:10px; color:#666; margin-top:2px; }
+    .gantt-task-line3 { font-size:9px; color:#888; margin-top:3px; display:flex; gap:4px; flex-wrap:wrap; }
+    .gantt-resp-chip { background:#f0ede6; color:#1a3a0a; padding:1px 6px; border-radius:99px; font-size:9px; font-weight:bold; border:1px solid #e5e2da; }
+
+    .gantt-bar { position:absolute; top:6px; height:24px; border-radius:5px; cursor:pointer; padding:3px 8px; display:flex; align-items:center; font-size:11px; font-weight:bold; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:0 1px 3px rgba(0,0,0,0.15); transition:transform 0.1s, box-shadow 0.1s; }
+    .gantt-bar:hover { transform:translateY(-1px); box-shadow:0 3px 8px rgba(0,0,0,0.25); z-index:10; }
+    .gantt-bar.estado-planificada { background:#94a3b8; }
+    .gantt-bar.estado-encurso     { background:#3b82f6; }
+    .gantt-bar.estado-completada  { background:#10b981; }
+    .gantt-bar.estado-atrasada    { background:#ef4444; }
+    .gantt-bar.prio-urgente { box-shadow:0 0 0 2px #f59e0b, 0 1px 3px rgba(0,0,0,0.15); }
+
+    .gantt-empty { color:#888; font-size:12px; text-align:center; padding:30px; background:#fff; }
+
+    /* Modal */
+    .glmodal-back { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; display:none; align-items:center; justify-content:center; padding:20px; }
+    .glmodal-back.on { display:flex; }
+    .glmodal { background:#fff; border-radius:12px; padding:0; max-width:520px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 10px 40px rgba(0,0,0,0.3); }
+    .glmodal-head { padding:16px 20px; border-bottom:1px solid #e5e2da; display:flex; justify-content:space-between; align-items:center; background:#1a3a0a; color:#fff; border-radius:12px 12px 0 0; }
+    .glmodal-title { font-size:15px; font-weight:bold; }
+    .glmodal-close { background:transparent; border:none; color:#fff; font-size:20px; cursor:pointer; line-height:1; }
+    .glmodal-body { padding:18px 20px; }
+    .glmodal-row { margin-bottom:14px; }
+    .glmodal-label { display:block; font-size:11px; font-weight:bold; color:#666; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:5px; }
+    .glmodal-input, .glmodal-select, .glmodal-textarea { width:100%; padding:8px 10px; border:1px solid #d4d1c9; border-radius:6px; font-size:13px; font-family:inherit; background:#fff; }
+    .glmodal-textarea { min-height:60px; resize:vertical; }
+    .glmodal-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .glmodal-resp-wrap { display:flex; gap:6px; flex-wrap:wrap; }
+    .glmodal-resp-chip { font-size:11px; padding:5px 12px; border-radius:99px; border:1px solid #ddd; background:#f8f8f6; color:#555; cursor:pointer; user-select:none; }
+    .glmodal-resp-chip.on { background:#2d6a4f; color:#fff; border-color:#2d6a4f; }
+    .glmodal-foot { padding:12px 20px; border-top:1px solid #e5e2da; display:flex; justify-content:space-between; gap:10px; background:#fafaf7; border-radius:0 0 12px 12px; }
+    .glmodal-btn { padding:8px 16px; font-size:12px; font-weight:bold; border-radius:6px; border:none; cursor:pointer; }
+    .glmodal-btn.primary { background:#2d6a4f; color:#fff; }
+    .glmodal-btn.primary:hover { background:#1e4d36; }
+    .glmodal-btn.danger { background:#dc2626; color:#fff; }
+    .glmodal-btn.ghost { background:#f0ede6; color:#555; }
+    .glmodal-btn.ghost:hover { background:#e5e2da; }
+
+    @media (max-width:600px){
+      .gantt-cell-label, .gantt-cell-task { min-width:160px; max-width:160px; padding:6px 8px; }
+      .gantt-task-line1 { font-size:11px; }
+      .gantt-task-line2 { font-size:9px; }
+      .glmodal-grid2 { grid-template-columns:1fr; }
+    }
   </style>
 <script>
 (function(){
@@ -1300,7 +1383,6 @@ function renderIngresos() {
   const upsConFactura = new Set(facturasAsig.map(r => r.up));
 
   // ── FUENTE 2: Proyecciones Estimado ───────────────────────────────────────
-  // Proyecciones para Ppto: todas (sin filtro de fecha) — el Ppto refleja el plan completo
   const proyEstimado = (window.PROYECCIONES||[]).filter(r => {
     const id    = String(r["Unidad_Productiva"]||"").trim();
     const est   = String(r["Estado"]||"").trim();
@@ -1312,17 +1394,6 @@ function renderIngresos() {
     monto:   aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion'),
     fecha:   r["Fecha_Estimada"]||"",
     kilos:   Number(r["Kilos_Estimados"]||0)
-  }));
-
-  // Proyecciones FUTURAS: subset de proyEstimado con Fecha_Estimada > hoy
-  // Estas suman al Real porque "se asume que llegarán"
-  const hoyMs = today0().getTime();
-  const proyFuturas = proyEstimado.filter(r => {
-    const fd = parseDate(r.fecha);
-    return fd && fd.getTime() > hoyMs;
-  }).map(r => ({
-    ...r,
-    _fuente: "proyeccion-futura"
   }));
 
   // ── TOTALES POR FUENTE ────────────────────────────────────────────────────
@@ -1357,9 +1428,8 @@ function renderIngresos() {
     });
   }
 
-  const filtFact   = applyFilters(facturasAsig);
-  const filtEst    = applyFilters(proyEstimado);
-  const filtFutura = applyFilters(proyFuturas);
+  const filtFact  = applyFilters(facturasAsig);
+  const filtEst   = applyFilters(proyEstimado);
   const filtTodos = [...filtFact, ...filtEst];
 
   // ── TABLA POR UP ──────────────────────────────────────────────────────────
@@ -1447,10 +1517,8 @@ function renderIngresos() {
   const cobradoContratos = getCobradoContratos();
   const pptoContratos = getPptoContratos();
   const tFactF = sumF(filtFact);
-  const tFutF  = sumF(filtFutura);
   const tEstF  = sumF(filtEst);
-  // Real combinado = DTE oficiales + proyecciones futuras (asumidas) + cobrado contratos nueces
-  const tFactCombinado = tFactF + tFutF + cobradoContratos;
+  const tFactCombinado = tFactF + cobradoContratos;
   const pFactCombinado = tEstF>0 ? Math.round(tFactCombinado/tEstF*100) : (tFactCombinado>0?100:0);
 
   const cultivoRows = {};
@@ -1467,22 +1535,6 @@ function renderIngresos() {
       up:     r.up,
       monto:  r.monto,
       tipo:   r.esNC ? "nc" : "factura"
-    });
-  });
-  // Sumar proyecciones futuras al Real del cultivo y al detalle
-  (filtFutura || []).forEach(r => {
-    const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
-    cultivoRows[cultivo].fact += r.monto;
-    if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
-    cultivoRows[cultivo].ups[r.up].fact += r.monto;
-    cultivoRows[cultivo].facturas.push({
-      fecha:  r.fecha,
-      folio:  "—",
-      razon:  "Proyección esperada",
-      up:     r.up,
-      monto:  r.monto,
-      tipo:   "proyeccion"
     });
   });
   (filtEst || []).forEach(r => {
@@ -1580,7 +1632,6 @@ function renderIngresos() {
             let montoColor = "#1a6e3a";
             if (f.tipo === "anticipo") tipoIcon = '<span title="Anticipo nueces (contrato)" style="color:#b45309;">●</span> ';
             else if (f.tipo === "nc")  { tipoIcon = '<span title="Nota de crédito" style="color:#b91c1c;">●</span> '; montoColor = "#b91c1c"; }
-            else if (f.tipo === "proyeccion") { tipoIcon = '<span title="Proyección futura — se asume que llegará" style="color:#b45309;">○</span> '; montoColor = "#b45309"; }
             const montoTxt = f.tipo === "nc" ? "−" + fmtPeso(Math.abs(f.monto)) : fmtPeso(f.monto);
             return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
               <div style="color:#555;">${tipoIcon}${fechaTxt}</div>
@@ -1682,38 +1733,15 @@ function renderIngresos() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
 
       <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Presupuesto total${TEMPORADA_ACTIVA?` · ${TEMPORADA_ACTIVA}`:""}</div>
+        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Presupuesto total</div>
         <div style="font-size:22px;font-weight:700;color:#b45309;line-height:1;">${fmtPeso(tEstF)}</div>
         <div style="font-size:11px;color:#b45309;margin-top:4px;">${filtEst.length} registros · Proyecciones_Manuales</div>
       </div>
 
       <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real + Proyectado)${TEMPORADA_ACTIVA?` · ${TEMPORADA_ACTIVA}`:""}</div>
+        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real)</div>
         <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado)}</div>
-        ${(()=>{
-          const realFact = tFactF + cobradoContratos;
-          const proyect  = tFutF;
-          const pctReal  = tEstF > 0 ? Math.round(realFact/tEstF*100) : 0;
-          const pctTotal = tEstF > 0 ? Math.round(tFactCombinado/tEstF*100) : 0;
-          // Barra de composición (Real verde oscuro + Proyectado verde claro)
-          const totalBar = realFact + proyect;
-          const wReal = totalBar > 0 ? (realFact / totalBar * 100) : 0;
-          const wProy = totalBar > 0 ? (proyect  / totalBar * 100) : 0;
-          return `
-          <div style="display:flex;height:6px;border-radius:4px;overflow:hidden;margin-top:8px;background:#dde8d0;">
-            <div style="width:${wReal}%;background:#1a6e3a;" title="Real facturado"></div>
-            <div style="width:${wProy}%;background:#7ab86b;" title="Proyectado futuro"></div>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:6px;color:#3b6d11;">
-            <span><span style="display:inline-block;width:8px;height:8px;background:#1a6e3a;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Real <strong>${fmtPeso(realFact)}</strong></span>
-            <span><span style="display:inline-block;width:8px;height:8px;background:#7ab86b;border-radius:2px;vertical-align:middle;margin-right:4px;"></span>Proyectado <strong>${fmtPeso(proyect)}</strong></span>
-          </div>
-          <div style="font-size:11px;color:#3b6d11;margin-top:8px;border-top:1px dotted #b8d199;padding-top:6px;">
-            <strong>${pctReal}%</strong> real · <strong>${pctTotal}%</strong> real + proyectado <span style="color:#888;">(vs. presupuesto)</span>
-          </div>
-          <div style="font-size:10px;color:#7a8c5a;margin-top:4px;">${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${filtFutura.length>0?` · ${filtFutura.length} proy. futuras`:""}${cobradoContratos>0?` · anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
-          `;
-        })()}
+        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
       </div>
 
     </div>
@@ -2537,11 +2565,13 @@ function renderPageLabores() {
       <div id="mapa-campo"></div>
       <div class="mapa-stats-panel" id="mapa-panel-labores"></div>
     </div>` +
+    renderGanttBlock() +
     renderStats() +
     renderFilters() + renderLabores() +
     `<div class="footer">Reporte automático · Los Crisoles · BData</div>`;
   initMap();
   buildMapaPanel();
+  renderGantt();
 }
 
 function buildMapaPanel() {
@@ -3458,6 +3488,488 @@ async function chatSend() {
   msgs.scrollTop = msgs.scrollHeight;
   send.disabled = false;
   input.focus();
+}
+
+/* ============================================================
+   GANTT DE LABORES — vista diaria/semanal con form web
+   Datos en localStorage por ahora (mock). Migrar a Apps Script
+   cuando se cree el Sheet Plan_Labores.
+============================================================ */
+
+const RESPONSABLES_LISTA = ["Nino","Carlín","Cocho","Juan","Daniel","Víctor","José","Hugo"];
+const ESTADOS_LABOR = ["Planificada","En curso","Completada","Atrasada"];
+const PRIORIDADES = ["Normal","Urgente"];
+const CULTIVOS_GANTT = ["Trigo","Nuez","Achicoria","Pepino","Maíz","Repollo","Frejol","Otros"];
+
+// Flag de modo: false = localStorage (mock), true = backend Apps Script
+const GANTT_USE_BACKEND = true;
+// Endpoint directo al Apps Script Plan_Labores API
+const GANTT_API_URL = "https://script.google.com/macros/s/AKfycbzsEgcVC94wKXamVV5TOQuRXpSiXr4di2CJU3BVfYIcNgP9j-OS3dMOWauFwijCxSnO/exec";
+
+window._ganttState = {
+  vista: "semanal",
+  anclaFecha: new Date(),
+  filtros: { cultivo:"", estado:"", responsable:"" },
+  editId: null,
+  cache: null  // cache de labores cargadas del backend
+};
+
+/* ============ DATA LAYER ============ */
+
+async function ganttFetchData() {
+  if (!GANTT_USE_BACKEND) return ganttLoadDataLocal();
+  try {
+    const sep = GANTT_API_URL.includes("?") ? "&" : "?";
+    const resp = await fetch(GANTT_API_URL + sep + "action=list_plan");
+    const json = await resp.json();
+    if (json.error) { console.error("Plan_Labores list error:", json.error); return []; }
+    window._ganttState.cache = json.data || [];
+    return json.data || [];
+  } catch (e) {
+    console.error("Plan_Labores fetch error:", e);
+    return [];
+  }
+}
+
+async function ganttPostAction(action, payload) {
+  if (!GANTT_USE_BACKEND) return ganttPostLocal(action, payload);
+  try {
+    // Apps Script directo: usar text/plain para evitar preflight CORS
+    const resp = await fetch(GANTT_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action, ...payload })
+    });
+    const json = await resp.json();
+    if (json.error) { alert("Error: " + json.error); return null; }
+    return json;
+  } catch (e) {
+    alert("Error de red: " + e.message);
+    return null;
+  }
+}
+
+/* Persistencia localStorage (modo mock) */
+function ganttLoadDataLocal() {
+  try {
+    const raw = localStorage.getItem("loscrisoles_plan_labores");
+    if (!raw) return ganttSeedDemo();
+    return JSON.parse(raw);
+  } catch(e) { return []; }
+}
+function ganttSaveDataLocal(arr) {
+  localStorage.setItem("loscrisoles_plan_labores", JSON.stringify(arr));
+}
+function ganttPostLocal(action, payload) {
+  const data = ganttLoadDataLocal();
+  if (action === "add_plan") {
+    const id = "L" + Date.now() + Math.random().toString(36).slice(2,6);
+    data.push({ id, creado: new Date().toISOString(), ...payload.data });
+    ganttSaveDataLocal(data);
+    return { ok: true, id };
+  }
+  if (action === "update_plan") {
+    const idx = data.findIndex(x => x.id === payload.id);
+    if (idx >= 0) {
+      data[idx] = { ...data[idx], ...payload.data };
+      ganttSaveDataLocal(data);
+    }
+    return { ok: true };
+  }
+  if (action === "delete_plan") {
+    const arr = data.filter(x => x.id !== payload.id);
+    ganttSaveDataLocal(arr);
+    return { ok: true };
+  }
+  return { error: "acción no soportada" };
+}
+
+function ganttSeedDemo() {
+  const hoy = new Date();
+  const fmt = d => d.toISOString().slice(0,10);
+  const off = n => { const d = new Date(hoy); d.setDate(d.getDate()+n); return fmt(d); };
+  const demo = [
+    { id:"L"+Date.now()+"1", cultivo:"Nuez", up:"NOG12", tarea:"Retiro de ramas", responsables:["Nino","Carlín","Cocho"], inicio:off(-2), fin:off(2), estado:"En curso", prioridad:"Normal", notas:"" },
+    { id:"L"+Date.now()+"2", cultivo:"Nuez", up:"NOG19", tarea:"Soplar y triturar hojas", responsables:["José","Víctor"], inicio:off(0), fin:off(3), estado:"Planificada", prioridad:"Normal", notas:"" },
+    { id:"L"+Date.now()+"3", cultivo:"Trigo", up:"PIV1", tarea:"Aplicación acortador + fungicida", responsables:["Víctor"], inicio:off(1), fin:off(1), estado:"Planificada", prioridad:"Urgente", notas:"Antes de lluvias" },
+    { id:"L"+Date.now()+"4", cultivo:"Achicoria", up:"PIV3", tarea:"Siembra", responsables:["Juan","Daniel"], inicio:off(-5), fin:off(-1), estado:"Completada", prioridad:"Normal", notas:"" },
+    { id:"L"+Date.now()+"5", cultivo:"Maíz", up:"VEGA", tarea:"Preparación de suelo", responsables:["Hugo"], inicio:off(-3), fin:off(0), estado:"Atrasada", prioridad:"Urgente", notas:"" }
+  ];
+  ganttSaveDataLocal(demo);
+  return demo;
+}
+
+function renderGanttBlock() {
+  const v = window._ganttState.vista;
+  return `
+    <div class="gantt-wrap">
+      <div class="gantt-header">
+        <span class="gantt-title">📅 Carta Gantt · Plan de Labores</span>
+        <div class="gantt-toolbar">
+          <div class="gantt-view-btns">
+            <button class="gantt-vbtn ${v==='diaria'?'on':''}" onclick="ganttSetVista('diaria')">Diaria</button>
+            <button class="gantt-vbtn ${v==='semanal'?'on':''}" onclick="ganttSetVista('semanal')">Semanal</button>
+          </div>
+          <div class="gantt-nav">
+            <button class="gantt-nav-btn" onclick="ganttNav(-1)" title="Anterior">‹</button>
+            <button class="gantt-today-btn" onclick="ganttHoy()">Hoy</button>
+            <button class="gantt-nav-btn" onclick="ganttNav(1)" title="Siguiente">›</button>
+          </div>
+          <button class="gantt-add-btn" onclick="ganttOpenModal()">+ Nueva labor</button>
+        </div>
+      </div>
+      <div class="gantt-filters" id="gantt-filters"></div>
+      <div class="gantt-scroll" id="gantt-scroll">
+        <div class="gantt-empty">Cargando…</div>
+      </div>
+    </div>
+  `;
+}
+
+function ganttSetVista(v) {
+  window._ganttState.vista = v;
+  // Re-render el header completo y luego el contenido
+  document.getElementById("app-labores").querySelector(".gantt-wrap").outerHTML = renderGanttBlock();
+  renderGantt();
+}
+function ganttNav(delta) {
+  const s = window._ganttState;
+  const d = new Date(s.anclaFecha);
+  if (s.vista === "diaria") d.setDate(d.getDate() + delta*7);
+  else d.setDate(d.getDate() + delta*28);
+  s.anclaFecha = d;
+  renderGantt();
+}
+function ganttHoy() {
+  window._ganttState.anclaFecha = new Date();
+  renderGantt();
+}
+
+function ganttBuildColumns() {
+  const s = window._ganttState;
+  const cols = [];
+  if (s.vista === "diaria") {
+    // 14 días empezando 2 días antes del ancla
+    const start = new Date(s.anclaFecha);
+    start.setDate(start.getDate() - 2);
+    start.setHours(0,0,0,0);
+    for (let i=0; i<14; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      cols.push({ start:new Date(d), end:new Date(d), label:d.getDate(), sub:["DOM","LUN","MAR","MIE","JUE","VIE","SAB"][d.getDay()], mes:["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][d.getMonth()] });
+    }
+  } else {
+    // 12 semanas empezando 2 semanas antes del ancla, lunes a domingo
+    const start = new Date(s.anclaFecha);
+    const dow = start.getDay() || 7; // domingo=0 -> 7
+    start.setDate(start.getDate() - (dow-1) - 14);
+    start.setHours(0,0,0,0);
+    for (let i=0; i<12; i++) {
+      const ws = new Date(start); ws.setDate(ws.getDate() + i*7);
+      const we = new Date(ws); we.setDate(we.getDate()+6);
+      cols.push({ start:ws, end:we, label:`${ws.getDate()}/${ws.getMonth()+1}`, sub:`Sem ${getNumSemana(ws)}`, mes:["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"][ws.getMonth()] });
+    }
+  }
+  return cols;
+}
+function getNumSemana(d) {
+  const target = new Date(d.valueOf());
+  const dayNr = (d.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0,1);
+  if (target.getDay() !== 4) target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+  return 1 + Math.ceil((firstThursday - target) / 604800000);
+}
+
+function ganttFilterData(data) {
+  const f = window._ganttState.filtros;
+  return data.filter(r => {
+    if (f.cultivo && r.cultivo !== f.cultivo) return false;
+    if (f.estado && r.estado !== f.estado) return false;
+    if (f.responsable && !(r.responsables||[]).includes(f.responsable)) return false;
+    return true;
+  });
+}
+
+function renderGantt() {
+  const cont = document.getElementById("gantt-scroll");
+  const fcont = document.getElementById("gantt-filters");
+  if (!cont) return;
+
+  ganttFetchData().then(rawData => {
+    const data = ganttFilterData(rawData);
+    _renderGanttUI(cont, fcont, data);
+  });
+}
+
+function _renderGanttUI(cont, fcont, data) {
+  // Filtros chips
+  if (fcont) {
+    const f = window._ganttState.filtros;
+    let html = `<span style="font-size:10px;color:#888;margin-right:4px;align-self:center;font-weight:bold;">FILTROS:</span>`;
+    html += `<button class="gantt-fchip ${!f.cultivo?'on':''}" onclick="ganttFilter('cultivo','')">Todos cultivos</button>`;
+    CULTIVOS_GANTT.forEach(c => {
+      html += `<button class="gantt-fchip ${f.cultivo===c?'on':''}" onclick="ganttFilter('cultivo','${c}')">${c}</button>`;
+    });
+    html += `<span style="border-left:1px solid #e5e2da;margin:0 4px;height:18px;"></span>`;
+    html += `<button class="gantt-fchip ${!f.estado?'on':''}" onclick="ganttFilter('estado','')">Todos estados</button>`;
+    ESTADOS_LABOR.forEach(e => {
+      html += `<button class="gantt-fchip ${f.estado===e?'on':''}" onclick="ganttFilter('estado','${e}')">${e}</button>`;
+    });
+    fcont.innerHTML = html;
+  }
+
+  if (!data.length) {
+    cont.innerHTML = `<div class="gantt-empty">No hay labores planificadas. Click en <b>+ Nueva labor</b> para agregar.</div>`;
+    return;
+  }
+
+  const cols = ganttBuildColumns();
+  const colW = window._ganttState.vista === "diaria" ? 48 : 70;
+  const totalW = 240 + cols.length * colW;
+
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const todayIdx = cols.findIndex(c => hoy >= c.start && hoy <= c.end);
+
+  // Header
+  let html = `<div class="gantt-grid" style="grid-template-columns: 240px repeat(${cols.length}, ${colW}px); width:${totalW}px;">`;
+  html += `<div class="gantt-cell-label head"><div class="gantt-cell-label-title">Tarea / UP / Responsables</div></div>`;
+  cols.forEach((c, i) => {
+    const isWE = window._ganttState.vista === "diaria" && (c.start.getDay()===0 || c.start.getDay()===6);
+    const isToday = i === todayIdx;
+    html += `<div class="gantt-cell-day head ${isWE?'weekend':''} ${isToday?'today':''}">
+      <div class="gantt-day-num">${c.label}</div>
+      <div class="gantt-day-name">${c.sub}</div>
+      <div class="gantt-day-mes">${c.mes}</div>
+    </div>`;
+  });
+
+  // Filas
+  data.forEach(r => {
+    const ini = new Date(r.inicio); ini.setHours(0,0,0,0);
+    const fin = new Date(r.fin); fin.setHours(23,59,59,0);
+    const respChips = (r.responsables||[]).slice(0,3).map(x=>`<span class="gantt-resp-chip">${x}</span>`).join("");
+    const respMas = (r.responsables||[]).length > 3 ? `<span class="gantt-resp-chip">+${r.responsables.length-3}</span>` : "";
+
+    html += `<div class="gantt-cell-task" onclick="ganttOpenModal('${r.id}')" style="cursor:pointer">
+      <div class="gantt-task-line1">${escapeHtml(r.tarea)}</div>
+      <div class="gantt-task-line2">${escapeHtml(r.cultivo)} · ${escapeHtml(r.up||"")}</div>
+      <div class="gantt-task-line3">${respChips}${respMas}</div>
+    </div>`;
+
+    // Calcular rango visible
+    const firstCol = cols[0].start;
+    const lastCol = cols[cols.length-1].end;
+    const visIni = ini < firstCol ? firstCol : ini;
+    const visFin = fin > lastCol ? lastCol : fin;
+    const fueraRango = ini > lastCol || fin < firstCol;
+
+    let startIdx = -1, endIdx = -1;
+    if (!fueraRango) {
+      startIdx = cols.findIndex(c => visIni <= c.end);
+      endIdx = cols.findIndex(c => visFin <= c.end);
+      if (endIdx === -1) endIdx = cols.length - 1;
+    }
+
+    cols.forEach((c, i) => {
+      const isWE = window._ganttState.vista === "diaria" && (c.start.getDay()===0 || c.start.getDay()===6);
+      const isToday = i === todayIdx;
+      let barHtml = "";
+      if (i === startIdx && !fueraRango) {
+        const span = endIdx - startIdx + 1;
+        const estClass = "estado-" + r.estado.toLowerCase().replace(/\s+/g,"").replace("ó","o").replace("á","a");
+        const prioClass = r.prioridad === "Urgente" ? "prio-urgente" : "";
+        const w = span * colW - 6;
+        const upTxt = r.up ? r.up + " · " : "";
+        barHtml = `<div class="gantt-bar ${estClass} ${prioClass}" style="left:3px; width:${w}px;" onclick="event.stopPropagation(); ganttOpenModal('${r.id}')" title="${escapeHtml(r.tarea)} (${r.estado})">${upTxt}${escapeHtml(r.tarea)}</div>`;
+      }
+      html += `<div class="gantt-cell-track ${isWE?'weekend':''} ${isToday?'today':''}">${barHtml}</div>`;
+    });
+  });
+
+  html += `</div>`;
+  cont.innerHTML = html;
+}
+
+function ganttFilter(key, val) {
+  window._ganttState.filtros[key] = val;
+  renderGantt();
+}
+
+function escapeHtml(s) {
+  return String(s||"").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+}
+
+/* ============ MODAL ============ */
+
+function ganttOpenModal(id) {
+  window._ganttState.editId = id || null;
+  // Buscar primero en cache (backend) o cargar localmente (mock)
+  const dataPromise = window._ganttState.cache && GANTT_USE_BACKEND
+    ? Promise.resolve(window._ganttState.cache)
+    : ganttFetchData();
+
+  dataPromise.then(data => {
+    const r = id ? data.find(x => x.id === id) : null;
+    _renderGanttModal(id, r);
+  });
+}
+
+function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().slice(0,10);
+
+  // UPs disponibles desde CC_MAP filtradas por temporada activa si existe
+  let upOpts = [];
+  try {
+    const tempActiva = window.TEMPORADA_ACTIVA || (typeof getTemporadaActiva==="function" ? getTemporadaActiva() : "");
+    Object.entries(CC_MAP||{}).forEach(([ccId, nombre]) => {
+      if (tempActiva && TEMP_MAP && TEMP_MAP[ccId]) {
+        if (TEMP_MAP[ccId].temporada !== tempActiva) return;
+      }
+      if (typeof esUpProd==="function" && !esUpProd(ccId)) return;
+      upOpts.push({ id:ccId, nombre });
+    });
+  } catch(e) {}
+  upOpts.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+
+  const upSelectedNombre = r && r.up ? r.up : "";
+  const cultivoSelected = r ? r.cultivo : "";
+  const estadoSelected = r ? r.estado : "Planificada";
+  const prioSelected = r ? r.prioridad : "Normal";
+  const inicio = r ? r.inicio : todayStr;
+  const fin = r ? r.fin : todayStr;
+
+  const respSel = new Set(r ? (r.responsables||[]) : []);
+  const respHtml = RESPONSABLES_LISTA.map(p => `<span class="glmodal-resp-chip ${respSel.has(p)?'on':''}" onclick="this.classList.toggle('on')" data-resp="${p}">${p}</span>`).join("");
+
+  const cultivoOpts = CULTIVOS_GANTT.map(c => `<option value="${c}" ${c===cultivoSelected?'selected':''}>${c}</option>`).join("");
+  const estadoOpts = ESTADOS_LABOR.map(e => `<option value="${e}" ${e===estadoSelected?'selected':''}>${e}</option>`).join("");
+  const prioOpts = PRIORIDADES.map(p => `<option value="${p}" ${p===prioSelected?'selected':''}>${p}</option>`).join("");
+  const upOptsHtml = `<option value="">— sin UP específica —</option>` +
+    upOpts.map(u => `<option value="${u.nombre}" ${u.nombre===upSelectedNombre?'selected':''}>${u.nombre}</option>`).join("");
+
+  let modal = document.getElementById("gl-modal-back");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "gl-modal-back";
+    modal.className = "glmodal-back";
+    modal.onclick = (e) => { if (e.target === modal) ganttCloseModal(); };
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="glmodal">
+      <div class="glmodal-head">
+        <span class="glmodal-title">${id ? '✏️ Editar labor' : '+ Nueva labor'}</span>
+        <button class="glmodal-close" onclick="ganttCloseModal()">×</button>
+      </div>
+      <div class="glmodal-body">
+        <div class="glmodal-row">
+          <label class="glmodal-label">Tarea</label>
+          <input type="text" id="glm-tarea" class="glmodal-input" placeholder="Ej: aplicación de fungicida" value="${r?escapeHtml(r.tarea):''}">
+        </div>
+        <div class="glmodal-grid2">
+          <div class="glmodal-row">
+            <label class="glmodal-label">Cultivo</label>
+            <select id="glm-cultivo" class="glmodal-select">${cultivoOpts}</select>
+          </div>
+          <div class="glmodal-row">
+            <label class="glmodal-label">Unidad Productiva</label>
+            <select id="glm-up" class="glmodal-select">${upOptsHtml}</select>
+          </div>
+        </div>
+        <div class="glmodal-row">
+          <label class="glmodal-label">Responsables</label>
+          <div class="glmodal-resp-wrap" id="glm-resp">${respHtml}</div>
+        </div>
+        <div class="glmodal-grid2">
+          <div class="glmodal-row">
+            <label class="glmodal-label">Fecha inicio</label>
+            <input type="date" id="glm-inicio" class="glmodal-input" value="${inicio}">
+          </div>
+          <div class="glmodal-row">
+            <label class="glmodal-label">Fecha fin</label>
+            <input type="date" id="glm-fin" class="glmodal-input" value="${fin}">
+          </div>
+        </div>
+        <div class="glmodal-grid2">
+          <div class="glmodal-row">
+            <label class="glmodal-label">Estado</label>
+            <select id="glm-estado" class="glmodal-select">${estadoOpts}</select>
+          </div>
+          <div class="glmodal-row">
+            <label class="glmodal-label">Prioridad</label>
+            <select id="glm-prio" class="glmodal-select">${prioOpts}</select>
+          </div>
+        </div>
+        <div class="glmodal-row">
+          <label class="glmodal-label">Notas</label>
+          <textarea id="glm-notas" class="glmodal-textarea" placeholder="Detalles, dosis, observaciones...">${r?escapeHtml(r.notas||""):""}</textarea>
+        </div>
+      </div>
+      <div class="glmodal-foot">
+        <div>
+          ${id ? `<button class="glmodal-btn danger" onclick="ganttDeleteLabor()">🗑 Eliminar</button>` : ""}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="glmodal-btn ghost" onclick="ganttCloseModal()">Cancelar</button>
+          <button class="glmodal-btn primary" onclick="ganttSaveLabor()">${id?'Guardar':'Crear'}</button>
+        </div>
+      </div>
+    </div>
+  `;
+  modal.classList.add("on");
+}
+
+function ganttCloseModal() {
+  const m = document.getElementById("gl-modal-back");
+  if (m) m.classList.remove("on");
+  window._ganttState.editId = null;
+}
+
+async function ganttSaveLabor() {
+  const tarea = document.getElementById("glm-tarea").value.trim();
+  if (!tarea) { alert("La tarea no puede estar vacía"); return; }
+
+  const cultivo = document.getElementById("glm-cultivo").value;
+  const up = document.getElementById("glm-up").value;
+  const inicio = document.getElementById("glm-inicio").value;
+  const fin = document.getElementById("glm-fin").value;
+  const estado = document.getElementById("glm-estado").value;
+  const prioridad = document.getElementById("glm-prio").value;
+  const notas = document.getElementById("glm-notas").value.trim();
+
+  if (!inicio || !fin) { alert("Falta fecha de inicio o fin"); return; }
+  if (new Date(inicio) > new Date(fin)) { alert("La fecha de inicio no puede ser posterior a la de fin"); return; }
+
+  const responsables = Array.from(document.querySelectorAll("#glm-resp .glmodal-resp-chip.on")).map(c => c.dataset.resp);
+
+  const editId = window._ganttState.editId;
+  const tempActiva = window.TEMPORADA_ACTIVA || (typeof getTemporadaActiva==="function" ? getTemporadaActiva() : "");
+
+  const payload = {
+    tarea, cultivo, up, inicio, fin, estado, prioridad, notas, responsables,
+    temporada: tempActiva
+  };
+
+  let result;
+  if (editId) {
+    result = await ganttPostAction("update_plan", { id: editId, data: payload });
+  } else {
+    result = await ganttPostAction("add_plan", { data: payload });
+  }
+  if (!result || !result.ok) return;
+
+  ganttCloseModal();
+  renderGantt();
+}
+
+async function ganttDeleteLabor() {
+  if (!confirm("¿Eliminar esta labor del plan?")) return;
+  const result = await ganttPostAction("delete_plan", { id: window._ganttState.editId });
+  if (!result || !result.ok) return;
+  ganttCloseModal();
+  renderGantt();
 }
 </script>
 
