@@ -117,36 +117,36 @@ if (location.search.includes('embed=1')) {
     .lc-header-inner {
       max-width: 1280px;
       margin: 0 auto;
-      padding: 14px 32px;
+      padding: 12px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 24px;
+      gap: 16px;
     }
-    .lc-brand { display: flex; align-items: center; gap: 12px; }
+    .lc-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     .lc-logo {
-      width: 36px; height: 36px;
-      border-radius: 9px;
+      width: 32px; height: 32px;
+      border-radius: 8px;
       background: linear-gradient(135deg, var(--acc-green), #6B9560);
       color: var(--bg);
       display: grid; place-items: center;
       font-family: var(--font-display);
       font-weight: 600;
-      font-size: 18px;
+      font-size: 16px;
     }
     .lc-brand-text { line-height: 1.15; }
     .lc-brand-name {
       font-family: var(--font-display);
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 500;
       color: var(--text-1);
       letter-spacing: -0.01em;
     }
     .lc-brand-sub {
-      font-size: 9.5px;
+      font-size: 8.5px;
       color: var(--text-3);
       text-transform: uppercase;
-      letter-spacing: 0.18em;
+      letter-spacing: 0.16em;
       margin-top: 1px;
       font-weight: 500;
     }
@@ -159,14 +159,16 @@ if (location.search.includes('embed=1')) {
       justify-content: center;
       overflow-x: auto;
       scrollbar-width: none;
+      min-width: 0;
+      padding: 0 8px;
     }
     .lc-tabs::-webkit-scrollbar { display: none; }
     .lc-tab {
       color: var(--text-2);
       text-decoration: none;
-      font-size: 12.5px;
+      font-size: 12px;
       font-weight: 500;
-      padding: 7px 14px;
+      padding: 6px 10px;
       border-radius: 7px;
       white-space: nowrap;
       transition: all 0.15s;
@@ -184,8 +186,9 @@ if (location.search.includes('embed=1')) {
     .lc-controls {
       display: flex;
       align-items: center;
-      gap: 14px;
-      font-size: 12px;
+      gap: 10px;
+      font-size: 11px;
+      flex-shrink: 0;
     }
     .lc-iva-toggle {
       display: inline-flex;
@@ -1159,7 +1162,7 @@ if (location.search.includes('embed=1')) {
       <a href="reporte.html?tab=costos"      class="lc-tab">Costos</a>
       <a href="reporte.html?tab=resultados"  class="lc-tab">Resultados</a>
       <a href="asignar.html"                 class="lc-tab">Asignar</a>
-      <a href="reporte.html?tab=documentos"  class="lc-tab">Documentos</a>
+      <a href="reporte.html?tab=documentos"  class="lc-tab">Docs</a>
     </nav>
 
     <div class="lc-controls">
