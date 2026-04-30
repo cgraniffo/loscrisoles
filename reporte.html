@@ -3743,10 +3743,10 @@ function _renderGanttUI(cont, fcont, data) {
     const f = window._ganttState.filtros;
     let html = `<span style="font-size:10px;color:#888;margin-right:4px;align-self:center;font-weight:bold;">FILTROS:</span>`;
     html += `<button class="gantt-fchip ${!f.cultivo?'on':''}" onclick="ganttFilter('cultivo','')">Todos cultivos</button>`;
-    // Cultivos: preferir los reales de BD_CC, sino la lista fallback
+    // Cultivos = lista única de Fundos de BD_CC (ej: "Trigo 26-27", "Nogales 25-26")
     let listaCultivos = CULTIVOS_GANTT;
     try {
-      const reales = [...new Set(Object.values(CULTIVO_MAP||{}).filter(Boolean))];
+      const reales = [...new Set(Object.values(FUNDO_MAP||{}).filter(Boolean))];
       if (reales.length > 0) listaCultivos = reales.sort();
     } catch(e) {}
     listaCultivos.forEach(c => {
@@ -3863,7 +3863,8 @@ function ganttOpenModal(id) {
 function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().slice(0,10);
 
   // Construir lista de UPs desde BD_CC (filtrando por temporada activa)
-  // Estructura: { upId, ccNombre, cultivo, fundo, ha, temporada }
+  // Cultivo = campo FUNDO de BD_CC (ej: "Trigo 26-27", "Nogales 25-26")
+  // UP      = campo NOMBRE CC de BD_CC (ej: "Piv 1", "Pot 5")
   const tempActiva = window.TEMPORADA_ACTIVA || (typeof getTemporadaActiva==="function" ? getTemporadaActiva() : "");
   const upsBD_CC = [];
   try {
@@ -3872,25 +3873,23 @@ function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().s
         if (TEMP_MAP[ccId].temporada !== tempActiva) return;
       }
       if (typeof esUpProd==="function" && !esUpProd(ccId)) return;
-      const cultivo = (CULTIVO_MAP[ccId] || "").trim();
       const fundo = (FUNDO_MAP[ccId] || "").trim();
+      if (!fundo) return; // saltar UPs sin fundo definido
       upsBD_CC.push({
         id: ccId,
         ccNombre: ccNombre,
-        cultivo: cultivo || "Otros",
         fundo: fundo,
         ha: HA_MAP[ccId] || 0
       });
     });
   } catch(e) {}
-  upsBD_CC.sort((a,b)=> (a.cultivo+a.ccNombre).localeCompare(b.cultivo+b.ccNombre));
+  upsBD_CC.sort((a,b)=> (a.fundo+a.ccNombre).localeCompare(b.fundo+b.ccNombre));
 
-  // Lista de cultivos únicos presentes en BD_CC (en vez de hardcoded)
-  const cultivosUnicos = [...new Set(upsBD_CC.map(u => u.cultivo))].filter(Boolean).sort();
-  // Si no hay datos de BD_CC todavía cargados (caso edge), fallback a lista mínima
+  // Cultivos = lista única de Fundos presentes en BD_CC
+  const cultivosUnicos = [...new Set(upsBD_CC.map(u => u.fundo))].sort();
   const cultivosLista = cultivosUnicos.length > 0
     ? cultivosUnicos
-    : Object.values(ESPECIE_NAMES || {});
+    : ["Sin datos BD_CC"];
 
   const upSelectedNombre = r && r.up ? r.up : "";
   const cultivoSelected = r ? r.cultivo : (cultivosLista[0] || "");
@@ -3906,11 +3905,11 @@ function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().s
   const estadoOpts = ESTADOS_LABOR.map(e => `<option value="${e}" ${e===estadoSelected?'selected':''}>${e}</option>`).join("");
   const prioOpts = PRIORIDADES.map(p => `<option value="${p}" ${p===prioSelected?'selected':''}>${p}</option>`).join("");
 
-  // Guardamos las UPs de BD_CC en window para usarlas en el handler de cambio de cultivo
+  // Guardamos las UPs en window para usarlas en handler de cambio de cultivo
   window._ganttState.upsBD_CC = upsBD_CC;
 
-  // UP Options filtradas por cultivo seleccionado
-  const upsFiltradas = upsBD_CC.filter(u => u.cultivo === cultivoSelected);
+  // UP filtradas por Fundo seleccionado (si Fundo no está en la lista, mostrar todas)
+  const upsFiltradas = upsBD_CC.filter(u => u.fundo === cultivoSelected);
   const upOptsHtml = `<option value="">— sin UP específica —</option>` +
     upsFiltradas.map(u => {
       const label = u.ccNombre + (u.ha ? " (" + u.ha + " há)" : "");
@@ -3997,10 +3996,10 @@ function ganttCloseModal() {
 }
 
 function ganttOnCultivoChange() {
-  const cultivoSel = document.getElementById("glm-cultivo").value;
+  const fundoSel = document.getElementById("glm-cultivo").value;
   const upSel = document.getElementById("glm-up");
   if (!upSel) return;
-  const ups = (window._ganttState.upsBD_CC || []).filter(u => u.cultivo === cultivoSel);
+  const ups = (window._ganttState.upsBD_CC || []).filter(u => u.fundo === fundoSel);
   let html = `<option value="">— sin UP específica —</option>`;
   ups.forEach(u => {
     const label = u.ccNombre + (u.ha ? " (" + u.ha + " há)" : "");
