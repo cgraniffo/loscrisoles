@@ -3903,8 +3903,22 @@ function _renderGanttModal(id, r) {  const todayStr = new Date().toISOString().s
   }
   const estadoSelected = r ? r.estado : "Planificada";
   const prioSelected = r ? r.prioridad : "Normal";
-  const inicio = r ? r.inicio : todayStr;
-  const fin = r ? r.fin : todayStr;
+  // Normalizar fechas a yyyy-MM-dd (input type=date las requiere así)
+  const fmtFecha = v => {
+    if (!v) return todayStr;
+    const s = String(v);
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    try {
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return todayStr;
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dd = String(d.getDate()).padStart(2, "0");
+      return y + "-" + m + "-" + dd;
+    } catch(e) { return todayStr; }
+  };
+  const inicio = r ? fmtFecha(r.inicio) : todayStr;
+  const fin = r ? fmtFecha(r.fin) : todayStr;
 
   const respSel = new Set(r ? (r.responsables||[]) : []);
   const respHtml = RESPONSABLES_LISTA.map(p => `<span class="glmodal-resp-chip ${respSel.has(p)?'on':''}" onclick="this.classList.toggle('on')" data-resp="${p}">${p}</span>`).join("");
