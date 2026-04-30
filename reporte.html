@@ -2677,6 +2677,10 @@ function initMap() {
 
   const puntos = Object.entries(COORD_MAP)
     .filter(([id]) => {
+      // Mostrar UPs si:
+      //  - tienen labores planificadas (cualquier temporada), O
+      //  - son de la temporada activa (aunque no tengan labores)
+      if (laboresPorCC[id] && laboresPorCC[id].length > 0) return true;
       if (!tempActiva) return true;
       const tmp = TEMP_MAP[id];
       return tmp && tmp.temporada === tempActiva;
@@ -3548,8 +3552,12 @@ window._ganttState = {
 
 /* ============ DATA LAYER ============ */
 
-async function ganttFetchData() {
+async function ganttFetchData(forceRefresh) {
   if (!GANTT_USE_BACKEND) return ganttLoadDataLocal();
+  // Si tengo cache válido y no se fuerza refresh, usarlo
+  if (!forceRefresh && window._ganttState.cache !== null && window._ganttState.cache !== undefined) {
+    return window._ganttState.cache;
+  }
   try {
     const sep = GANTT_API_URL.includes("?") ? "&" : "?";
     const resp = await fetch(GANTT_API_URL + sep + "action=list_plan");
@@ -3862,12 +3870,8 @@ function _renderGanttUI(cont, fcont, data) {
 
 function ganttFilter(key, val) {
   window._ganttState.filtros[key] = val;
+  // renderGantt() ya sincroniza el mapa al terminar (ver función renderGantt)
   renderGantt();
-  // Sincronizar mapa con el filtro del Gantt
-  if (typeof initMap === "function" && document.getElementById("mapa-campo")) {
-    initMap();
-    if (typeof buildMapaPanel === "function") buildMapaPanel();
-  }
 }
 
 function escapeHtml(s) {
