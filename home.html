@@ -3393,27 +3393,58 @@ function lcSetIva(modo) {
 }
 
 // ── Hook al ciclo legacy ────────────────────────────────────
-// Cuando renderHome legacy termina, refrescar la UI nueva
+// Como `function renderHome` es declaración local (no asignable a window
+// desde fuera del scope), usamos polling sobre window._homeData.
+// renderHome legacy lo asigna cada vez que termina su ciclo.
 (function() {
-  let _origRender = null;
-  function hook() {
-    if (typeof window.renderHome === 'function' && window.renderHome !== _origRender) {
-      _origRender = window.renderHome;
-      const wrapped = function() {
-        const r = _origRender.apply(this, arguments);
-        setTimeout(LC.refresh, 50);
-        return r;
-      };
-      window.renderHome = wrapped;
+  let lastSig = null;
+  let firstRender = false;
+
+  function trySig() {
+    const hd = window._homeData;
+    if (!hd) return null;
+    // signature: hashea longitudes + temporada + iva
+    const r = (hd.registros||[]).length;
+    const a = (hd.asignaciones||[]).length;
+    const p = (hd.proyecciones||[]).length;
+    const t = window.TEMPORADA_ACTIVA || '';
+    const iva = window.VISTA_IVA || '';
+    return r+'|'+a+'|'+p+'|'+t+'|'+iva;
+  }
+
+  function tick() {
+    const sig = trySig();
+    if (sig && sig !== lastSig) {
+      lastSig = sig;
+      try { LC.refresh(); firstRender = true; }
+      catch(e) { console.error('LC.refresh fallo:', e); }
     }
   }
-  // intentar enganchar después de que el script principal cargó
-  setTimeout(hook, 50);
-  setTimeout(hook, 500);
-  setTimeout(hook, 1500);
-  // primer refresh tardío por si llegamos tarde
-  setTimeout(LC.refresh, 2000);
-  setTimeout(LC.refresh, 4000);
+
+  // Tick rápido los primeros 30s, luego cada segundo
+  let count = 0;
+  const fastInt = setInterval(() => {
+    tick();
+    count++;
+    if (count > 60) {  // 60 * 500ms = 30s
+      clearInterval(fastInt);
+      setInterval(tick, 1500);  // luego cada 1.5s
+    }
+  }, 500);
+
+  // Fallback: si después de 8s no renderizó nada, mostrar error de conexión
+  setTimeout(() => {
+    if (!firstRender && !window._homeData) {
+      const headline = document.getElementById('briefing-headline');
+      if (headline && headline.querySelector('.skeleton')) {
+        headline.innerHTML = '<span style="color:var(--text-2);">El campo está en silencio.</span> <span style="color:var(--text-3);font-style:italic;">No pudimos traer los datos del servidor.</span>';
+      }
+    }
+  }, 8000);
+
+  // Exponer para debug
+  window.LC.tick = tick;
+  window.LC.lastSig = () => lastSig;
 })();
 
 // Footer date
