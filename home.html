@@ -372,6 +372,68 @@ if (location.search.includes('embed=1')) {
       .hkpi-val { font-size: 17px; }
       .caja-flow { grid-template-columns: 1fr 1fr; }
     }
+
+    /* ── CAJAS DE ZONA (envoltorio limpio estilo card) ──────── */
+    .zona-box {
+      background: var(--blanco);
+      border-radius: 16px;
+      border: 1px solid rgba(0,0,0,0.07);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+      padding: 18px 20px;
+      margin-bottom: 14px;
+    }
+    .zona-box .zona-titulo {
+      margin: 0 0 14px 0 !important;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0ede6;
+    }
+    /* Reset margen-top de la primera zona-box */
+    .zona-box:first-of-type {
+      margin-top: 0;
+    }
+    /* Espacio interno: cards/grids dentro de la zona no necesitan margen extra */
+    .zona-box > .grid-2,
+    .zona-box > .card,
+    .zona-box > details.card,
+    .zona-box > a {
+      margin-top: 0;
+    }
+    .zona-box > a + a {
+      margin-top: 8px;
+    }
+
+    /* ── NÚMERO CIRCULAR DE ZONA ─────────────────────────────── */
+    .zona-num-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .zona-titulo-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      line-height: 1.2;
+    }
+    .zona-titulo-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #1c1c1a;
+      letter-spacing: 0.02em;
+      text-transform: none;
+    }
+    .zona-titulo-hint {
+      font-size: 11px;
+      color: var(--gris);
+      font-weight: 400;
+    }
   </style>
 </head>
 <body>
@@ -427,10 +489,13 @@ if (location.search.includes('embed=1')) {
   <div class="section on" id="sec-resumen">
 
     <!-- ═══ ZONA 1 · ACCIÓN INMEDIATA ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:4px 0 10px;">
-      <div style="width:4px;height:16px;background:#E24B4A;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#A32D2D;letter-spacing:0.1em;text-transform:uppercase;">1 · Acción inmediata</div>
-      <div style="font-size:11px;color:var(--gris);">¿qué tengo que resolver hoy?</div>
+    <section class="zona-box">
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
+      <div class="zona-num-circle" style="background:#E24B4A;">1</div>
+      <div class="zona-titulo-text">
+        <div class="zona-titulo-name" style="color:#A32D2D;">Acción inmediata</div>
+        <div class="zona-titulo-hint">¿qué tengo que resolver hoy?</div>
+      </div>
     </div>
 
     <div class="grid-2">
@@ -471,12 +536,16 @@ if (location.search.includes('embed=1')) {
         <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
       </details>
     </div>
+    </section>
 
     <!-- ═══ ZONA 2 · LIQUIDEZ ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#0F6E56;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#085041;letter-spacing:0.1em;text-transform:uppercase;">2 · Liquidez</div>
-      <div style="font-size:11px;color:var(--gris);">¿cómo está la plata?</div>
+    <section class="zona-box">
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
+      <div class="zona-num-circle" style="background:#0F6E56;">2</div>
+      <div class="zona-titulo-text">
+        <div class="zona-titulo-name" style="color:#085041;">Liquidez</div>
+        <div class="zona-titulo-hint">¿cómo está la plata?</div>
+      </div>
     </div>
 
     <!-- Tarjeta unificada de caja con 3 columnas -->
@@ -543,12 +612,16 @@ if (location.search.includes('embed=1')) {
         <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
       </details>
     </div>
+    </section>
 
     <!-- ═══ ZONA 3 · PIPELINE PRODUCTIVO ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#BA7517;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#854F0B;letter-spacing:0.1em;text-transform:uppercase;">3 · Pipeline productivo</div>
-      <div style="font-size:11px;color:var(--gris);">¿cómo va el campo?</div>
+    <section class="zona-box">
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
+      <div class="zona-num-circle" style="background:#BA7517;">3</div>
+      <div class="zona-titulo-text">
+        <div class="zona-titulo-name" style="color:#854F0B;">Pipeline productivo</div>
+        <div class="zona-titulo-hint">¿cómo va el campo?</div>
+      </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;">
@@ -578,12 +651,16 @@ if (location.search.includes('embed=1')) {
         </div>
       </a>
     </div>
+    </section>
 
     <!-- ═══ ZONA 4 · HERRAMIENTAS ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#888780;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#444441;letter-spacing:0.1em;text-transform:uppercase;">4 · Herramientas</div>
-      <div style="font-size:11px;color:var(--gris);">acciones proactivas</div>
+    <section class="zona-box">
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
+      <div class="zona-num-circle" style="background:#888780;">4</div>
+      <div class="zona-titulo-text">
+        <div class="zona-titulo-name" style="color:#444441;">Herramientas</div>
+        <div class="zona-titulo-hint">acciones proactivas</div>
+      </div>
     </div>
 
     <a href="#" onclick="navTo('optimizador','/optimizador');return false;" style="display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:14px 16px;text-decoration:none;color:inherit;transition:all 0.15s;" class="tool-card">
@@ -596,12 +673,16 @@ if (location.search.includes('embed=1')) {
       </div>
       <div style="background:#EAF3DE;color:#3B6D11;padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;">Abrir →</div>
     </a>
+    </section>
 
     <!-- ═══ ZONA 5 · CONTRATOS ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#854F0B;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#5c370a;letter-spacing:0.1em;text-transform:uppercase;">5 · Contratos</div>
-      <div style="font-size:11px;color:var(--gris);">compromisos vigentes de venta</div>
+    <section class="zona-box">
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
+      <div class="zona-num-circle" style="background:#854F0B;">5</div>
+      <div class="zona-titulo-text">
+        <div class="zona-titulo-name" style="color:#5c370a;">Contratos</div>
+        <div class="zona-titulo-hint">compromisos vigentes de venta</div>
+      </div>
     </div>
 
     <!-- Banner nueces -->
@@ -664,11 +745,16 @@ if (location.search.includes('embed=1')) {
       </div>
     </a>
 
+    </section>
+
     <!-- ═══ ZONA 6 · MAPA ═══ -->
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
-      <div style="width:4px;height:16px;background:#0C447C;border-radius:2px;"></div>
-      <div style="font-size:10px;font-weight:500;color:#042C53;letter-spacing:0.1em;text-transform:uppercase;">6 · Mapa</div>
-      <div style="font-size:11px;color:var(--gris);">vista del campo</div>
+    <section class="zona-box">
+    <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
+      <div class="zona-num-circle" style="background:#0C447C;">6</div>
+      <div class="zona-titulo-text">
+        <div class="zona-titulo-name" style="color:#042C53;">Mapa</div>
+        <div class="zona-titulo-hint">vista del campo</div>
+      </div>
     </div>
 
     <details class="card">
@@ -688,6 +774,7 @@ if (location.search.includes('embed=1')) {
         <div id="mapa-home"></div>
       </div>
     </details>
+    </section>
 
   </div>
 
