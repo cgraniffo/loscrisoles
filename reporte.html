@@ -1744,7 +1744,8 @@ function renderIngresos() {
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px;color:#888;">Facturado${proyFutCultivo > 0 ? ' + proy.' : ''}</div>
-          <div style="font-size:13px;font-weight:600;color:#1a6e3a;">${fmtPeso(factTotal)}${proyFutCultivo > 0 ? ` <span style="color:#86c172;font-size:11px;font-weight:600;">+ ${fmtPeso(proyFutCultivo)}</span>` : ''}</div>
+          <div style="font-size:13px;font-weight:600;color:#1a6e3a;">${fmtPeso(factMasProy)}</div>
+          ${proyFutCultivo > 0 ? `<div style="font-size:10px;color:#3b6d11;margin-top:1px;">${fmtPeso(factTotal)} <span style="color:#86c172;">+ ${fmtPeso(proyFutCultivo)}</span></div>` : ''}
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px;color:#888;">Avance</div>
@@ -1859,7 +1860,10 @@ function renderIngresos() {
         <span></span>
         <div style="font-size:13px;font-weight:700;">Total</div>
         <div style="text-align:right;font-size:13px;font-weight:700;color:#b45309;">${fmtPeso(totalPpto)}</div>
-        <div style="text-align:right;font-size:13px;font-weight:700;color:#1a6e3a;">${fmtPeso(totalFact)}${totalProyFut > 0 ? ` <span style="color:#86c172;font-size:11px;font-weight:600;">+ ${fmtPeso(totalProyFut)}</span>` : ''}</div>
+        <div style="text-align:right;">
+          <div style="font-size:13px;font-weight:700;color:#1a6e3a;">${fmtPeso(totalFactProy)}</div>
+          ${totalProyFut > 0 ? `<div style="font-size:10px;color:#3b6d11;font-weight:600;">${fmtPeso(totalFact)} <span style="color:#86c172;">+ ${fmtPeso(totalProyFut)}</span></div>` : ''}
+        </div>
         <div style="text-align:right;font-size:13px;font-weight:700;color:#1a1a1a;">${totalPpto>0?totalPct+"%":"—"}</div>
       </div>
     </div>
