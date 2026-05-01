@@ -1499,6 +1499,11 @@ function renderHome({ registros, asignaciones, proyecciones }) {
     const sumMontos = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||0),0);
     const mCobrar30 = sumMontos(cobrar30Docs);
     const mPagar30  = sumMontos(pagar30Docs);
+    // Exportar para headline zona 2 (mismos valores que los KPIs en pantalla)
+    window._mCobrar30 = mCobrar30;
+    window._mPagar30  = mPagar30;
+    window._nCobrar30 = cobrar30Docs.length;
+    window._nPagar30  = pagar30Docs.length;
     const _hC = document.getElementById('hint-cobrar');
     if (_hC) _hC.textContent = cobrar30Docs.length > 0 ? `${fmtPeso(mCobrar30)}` : 'sin docs';
     if (_hC) _hC.style.color = cobrar30Docs.length > 0 ? 'var(--verde2)' : 'var(--gris)';
@@ -1680,26 +1685,19 @@ function renderHeadlines() {
     }
   }
 
-  // Zona 2: Liquidez (recalcular cobrar/pagar 30d)
+  // Zona 2: Liquidez (usa mismos números que los KPIs en pantalla)
   const _h2 = document.getElementById('headline-zona-2');
   if (_h2) {
-    const RUT_LC = "76099766-8";
-    const cobrar = docs.filter(d => String(d["RUT Emisor"]||"").trim() === RUT_LC);
-    const pagar  = docs.filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC);
-    const en30Filter = (d) => {
-      const f = parseDate(d["Fecha_Real"]); if (!f) return false;
-      f.setHours(0,0,0,0); return f >= hoy && f <= en30;
-    };
-    const sumMontos = arr => arr.reduce((s,r) => s + Number(r["Monto Total"]||0), 0);
-    const cobr = sumMontos(cobrar.filter(en30Filter));
-    const pag  = sumMontos(pagar.filter(en30Filter));
+    const cobr = window._mCobrar30 || 0;
+    const pag  = window._mPagar30  || 0;
     const caja = window.CAJA_ACTUAL || 0;
     const neto = cobr - pag;
+    const proy = caja + neto;
     if (neto < 0) {
-      _h2.innerHTML = `Atención: en los próximos 30 días los <b>pagos</b> (<b>${fmt(pag)}</b>) superan a los cobros (<b>${fmt(cobr)}</b>). Caja proyectada: <b>${fmt(caja+neto)}</b>.`;
+      _h2.innerHTML = `Atención: en los próximos 30 días los <b>pagos</b> (<b>${fmt(pag)}</b>) superan a los cobros (<b>${fmt(cobr)}</b>). Caja proyectada: <b>${fmt(proy)}</b>.`;
       _h2.className = 'zona-headline alerta';
     } else if (neto > 0) {
-      _h2.innerHTML = `En los próximos 30 días los <b>cobros</b> (<b>${fmt(cobr)}</b>) superan a los pagos (<b>${fmt(pag)}</b>). Caja proyectada: <b>${fmt(caja+neto)}</b>.`;
+      _h2.innerHTML = `En los próximos 30 días los <b>cobros</b> (<b>${fmt(cobr)}</b>) superan a los pagos (<b>${fmt(pag)}</b>). Caja proyectada: <b>${fmt(proy)}</b>.`;
       _h2.className = 'zona-headline';
     } else {
       _h2.innerHTML = `Cobros y pagos equilibrados en los próximos 30 días. Caja: <b>${fmt(caja)}</b>.`;
@@ -1732,15 +1730,20 @@ function renderHeadlines() {
   const _h6 = document.getElementById('headline-zona-6');
   if (_h6) {
     let totHa = 0, nUPs = 0;
+    const tempActiva = (typeof TEMPORADA_ACTIVA !== 'undefined' ? TEMPORADA_ACTIVA : window.TEMPORADA_ACTIVA);
     Object.keys(HA_MAP).forEach(id => {
       const tmp = TEMP_MAP[id];
       if (!tmp) return;
-      if (window.TEMPORADA_ACTIVA && tmp.temporada !== window.TEMPORADA_ACTIVA) return;
+      if (tempActiva && tmp.temporada !== tempActiva) return;
+      // Filtrar UPs no productivas (BASE_PRORRATEO_MAP false o no productivos por nombre)
+      const nombreCC = (CC_MAP[id]||"").toLowerCase();
+      const noProd = ['gastos generales','remuneraciones','maquinarias','barra fumigadora','coloso','tractor','línea de riego','linea de riego','masas pivote','nativos'].some(t => nombreCC.includes(t));
+      if (noProd) return;
       const ha = HA_MAP[id]||0;
       if (ha > 0) { totHa += ha; nUPs++; }
     });
     if (totHa > 0) {
-      _h6.innerHTML = `<b>${Math.round(totHa)}</b> hectáreas distribuidas en <b>${nUPs}</b> unidad${nUPs===1?'':'es'} productiva${nUPs===1?'':'s'} de la temporada.`;
+      _h6.innerHTML = `<b>${Math.round(totHa)}</b> hectáreas distribuidas en <b>${nUPs}</b> unidad${nUPs===1?'':'es'} productiva${nUPs===1?'':'s'} de la temporada${tempActiva?' '+tempActiva:''}.`;
       _h6.className = 'zona-headline';
     } else {
       _h6.innerHTML = 'Sin unidades productivas con superficie cargada.';
