@@ -434,6 +434,60 @@ if (location.search.includes('embed=1')) {
       color: var(--gris);
       font-weight: 400;
     }
+
+    /* ── ITEMS UNIFICADOS DENTRO DE CADA ZONA ─────────────────── */
+    /* Misma apariencia para cualquier card/banner dentro de zona-box */
+    .zona-box .card,
+    .zona-box details.card,
+    .zona-box .pipeline-card,
+    .zona-box .tool-card,
+    .zona-box #banner-nueces,
+    .zona-box #banner-achicoria {
+      background: #fff !important;
+      border: 1px solid rgba(0,0,0,0.08) !important;
+      border-radius: 10px !important;
+      box-shadow: none !important;
+      padding: 12px 14px !important;
+      margin: 0 !important;
+    }
+    /* Las details.card NO llevan padding en su contenedor (lo lleva el summary) */
+    .zona-box details.card {
+      padding: 0 !important;
+    }
+    .zona-box details.card > summary {
+      padding: 12px 14px !important;
+    }
+    .zona-box details.card .card-body {
+      padding: 12px 14px !important;
+    }
+    /* Espaciado vertical entre items consecutivos dentro de la zona */
+    .zona-box > .card + .card,
+    .zona-box > details.card + details.card,
+    .zona-box > a + a,
+    .zona-box > .grid-2 + .grid-2,
+    .zona-box > .card + details.card,
+    .zona-box > .card + .grid-2,
+    .zona-box > .grid-2 + details.card,
+    .zona-box > a + .card,
+    .zona-box > a + details.card {
+      margin-top: 8px !important;
+    }
+    /* Espaciado entre el último item antes del grid o el cierre */
+    .zona-box > .grid-2 { margin-top: 8px; }
+    /* Desactivar gradientes de banners de contratos */
+    .zona-box #banner-nueces,
+    .zona-box #banner-achicoria {
+      background: #fff !important;
+    }
+    /* Desactivar el borde lateral coloreado por defecto en zona-card */
+    .zona-box details.zona-card[data-zona="1"],
+    .zona-box details.zona-card[data-zona="2"] {
+      border-left: 1px solid rgba(0,0,0,0.08) !important;
+    }
+    /* EXCEPCIONES: borde rojo en alertas críticas (Labores atrasadas, Por cobrar 30d) */
+    .zona-box details.zona-card.zona-alerta {
+      border-left: 3px solid #E24B4A !important;
+    }
   </style>
 </head>
 <body>
@@ -499,7 +553,7 @@ if (location.search.includes('embed=1')) {
     </div>
 
     <div class="grid-2">
-      <details class="card zona-card" data-zona="1">
+      <details class="card zona-card zona-alerta" data-zona="1">
         <summary>
           <div style="display:flex;align-items:center;gap:12px;flex:1;">
             <div style="font-size:18px;">⚠️</div>
@@ -575,7 +629,7 @@ if (location.search.includes('embed=1')) {
     </div>
 
     <div class="grid-2">
-      <details class="card zona-card" data-zona="2">
+      <details class="card zona-card zona-alerta" data-zona="2">
         <summary>
           <div style="display:flex;align-items:center;gap:12px;flex:1;">
             <div style="font-size:16px;">⬇️</div>
