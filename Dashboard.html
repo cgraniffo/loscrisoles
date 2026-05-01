@@ -166,25 +166,21 @@
       <div class="kpi-val green" id="k-caja">—</div>
       <div class="kpi-label">🏦 Caja actual</div>
     </div>
-    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('costos',null)">
-      <div class="kpi-val" id="k-costos">—</div>
-      <div class="kpi-label" id="k-costos-label">💰 Costos acumulados</div>
-    </div>
     <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('ingresos',null)">
       <div class="kpi-val amber" id="k-ppto">—</div>
-      <div class="kpi-label" id="k-ppto-label">🌾 Ppto ingresos</div>
+      <div class="kpi-label" id="k-ppto-label">🌾 Ingresos proyectados · Temp —</div>
+    </div>
+    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('costos',null)">
+      <div class="kpi-val" id="k-costos">—</div>
+      <div class="kpi-label" id="k-costos-label">💰 Costos totales · Temp —</div>
     </div>
     <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('resultados',null)">
       <div class="kpi-val" id="k-margen">—</div>
-      <div class="kpi-label" id="k-margen-label">📊 Margen ppto</div>
+      <div class="kpi-label" id="k-margen-label">📊 Margen proyectado · Temp —</div>
     </div>
     <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('labores',null)">
       <div class="kpi-val amber" id="k-vencidas">—</div>
       <div class="kpi-label">⚠️ Labores vencidas</div>
-    </div>
-    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('asignar',null)">
-      <div class="kpi-val red" id="k-sinasignar">—</div>
-      <div class="kpi-label">📎 Sin asignar</div>
     </div>
   </div>
 </div>
@@ -249,7 +245,7 @@
   var vistaIva    = (function(){
     try { return localStorage.getItem('lc_vista_iva') || 'neto'; } catch(e) { return 'neto'; }
   })();
-  var WIP_TABS    = { ingresos:1, costos:1, produccion:1, insumos:1 };
+  var WIP_TABS    = {};
 
   // CSS injected into every iframe to hide internal header/tabs
   var HIDE_CSS = [
@@ -427,7 +423,7 @@
     if (window._kpiData) {
       var costoTemp = costosDeLaTemporada(window._kpiData.registros, window._kpiData.asignaciones, temporada);
       document.getElementById('k-costos').textContent = fmtPeso(costoTemp);
-      document.getElementById('k-costos-label').textContent = '💰 Costos ' + (temporada || '');
+      document.getElementById('k-costos-label').textContent = '💰 Costos totales · Temp ' + (temporada || '');
 
       // Ppto ingresos
       var pptoIng = (Array.isArray(window._kpiData.proyecciones) ? window._kpiData.proyecciones : []).filter(function(r) {
@@ -440,13 +436,13 @@
         return s + (vistaIva === 'bruto' ? m * 1.19 : m);
       }, 0);
       document.getElementById('k-ppto').textContent = fmtPeso(pptoIng);
-      document.getElementById('k-ppto-label').textContent = '🌾 Ppto ingresos ' + (temporada || '');
+      document.getElementById('k-ppto-label').textContent = '🌾 Ingresos proyectados · Temp ' + (temporada || '');
 
       // Margen ppto
       var margenPpto = pptoIng - costoTemp;
       document.getElementById('k-margen').textContent = fmtPeso(margenPpto);
       document.getElementById('k-margen').className = 'kpi-val ' + (margenPpto >= 0 ? 'green' : 'red');
-      document.getElementById('k-margen-label').textContent = '📊 Margen ' + (temporada || '');
+      document.getElementById('k-margen-label').textContent = '📊 Margen proyectado · Temp ' + (temporada || '');
     }
 
     // Push to all loaded iframes
@@ -649,7 +645,7 @@
 
       var costoTemp = costosDeLaTemporada(registros, asignaciones, temporada);
       document.getElementById("k-costos").textContent = fmtPeso(costoTemp);
-      document.getElementById("k-costos-label").textContent = "💰 Costos " + (temporada || "");
+      document.getElementById("k-costos-label").textContent = "💰 Costos totales · Temp " + (temporada || "");
 
       // Ppto ingresos (Proyecciones_Manuales filtrado por temporada)
       var pptoIng = (Array.isArray(proyecciones) ? proyecciones : []).filter(function(r) {
@@ -663,33 +659,59 @@
       }, 0);
       document.getElementById("k-ppto").textContent = fmtPeso(pptoIng);
       document.getElementById("k-ppto").className = "kpi-val amber";
-      document.getElementById("k-ppto-label").textContent = "🌾 Ppto ingresos " + (temporada || "");
+      document.getElementById("k-ppto-label").textContent = "🌾 Ingresos proyectados · Temp " + (temporada || "");
 
       // Margen ppto = Ppto ingresos - Costos
       var margenPpto = pptoIng - costoTemp;
       document.getElementById("k-margen").textContent = fmtPeso(margenPpto);
       document.getElementById("k-margen").className = "kpi-val " + (margenPpto >= 0 ? "green" : "red");
-      document.getElementById("k-margen-label").textContent = "📊 Margen " + (temporada || "");
+      document.getElementById("k-margen-label").textContent = "📊 Margen proyectado · Temp " + (temporada || "");
 
-      // Labores vencidas
+      // Labores vencidas — lógica alineada con home.html (parseo robusto + horas a 0)
       var hoy = new Date(); hoy.setHours(0,0,0,0);
+      function _parseFecha(v) {
+        if (!v) return null;
+        var s = String(v).trim();
+        // ISO con T: 2026-04-30T...
+        if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
+          var p = s.split("T")[0].split("-");
+          return new Date(+p[0], +p[1]-1, +p[2]);
+        }
+        // ISO sin T: 2026-04-30
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+          var p = s.split("-");
+          return new Date(+p[0], +p[1]-1, +p[2]);
+        }
+        // Formato chileno: dd-mm-yyyy o dd/mm/yyyy
+        if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(s)) {
+          var sep = s.includes("-") ? "-" : "/";
+          var p = s.split(sep);
+          return new Date(+p[2], +p[1]-1, +p[0]);
+        }
+        return null;
+      }
       var vencidas = (Array.isArray(registros) ? registros : []).filter(function(r) {
         var est = String(r["Estado Operativo"]||"").trim();
         if (est === "Completado" || est === "Anulado") return false;
-        var raw = String(r["Fecha"]||""); var d = new Date(raw.split("T")[0]);
-        return !isNaN(d) && d < hoy;
+        var d = _parseFecha(r["Fecha"]);
+        if (!d) return false;
+        d.setHours(0,0,0,0);
+        return d < hoy;
       }).length;
       document.getElementById("k-vencidas").textContent = vencidas;
       document.getElementById("k-vencidas").className = "kpi-val " + (vencidas > 0 ? "amber" : "green");
 
-      // Sin asignar desde corte (incluye facturas emitidas LC)
+      // Sin asignar desde corte (KPI eliminado del header pero cálculo conservado)
       var sinAsignar = (Array.isArray(docs) ? docs : []).filter(function(d) {
         var fundo = String(d["Fundo"]||"").trim();
         var fecha = String(d["Fecha Emisión"]||"").split("T")[0];
         return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && fecha>=CORTE;
       }).length;
-      document.getElementById("k-sinasignar").textContent = sinAsignar;
-      document.getElementById("k-sinasignar").className = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
+      var _kSin = document.getElementById("k-sinasignar");
+      if (_kSin) {
+        _kSin.textContent = sinAsignar;
+        _kSin.className = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
+      }
     } catch(e) {
       console.error("KPI error:", e);
     }
