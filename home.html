@@ -715,7 +715,7 @@ if (location.search.includes('embed=1')) {
       </a>
 
       <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-avance" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
-        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">🌾 Avance temporada</div>
+        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">📈 Productividad mensual</div>
         <div style="display:flex;align-items:baseline;gap:6px;" id="pipe-avance-nums">
           <span style="font-size:14px;color:var(--gris);">cargando...</span>
         </div>
@@ -1124,21 +1124,56 @@ async function main() {
       _pLabsBar.children[1].style.width = pctProg + '%';
     }
 
-    // Card 2: Avance temporada (% de labores completadas vs total en la temporada)
+    // Card 2: Productividad mensual (labores completadas este mes vs mes pasado)
     const _pAv = document.getElementById('pipe-avance-nums');
     const _pAvSub = document.getElementById('pipe-avance-sub');
     if (_pAv) {
-      const laboresTemp = (Array.isArray(registros)?registros:[]);
-      const completadas = laboresTemp.filter(r => String(r["Estado Operativo"]||"").trim() === "Completado");
-      const total = laboresTemp.length;
-      const pct = total > 0 ? Math.round(completadas.length / total * 100) : 0;
-      const pctColor = pct >= 75 ? '#3B6D11' : pct >= 50 ? '#854F0B' : '#A32D2D';
-      _pAv.innerHTML = `<span style="font-size:22px;font-weight:700;color:${pctColor};font-variant-numeric:tabular-nums;">${pct}%</span><span style="font-size:12px;color:var(--gris);">completadas</span>`;
-      if (_pAvSub) _pAvSub.textContent = `${completadas.length} de ${total} labores de la temporada`;
+      // Mes actual y mes pasado en formato "YYYY-MM"
+      const mesActDate = new Date();
+      const yA = mesActDate.getFullYear(), mA = mesActDate.getMonth(); // 0-indexed
+      const yP = mA === 0 ? yA - 1 : yA;
+      const mP = mA === 0 ? 11 : mA - 1;
+      const yyyymmAct = `${yA}-${String(mA+1).padStart(2,'0')}`;
+      const yyyymmPas = `${yP}-${String(mP+1).padStart(2,'0')}`;
+
+      const completadasMes = (yyyymm) => (Array.isArray(registros)?registros:[]).filter(r => {
+        if (String(r["Estado Operativo"]||"").trim() !== "Completado") return false;
+        // Usar fecha real de completado si existe, si no usar Fecha
+        const fechaRef = r["Fecha_Completado"] || r["Fecha Completado"] || r["Fecha"];
+        const d = parseDate(fechaRef);
+        if (!d) return false;
+        const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        return ym === yyyymm;
+      }).length;
+
+      const nAct = completadasMes(yyyymmAct);
+      const nPas = completadasMes(yyyymmPas);
+
+      // Variación %
+      let varPct = 0, varTxt = '', varColor = '#888';
+      if (nPas === 0 && nAct === 0) {
+        varTxt = 'sin datos';
+      } else if (nPas === 0) {
+        varTxt = 'sin base previa';
+      } else {
+        varPct = Math.round((nAct - nPas) / nPas * 100);
+        if (varPct > 0) { varTxt = `+${varPct}% vs mes pasado`; varColor = '#0F6E56'; }
+        else if (varPct < 0) { varTxt = `${varPct}% vs mes pasado`; varColor = '#A32D2D'; }
+        else { varTxt = 'igual al mes pasado'; varColor = '#888'; }
+      }
+
+      const numColor = nAct >= nPas ? '#3B6D11' : '#854F0B';
+      _pAv.innerHTML = `<span style="font-size:22px;font-weight:700;color:${numColor};font-variant-numeric:tabular-nums;">${nAct}</span><span style="font-size:12px;color:var(--gris);">labores este mes</span>`;
+      const mesNombres = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      if (_pAvSub) {
+        _pAvSub.innerHTML = `<span style="color:${varColor};font-weight:600;">${varTxt}</span> <span style="color:var(--gris);">· ${nPas} en ${mesNombres[mP]}</span>`;
+      }
+
       // Exponer para headline zona 3
-      window._pctTemp = pct;
-      window._completadasTemp = completadas.length;
-      window._totalLaboresTemp = total;
+      window._labMesActual = nAct;
+      window._labMesPasado = nPas;
+      window._labVarPct    = varPct;
+      window._labVarTxt    = varTxt;
     }
 
     // Card 3: Vencidas + urgentes (próximas hasta 7 días)
@@ -1708,18 +1743,26 @@ function renderHeadlines() {
   // Zona 3: Pipeline productivo
   const _h3 = document.getElementById('headline-zona-3');
   if (_h3) {
-    const pct    = window._pctTemp || 0;
+    const nAct   = window._labMesActual || 0;
+    const varTxt = window._labVarTxt || '';
     const semana = laboresSemana.length;
     const v      = vencidas.length;
+    const partesProd = [];
+    if (nAct > 0) {
+      partesProd.push(`<b>${nAct}</b> labor${nAct===1?'':'es'} completada${nAct===1?'':'s'} este mes${varTxt && varTxt.startsWith('+') ? ` (<b>${varTxt}</b>)` : varTxt && varTxt.startsWith('-') ? ` (<b>${varTxt}</b>)` : ''}`);
+    }
     if (v > 0) {
-      _h3.innerHTML = `Temporada al <b>${pct}%</b> de avance, pero quedan <b>${v}</b> labor${v===1?'':'es'} atrasada${v===1?'':'s'} y <b>${semana}</b> programada${semana===1?'':'s'} esta semana.`;
+      _h3.innerHTML = `${partesProd.length>0 ? partesProd[0]+', pero quedan' : 'Quedan'} <b>${v}</b> atrasada${v===1?'':'s'} y <b>${semana}</b> programada${semana===1?'':'s'} esta semana.`;
       _h3.className = 'zona-headline alerta';
     } else if (semana > 0) {
-      _h3.innerHTML = `Temporada al <b>${pct}%</b> de avance · <b>${semana}</b> labor${semana===1?'':'es'} programada${semana===1?'':'s'} esta semana, sin atrasos.`;
+      _h3.innerHTML = `${partesProd.length>0 ? partesProd[0]+' · ' : ''}<b>${semana}</b> labor${semana===1?'':'es'} programada${semana===1?'':'s'} esta semana, sin atrasos.`;
+      _h3.className = 'zona-headline';
+    } else if (nAct > 0) {
+      _h3.innerHTML = `${partesProd[0]}, sin labores programadas esta semana.`;
       _h3.className = 'zona-headline';
     } else {
-      _h3.innerHTML = `Temporada al <b>${pct}%</b> de avance, sin labores programadas esta semana.`;
-      _h3.className = 'zona-headline';
+      _h3.innerHTML = `Sin actividad registrada en el período.`;
+      _h3.className = 'zona-headline empty';
     }
   }
 
