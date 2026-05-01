@@ -1823,18 +1823,18 @@ function renderIngresos() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
 
       <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Presupuesto total</div>
+        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Presupuesto total${tempActiva?` · Temporada ${tempActiva}`:""}</div>
         <div style="font-size:22px;font-weight:700;color:#b45309;line-height:1;">${fmtPeso(tEstF)}</div>
         <div style="font-size:11px;color:#b45309;margin-top:4px;">${filtEst.length} registros · Proyecciones_Manuales</div>
       </div>
 
       <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado + por facturar</div>
-        <div style="display:flex;align-items:baseline;gap:6px;line-height:1;">
-          <span style="font-size:22px;font-weight:700;color:#1a6e3a;">${fmtPeso(tFactCombinado)}</span>
-          ${tProyFuturas > 0 ? `<span style="font-size:13px;color:#86c172;font-weight:600;">+ ${fmtPeso(tProyFuturas)}</span>` : ""}
-        </div>
+        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado + por facturar${tempActiva?` · Temporada ${tempActiva}`:""}</div>
+        <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado + tProyFuturas)}</div>
         ${tProyFuturas > 0 ? `
+        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">
+          <span style="font-weight:600;">${fmtPeso(tFactCombinado)}</span> facturado <span style="color:#86c172;">+ <span style="font-weight:600;">${fmtPeso(tProyFuturas)}</span> por facturar</span>
+        </div>
         <div style="height:8px;background:#eef3e3;border-radius:4px;overflow:hidden;display:flex;margin:8px 0 6px;border:1px solid #c3e0a0;">
           <div style="background:#1a6e3a;width:${pctFacturadoBarra}%;" title="Facturado real: ${fmtPeso(tFactCombinado)}"></div>
           <div style="background:#86c172;width:${100-pctFacturadoBarra}%;" title="Por facturar (proyecciones futuras): ${fmtPeso(tProyFuturas)}"></div>
