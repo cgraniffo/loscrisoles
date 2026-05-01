@@ -1144,8 +1144,16 @@ async function main() {
           } else {
             labelDias = `${diffDias} días`; colorPunto = '#0F6E56';
           }
-          const labor = String(r["Labor"]||"").slice(0, 28);
-          return `<div><span style="color:${colorPunto};">●</span> ${labor} · <span style="color:var(--gris);">${labelDias}</span></div>`;
+          // Resolver UUID → nombre legible
+          const labRaw = String(r["Labor"]||"").trim();
+          const labor = (LAB_MAP[labRaw] || labRaw || "—").slice(0, 20);
+          const ccRaw = String(r["Centro_Costo"]||"").trim();
+          const up    = CC_MAP[ccRaw] || "";
+          const fundo = FUNDO_MAP[ccRaw] || "";
+          // Formato: Cultivo+temp · UP (ej: "Achicoria 26-27 · Piv 1")
+          const ctxParts = [fundo, up].filter(Boolean);
+          const ctxTxt = ctxParts.length > 0 ? ` <span style="color:#888;">· ${ctxParts.join(" · ")}</span>` : "";
+          return `<div><span style="color:${colorPunto};">●</span> ${labor}${ctxTxt} · <span style="color:var(--gris);">${labelDias}</span></div>`;
         }).join('');
       }
     }
