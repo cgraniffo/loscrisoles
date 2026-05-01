@@ -443,6 +443,26 @@ if (location.search.includes('embed=1')) {
       color: var(--gris);
       font-weight: 400;
     }
+    /* Headline tipo titular periodístico bajo cada zona */
+    .zona-headline {
+      font-size: 12px;
+      color: #1c1c1a;
+      font-weight: 400;
+      margin-top: 6px;
+      line-height: 1.45;
+      max-width: 700px;
+    }
+    .zona-headline b {
+      font-weight: 700;
+      color: #1A3A0A;
+    }
+    .zona-headline.alerta b {
+      color: #A32D2D;
+    }
+    .zona-headline.empty {
+      color: var(--gris);
+      font-style: italic;
+    }
 
     /* ── ITEMS UNIFICADOS DENTRO DE CADA ZONA ─────────────────── */
     /* Misma apariencia para cualquier card/banner dentro de zona-box */
@@ -558,6 +578,7 @@ if (location.search.includes('embed=1')) {
       <div class="zona-titulo-text">
         <div class="zona-titulo-name" style="color:#1A3A0A;">Acción inmediata</div>
         <div class="zona-titulo-hint">¿qué tengo que resolver hoy?</div>
+        <div class="zona-headline" id="headline-zona-1">—</div>
       </div>
     </div>
 
@@ -604,6 +625,7 @@ if (location.search.includes('embed=1')) {
       <div class="zona-titulo-text">
         <div class="zona-titulo-name" style="color:#1A3A0A;">Liquidez</div>
         <div class="zona-titulo-hint">¿cómo está la plata?</div>
+        <div class="zona-headline" id="headline-zona-2">—</div>
       </div>
     </div>
 
@@ -611,19 +633,19 @@ if (location.search.includes('embed=1')) {
     <div class="card" style="padding:16px 20px;margin-bottom:10px;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;" id="caja-unified">
         <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">💰 Caja hoy</div>
+          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">💰 Caja hoy <span style="color:#aaa;font-weight:400;">(saldo actual)</span></div>
           <div style="font-size:26px;font-weight:700;color:#0F6E56;line-height:1;font-variant-numeric:tabular-nums;" id="caja-hoy">—</div>
-          <div style="font-size:11px;color:var(--gris);margin-top:6px;" id="caja-hoy-sub">&nbsp;</div>
+          <div style="font-size:11px;color:var(--gris);margin-top:6px;" id="caja-hoy-sub">saldo bancario al día de hoy</div>
         </div>
         <div style="width:1px;background:rgba(0,0,0,0.06);align-self:stretch;"></div>
         <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">📆 Proyectado en 30 días</div>
+          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">📆 Caja proyectada en 30 días</div>
           <div style="font-size:22px;font-weight:700;color:#1c1c1a;line-height:1;font-variant-numeric:tabular-nums;" id="caja-proy30">—</div>
-          <div style="font-size:11px;color:var(--gris);margin-top:6px;">después de +/- flujos</div>
+          <div style="font-size:11px;color:var(--gris);margin-top:6px;">caja hoy + flujo neto del período</div>
         </div>
         <div style="width:1px;background:rgba(0,0,0,0.06);align-self:stretch;"></div>
         <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">⚖️ Flujo neto 30d</div>
+          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">⚖️ Flujo neto próximos 30 días <span style="color:#aaa;font-weight:400;">(cobros − pagos)</span></div>
           <div style="font-size:22px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;" id="caja-neto30">—</div>
           <div style="font-size:11px;color:var(--gris);margin-top:6px;" id="caja-neto30-sub">cobros vs pagos</div>
         </div>
@@ -676,6 +698,7 @@ if (location.search.includes('embed=1')) {
       <div class="zona-titulo-text">
         <div class="zona-titulo-name" style="color:#1A3A0A;">Pipeline productivo</div>
         <div class="zona-titulo-hint">¿cómo va el campo?</div>
+        <div class="zona-headline" id="headline-zona-3">—</div>
       </div>
     </div>
 
@@ -737,6 +760,7 @@ if (location.search.includes('embed=1')) {
       <div class="zona-titulo-text">
         <div class="zona-titulo-name" style="color:#1A3A0A;">Contratos</div>
         <div class="zona-titulo-hint">compromisos vigentes de venta</div>
+        <div class="zona-headline" id="headline-zona-5">—</div>
       </div>
     </div>
 
@@ -809,6 +833,7 @@ if (location.search.includes('embed=1')) {
       <div class="zona-titulo-text">
         <div class="zona-titulo-name" style="color:#1A3A0A;">Mapa</div>
         <div class="zona-titulo-hint">vista del campo</div>
+        <div class="zona-headline" id="headline-zona-6">—</div>
       </div>
     </div>
 
@@ -1110,6 +1135,10 @@ async function main() {
       const pctColor = pct >= 75 ? '#3B6D11' : pct >= 50 ? '#854F0B' : '#A32D2D';
       _pAv.innerHTML = `<span style="font-size:22px;font-weight:700;color:${pctColor};font-variant-numeric:tabular-nums;">${pct}%</span><span style="font-size:12px;color:var(--gris);">completadas</span>`;
       if (_pAvSub) _pAvSub.textContent = `${completadas.length} de ${total} labores de la temporada`;
+      // Exponer para headline zona 3
+      window._pctTemp = pct;
+      window._completadasTemp = completadas.length;
+      window._totalLaboresTemp = total;
     }
 
     // Card 3: Vencidas + urgentes (próximas hasta 7 días)
@@ -1565,9 +1594,158 @@ function renderHome({ registros, asignaciones, proyecciones }) {
     window._mapa = null;  // resetear para re-inicializar
     buildMapa(registros);
 
+    // Headlines tipo titular en cada zona (lee de window globals)
+    if (typeof renderHeadlines === 'function') {
+      renderHeadlines();
+      // Reintento tras 1.5s para capturar datos de IIFEs async (banners contratos)
+      setTimeout(() => { try { renderHeadlines(); } catch(e){ console.warn('headlines retry:', e); } }, 1500);
+    }
+
   } catch(e) {
     console.error(e);
     document.getElementById('card-labores').innerHTML = `<div style="color:#ef4444;font-size:13px;">Error: ${e.message}</div>`;
+  }
+}
+
+// ── HEADLINE ZONA 5: contratos (en función propia porque depende de IIFEs async) ──
+function renderHeadlineZona5() {
+  const _h5 = document.getElementById('headline-zona-5');
+  if (!_h5) return;
+  const nProy = window._nuecesProy || 0;
+  const nPend = window._nuecesPend || 0;
+  const aProy = window._achicoriaProy || 0;
+  const aPend = window._achicoriaPend || 0;
+  const totalProy = nProy + aProy;
+  const totalPend = nPend + aPend;
+
+  if (totalProy === 0) {
+    _h5.innerHTML = 'Cargando información de contratos...';
+    _h5.className = 'zona-headline empty';
+    return;
+  }
+  const partes = [];
+  if (nPend > 0) partes.push(`<b>${fmtPeso(nPend)}</b> en nueces`);
+  if (aPend > 0) partes.push(`<b>${fmtPeso(aPend)}</b> en achicoria`);
+  if (partes.length === 0) {
+    _h5.innerHTML = `Contratos cobrados al 100% (<b>${fmtPeso(totalProy)}</b> proyectado).`;
+    _h5.className = 'zona-headline';
+  } else {
+    _h5.innerHTML = `Pendiente cobrar ${partes.join(' y ')} de un total proyectado de <b>${fmtPeso(totalProy)}</b>.`;
+    _h5.className = 'zona-headline';
+  }
+}
+
+// ── HEADLINES PERIODÍSTICOS POR ZONA ────────────────────────────
+function renderHeadlines() {
+  const fmt   = (n) => fmtPeso(n);
+  const docs  = window.DOCUMENTOS || [];
+  const todos = window.TODOS || [];
+  const CORTE = "2026-04-01";
+
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const en30 = new Date(hoy); en30.setDate(hoy.getDate()+30);
+  const en7  = new Date(hoy); en7.setDate(hoy.getDate()+7);
+
+  // Recalcular labores activos/vencidas/semana
+  const activos = todos.filter(r =>
+    !["Completado","Anulado"].includes(String(r["Estado Operativo"]||"").trim())
+  );
+  const vencidas = activos.filter(r => {
+    const d = parseDate(r["Fecha"]); if (!d) return false;
+    d.setHours(0,0,0,0); return d < hoy;
+  });
+  const laboresSemana = activos.filter(r => {
+    const d = parseDate(r["Fecha"]); if (!d) return false;
+    d.setHours(0,0,0,0); return d >= hoy && d <= en7;
+  });
+
+  // Zona 1: Acción inmediata
+  const _h1 = document.getElementById('headline-zona-1');
+  if (_h1) {
+    const sinAsig = docs.filter(d => {
+      const f = String(d["Fundo"]||"").trim();
+      const fe = String(d["Fecha Emisión"]||"").split("T")[0];
+      return (f===""||f==="FUNDO_NO_ENCONTRADO") && fe>=CORTE;
+    }).length;
+    const v = vencidas.length;
+    if (v === 0 && sinAsig === 0) {
+      _h1.innerHTML = 'Sin pendientes urgentes hoy. Todo al día.';
+      _h1.className = 'zona-headline';
+    } else {
+      const partes = [];
+      if (v > 0) partes.push(`<b>${v}</b> labor${v===1?'':'es'} atrasada${v===1?'':'s'}`);
+      if (sinAsig > 0) partes.push(`<b>${sinAsig}</b> documento${sinAsig===1?'':'s'} sin asignar`);
+      _h1.innerHTML = `Atención: hay ${partes.join(' y ')} esperando resolución.`;
+      _h1.className = 'zona-headline alerta';
+    }
+  }
+
+  // Zona 2: Liquidez (recalcular cobrar/pagar 30d)
+  const _h2 = document.getElementById('headline-zona-2');
+  if (_h2) {
+    const RUT_LC = "76099766-8";
+    const cobrar = docs.filter(d => String(d["RUT Emisor"]||"").trim() === RUT_LC);
+    const pagar  = docs.filter(d => String(d["RUT Emisor"]||"").trim() !== RUT_LC);
+    const en30Filter = (d) => {
+      const f = parseDate(d["Fecha_Real"]); if (!f) return false;
+      f.setHours(0,0,0,0); return f >= hoy && f <= en30;
+    };
+    const sumMontos = arr => arr.reduce((s,r) => s + Number(r["Monto Total"]||0), 0);
+    const cobr = sumMontos(cobrar.filter(en30Filter));
+    const pag  = sumMontos(pagar.filter(en30Filter));
+    const caja = window.CAJA_ACTUAL || 0;
+    const neto = cobr - pag;
+    if (neto < 0) {
+      _h2.innerHTML = `Atención: en los próximos 30 días los <b>pagos</b> (<b>${fmt(pag)}</b>) superan a los cobros (<b>${fmt(cobr)}</b>). Caja proyectada: <b>${fmt(caja+neto)}</b>.`;
+      _h2.className = 'zona-headline alerta';
+    } else if (neto > 0) {
+      _h2.innerHTML = `En los próximos 30 días los <b>cobros</b> (<b>${fmt(cobr)}</b>) superan a los pagos (<b>${fmt(pag)}</b>). Caja proyectada: <b>${fmt(caja+neto)}</b>.`;
+      _h2.className = 'zona-headline';
+    } else {
+      _h2.innerHTML = `Cobros y pagos equilibrados en los próximos 30 días. Caja: <b>${fmt(caja)}</b>.`;
+      _h2.className = 'zona-headline';
+    }
+  }
+
+  // Zona 3: Pipeline productivo
+  const _h3 = document.getElementById('headline-zona-3');
+  if (_h3) {
+    const pct    = window._pctTemp || 0;
+    const semana = laboresSemana.length;
+    const v      = vencidas.length;
+    if (v > 0) {
+      _h3.innerHTML = `Temporada al <b>${pct}%</b> de avance, pero quedan <b>${v}</b> labor${v===1?'':'es'} atrasada${v===1?'':'s'} y <b>${semana}</b> programada${semana===1?'':'s'} esta semana.`;
+      _h3.className = 'zona-headline alerta';
+    } else if (semana > 0) {
+      _h3.innerHTML = `Temporada al <b>${pct}%</b> de avance · <b>${semana}</b> labor${semana===1?'':'es'} programada${semana===1?'':'s'} esta semana, sin atrasos.`;
+      _h3.className = 'zona-headline';
+    } else {
+      _h3.innerHTML = `Temporada al <b>${pct}%</b> de avance, sin labores programadas esta semana.`;
+      _h3.className = 'zona-headline';
+    }
+  }
+
+  // Zona 5: Contratos (delega a la función específica que se llama también desde IIFEs async)
+  if (typeof renderHeadlineZona5 === 'function') renderHeadlineZona5();
+
+  // Zona 6: Mapa
+  const _h6 = document.getElementById('headline-zona-6');
+  if (_h6) {
+    let totHa = 0, nUPs = 0;
+    Object.keys(HA_MAP).forEach(id => {
+      const tmp = TEMP_MAP[id];
+      if (!tmp) return;
+      if (window.TEMPORADA_ACTIVA && tmp.temporada !== window.TEMPORADA_ACTIVA) return;
+      const ha = HA_MAP[id]||0;
+      if (ha > 0) { totHa += ha; nUPs++; }
+    });
+    if (totHa > 0) {
+      _h6.innerHTML = `<b>${Math.round(totHa)}</b> hectáreas distribuidas en <b>${nUPs}</b> unidad${nUPs===1?'':'es'} productiva${nUPs===1?'':'s'} de la temporada.`;
+      _h6.className = 'zona-headline';
+    } else {
+      _h6.innerHTML = 'Sin unidades productivas con superficie cargada.';
+      _h6.className = 'zona-headline empty';
+    }
   }
 }
 
@@ -1659,6 +1837,11 @@ document.querySelectorAll('details.card').forEach(d => {
     setTxt('banner-nueces-rec', fmt(recibidoCLP));
     setTxt('banner-nueces-pend', fmt(pendienteCLP));
     setTxt('banner-nueces-hint', `${clientesTxt} · ${pct.toFixed(1)}% cobrado · TC ${tc}`);
+    // Exportar para headline zona 5
+    window._nuecesProy = proyectadoCLP;
+    window._nuecesRec  = recibidoCLP;
+    window._nuecesPend = pendienteCLP;
+    if (typeof renderHeadlineZona5 === 'function') renderHeadlineZona5();
   } catch (e) {
     console.warn('[banner-nueces] error:', e);
     setTxt('banner-nueces-hint', '⚠️ No se pudo cargar. Clic para ver detalle.');
@@ -1746,6 +1929,11 @@ document.querySelectorAll('details.card').forEach(d => {
     setTxt('banner-achicoria-fact', fmtK(facturado));
     setTxt('banner-achicoria-pend', fmtK(pendiente));
     setTxt('banner-achicoria-hint', `${numUPs} UP · ${totalHa}há · ${numEntregas} entregas · ${pct.toFixed(1)}% cosechado`);
+    // Exportar para headline zona 5
+    window._achicoriaProy = proyectado;
+    window._achicoriaFact = facturado;
+    window._achicoriaPend = pendiente;
+    if (typeof renderHeadlineZona5 === 'function') renderHeadlineZona5();
   } catch (e) {
     console.warn('[banner-achicoria] error:', e);
     setTxt('banner-achicoria-hint', '⚠️ No se pudo cargar. Clic para ver detalle.');
