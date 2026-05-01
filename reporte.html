@@ -871,12 +871,41 @@ function renderResultados() {
     costosPorUP[id] = (costosPorUP[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, totalDoc);
   });
 
-  // ── INGRESOS: Ppto (Proyecciones) + Facturado real ───────────────────────
+  // ── INGRESOS: misma lógica EXACTA que renderIngresos() ────────────────────
+  // Replicamos para que las cifras coincidan con la pestaña Ingresos
   const ingPpto = {}, ingFact = {}, kilosPpto = {}, ingProyFut = {}, proyFutDetalle = {};
   const _hoyRes = new Date(); _hoyRes.setHours(0,0,0,0);
+
+  // FUENTE 1: Facturas emitidas asignadas (mismo filtro que Ingresos)
+  const facturasAsigRes = (window.ASIGNACIONES||[]).filter(r => {
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    const id   = getUpId(r);
+    return tipo.includes("factura") && rutEmisor(r) === RUT_LC
+      && Number(r["Monto_Asignado"]||0) > 0
+      && esUpProd(id) && passTemp(id);
+  }).map(r => {
+    const id = getUpId(r);
+    const keyDoc = String(r["KEY_Documento"]||"").trim();
+    const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
+    // Detectar NC vía TipoDTE en CargaHTML_Demo
+    const docOrigen = (window.DOCUMENTOS||[]).find(d => String(d["KEY"]||"").trim() === keyDoc);
+    const tipoDte = docOrigen ? String(docOrigen["TipoDTE"]||"").trim() : "";
+    const esNC = tipoDte === "61";
+    let monto = aplicarIvaMonto(Number(r["Monto_Asignado"]||0), 'asig_factura_emitida', keyDoc, totalDoc);
+    if (esNC) monto = -Math.abs(monto);  // NC siempre resta
+    return { id, monto, esNC };
+  });
+  // Acumular en ingFact por UP
+  facturasAsigRes.forEach(f => {
+    ingFact[f.id] = (ingFact[f.id]||0) + f.monto;
+  });
+
+  // FUENTE 2: Proyecciones (Estimado y Real) — mismo filtro que Ingresos
   (window.PROYECCIONES||[]).forEach(r => {
-    const id = String(r["Unidad_Productiva"]||"").trim();
+    const id    = String(r["Unidad_Productiva"]||"").trim();
+    const est   = String(r["Estado"]||"").trim();
     if (!esUpProd(id) || !passTemp(id)) return;
+    if (est !== "Estimado" && est !== "Real") return;
     const monto = aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion');
     ingPpto[id]   = (ingPpto[id]||0)   + monto;
     kilosPpto[id] = (kilosPpto[id]||0) + Number(r["Kilos_Estimados"]||0);
@@ -888,19 +917,6 @@ function renderResultados() {
       if (!proyFutDetalle[id]) proyFutDetalle[id] = [];
       proyFutDetalle[id].push({ fecha, monto });
     }
-  });
-  (window.ASIGNACIONES||[]).forEach(r => {
-    const id   = getUpId(r);
-    if (!esUpProd(id) || !passTemp(id)) return;
-    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
-    const rut  = rutEmisor(r);
-    const esIng = tipo.includes("emit") || (tipo.includes("factura") && rut === RUT_LC);
-    if (!esIng || Number(r["Monto_Asignado"]||0) <= 0) return;
-    // Factura emitida LC → DTE 33; guía emitida → tal cual
-    const keyDoc = String(r["KEY_Documento"]||"").trim();
-    const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
-    const fuenteIng = tipo.includes("factura") ? 'asig_factura_emitida' : 'asig_guia';
-    ingFact[id] = (ingFact[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIng, keyDoc, totalDoc);
   });
 
   // ── PRORRATEO ───────────────────────────────────────────────────────────
