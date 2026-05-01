@@ -1647,7 +1647,13 @@ function renderIngresos() {
 
   const cultivosHTML = cultivoOrden.map(([cultivo, data], idx) => {
     const factTotal = data.fact + data.cobrado;
-    const pct = data.ppto > 0 ? Math.round(factTotal / data.ppto * 100) : (factTotal > 0 ? 100 : 0);
+    // Suma de proyecciones futuras de ESTE cultivo (filas tipo proyeccion en data.facturas)
+    const proyFutCultivo = (data.facturas || [])
+      .filter(f => f.tipo === "proyeccion")
+      .reduce((s, f) => s + f.monto, 0);
+    const factMasProy = factTotal + proyFutCultivo;
+    // El avance del cultivo considera lo facturado real + lo que se proyecta facturar
+    const pct = data.ppto > 0 ? Math.round(factMasProy / data.ppto * 100) : (factMasProy > 0 ? 100 : 0);
     const pctColor = pct >= 75 ? "#1a6e3a" : pct >= 25 ? "#d97706" : "#ef4444";
     const upsIds = Object.keys(data.ups);
     const haTotal = upsIds.reduce((s, id) => s + (data.ups[id].ha || 0), 0);
@@ -1737,8 +1743,8 @@ function renderIngresos() {
           <div style="font-size:13px;font-weight:600;color:#b45309;">${fmtPeso(data.ppto)}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Facturado</div>
-          <div style="font-size:13px;font-weight:600;color:#1a6e3a;">${fmtPeso(factTotal)}</div>
+          <div style="font-size:10px;color:#888;">Facturado${proyFutCultivo > 0 ? ' + proy.' : ''}</div>
+          <div style="font-size:13px;font-weight:600;color:#1a6e3a;">${fmtPeso(factTotal)}${proyFutCultivo > 0 ? ` <span style="color:#86c172;font-size:11px;font-weight:600;">+ ${fmtPeso(proyFutCultivo)}</span>` : ''}</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px;color:#888;">Avance</div>
@@ -1763,7 +1769,11 @@ function renderIngresos() {
 
   const totalPpto = Object.values(cultivoRows).reduce((s,d) => s + d.ppto, 0);
   const totalFact = Object.values(cultivoRows).reduce((s,d) => s + d.fact + d.cobrado, 0);
-  const totalPct = totalPpto > 0 ? Math.round(totalFact / totalPpto * 100) : 0;
+  const totalProyFut = Object.values(cultivoRows).reduce((s,d) => {
+    return s + (d.facturas || []).filter(f => f.tipo === "proyeccion").reduce((ss,f)=>ss+f.monto, 0);
+  }, 0);
+  const totalFactProy = totalFact + totalProyFut;
+  const totalPct = totalPpto > 0 ? Math.round(totalFactProy / totalPpto * 100) : 0;
 
   document.getElementById("app-ingresos").innerHTML = `
 
@@ -1849,7 +1859,7 @@ function renderIngresos() {
         <span></span>
         <div style="font-size:13px;font-weight:700;">Total</div>
         <div style="text-align:right;font-size:13px;font-weight:700;color:#b45309;">${fmtPeso(totalPpto)}</div>
-        <div style="text-align:right;font-size:13px;font-weight:700;color:#1a6e3a;">${fmtPeso(totalFact)}</div>
+        <div style="text-align:right;font-size:13px;font-weight:700;color:#1a6e3a;">${fmtPeso(totalFact)}${totalProyFut > 0 ? ` <span style="color:#86c172;font-size:11px;font-weight:600;">+ ${fmtPeso(totalProyFut)}</span>` : ''}</div>
         <div style="text-align:right;font-size:13px;font-weight:700;color:#1a1a1a;">${totalPpto>0?totalPct+"%":"—"}</div>
       </div>
     </div>
