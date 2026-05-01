@@ -3188,8 +3188,8 @@ function renderCostos() {
     Fecha:        r["Fecha"],
     Tipo_Labor:   String(r["Tipo_Labor"]||"").trim(),
     monto:        aplicarIvaMonto(Number(r["Costo Total"]||0), 'bd_registro'),
-    // Identificador del registro (probar varias columnas comunes en BD_Registro)
-    docId:        String(r["ID_Registro"]||r["ID"]||r["Id"]||r["Folio"]||r["Numero"]||r["N°"]||"").trim()
+    // Identificador del registro: número de fila en BD_Registro
+    docId:        r._row ? String(r._row) : ""
   }));
 
   // Costos nuevos Asignaciones_U (desde el corte)
@@ -3501,13 +3501,13 @@ function renderCostos() {
             const cc = CC_MAP[r.Centro_Costo] || r.Centro_Costo;
             const fuenteTxt = r._fuente === "BD_Registro" ? "BD" : "Asig";
             const fuenteColor = r._fuente === "BD_Registro" ? "#3b6d11" : "#0c447c";
-            // Doc ID: BD_Registro → ID/folio interno; Asignaciones → folio del DTE
+            // Doc ID: BD_Registro → FILA del sheet; Asignaciones → folio del DTE
             const docTxt = r.docId
-              ? (r._fuente === "BD_Registro" ? `#${r.docId}` : r.docId)
+              ? (r._fuente === "BD_Registro" ? `FILA ${r.docId}` : r.docId)
               : "—";
             const docTitle = r._fuente === "Asignaciones_U" && r.proveedor
               ? `Folio ${r.docId} · ${r.proveedor}`
-              : (r._fuente === "BD_Registro" ? `Registro BD #${r.docId}` : "");
+              : (r._fuente === "BD_Registro" ? `Fila ${r.docId} de BD_Registro en Google Sheet` : "");
             return `<div style="display:grid;grid-template-columns:0.7fr 1.1fr 1.3fr 0.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
               <div style="color:#555;">${fechaTxt}</div>
               <div style="color:#1a1a1a;">${cc}</div>
@@ -3730,7 +3730,11 @@ async function main() {
       if (id) ENC_MAP[id] = String(e["Nombre Encargado"]||id).trim();
     });
 
-    TODOS = window.TODOS = registros;
+    TODOS = window.TODOS = (Array.isArray(registros) ? registros : []).map((r, i) => {
+      // _row: número de fila aproximado en Google Sheet (header en fila 1, datos desde fila 2)
+      r._row = i + 2;
+      return r;
+    });
     PROYECCIONES = window.PROYECCIONES = proyecciones;
     DOCUMENTOS   = window.DOCUMENTOS   = documentos;
     ASIGNACIONES = window.ASIGNACIONES = Array.isArray(asignaciones) ? asignaciones : [];
