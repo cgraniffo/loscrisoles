@@ -180,23 +180,23 @@ if (location.search.includes('embed=1')) {
     .status-badge.warn   { background: #FAEEDA; color: #854F0B; }
     .status-badge.ok     { background: #EAF3DE; color: #3B6D11; }
 
-    /* Botón "Ver →" — claramente diferenciado */
+    /* Botón "Ver →" — link secundario sutil */
     details.card > summary .ver-btn,
     .ver-btn {
-      font-size: 11px; font-weight: 600;
-      color: var(--verde2);
-      padding: 5px 10px;
-      border: 1px solid #d4e6c8;
-      border-radius: 6px;
-      background: #f7fbf1;
+      font-size: 11px; font-weight: 500;
+      color: var(--gris);
+      padding: 4px 8px;
+      border: none;
+      background: transparent;
       text-decoration: none;
       transition: all 0.15s;
       white-space: nowrap;
+      border-radius: 4px;
     }
     .ver-btn:hover {
-      background: #e8f3db;
-      border-color: var(--verde2);
       color: var(--verde);
+      background: rgba(15, 110, 86, 0.06);
+      text-decoration: underline;
     }
 
     /* Separador visual vertical entre botón y chevron */
@@ -204,19 +204,28 @@ if (location.search.includes('embed=1')) {
       width: 1px; height: 20px; background: rgba(0,0,0,0.08);
     }
 
-    /* Chevron solo — más discreto */
+    /* Chevron — ACCIÓN PRIMARIA (expandir/colapsar in-place) */
     details.card > summary .caret {
-      font-size: 10px;
-      color: #9ca3af;
-      transition: transform 0.2s;
-      display: inline-block;
-      width: 16px; height: 16px;
-      line-height: 16px;
-      text-align: center;
+      font-size: 13px;
+      color: #fff;
+      background: var(--verde2);
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      line-height: 1;
       border-radius: 50%;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(15, 110, 86, 0.25);
     }
-    details.card > summary:hover .caret { background: rgba(0,0,0,0.05); color: #4b5563; }
+    details.card > summary:hover .caret {
+      background: var(--verde);
+      transform: scale(1.05);
+      box-shadow: 0 2px 6px rgba(15, 110, 86, 0.35);
+    }
     details.card[open] > summary .caret { transform: rotate(90deg); }
+    details.card[open] > summary:hover .caret { transform: rotate(90deg) scale(1.05); }
     details.card[open] > summary { border-bottom: 1px solid #f0ede6; }
     details.card > .card-body { padding: 16px 20px; }
 
@@ -564,9 +573,7 @@ if (location.search.includes('embed=1')) {
           </div>
           <div class="summary-meta">
             <span class="status-badge" id="badge-labores">—</span>
-            <a href="#" onclick="navTo('labores','/reporte');return false;" class="ver-btn">Ver →</a>
-            <span class="meta-sep"></span>
-            <span class="caret">▶</span>
+            <span class="caret">▶</span><span class="meta-sep"></span><a href="#" onclick="navTo('labores','/reporte');return false;" class="ver-btn">Ver →</a>
           </div>
         </summary>
         <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
@@ -582,9 +589,7 @@ if (location.search.includes('embed=1')) {
           </div>
           <div class="summary-meta">
             <span class="status-badge" id="badge-sin-asignar">—</span>
-            <a href="#" onclick="navTo('asignar','/asignar');return false;" class="ver-btn">Asignar →</a>
-            <span class="meta-sep"></span>
-            <span class="caret">▶</span>
+            <span class="caret">▶</span><span class="meta-sep"></span><a href="#" onclick="navTo('asignar','/asignar');return false;" class="ver-btn">Asignar →</a>
           </div>
         </summary>
         <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
@@ -640,9 +645,7 @@ if (location.search.includes('embed=1')) {
           </div>
           <div class="summary-meta">
             <span class="status-badge" id="badge-cobrar">—</span>
-            <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
-            <span class="meta-sep"></span>
-            <span class="caret">▶</span>
+            <span class="caret">▶</span><span class="meta-sep"></span><a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
           </div>
         </summary>
         <div class="card-body" id="card-cobrar"><div class="loading pulse">Cargando...</div></div>
@@ -658,9 +661,7 @@ if (location.search.includes('embed=1')) {
           </div>
           <div class="summary-meta">
             <span class="status-badge" id="badge-pagar">—</span>
-            <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
-            <span class="meta-sep"></span>
-            <span class="caret">▶</span>
+            <span class="caret">▶</span><span class="meta-sep"></span><a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver caja →</a>
           </div>
         </summary>
         <div class="card-body" id="card-pagar"><div class="loading pulse">Cargando...</div></div>
