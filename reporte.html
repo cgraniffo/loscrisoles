@@ -1560,6 +1560,18 @@ function renderIngresos() {
   const tFactCombinado = tFactF + cobradoContratos;
   const pFactCombinado = tEstF>0 ? Math.round(tFactCombinado/tEstF*100) : (tFactCombinado>0?100:0);
 
+  // ── PROYECCIONES FUTURAS (a partir de hoy) ──────────────────────────────
+  const _hoyIngresos = new Date(); _hoyIngresos.setHours(0,0,0,0);
+  const proyFuturas = (filtEst || []).filter(r => {
+    const d = parseDate(r.fecha);
+    return d && d >= _hoyIngresos;
+  });
+  const tProyFuturas = sumF(proyFuturas);
+  // Total proyectado = facturado real + cobrado contratos + proyecciones futuras
+  const tTotalProyectado = tFactCombinado + tProyFuturas;
+  // % facturado del total proyectado (lo que ya entró vs lo que entrará en total)
+  const pctFacturadoBarra = tTotalProyectado > 0 ? Math.round((tFactCombinado / tTotalProyectado) * 100) : 0;
+
   const cultivoRows = {};
   (filtFact || []).forEach(r => {
     const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
@@ -1582,6 +1594,19 @@ function renderIngresos() {
     cultivoRows[cultivo].ppto += r.monto;
     if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
     cultivoRows[cultivo].ups[r.up].ppto += r.monto;
+  });
+  // Agregar proyecciones futuras al detalle del cultivo como filas pendientes
+  (proyFuturas || []).forEach(r => {
+    const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
+    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
+    cultivoRows[cultivo].facturas.push({
+      fecha:  r.fecha,
+      folio:  "—",
+      razon:  "Proyección manual",
+      up:     r.up,
+      monto:  r.monto,
+      tipo:   "proyeccion"
+    });
   });
   if (cobradoContratos > 0) {
     if (!cultivoRows["Nuez"]) cultivoRows["Nuez"] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
@@ -1642,18 +1667,32 @@ function renderIngresos() {
       }).join("");
     const cobradoHint = data.cobrado > 0 ? ` · cobrado contratos ${fmtPeso(data.cobrado)}` : "";
 
-    // Tabla detalle de facturas/anticipos que componen el Real
+    // Tabla detalle de facturas/anticipos/proyecciones que componen el total
     const facturasOrdenadas = (data.facturas || []).slice().sort((a,b) => {
-      // Orden por folio descendente (mayor a menor)
+      // Las proyecciones (futuras) van al final, separadas
+      if (a.tipo === "proyeccion" && b.tipo !== "proyeccion") return 1;
+      if (b.tipo === "proyeccion" && a.tipo !== "proyeccion") return -1;
+      // Dentro de proyecciones: por fecha ascendente (próxima primero)
+      if (a.tipo === "proyeccion" && b.tipo === "proyeccion") {
+        return (parseDate(a.fecha) || 0) - (parseDate(b.fecha) || 0);
+      }
+      // Dentro de facturas/anticipos: por folio descendente
       const fa = Number(String(a.folio||"").replace(/[^0-9]/g,"")) || 0;
       const fb = Number(String(b.folio||"").replace(/[^0-9]/g,"")) || 0;
       return fb - fa;
     });
+    const numFactReal = facturasOrdenadas.filter(f => f.tipo !== "proyeccion").length;
+    const numProyFut  = facturasOrdenadas.filter(f => f.tipo === "proyeccion").length;
+    const sumaReal    = facturasOrdenadas.filter(f => f.tipo !== "proyeccion").reduce((s,f)=>s+f.monto,0);
+    const sumaProy    = facturasOrdenadas.filter(f => f.tipo === "proyeccion").reduce((s,f)=>s+f.monto,0);
+    const labelDet    = numProyFut > 0
+      ? `${numFactReal} factura${numFactReal!==1?'s':''} + ${numProyFut} proyec${numProyFut!==1?'ciones':'ción'}`
+      : `${facturasOrdenadas.length} ${facturasOrdenadas.length===1?'documento':'documentos'}`;
     const facturasHTML = facturasOrdenadas.length > 0 ? `
       <details style="margin-top:12px;border-top:1px dashed #ccc;padding-top:8px;">
         <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;color:#555;font-weight:600;user-select:none;">
-          <span><span style="display:inline-block;transition:transform 0.15s;" class="det-fact-chevron">▶</span> Ver detalle facturado · ${facturasOrdenadas.length} ${facturasOrdenadas.length===1?'documento':'documentos'}</span>
-          <span style="font-size:10px;color:#888;font-weight:400;">${fmtPeso(facturasOrdenadas.reduce((s,f)=>s+f.monto,0))}</span>
+          <span><span style="display:inline-block;transition:transform 0.15s;" class="det-fact-chevron">▶</span> Ver detalle · ${labelDet}</span>
+          <span style="font-size:10px;color:#888;font-weight:400;">${fmtPeso(sumaReal + sumaProy)}</span>
         </summary>
         <div style="padding-top:8px;">
           <div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
@@ -1671,8 +1710,10 @@ function renderIngresos() {
             let montoColor = "#1a6e3a";
             if (f.tipo === "anticipo") tipoIcon = '<span title="Anticipo nueces (contrato)" style="color:#b45309;">●</span> ';
             else if (f.tipo === "nc")  { tipoIcon = '<span title="Nota de crédito" style="color:#b91c1c;">●</span> '; montoColor = "#b91c1c"; }
+            else if (f.tipo === "proyeccion") { tipoIcon = '<span title="Proyección manual (por facturar)" style="color:#86c172;">○</span> '; montoColor = "#86c172"; }
             const montoTxt = f.tipo === "nc" ? "−" + fmtPeso(Math.abs(f.monto)) : fmtPeso(f.monto);
-            return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
+            const rowStyle = f.tipo === "proyeccion" ? "font-style:italic;" : "";
+            return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;${rowStyle}">
               <div style="color:#555;">${tipoIcon}${fechaTxt}</div>
               <div style="color:#555;font-family:monospace;">${f.folio || "—"}</div>
               <div style="color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.razon}">${f.razon || "—"}</div>
@@ -1778,9 +1819,22 @@ function renderIngresos() {
       </div>
 
       <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real)</div>
-        <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado)}</div>
-        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
+        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado + por facturar</div>
+        <div style="display:flex;align-items:baseline;gap:6px;line-height:1;">
+          <span style="font-size:22px;font-weight:700;color:#1a6e3a;">${fmtPeso(tFactCombinado)}</span>
+          ${tProyFuturas > 0 ? `<span style="font-size:13px;color:#86c172;font-weight:600;">+ ${fmtPeso(tProyFuturas)}</span>` : ""}
+        </div>
+        ${tProyFuturas > 0 ? `
+        <div style="height:8px;background:#eef3e3;border-radius:4px;overflow:hidden;display:flex;margin:8px 0 6px;border:1px solid #c3e0a0;">
+          <div style="background:#1a6e3a;width:${pctFacturadoBarra}%;" title="Facturado real: ${fmtPeso(tFactCombinado)}"></div>
+          <div style="background:#86c172;width:${100-pctFacturadoBarra}%;" title="Por facturar (proyecciones futuras): ${fmtPeso(tProyFuturas)}"></div>
+        </div>
+        <div style="font-size:10px;color:#3b6d11;display:flex;justify-content:space-between;margin-top:4px;">
+          <span><span style="display:inline-block;width:8px;height:8px;background:#1a6e3a;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${pctFacturadoBarra}% facturado</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#86c172;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${100-pctFacturadoBarra}% por facturar</span>
+        </div>
+        ` : ""}
+        <div style="font-size:11px;color:#3b6d11;margin-top:6px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}${proyFuturas.length>0?` · ${proyFuturas.length} proyec. futuras`:""}</div>
       </div>
 
     </div>
