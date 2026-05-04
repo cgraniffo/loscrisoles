@@ -2832,6 +2832,7 @@ function renderCostos() {
     return Number(r["Costo Total"]||0) > 0 && (fecha === "" || fecha < FECHA_CORTE) && passTemp;
   }).map(r => ({
     _fuente:      "BD_Registro",
+    _filaSheet:   r._filaSheet || null,
     Centro_Costo: String(r["Centro_Costo"]||"").trim(),
     Fecha:        r["Fecha"],
     Tipo_Labor:   String(r["Tipo_Labor"]||"").trim(),
@@ -2867,6 +2868,9 @@ function renderCostos() {
     const montoTotalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
     return {
       _fuente:      "Asignaciones_U",
+      _filaSheet:   r._filaSheet || null,
+      _folio:       String(r["Folio"]||"").trim(),
+      _proveedor:   String(r["Proveedor"]||"").trim(),
       Centro_Costo: String(r["UP_ID"]||r["UP_Nombre"]||"").trim(),
       Fecha:        r["Fecha_Documento"] || r["fecha_documento"] || r["Fecha_Asignacion"],
       Tipo_Labor:   String(r["Tipo_Doc"]||"").trim(),
@@ -3061,6 +3065,7 @@ function renderCostos() {
         <table class="up-table">
           <thead><tr>
             <th>Fecha</th><th>UP</th><th>Tipo / Labor</th>
+            <th>Doc</th>
             <th style="text-align:center;">Fuente</th>
             <th style="text-align:right;">Monto</th>
           </tr></thead>
@@ -3072,15 +3077,27 @@ function renderCostos() {
               const fuenteBadge = r._fuente === "BD_Registro"
                 ? `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#eaf3de;color:#3b6d11;">BD Registro</span>`
                 : `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#e6f1fb;color:#0c447c;">Asignación</span>`;
+              // Columna Doc: BD_Registro → "fila X" | Asignaciones_U → "Folio · Proveedor"
+              let docTxt = "—", docTitle = "";
+              if (r._fuente === "BD_Registro" && r._filaSheet) {
+                docTxt = `<span style="color:#3b6d11;font-family:monospace;">fila ${r._filaSheet}</span>`;
+                docTitle = `BD_Registro · fila ${r._filaSheet} en el Sheet`;
+              } else if (r._fuente === "Asignaciones_U") {
+                const folio = r._folio || "—";
+                const prov  = r._proveedor || "";
+                docTxt = `<span style="color:#0c447c;font-family:monospace;">${folio}</span>${prov ? ` <span style="color:#888;font-size:10px;">· ${prov.substring(0,28)}${prov.length>28?'…':''}</span>` : ""}`;
+                docTitle = `Asignación · Folio ${folio}${prov?` · ${prov}`:""}`;
+              }
               return `<tr>
                 <td style="color:#888;font-size:12px;">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—"}</td>
                 <td>${cc}<span style="color:#888;font-size:11px;"> ${fnd}</span></td>
                 <td style="font-size:12px;color:#555;">${r.Tipo_Labor||"—"}</td>
+                <td style="font-size:11px;" title="${docTitle}">${docTxt}</td>
                 <td style="text-align:center;">${fuenteBadge}</td>
                 <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(r.monto)}</td>
               </tr>`;
             }).join("")}
-            ${conCosto.length > 50 ? `<tr><td colspan="5" style="text-align:center;color:#aaa;font-size:12px;padding:10px;">Mostrando 50 de ${conCosto.length} registros</td></tr>` : ""}
+            ${conCosto.length > 50 ? `<tr><td colspan="6" style="text-align:center;color:#aaa;font-size:12px;padding:10px;">Mostrando 50 de ${conCosto.length} registros</td></tr>` : ""}
           </tbody>
         </table>
       </div>
@@ -3197,6 +3214,15 @@ async function main() {
     encargados.forEach(e => {
       const id = String(e["id_Encargado"]||"").trim();
       if (id) ENC_MAP[id] = String(e["Nombre Encargado"]||id).trim();
+    });
+
+    // Enriquecer cada registro con _filaSheet (número real de fila en el Google Sheet)
+    // headers ocupa fila 1, así que primer registro = fila 2
+    (Array.isArray(registros)?registros:[]).forEach((r, i) => {
+      r._filaSheet = i + 2;
+    });
+    (Array.isArray(asignaciones)?asignaciones:[]).forEach((r, i) => {
+      r._filaSheet = i + 2;
     });
 
     TODOS = window.TODOS = registros;
