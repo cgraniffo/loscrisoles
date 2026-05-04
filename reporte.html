@@ -1452,18 +1452,18 @@ function renderIngresos() {
       <div class="mes-label">${label}</div>
       <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <div style="flex:1;height:5px;background:#f0ede6;border-radius:2px;overflow:hidden;display:flex;">
+            <div style="height:100%;background:#475569;width:${wRealMes}%;" title="Facturado real del mes"></div>
+            <div style="height:100%;background:#cbd5e1;width:${wProyMes}%;" title="Proyectado del mes"></div>
+          </div>
+          <div style="font-size:10px;color:#475569;min-width:80px;text-align:right;">${fmtPeso(tot)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
           <div style="flex:1;height:8px;background:#f0ede6;border-radius:3px;overflow:hidden;display:flex;">
             <div style="height:100%;background:#15803d;width:${wRealAcum}%;" title="Acumulado real"></div>
             <div style="height:100%;background:#86efac;width:${wProyAcum}%;" title="Acumulado proyectado"></div>
           </div>
           <div style="font-size:11px;font-weight:600;color:#15803d;min-width:80px;text-align:right;">${fmtPeso(acumReal+acumProy)} <span style="color:#999;font-weight:400;">(${pctA}%)</span></div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="flex:1;height:5px;background:#f0ede6;border-radius:2px;overflow:hidden;display:flex;">
-            <div style="height:100%;background:#1e40af;width:${wRealMes}%;" title="Facturado real del mes"></div>
-            <div style="height:100%;background:#93c5fd;width:${wProyMes}%;" title="Proyectado del mes"></div>
-          </div>
-          <div style="font-size:10px;color:#1e40af;min-width:80px;text-align:right;">${fmtPeso(tot)}</div>
         </div>
       </div>
     </div>`;
@@ -1767,8 +1767,8 @@ function renderIngresos() {
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
           <span style="font-weight:600;color:#555;">Mensual:</span>
-          <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:#1e40af;display:inline-block;"></span> Real</span>
-          <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:#93c5fd;display:inline-block;"></span> Proyectado</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:#475569;display:inline-block;"></span> Real</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:#cbd5e1;display:inline-block;"></span> Proyectado</span>
         </div>
       </div>
       <div style="font-size:14px;color:#888;">Cumplimiento proyección Ingresos: <span style="font-size:20px;font-weight:700;color:${pFactCombinado>=100?'#1a6e3a':pFactCombinado>=50?'#d97706':'#ef4444'};">${pFactCombinado}%</span></div>
