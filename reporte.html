@@ -1415,45 +1415,55 @@ function renderIngresos() {
   </tr>`;
 
   // ── EVOLUCIÓN MENSUAL ─────────────────────────────────────────────────────
-  // Solo 2 series: facturado mensual del mes (DTE oficiales + proy. futuras)
-  // y acumulado avanzando hacia el total esperado.
+  // 2 líneas por mes, cada una apilada en 2 colores:
+  //   Mensual:    verde oscuro = facturado real (DTE) | verde claro = proyección futura
+  //   Acumulado:  mismo concepto, acumulando hacia el total esperado
   const porMes = {};
   filtFact.forEach(r => {
     if (r.esNC) return;
     const d = parseDate(r.fecha); if (!d) return;
     const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if (!porMes[key]) porMes[key] = { mes:0 };
-    porMes[key].mes += r.monto;
+    if (!porMes[key]) porMes[key] = { real:0, proy:0 };
+    porMes[key].real += r.monto;
   });
   filtFutura.forEach(r => {
     const d = parseDate(r.fecha); if (!d) return;
     const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if (!porMes[key]) porMes[key] = { mes:0 };
-    porMes[key].mes += r.monto;
+    if (!porMes[key]) porMes[key] = { real:0, proy:0 };
+    porMes[key].proy += r.monto;
   });
   const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
-  const mesMax  = Math.max(...mesRows.map(([,v])=>v.mes), 1);
-  let acumMes = 0;
-  const totalReal = filtFact.filter(r=>!r.esNC).reduce((s,r)=>s+r.monto,0)
-                 + filtFutura.reduce((s,r)=>s+r.monto,0);
+  const mesMax  = Math.max(...mesRows.map(([,v])=>v.real+v.proy), 1);
+  let acumReal = 0, acumProy = 0;
+  const totalReal = filtFact.filter(r=>!r.esNC).reduce((s,r)=>s+r.monto,0);
+  const totalProy = filtFutura.reduce((s,r)=>s+r.monto,0);
+  const totalEsp  = totalReal + totalProy;
   const mesHTML = mesRows.map(([k,v]) => {
-    acumMes += v.mes;
-    const pctA = totalReal>0 ? Math.round(acumMes/totalReal*100) : 0;
+    acumReal += v.real;
+    acumProy += v.proy;
+    const tot = v.real + v.proy;
+    const wRealMes = totalEsp>0 ? Math.round(v.real/mesMax*100) : 0;
+    const wProyMes = totalEsp>0 ? Math.round(v.proy/mesMax*100) : 0;
+    const wRealAcum = totalEsp>0 ? Math.round(acumReal/totalEsp*100) : 0;
+    const wProyAcum = totalEsp>0 ? Math.round(acumProy/totalEsp*100) : 0;
+    const pctA = totalEsp>0 ? Math.round((acumReal+acumProy)/totalEsp*100) : 0;
     const label = new Date(k+"-15").toLocaleDateString("es-CL",{month:"short",year:"numeric"});
     return `<div class="mes-row">
       <div class="mes-label">${label}</div>
       <div style="flex:1;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-          <div style="flex:1;height:8px;background:#f0ede6;border-radius:3px;overflow:hidden;">
-            <div style="height:100%;background:#1a6e3a;width:${Math.round(v.mes/mesMax*100)}%;" title="Facturado del mes"></div>
+          <div style="flex:1;height:8px;background:#f0ede6;border-radius:3px;overflow:hidden;display:flex;">
+            <div style="height:100%;background:#1a6e3a;width:${wRealMes}%;" title="Facturado real del mes"></div>
+            <div style="height:100%;background:#7ab86b;width:${wProyMes}%;" title="Proyectado del mes"></div>
           </div>
-          <div style="font-size:11px;font-weight:600;color:#1a6e3a;min-width:75px;text-align:right;">${fmtPeso(v.mes)}</div>
+          <div style="font-size:11px;font-weight:600;color:#1a6e3a;min-width:80px;text-align:right;">${fmtPeso(tot)}</div>
         </div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <div style="flex:1;height:5px;background:#f0ede6;border-radius:2px;overflow:hidden;">
-            <div style="height:100%;background:#0f6e56;width:${pctA}%;" title="Acumulado"></div>
+          <div style="flex:1;height:5px;background:#f0ede6;border-radius:2px;overflow:hidden;display:flex;">
+            <div style="height:100%;background:#0f6e56;width:${wRealAcum}%;" title="Acumulado real"></div>
+            <div style="height:100%;background:#7fc7a8;width:${wProyAcum}%;" title="Acumulado proyectado"></div>
           </div>
-          <div style="font-size:10px;color:#0f6e56;min-width:75px;text-align:right;">${fmtPeso(acumMes)} <span style="color:#999;">(${pctA}%)</span></div>
+          <div style="font-size:10px;color:#0f6e56;min-width:80px;text-align:right;">${fmtPeso(acumReal+acumProy)} <span style="color:#999;">(${pctA}%)</span></div>
         </div>
       </div>
     </div>`;
@@ -1749,9 +1759,17 @@ function renderIngresos() {
     </div>
 
     <div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-      <div style="display:flex;align-items:center;gap:14px;font-size:11px;flex-wrap:wrap;">
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#1a6e3a;display:inline-block;"></span> Facturado del mes</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#0f6e56;display:inline-block;"></span> Acumulado anual</span>
+      <div style="display:flex;align-items:center;gap:18px;font-size:11px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-weight:600;color:#555;">Mensual:</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:#1a6e3a;display:inline-block;"></span> Real</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:#7ab86b;display:inline-block;"></span> Proyectado</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-weight:600;color:#555;">Acumulado:</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:#0f6e56;display:inline-block;"></span> Real</span>
+          <span style="display:flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;border-radius:2px;background:#7fc7a8;display:inline-block;"></span> Proyectado</span>
+        </div>
       </div>
       <div style="font-size:14px;color:#888;">Cumplimiento proyección Ingresos: <span style="font-size:20px;font-weight:700;color:${pFactCombinado>=100?'#1a6e3a':pFactCombinado>=50?'#d97706':'#ef4444'};">${pFactCombinado}%</span></div>
     </div>
