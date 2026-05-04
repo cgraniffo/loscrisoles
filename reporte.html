@@ -3220,6 +3220,30 @@ async function main() {
     // headers ocupa fila 1, así que primer registro = fila 2
     (Array.isArray(registros)?registros:[]).forEach((r, i) => {
       r._filaSheet = i + 2;
+      // Normalizar campo Fecha: si trae texto (ej: "Cosecha") en vez de fecha,
+      // asumir el último día de la temporada del CC (un día antes del MES_INICIO_TEMPORADA)
+      const raw = String(r["Fecha"]||"").trim();
+      const parseable = raw && /^\d{4}/.test(raw);  // empieza con año (formato fecha)
+      if (raw && !parseable) {
+        r._fechaOriginal = raw;  // guardamos el texto original para mostrar
+        // Buscar mes de inicio del CC en TEMP_MAP
+        const ccId = String(r["Centro_Costo"]||"").trim();
+        const tmp  = TEMP_MAP[ccId];
+        if (tmp && tmp.temporada && tmp.mesInicio) {
+          // Temporada "2025-2026" termina un día antes del MES_INICIO del año 2026
+          const añoFin = parseInt(tmp.temporada.split("-")[1], 10);
+          const mesIni = Number(tmp.mesInicio) || 4;
+          // Último día = (mesIni - 1) del año fin, último día del mes
+          const lastDay = new Date(añoFin, mesIni - 1, 0);  // día 0 del mes mesIni = último día del mes anterior
+          const yyyy = lastDay.getFullYear();
+          const mm   = String(lastDay.getMonth() + 1).padStart(2,"0");
+          const dd   = String(lastDay.getDate()).padStart(2,"0");
+          r["Fecha"] = `${yyyy}-${mm}-${dd}`;
+        } else {
+          // Sin TEMP_MAP del CC: usar fecha pre-corte como fallback
+          r["Fecha"] = "2026-03-29";
+        }
+      }
     });
     (Array.isArray(asignaciones)?asignaciones:[]).forEach((r, i) => {
       r._filaSheet = i + 2;
