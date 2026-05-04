@@ -1415,53 +1415,45 @@ function renderIngresos() {
   </tr>`;
 
   // ── EVOLUCIÓN MENSUAL ─────────────────────────────────────────────────────
-  // 4 categorías por mes:
-  //   factReal = facturas DTE oficiales del mes (verde oscuro)
-  //   proyFut  = proyecciones manuales con Fecha_Estimada > hoy (verde claro/lima)
-  //   estPpto  = presupuesto del mes (Proyecciones_Manuales completo) (naranja)
-  //   acumulado = línea inferior teal mostrando avance global
+  // Solo 2 series: facturado mensual del mes (DTE oficiales + proy. futuras)
+  // y acumulado avanzando hacia el total esperado.
   const porMes = {};
-  // Facturas DTE oficiales (no NC, no proyección)
   filtFact.forEach(r => {
-    if (r.esNC) return;  // NC se ignoran en el gráfico (o podrían restarse — decidimos no)
+    if (r.esNC) return;
     const d = parseDate(r.fecha); if (!d) return;
     const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if (!porMes[key]) porMes[key] = { factReal:0, proyFut:0, estPpto:0 };
-    porMes[key].factReal += r.monto;
+    if (!porMes[key]) porMes[key] = { mes:0 };
+    porMes[key].mes += r.monto;
   });
-  // Proyecciones futuras (las que se "asumen" como Real)
   filtFutura.forEach(r => {
     const d = parseDate(r.fecha); if (!d) return;
     const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if (!porMes[key]) porMes[key] = { factReal:0, proyFut:0, estPpto:0 };
-    porMes[key].proyFut += r.monto;
-  });
-  // Presupuesto (todas las proyecciones, para barra naranja de referencia)
-  filtEst.forEach(r => {
-    const d = parseDate(r.fecha); if (!d) return;
-    const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if (!porMes[key]) porMes[key] = { factReal:0, proyFut:0, estPpto:0 };
-    porMes[key].estPpto += r.monto;
+    if (!porMes[key]) porMes[key] = { mes:0 };
+    porMes[key].mes += r.monto;
   });
   const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
-  const mesMax  = Math.max(...mesRows.map(([,v])=>Math.max(v.factReal+v.proyFut, v.estPpto)), 1);
+  const mesMax  = Math.max(...mesRows.map(([,v])=>v.mes), 1);
   let acumMes = 0;
   const totalReal = filtFact.filter(r=>!r.esNC).reduce((s,r)=>s+r.monto,0)
                  + filtFutura.reduce((s,r)=>s+r.monto,0);
   const mesHTML = mesRows.map(([k,v]) => {
-    const tot = v.factReal + v.proyFut;
-    acumMes += tot;
+    acumMes += v.mes;
     const pctA = totalReal>0 ? Math.round(acumMes/totalReal*100) : 0;
     const label = new Date(k+"-15").toLocaleDateString("es-CL",{month:"short",year:"numeric"});
     return `<div class="mes-row">
       <div class="mes-label">${label}</div>
       <div style="flex:1;">
-        ${v.estPpto>0?`<div title="Estimado (Ppto)" style="height:6px;border-radius:2px;background:#b45309;width:${Math.round(v.estPpto/mesMax*100)}%;margin-bottom:2px;"></div>`:""}
-        ${v.factReal>0?`<div title="Facturado real (DTE)" style="height:6px;border-radius:2px;background:#1a6e3a;width:${Math.round(v.factReal/mesMax*100)}%;margin-bottom:2px;"></div>`:""}
-        ${v.proyFut>0?`<div title="Proyección futura (asumida)" style="height:6px;border-radius:2px;background:#7ab86b;width:${Math.round(v.proyFut/mesMax*100)}%;margin-bottom:2px;"></div>`:""}
-        <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
-          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:#0f6e56;" title="Acumulado real + proyectado"></div></div>
-          <div class="mes-val" style="color:#0f6e56;">${fmtPeso(acumMes)}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <div style="flex:1;height:8px;background:#f0ede6;border-radius:3px;overflow:hidden;">
+            <div style="height:100%;background:#1a6e3a;width:${Math.round(v.mes/mesMax*100)}%;" title="Facturado del mes"></div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:#1a6e3a;min-width:75px;text-align:right;">${fmtPeso(v.mes)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;height:5px;background:#f0ede6;border-radius:2px;overflow:hidden;">
+            <div style="height:100%;background:#0f6e56;width:${pctA}%;" title="Acumulado"></div>
+          </div>
+          <div style="font-size:10px;color:#0f6e56;min-width:75px;text-align:right;">${fmtPeso(acumMes)} <span style="color:#999;">(${pctA}%)</span></div>
         </div>
       </div>
     </div>`;
@@ -1758,10 +1750,8 @@ function renderIngresos() {
 
     <div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:10px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
       <div style="display:flex;align-items:center;gap:14px;font-size:11px;flex-wrap:wrap;">
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#b45309;display:inline-block;"></span> Estimado (Ppto)</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#1a6e3a;display:inline-block;"></span> Facturado real</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#7ab86b;display:inline-block;"></span> Proyección futura</span>
-        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#0f6e56;display:inline-block;"></span> Acumulado</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#1a6e3a;display:inline-block;"></span> Facturado del mes</span>
+        <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:#0f6e56;display:inline-block;"></span> Acumulado anual</span>
       </div>
       <div style="font-size:14px;color:#888;">Cumplimiento proyección Ingresos: <span style="font-size:20px;font-weight:700;color:${pFactCombinado>=100?'#1a6e3a':pFactCombinado>=50?'#d97706':'#ef4444'};">${pFactCombinado}%</span></div>
     </div>
