@@ -1235,16 +1235,42 @@ async function changeStatus(idOC, newStatus) {
 }
 
 /* ============================================================
-   ACCIONES SECUNDARIAS (mock — luego conectar)
+   PDF Y MAIL — conectados al backend
 ============================================================ */
-function downloadPDF() {
-  showToast('🔧 PDF: pendiente conectar jsPDF', '');
-  // TODO: jsPDF + autoTable
-}
-function emailOC() {
+async function downloadPDF() {
   if (!CURRENT_OC) return;
-  showToast(`🔧 Mail a ${CURRENT_OC.Proveedor_Email} (pendiente conectar Apps Script)`, '');
-  // TODO: fetch a API_OC ?action=send_email
+  showToast('⏳ Generando PDF...', '');
+  try {
+    const result = await apiPost('generate_pdf', { ID_OC: CURRENT_OC.ID_OC });
+    showToast('✅ PDF generado', 'success');
+    // Abrir el PDF en nueva pestaña
+    window.open(result.url, '_blank');
+    // Refrescar OCs para que aparezca URL_PDF actualizado
+    await loadOCs();
+  } catch (e) {
+    showToast('Error generando PDF: ' + e.message, 'error');
+  }
+}
+
+async function emailOC() {
+  if (!CURRENT_OC) return;
+  if (!CURRENT_OC.Proveedor_Email) {
+    showToast('La OC no tiene email del proveedor', 'error');
+    return;
+  }
+  if (!confirm(`¿Enviar OC ${CURRENT_OC.Numero} a ${CURRENT_OC.Proveedor_Email}?\n\n(Se enviará copia oculta al equipo)`)) return;
+
+  showToast('⏳ Generando PDF y enviando mail...', '');
+  try {
+    const result = await apiPost('send_email', { ID_OC: CURRENT_OC.ID_OC });
+    showToast(`✅ Mail enviado a ${result.sentTo}`, 'success');
+    closeModal('modal-view');
+    await loadOCs();
+    renderKPIs();
+    renderTable();
+  } catch (e) {
+    showToast('Error enviando mail: ' + e.message, 'error');
+  }
 }
 function exportCSV() {
   const headers = ['Numero','Fecha','Estado','Proveedor','RUT','UP','Subtotal','IVA','Total','Entrega','Factura'];
