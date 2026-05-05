@@ -544,7 +544,7 @@
           <th onclick="sortBy('Fecha')">Fecha</th>
           <th onclick="sortBy('Estado')">Estado</th>
           <th onclick="sortBy('Proveedor_Nombre')">Proveedor</th>
-          <th onclick="sortBy('UP_Nombre')">UP</th>
+          <th>Centros de Costo</th>
           <th onclick="sortBy('Total')" class="num">Total</th>
           <th onclick="sortBy('Fecha_Entrega_Estimada')">Entrega</th>
           <th>Factura</th>
@@ -586,12 +586,6 @@
           <input type="date" id="f-fecha-entrega">
         </div>
         <div class="form-group">
-          <label>UP / Centro de Costo *</label>
-          <select id="f-up">
-            <option value="">Seleccionar...</option>
-          </select>
-        </div>
-        <div class="form-group">
           <label>Solicitante</label>
           <input type="text" id="f-solicitante" placeholder="Nombre">
         </div>
@@ -612,6 +606,7 @@
               <th class="col-product">Producto</th>
               <th class="col-qty">Cant.</th>
               <th class="col-unit">Unidad</th>
+              <th class="col-unit">Moneda</th>
               <th class="col-price">Precio Unit.</th>
               <th class="col-subtotal">Subtotal</th>
               <th class="col-cc">Centro Costo</th>
@@ -677,27 +672,11 @@
 ============================================================ */
 const WORKER_URL = "https://round-night-574d.christian-19c.workers.dev";
 
-// UPs — fallback hardcodeado mientras conectamos a BD_CC vía API_CC
-// (cuando se conecte API_CC, esto se reemplaza por fetch en init())
-let UPS = [
-  { id: '546f06c9',  nombre: 'Piv 1',        cultivo: 'Trigo' },
-  { id: '53be8a81',  nombre: 'Piv 2',        cultivo: 'Pepino' },
-  { id: '546f06c10', nombre: 'Piv 3',        cultivo: 'Achicoria' },
-  { id: '146f0503',  nombre: 'Pot 1',        cultivo: 'Achicoria' },
-  { id: '146f0504',  nombre: 'Pot 2',        cultivo: 'Maíz' },
-  { id: '146f0505',  nombre: 'Pot 3',        cultivo: 'Trigo' },
-  { id: '146f0506',  nombre: 'Pot 4',        cultivo: 'Trigo' },
-  { id: '146f0507',  nombre: 'Pot 5',        cultivo: 'Trigo' },
-  { id: '546f0c613', nombre: 'Pot 6',        cultivo: 'Achicoria' },
-  { id: '546f0c614', nombre: 'Vega',         cultivo: 'Maíz' },
-  { id: '546f0c625', nombre: 'Nogales',      cultivo: 'Nuez' },
-  { id: '546f0c615', nombre: 'Parcela Sur',  cultivo: 'Trigo' },
-  { id: '8be56e2b',  nombre: 'Gastos Generales', cultivo: '—' },
-  { id: 'c81ea92e',  nombre: 'Maquinarias',     cultivo: '—' }
-];
+// CCs (Centros de Costo) — cargados desde API_OC ?action=ccs (BD_CC)
+// Incluye productivos, gastos generales, maquinarias, etc.
+let CCS = [];
 
-// Proveedores — se carga desde el worker (extraídos de CargaHTML_Demo)
-// Mientras tanto fallback con algunos comunes
+// Proveedores — cargados desde API_OC ?action=proveedores (BD_Proveedores)
 let PROVEEDORES = [];
 
 // OCs — cargadas desde el backend
@@ -802,29 +781,25 @@ async function generateNextNumber() {
    INIT
 ============================================================ */
 async function init() {
-  // Poblar selects de UPs
-  const upSelect = document.getElementById('f-up');
+  // Cargar en paralelo: OCs, CCs y Proveedores
+  await Promise.all([
+    loadOCs(),
+    loadCCs(),
+    loadProveedores()
+  ]);
+
+  // Poblar filtros con CCs (productivos primero, después gastos generales)
   const filterUp = document.getElementById('filter-up');
-  UPS.forEach(up => {
-    const opt = `<option value="${up.id}">${up.nombre}${up.cultivo !== '—' ? ' · ' + up.cultivo : ''}</option>`;
-    upSelect.insertAdjacentHTML('beforeend', opt);
-    filterUp.insertAdjacentHTML('beforeend', `<option value="${up.id}">${up.nombre}</option>`);
+  const ccsOrdenados = [...CCS].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  ccsOrdenados.forEach(cc => {
+    const label = cc.nombre + (cc.especie ? ' · ' + cc.especie : '') + (cc.temporada ? ' (' + cc.temporada + ')' : '');
+    filterUp.insertAdjacentHTML('beforeend', `<option value="${cc.id}">${label}</option>`);
   });
 
-  // Cargar OCs reales del backend
-  await loadOCs();
-
-  // Construir datalist de proveedores a partir de OCs existentes
+  // Datalist de proveedores
   const dl = document.getElementById('datalist-proveedores');
-  const provMap = {};
-  ORDENES.forEach(o => {
-    if (o.Proveedor_Nombre && !provMap[o.Proveedor_Nombre]) {
-      provMap[o.Proveedor_Nombre] = { rut: o.Proveedor_RUT, email: o.Proveedor_Email };
-    }
-  });
-  PROVEEDORES = Object.entries(provMap).map(([nombre, d]) => ({ nombre, ...d }));
   PROVEEDORES.forEach(p => {
-    dl.insertAdjacentHTML('beforeend', `<option value="${p.nombre}" data-rut="${p.rut || ''}" data-email="${p.email || ''}">`);
+    dl.insertAdjacentHTML('beforeend', `<option value="${p.nombre}">`);
   });
 
   // Auto-completar RUT/email al seleccionar proveedor
@@ -844,6 +819,26 @@ async function init() {
 
   renderKPIs();
   renderTable();
+}
+
+async function loadCCs() {
+  try {
+    const data = await apiGet('ccs');
+    CCS = data.ccs || [];
+  } catch (e) {
+    console.error('loadCCs error:', e);
+    showToast('Error cargando CCs: ' + e.message, 'error');
+  }
+}
+
+async function loadProveedores() {
+  try {
+    const data = await apiGet('proveedores');
+    PROVEEDORES = data.proveedores || [];
+  } catch (e) {
+    console.error('loadProveedores error:', e);
+    showToast('Error cargando proveedores: ' + e.message, 'error');
+  }
 }
 
 /* ============================================================
@@ -881,10 +876,15 @@ function renderTable() {
 
   let rows = ORDENES.filter(o => {
     if (fEstado && o.Estado !== fEstado) return false;
-    if (fUp && o.UP_ID !== fUp) return false;
+    if (fUp) {
+      // Match si alguna línea tiene ese CC, o el header (legacy) lo tiene
+      const lineHasCC = (o.Lineas || []).some(l => l.ID_CC === fUp);
+      if (!lineHasCC && o.UP_ID !== fUp) return false;
+    }
     if (fProv && o.Proveedor_Nombre !== fProv) return false;
     if (search) {
-      const txt = `${o.Numero} ${o.Proveedor_Nombre} ${o.UP_Nombre} ${(o.Lineas || []).map(l => l.Producto).join(' ')}`.toLowerCase();
+      const lineCCs = (o.Lineas || []).map(l => l.Nombre_CC || l.UP_Nombre || '').join(' ');
+      const txt = `${o.Numero} ${o.Proveedor_Nombre} ${o.UP_Nombre || ''} ${lineCCs} ${(o.Lineas || []).map(l => l.Producto).join(' ')}`.toLowerCase();
       if (!txt.includes(search)) return false;
     }
     return true;
@@ -903,13 +903,21 @@ function renderTable() {
     return;
   }
 
-  tbody.innerHTML = rows.map(o => `
+  tbody.innerHTML = rows.map(o => {
+    // Obtener CCs únicos de las líneas
+    const ccsLineas = [...new Set((o.Lineas || [])
+      .map(l => l.Nombre_CC || l.UP_Nombre || (CCS.find(c => c.id === l.ID_CC)?.nombre))
+      .filter(Boolean))];
+    const ccsLabel = ccsLineas.length === 0
+      ? (o.UP_Nombre || '—')
+      : (ccsLineas.length <= 2 ? ccsLineas.join(', ') : ccsLineas[0] + ' +' + (ccsLineas.length - 1));
+    return `
     <tr onclick="openModalView('${o.ID_OC}')">
       <td><strong>${o.Numero}</strong></td>
       <td>${fmtDate(o.Fecha)}</td>
       <td><span class="badge ${o.Estado.toLowerCase()}">${o.Estado}</span></td>
       <td>${o.Proveedor_Nombre}</td>
-      <td>${o.UP_Nombre}</td>
+      <td title="${ccsLineas.join(', ')}">${ccsLabel}</td>
       <td class="num"><strong>${fmt(o.Total)}</strong></td>
       <td>${fmtDate(o.Fecha_Entrega_Estimada)}</td>
       <td>${o.KEY_Factura_Asociada ? '✅ ' + o.KEY_Factura_Asociada.split('-').slice(-1) : '—'}</td>
@@ -918,7 +926,7 @@ function renderTable() {
         <button class="btn btn-sm btn-icon" onclick="openModalView('${o.ID_OC}')" title="Ver">👁️</button>
       </td>
     </tr>
-  `).join('');
+  `;}).join('');
 }
 
 function sortBy(col) {
@@ -940,7 +948,6 @@ async function openModalNew() {
   const numero = await generateNextNumber();
   document.getElementById('modal-edit-title').textContent = 'Nueva Orden de Compra · ' + numero;
   ['f-proveedor-nombre','f-proveedor-rut','f-proveedor-email','f-fecha-entrega','f-solicitante','f-observaciones'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('f-up').value = '';
   document.getElementById('modal-edit-status').textContent = 'Estado inicial: Borrador';
   addLine();
   document.getElementById('modal-edit').classList.add('show');
@@ -956,7 +963,6 @@ function openModalEdit(idOC) {
   document.getElementById('f-proveedor-rut').value = oc.Proveedor_RUT || '';
   document.getElementById('f-proveedor-email').value = oc.Proveedor_Email || '';
   document.getElementById('f-fecha-entrega').value = oc.Fecha_Entrega_Estimada || '';
-  document.getElementById('f-up').value = oc.UP_ID || '';
   document.getElementById('f-solicitante').value = oc.Solicitante || '';
   document.getElementById('f-observaciones').value = oc.Observaciones || '';
   document.getElementById('modal-edit-status').textContent = 'Estado actual: ' + oc.Estado;
@@ -965,7 +971,7 @@ function openModalEdit(idOC) {
 }
 
 function addLine() {
-  CURRENT_LINES.push({ Producto: '', Cantidad: 1, Unidad: 'unid', Precio_Unit: 0, Subtotal_Linea: 0, ID_CC: '' });
+  CURRENT_LINES.push({ Producto: '', Cantidad: 1, Unidad: 'unid', Moneda: 'CLP', Precio_Unit: 0, Subtotal_Linea: 0, ID_CC: '', Nombre_CC: '' });
   renderLines();
 }
 
@@ -977,33 +983,68 @@ function removeLine(idx) {
 function updateLine(idx, field, value) {
   CURRENT_LINES[idx][field] = (field === 'Cantidad' || field === 'Precio_Unit') ? Number(value) || 0 : value;
   CURRENT_LINES[idx].Subtotal_Linea = (CURRENT_LINES[idx].Cantidad || 0) * (CURRENT_LINES[idx].Precio_Unit || 0);
-  document.getElementById(`subtotal-${idx}`).textContent = fmt(CURRENT_LINES[idx].Subtotal_Linea);
+  document.getElementById(`subtotal-${idx}`).textContent = fmtMoney(CURRENT_LINES[idx].Subtotal_Linea, CURRENT_LINES[idx].Moneda);
   updateTotals();
 }
 
 function renderLines() {
   const tbody = document.getElementById('lines-tbody');
+  const unidades = ['unid','UF','kg','sacos','bidones','lt','m','m²','m³','ton','cajas','bins','hh','día','mes'];
+  const monedas = ['CLP','UF','USD'];
+  // Agrupar CCs por temporada para el dropdown
+  const ccsOrdenados = [...CCS].sort((a, b) => {
+    const tA = a.temporada || 'zz', tB = b.temporada || 'zz';
+    if (tA !== tB) return tB.localeCompare(tA); // temporadas más recientes primero
+    return a.nombre.localeCompare(b.nombre);
+  });
+  const ccOptionsHtml = ccsOrdenados.map(cc => {
+    const label = cc.nombre + (cc.especie ? ' · ' + cc.especie : '') + (cc.temporada ? ' (' + cc.temporada + ')' : '');
+    return `<option value="${cc.id}" data-nombre="${cc.nombre}">${label}</option>`;
+  }).join('');
+
   tbody.innerHTML = CURRENT_LINES.map((l, idx) => `
     <tr>
-      <td><input type="text" value="${l.Producto || ''}" placeholder="Producto" onchange="updateLine(${idx}, 'Producto', this.value)"></td>
+      <td><input type="text" value="${l.Producto || ''}" placeholder="Producto / descripción" onchange="updateLine(${idx}, 'Producto', this.value)"></td>
       <td><input type="number" class="num" value="${l.Cantidad || 0}" min="0" step="0.01" onchange="updateLine(${idx}, 'Cantidad', this.value)"></td>
       <td>
         <select onchange="updateLine(${idx}, 'Unidad', this.value)">
-          ${['unid','kg','sacos','bidones','lt','m','ton','cajas','bins'].map(u => `<option value="${u}" ${l.Unidad===u?'selected':''}>${u}</option>`).join('')}
+          ${unidades.map(u => `<option value="${u}" ${l.Unidad===u?'selected':''}>${u}</option>`).join('')}
         </select>
       </td>
-      <td><input type="number" class="num" value="${l.Precio_Unit || 0}" min="0" step="1" onchange="updateLine(${idx}, 'Precio_Unit', this.value)"></td>
-      <td class="col-subtotal" id="subtotal-${idx}">${fmt(l.Subtotal_Linea || 0)}</td>
       <td>
-        <select onchange="updateLine(${idx}, 'ID_CC', this.value)">
+        <select onchange="updateLine(${idx}, 'Moneda', this.value)">
+          ${monedas.map(m => `<option value="${m}" ${(l.Moneda||'CLP')===m?'selected':''}>${m}</option>`).join('')}
+        </select>
+      </td>
+      <td><input type="number" class="num" value="${l.Precio_Unit || 0}" min="0" step="0.01" onchange="updateLine(${idx}, 'Precio_Unit', this.value)"></td>
+      <td class="col-subtotal" id="subtotal-${idx}">${fmtMoney(l.Subtotal_Linea || 0, l.Moneda)}</td>
+      <td>
+        <select onchange="updateLineCC(${idx}, this)">
           <option value="">—</option>
-          ${UPS.map(u => `<option value="${u.id}" ${l.ID_CC===u.id?'selected':''}>${u.nombre}</option>`).join('')}
+          ${ccsOrdenados.map(cc => {
+            const label = cc.nombre + (cc.especie ? ' · ' + cc.especie : '') + (cc.temporada ? ' (' + cc.temporada + ')' : '');
+            return `<option value="${cc.id}" data-nombre="${cc.nombre}" ${l.ID_CC===cc.id?'selected':''}>${label}</option>`;
+          }).join('')}
         </select>
       </td>
       <td class="center"><button class="btn btn-sm btn-icon btn-danger" onclick="removeLine(${idx})" title="Eliminar línea">🗑️</button></td>
     </tr>
   `).join('');
   updateTotals();
+}
+
+function updateLineCC(idx, selectEl) {
+  const ccId = selectEl.value;
+  const opt = selectEl.options[selectEl.selectedIndex];
+  CURRENT_LINES[idx].ID_CC = ccId;
+  CURRENT_LINES[idx].Nombre_CC = opt ? (opt.dataset.nombre || '') : '';
+}
+
+function fmtMoney(n, moneda) {
+  const num = Number(n) || 0;
+  if (moneda === 'UF') return 'UF ' + num.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (moneda === 'USD') return 'US$ ' + num.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return '$' + num.toLocaleString('es-CL');
 }
 
 function updateTotals() {
@@ -1017,23 +1058,35 @@ function updateTotals() {
 
 async function saveOC() {
   const proveedorNombre = document.getElementById('f-proveedor-nombre').value.trim();
-  const upId = document.getElementById('f-up').value;
   if (!proveedorNombre) { showToast('Falta proveedor', 'error'); return; }
-  if (!upId) { showToast('Falta UP', 'error'); return; }
   if (CURRENT_LINES.length === 0 || CURRENT_LINES.every(l => !l.Producto)) { showToast('Agrega al menos una línea', 'error'); return; }
 
-  const up = UPS.find(u => u.id === upId);
+  // Validar que cada línea tenga CC asignado
+  const lineasSinCC = CURRENT_LINES.filter(l => l.Producto && !l.ID_CC);
+  if (lineasSinCC.length) {
+    showToast('Falta centro de costo en ' + lineasSinCC.length + ' línea(s)', 'error');
+    return;
+  }
+
+  // Resolver Nombre_CC para cada línea (a partir de CCS) por seguridad
+  const lineasConCC = CURRENT_LINES.filter(l => l.Producto).map(l => {
+    const cc = CCS.find(c => c.id === l.ID_CC);
+    return {
+      ...l,
+      Nombre_CC: l.Nombre_CC || (cc ? cc.nombre : ''),
+      UP_Nombre: l.UP_Nombre || (cc ? cc.nombre : ''),  // legacy
+      Moneda: l.Moneda || 'CLP'
+    };
+  });
 
   const payload = {
     Proveedor_Nombre: proveedorNombre,
     Proveedor_RUT: document.getElementById('f-proveedor-rut').value,
     Proveedor_Email: document.getElementById('f-proveedor-email').value,
-    UP_ID: upId,
-    UP_Nombre: up ? up.nombre : '',
     Fecha_Entrega_Estimada: document.getElementById('f-fecha-entrega').value,
     Solicitante: document.getElementById('f-solicitante').value,
     Observaciones: document.getElementById('f-observaciones').value,
-    Lineas: CURRENT_LINES.filter(l => l.Producto)
+    Lineas: lineasConCC
   };
 
   // Disable botón mientras guarda
@@ -1090,6 +1143,12 @@ function openModalView(idOC) {
     </div>
   `;
 
+  // CCs únicos a partir de las líneas (con fallback a UP_Nombre legacy)
+  const ccsLineasDetalle = [...new Set((oc.Lineas || [])
+    .map(l => l.Nombre_CC || l.UP_Nombre || (CCS.find(c => c.id === l.ID_CC)?.nombre))
+    .filter(Boolean))];
+  const ccsDetalleLabel = ccsLineasDetalle.length ? ccsLineasDetalle.join(', ') : (oc.UP_Nombre || '—');
+
   // Detalle
   const body = `
     ${timelineHTML}
@@ -1101,8 +1160,8 @@ function openModalView(idOC) {
         <div style="font-size:11px;color:var(--text-muted);">${oc.Proveedor_RUT || ''}</div>
       </div>
       <div class="detail-item">
-        <div class="detail-label">UP / Centro de Costo</div>
-        <div class="detail-value">${oc.UP_Nombre}</div>
+        <div class="detail-label">Centros de Costo</div>
+        <div class="detail-value">${ccsDetalleLabel}</div>
       </div>
       <div class="detail-item">
         <div class="detail-label">Total</div>
@@ -1148,22 +1207,26 @@ function openModalView(idOC) {
           <th>Producto</th>
           <th class="num" style="text-align:right;">Cantidad</th>
           <th>Unidad</th>
+          <th>Moneda</th>
           <th class="num" style="text-align:right;">Precio Unit.</th>
           <th class="num" style="text-align:right;">Subtotal</th>
-          <th>CC</th>
+          <th>Centro de Costo</th>
         </tr>
       </thead>
       <tbody>
-        ${(oc.Lineas || []).map(l => `
+        ${(oc.Lineas || []).map(l => {
+          const ccNombre = l.Nombre_CC || (CCS.find(c => c.id === l.ID_CC)?.nombre) || l.UP_Nombre || '—';
+          return `
           <tr>
             <td>${l.Producto}</td>
             <td class="num" style="text-align:right;">${l.Cantidad}</td>
-            <td>${l.Unidad}</td>
-            <td class="num" style="text-align:right;">${fmt(l.Precio_Unit)}</td>
-            <td class="num" style="text-align:right;"><strong>${fmt(l.Subtotal_Linea)}</strong></td>
-            <td>${UPS.find(u => u.id === l.ID_CC)?.nombre || '—'}</td>
+            <td>${l.Unidad || ''}</td>
+            <td>${l.Moneda || 'CLP'}</td>
+            <td class="num" style="text-align:right;">${fmtMoney(l.Precio_Unit, l.Moneda)}</td>
+            <td class="num" style="text-align:right;"><strong>${fmtMoney(l.Subtotal_Linea, l.Moneda)}</strong></td>
+            <td>${ccNombre}</td>
           </tr>
-        `).join('')}
+        `;}).join('')}
       </tbody>
     </table>
 
@@ -1273,12 +1336,17 @@ async function emailOC() {
   }
 }
 function exportCSV() {
-  const headers = ['Numero','Fecha','Estado','Proveedor','RUT','UP','Subtotal','IVA','Total','Entrega','Factura'];
-  const rows = ORDENES.map(o => [
-    o.Numero, o.Fecha, o.Estado, o.Proveedor_Nombre, o.Proveedor_RUT,
-    o.UP_Nombre, o.Subtotal, o.IVA, o.Total,
-    o.Fecha_Entrega_Estimada, o.KEY_Factura_Asociada || ''
-  ]);
+  const headers = ['Numero','Fecha','Estado','Proveedor','RUT','Centros de Costo','Subtotal','IVA','Total','Entrega','Factura'];
+  const rows = ORDENES.map(o => {
+    const ccs = [...new Set((o.Lineas || [])
+      .map(l => l.Nombre_CC || l.UP_Nombre || (CCS.find(c => c.id === l.ID_CC)?.nombre))
+      .filter(Boolean))].join(' | ') || (o.UP_Nombre || '');
+    return [
+      o.Numero, o.Fecha, o.Estado, o.Proveedor_Nombre, o.Proveedor_RUT,
+      ccs, o.Subtotal, o.IVA, o.Total,
+      o.Fecha_Entrega_Estimada, o.KEY_Factura_Asociada || ''
+    ];
+  });
   const csv = [headers, ...rows].map(r => r.map(c => `"${c||''}"`).join(',')).join('\n');
   const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
