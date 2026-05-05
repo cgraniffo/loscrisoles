@@ -347,6 +347,17 @@ if (location.search.includes('embed=1')) {
 
     /* ============ GANTT LABORES ============ */
     .gantt-wrap { background:#fff; border-radius:10px; padding:0; margin-bottom:16px; overflow:hidden; border:1px solid #e5e2da; }
+    /* Modo pantalla completa del Gantt */
+    .gantt-wrap.fullscreen {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 9999; border-radius: 0; margin: 0;
+      width: 100vw; height: 100vh;
+      display: flex; flex-direction: column;
+      box-shadow: 0 0 0 100vmax rgba(0,0,0,0.6);
+    }
+    .gantt-wrap.fullscreen .gantt-scroll {
+      flex: 1; overflow: auto; max-height: none;
+    }
     .gantt-header { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid #e5e2da; flex-wrap:wrap; gap:10px; background:#fafaf7; }
     .gantt-title { color:#1a3a0a; font-size:13px; font-weight:bold; letter-spacing:0.04em; text-transform:uppercase; }
     .gantt-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
@@ -3779,6 +3790,7 @@ function renderGanttBlock() {
           <button class="gantt-add-btn" onclick="ganttOpenModal()">+ Nueva labor</button>
           <button class="gantt-add-btn" style="background:#7c3aed;" onclick="ganttOpenCCModal()" title="Crear nueva Unidad Productiva">+ Nueva UP</button>
           <button class="gantt-add-btn" style="background:#0e7490;" onclick="ganttExportarPDF()" title="Exportar tareas a PDF para WhatsApp">📄 PDF</button>
+          <button class="gantt-add-btn" id="gantt-fs-btn" style="background:#1a3a0a;" onclick="ganttToggleFullscreen()" title="Pantalla completa">⛶ Expandir</button>
         </div>
       </div>
       <div class="gantt-filters" id="gantt-filters"></div>
@@ -3989,6 +4001,27 @@ function ganttToggleCompletadas() {
   window._ganttState.verCompletadas = !window._ganttState.verCompletadas;
   renderGantt();
 }
+
+function ganttToggleFullscreen() {
+  const wrap = document.querySelector(".gantt-wrap");
+  const btn = document.getElementById("gantt-fs-btn");
+  if (!wrap) return;
+  const expanded = wrap.classList.toggle("fullscreen");
+  if (btn) {
+    btn.innerHTML = expanded ? "⛶ Salir" : "⛶ Expandir";
+    btn.title = expanded ? "Salir de pantalla completa (Esc)" : "Pantalla completa";
+  }
+  // Bloquear scroll del body cuando está expandido
+  document.body.style.overflow = expanded ? "hidden" : "";
+}
+
+// Permitir salir con tecla Escape
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") {
+    const wrap = document.querySelector(".gantt-wrap.fullscreen");
+    if (wrap) ganttToggleFullscreen();
+  }
+});
 
 /* ============================================================
    EXPORTAR LABORES A PDF (para WhatsApp)
