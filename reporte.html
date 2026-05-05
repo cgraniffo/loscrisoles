@@ -871,52 +871,26 @@ function renderResultados() {
     costosPorUP[id] = (costosPorUP[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, totalDoc);
   });
 
-  // ── INGRESOS: misma lógica EXACTA que renderIngresos() ────────────────────
-  // Replicamos para que las cifras coincidan con la pestaña Ingresos
-  const ingPpto = {}, ingFact = {}, kilosPpto = {}, ingProyFut = {}, proyFutDetalle = {};
-  const _hoyRes = new Date(); _hoyRes.setHours(0,0,0,0);
-
-  // FUENTE 1: Facturas emitidas asignadas (mismo filtro que Ingresos)
-  const facturasAsigRes = (window.ASIGNACIONES||[]).filter(r => {
-    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+  // ── INGRESOS: Ppto (Proyecciones) + Facturado real ───────────────────────
+  const ingPpto = {}, ingFact = {}, kilosPpto = {};
+  (window.PROYECCIONES||[]).forEach(r => {
+    const id = String(r["Unidad_Productiva"]||"").trim();
+    if (!esUpProd(id) || !passTemp(id)) return;
+    ingPpto[id]   = (ingPpto[id]||0)   + aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion');
+    kilosPpto[id] = (kilosPpto[id]||0) + Number(r["Kilos_Estimados"]||0);
+  });
+  (window.ASIGNACIONES||[]).forEach(r => {
     const id   = getUpId(r);
-    return tipo.includes("factura") && rutEmisor(r) === RUT_LC
-      && Number(r["Monto_Asignado"]||0) > 0
-      && esUpProd(id) && passTemp(id);
-  }).map(r => {
-    const id = getUpId(r);
+    if (!esUpProd(id) || !passTemp(id)) return;
+    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
+    const rut  = rutEmisor(r);
+    const esIng = tipo.includes("emit") || (tipo.includes("factura") && rut === RUT_LC);
+    if (!esIng || Number(r["Monto_Asignado"]||0) <= 0) return;
+    // Factura emitida LC → DTE 33; guía emitida → tal cual
     const keyDoc = String(r["KEY_Documento"]||"").trim();
     const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
-    // Detectar NC vía TipoDTE en CargaHTML_Demo
-    const docOrigen = (window.DOCUMENTOS||[]).find(d => String(d["KEY"]||"").trim() === keyDoc);
-    const tipoDte = docOrigen ? String(docOrigen["TipoDTE"]||"").trim() : "";
-    const esNC = tipoDte === "61";
-    let monto = aplicarIvaMonto(Number(r["Monto_Asignado"]||0), 'asig_factura_emitida', keyDoc, totalDoc);
-    if (esNC) monto = -Math.abs(monto);  // NC siempre resta
-    return { id, monto, esNC };
-  });
-  // Acumular en ingFact por UP
-  facturasAsigRes.forEach(f => {
-    ingFact[f.id] = (ingFact[f.id]||0) + f.monto;
-  });
-
-  // FUENTE 2: Proyecciones (Estimado y Real) — mismo filtro que Ingresos
-  (window.PROYECCIONES||[]).forEach(r => {
-    const id    = String(r["Unidad_Productiva"]||"").trim();
-    const est   = String(r["Estado"]||"").trim();
-    if (!esUpProd(id) || !passTemp(id)) return;
-    if (est !== "Estimado" && est !== "Real") return;
-    const monto = aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion');
-    ingPpto[id]   = (ingPpto[id]||0)   + monto;
-    kilosPpto[id] = (kilosPpto[id]||0) + Number(r["Kilos_Estimados"]||0);
-    // Proyecciones futuras (fecha >= hoy)
-    const fecha = r["Fecha_Estimada"]||"";
-    const d = parseDate(fecha);
-    if (d && d >= _hoyRes) {
-      ingProyFut[id] = (ingProyFut[id]||0) + monto;
-      if (!proyFutDetalle[id]) proyFutDetalle[id] = [];
-      proyFutDetalle[id].push({ fecha, monto });
-    }
+    const fuenteIng = tipo.includes("factura") ? 'asig_factura_emitida' : 'asig_guia';
+    ingFact[id] = (ingFact[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIng, keyDoc, totalDoc);
   });
 
   // ── PRORRATEO ───────────────────────────────────────────────────────────
@@ -947,18 +921,15 @@ function renderResultados() {
     const toneladas = kilos/1000;
     const pptoI     = ingPpto[id] || 0;
     const factI     = ingFact[id] || 0;
-    const proyFut   = ingProyFut[id] || 0;
     const cDir      = costosPorUP[id] || 0;
     const cPrr      = prorr.prorrateoPorUP[id] || 0;
     const cTot      = cDir + cPrr;
     const mgnPpto   = pptoI - cTot;
     const mgnReal   = factI > 0 ? factI - cTot : null;
-    // Margen "real + por concretar" = (facturado + proyecciones futuras) - costos hasta hoy
-    const mgnRealMasProy = (factI + proyFut) - cTot;
     const pctAv     = pptoI > 0 ? Math.round(factI/pptoI*100) : 0;
     const mgnHa     = ha > 0 ? (mgnReal !== null ? mgnReal : mgnPpto)/ha : 0;
     const mgnTon    = toneladas > 0 ? (mgnReal !== null ? mgnReal : mgnPpto)/toneladas : 0;
-    return { id, nombre, fundo, ha, toneladas, pptoI, factI, proyFut, cDir, cPrr, cTot, mgnPpto, mgnReal, mgnRealMasProy, pctAv, mgnHa, mgnTon };
+    return { id, nombre, fundo, ha, toneladas, pptoI, factI, cDir, cPrr, cTot, mgnPpto, mgnReal, pctAv, mgnHa, mgnTon };
   });
 
   // Orden: margen real descendente, UPs sin fact al final
@@ -979,26 +950,19 @@ function renderResultados() {
 
   // Totales
   const t = filas.reduce((acc,r) => {
-    acc.pptoI    += r.pptoI;
-    acc.factI    += r.factI;
-    acc.proyFut  += r.proyFut;
-    acc.cDir     += r.cDir;
-    acc.cPrr     += r.cPrr;
-    acc.cTot     += r.cTot;
-    acc.ha       += r.ha;
-    acc.kilos    += r.toneladas;
+    acc.pptoI  += r.pptoI;
+    acc.factI  += r.factI;
+    acc.cDir   += r.cDir;
+    acc.cPrr   += r.cPrr;
+    acc.cTot   += r.cTot;
+    acc.ha     += r.ha;
+    acc.kilos  += r.toneladas;
     return acc;
-  }, { pptoI:0, factI:0, proyFut:0, cDir:0, cPrr:0, cTot:0, ha:0, kilos:0 });
-  // Sumar anticipos de contratos nueces al facturado real (igual que hace Ingresos)
-  const cobradoContratosRes = (typeof getCobradoContratos === 'function') ? getCobradoContratos() : 0;
-  t.factCombinado = t.factI + cobradoContratosRes;
-  t.totalIngreso  = t.factCombinado + t.proyFut;
-  t.mgnPpto       = t.pptoI - t.cTot;
-  t.mgnReal       = t.factCombinado > 0 ? t.factCombinado - t.cTot : null;
-  t.mgnRealMasProy = t.totalIngreso - t.cTot;
-  t.pctAv         = t.pptoI > 0 ? Math.round(t.factI/t.pptoI*100) : 0;
-  t.pctMgn        = t.pptoI > 0 ? (t.mgnPpto/t.pptoI*100) : 0;
-  t.pctFacturadoBarra = t.totalIngreso > 0 ? Math.round((t.factCombinado / t.totalIngreso) * 100) : 0;
+  }, { pptoI:0, factI:0, cDir:0, cPrr:0, cTot:0, ha:0, kilos:0 });
+  t.mgnPpto = t.pptoI - t.cTot;
+  t.mgnReal = t.factI > 0 ? t.factI - t.cTot : null;
+  t.pctAv   = t.pptoI > 0 ? Math.round(t.factI/t.pptoI*100) : 0;
+  t.pctMgn  = t.pptoI > 0 ? (t.mgnPpto/t.pptoI*100) : 0;
 
   // ── FILTRO UI: pills de UP ──────────────────────────────────────────────
   const upBtns = allUPs.sort((a,b) => (CC_MAP[a]||"").localeCompare(CC_MAP[b]||""))
@@ -1082,150 +1046,6 @@ function renderResultados() {
     window._mapResLeaflet = null;
   }
 
-  // ── AGRUPAR POR CULTIVO (estilo Ingresos) ──────────────────────────────
-  const cultivoData = {};
-  filas.forEach(r => {
-    const cultivo = (CULTIVO_MAP[r.id] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoData[cultivo]) {
-      cultivoData[cultivo] = {
-        ha:0, pptoI:0, factI:0, proyFut:0, cDir:0, cPrr:0, cTot:0, ups:[], detalleProy:[]
-      };
-    }
-    const c = cultivoData[cultivo];
-    c.ha      += r.ha;
-    c.pptoI   += r.pptoI;
-    c.factI   += r.factI;
-    c.proyFut += r.proyFut;
-    c.cDir    += r.cDir;
-    c.cPrr    += r.cPrr;
-    c.cTot    += r.cTot;
-    c.ups.push(r);
-    // Proyecciones futuras del UP con su fecha
-    (proyFutDetalle[r.id] || []).forEach(p => {
-      c.detalleProy.push({ ...p, upId: r.id, upNombre: r.nombre });
-    });
-  });
-  // Asignar cobrado contratos a Nuez (igual que en Ingresos)
-  if (cobradoContratosRes > 0 && cultivoData["Nuez"]) {
-    cultivoData["Nuez"].cobradoContratos = cobradoContratosRes;
-    cultivoData["Nuez"].factI += cobradoContratosRes;
-  }
-
-  // Para cada cultivo: calcular margen real + por concretar
-  Object.values(cultivoData).forEach(c => {
-    c.totalIngreso    = c.factI + c.proyFut;
-    c.mgnPpto         = c.pptoI - c.cTot;
-    c.mgnReal         = c.factI > 0 ? c.factI - c.cTot : null;
-    c.mgnRealMasProy  = c.totalIngreso - c.cTot;
-    c.pctFacturado    = c.totalIngreso > 0 ? Math.round(c.factI / c.totalIngreso * 100) : 0;
-  });
-
-  const cultivoOrdenRes = Object.entries(cultivoData)
-    .sort((a,b) => (b[1].mgnRealMasProy) - (a[1].mgnRealMasProy));
-
-  // Render de cada cultivo
-  const cultivosResHTML = cultivoOrdenRes.map(([cultivo, data]) => {
-    const upsCount = data.ups.length;
-    const clsRP   = data.mgnRealMasProy >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
-    const clsP    = data.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
-
-    // Filas de UPs dentro del cultivo
-    const upsHTML = data.ups
-      .sort((a,b) => b.mgnRealMasProy - a.mgnRealMasProy)
-      .map(u => {
-        const uMgnRP = u.factI + u.proyFut - u.cTot;
-        const uClsRP = uMgnRP >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
-        const uClsP  = u.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
-        return `<div style="display:grid;grid-template-columns:1.4fr 0.5fr 0.9fr 0.9fr 0.9fr 0.9fr;gap:8px;padding:6px 0;border-bottom:1px dotted #eee;align-items:center;font-size:11px;cursor:pointer;" onclick="event.stopPropagation();abrirDrawerUP('${u.id}');">
-          <div><b>${u.nombre}</b><span style="color:#888;"> · ${u.fundo}</span></div>
-          <div style="text-align:right;color:#888;">${u.ha > 0 ? u.ha.toFixed(0) + " há" : "—"}</div>
-          <div style="text-align:right;color:#b45309;">${u.pptoI > 0 ? fmtPeso(u.pptoI) : "—"}</div>
-          <div style="text-align:right;color:#1a6e3a;">${u.factI > 0 ? fmtPeso(u.factI) : "—"}${u.proyFut > 0 ? ` <span style="color:#86c172;font-size:10px;">+ ${fmtPeso(u.proyFut)}</span>` : ""}</div>
-          <div style="text-align:right;color:#cc2222;">${u.cTot > 0 ? fmtPeso(u.cTot) : "—"}</div>
-          <div style="text-align:right;font-weight:700;${uClsRP}">${fmtPeso(uMgnRP)}</div>
-        </div>`;
-      }).join("");
-
-    // Detalle de proyecciones futuras del cultivo
-    const proyOrden = (data.detalleProy || []).slice().sort((a,b) => (parseDate(a.fecha)||0) - (parseDate(b.fecha)||0));
-    const proyHTML = proyOrden.length > 0 ? `
-      <details style="margin-top:12px;border-top:1px dashed #ccc;padding-top:8px;">
-        <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;color:#555;font-weight:600;user-select:none;">
-          <span><span style="display:inline-block;transition:transform 0.15s;">▶</span> Ver proyecciones futuras · ${proyOrden.length}</span>
-          <span style="font-size:10px;color:#86c172;font-weight:600;">+ ${fmtPeso(data.proyFut)}</span>
-        </summary>
-        <div style="padding-top:8px;">
-          <div style="display:grid;grid-template-columns:0.7fr 1.6fr 1fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
-            <div>Fecha</div>
-            <div>Concepto</div>
-            <div>UP</div>
-            <div style="text-align:right;">Monto</div>
-          </div>
-          ${proyOrden.map(p => {
-            const fd = parseDate(p.fecha);
-            const fechaTxt = fd ? fd.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "—";
-            return `<div style="display:grid;grid-template-columns:0.7fr 1.6fr 1fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;font-style:italic;">
-              <div style="color:#555;"><span style="color:#86c172;">○</span> ${fechaTxt}</div>
-              <div style="color:#1a1a1a;">Proyección manual</div>
-              <div style="color:#888;font-size:10px;">${p.upNombre || "—"}</div>
-              <div style="text-align:right;color:#86c172;font-weight:600;">${fmtPeso(p.monto)}</div>
-            </div>`;
-          }).join("")}
-        </div>
-      </details>` : "";
-
-    return `<details style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:6px;background:#fff;">
-      <summary style="display:grid;grid-template-columns:30px 1.3fr 0.7fr 0.9fr 1fr 0.9fr 1fr;gap:10px;padding:10px 12px;background:#fafafa;align-items:center;cursor:pointer;list-style:none;">
-        <span style="font-size:13px;color:#888;" class="cultivo-chevron-res">▶</span>
-        <div>
-          <div style="font-size:13px;font-weight:600;color:#1a1a1a;">${cultivo}</div>
-          <div style="font-size:10px;color:#888;">${data.ha > 0 ? data.ha.toFixed(0) + " há · " : ""}${upsCount} UP${upsCount!==1?'s':''}${data.cobradoContratos ? ` · cobrado contratos ${fmtPeso(data.cobradoContratos)}` : ""}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Há</div>
-          <div style="font-size:13px;font-weight:600;color:#555;">${data.ha > 0 ? data.ha.toFixed(0) : "—"}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Ingresos</div>
-          <div style="font-size:13px;font-weight:600;color:#1a6e3a;">${fmtPeso(data.totalIngreso)}</div>
-          ${data.proyFut > 0 ? `<div style="font-size:10px;color:#3b6d11;">${fmtPeso(data.factI)} <span style="color:#86c172;">+ ${fmtPeso(data.proyFut)}</span></div>` : ""}
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Costos</div>
-          <div style="font-size:13px;font-weight:600;color:#cc2222;">${fmtPeso(data.cTot)}</div>
-          ${data.cPrr > 0 ? `<div style="font-size:9px;color:#888;">${fmtPeso(data.cDir)} dir + ${fmtPeso(data.cPrr)} prr</div>` : ""}
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Mgn Ppto</div>
-          <div style="font-size:13px;font-weight:700;${clsP}">${fmtPeso(data.mgnPpto)}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Mgn Real${data.proyFut > 0 ? ' + proy.' : ''}</div>
-          <div style="font-size:13px;font-weight:700;${clsRP}">${fmtPeso(data.mgnRealMasProy)}</div>
-        </div>
-      </summary>
-      <div style="padding:8px 14px 10px 44px;background:#fff;border-top:1px dashed #e5e5e5;">
-        <div style="display:grid;grid-template-columns:1.4fr 0.5fr 0.9fr 0.9fr 0.9fr 0.9fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
-          <div>Unidad Productiva</div>
-          <div style="text-align:right;">Há</div>
-          <div style="text-align:right;">Ppto</div>
-          <div style="text-align:right;">Facturado</div>
-          <div style="text-align:right;">Costos</div>
-          <div style="text-align:right;">Margen</div>
-        </div>
-        ${upsHTML}
-        ${proyHTML}
-      </div>
-    </details>`;
-  }).join("");
-
-  // Totales globales para footer
-  const totalProyFutGlob = t.proyFut;
-  const totalIngresoGlob = t.totalIngreso;
-  const totalMgnRealMasProy = totalIngresoGlob - t.cTot;
-  const clsTotalRP = totalMgnRealMasProy >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
-  const pctFactBarraTot = t.pctFacturadoBarra;
-
   // ── HTML FINAL ───────────────────────────────────────────────────────────
   document.getElementById("app-resultados").innerHTML = `
     <!-- Filtros -->
@@ -1265,56 +1085,66 @@ function renderResultados() {
       <div id="mapa-resultados" style="height:450px;z-index:0;"></div>
     </div>
 
-    <!-- 2 CARDS (Margen Ppto / Margen Real + por concretar) -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-
-      <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Margen presupuestado${tempActiva?` · Temporada ${tempActiva}`:""}</div>
-        <div style="font-size:22px;font-weight:700;${clsTotP};line-height:1;">${fmtPeso(t.mgnPpto)}</div>
-        <div style="font-size:11px;color:#b45309;margin-top:4px;">
-          ${fmtPeso(t.pptoI)} ingresos − ${fmtPeso(t.cTot)} costos · ${t.pctMgn.toFixed(1)}% sobre ingreso
-        </div>
+    <!-- STRIP TOTALES -->
+    <div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;">
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Ppto ingresos</div>
+        <div style="font-size:18px;font-weight:700;color:#b45309;">${fmtPeso(t.pptoI)}</div>
       </div>
-
-      <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Margen real + por concretar${tempActiva?` · Temporada ${tempActiva}`:""}</div>
-        <div style="font-size:22px;font-weight:700;${clsTotalRP};line-height:1;">${fmtPeso(totalMgnRealMasProy)}</div>
-        ${t.proyFut > 0 ? `
-        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">
-          <span style="font-weight:600;">${fmtPeso(t.factCombinado)}</span> facturado <span style="color:#86c172;">+ <span style="font-weight:600;">${fmtPeso(t.proyFut)}</span> por concretar</span> − ${fmtPeso(t.cTot)} costos
-        </div>
-        <div style="height:8px;background:#eef3e3;border-radius:4px;overflow:hidden;display:flex;margin:8px 0 6px;border:1px solid #c3e0a0;">
-          <div style="background:#1a6e3a;width:${pctFactBarraTot}%;" title="Facturado real: ${fmtPeso(t.factCombinado)}"></div>
-          <div style="background:#86c172;width:${100-pctFactBarraTot}%;" title="Por concretar (proyecciones futuras): ${fmtPeso(t.proyFut)}"></div>
-        </div>
-        <div style="font-size:10px;color:#3b6d11;display:flex;justify-content:space-between;margin-top:4px;">
-          <span><span style="display:inline-block;width:8px;height:8px;background:#1a6e3a;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${pctFactBarraTot}% facturado</span>
-          <span><span style="display:inline-block;width:8px;height:8px;background:#86c172;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${100-pctFactBarraTot}% por concretar</span>
-        </div>
-        ` : ""}
-        <div style="font-size:11px;color:#3b6d11;margin-top:6px;">${t.pctAv}% avance · costos hasta hoy ${fmtPeso(t.cTot)}${cobradoContratosRes>0?` · anticipos nueces ${fmtPeso(cobradoContratosRes)}`:""}</div>
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Facturado real</div>
+        <div style="font-size:18px;font-weight:700;color:#1a6e3a;">${fmtPeso(t.factI)}</div>
+        <div style="font-size:10px;color:${avCT};font-weight:600;">${t.pctAv}% avance</div>
       </div>
-
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Costos totales</div>
+        <div style="font-size:18px;font-weight:700;color:#cc2222;">${fmtPeso(t.cTot)}</div>
+        ${t.cPrr > 0 ? `<div style="font-size:10px;color:#888;">${fmtPeso(t.cDir)} dir + ${fmtPeso(t.cPrr)} prr</div>` : ""}
+      </div>
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Margen real</div>
+        <div style="font-size:18px;font-weight:700;${clsTotR}">${t.mgnReal !== null ? fmtPeso(t.mgnReal) : "—"}</div>
+        <div style="font-size:10px;color:#888;">${t.factI > 0 && t.mgnReal !== null ? (t.mgnReal/t.factI*100).toFixed(1)+"%" : ""}</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Margen ppto</div>
+        <div style="font-size:18px;font-weight:700;${clsTotP}">${fmtPeso(t.mgnPpto)}</div>
+        <div style="font-size:10px;color:#888;">${t.pctMgn.toFixed(1)}%</div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:#888;letter-spacing:0.06em;text-transform:uppercase;">Margen/há (${t.mgnReal !== null ? "real" : "ppto"})</div>
+        <div style="font-size:18px;font-weight:700;${clsTotR}">${totalMgnHa ? fmtPeso(totalMgnHa)+"/há" : "—"}</div>
+      </div>
     </div>
 
-    <!-- DESGLOSE POR CULTIVO -->
-    <div style="background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;color:#1a1a1a;letter-spacing:0.06em;text-transform:uppercase;">Desglose por cultivo</div>
-        <div style="font-size:10px;color:#888;">clic en cada cultivo para ver el detalle por UP · clic en una UP → drawer</div>
-      </div>
-      ${cultivosResHTML}
-      <div style="display:grid;grid-template-columns:30px 1.3fr 0.7fr 0.9fr 1fr 0.9fr 1fr;gap:10px;padding:10px 12px;margin-top:8px;border-top:2px solid #1a1a1a;align-items:center;">
-        <span></span>
-        <div style="font-size:13px;font-weight:700;">Total</div>
-        <div style="text-align:right;font-size:13px;font-weight:700;color:#555;">${t.ha > 0 ? t.ha.toFixed(0) : "—"}</div>
-        <div style="text-align:right;">
-          <div style="font-size:13px;font-weight:700;color:#1a6e3a;">${fmtPeso(totalIngresoGlob)}</div>
-          ${totalProyFutGlob > 0 ? `<div style="font-size:10px;color:#3b6d11;font-weight:600;">${fmtPeso(t.factCombinado)} <span style="color:#86c172;">+ ${fmtPeso(totalProyFutGlob)}</span></div>` : ""}
+    <!-- TABLA UNIFICADA -->
+    <div class="stat-card" style="margin-bottom:12px;padding:0;overflow:hidden;">
+      <div style="padding:10px 16px;border-bottom:1px solid #f0ede6;display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:13px;font-weight:700;">Comparativa por UP — ${filas.length} UPs</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <span style="font-size:10px;color:#888;margin-right:4px;">Vista:</span>
+          <button class="fbtn${unidad==='ha'?' on':''}" onclick="setResUnidad('ha')">$/Há</button>
+          <button class="fbtn${unidad==='ton'?' on':''}" onclick="setResUnidad('ton')">$/Ton</button>
         </div>
-        <div style="text-align:right;font-size:13px;font-weight:700;color:#cc2222;">${fmtPeso(t.cTot)}</div>
-        <div style="text-align:right;font-size:13px;font-weight:700;${clsTotP}">${fmtPeso(t.mgnPpto)}</div>
-        <div style="text-align:right;font-size:13px;font-weight:700;${clsTotalRP}">${fmtPeso(totalMgnRealMasProy)}</div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead style="background:#f8f8f6;">
+            <tr>
+              <th style="text-align:left;padding:10px 12px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('nombre')">UP</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('ha')">Há</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#b45309;border-bottom:2px solid #e5e2da;">🔮 Ppto</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#1a6e3a;border-bottom:2px solid #e5e2da;">🧾 Fact</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#cc2222;border-bottom:2px solid #e5e2da;">💰 Costos</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('mgnPpto')">Mgn Ppto</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('margenReal')">Mgn Real ↓</th>
+              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#555;border-bottom:2px solid #e5e2da;">${unidad==='ton'?'Mgn/Ton':'Mgn/Há'}</th>
+              <th style="padding:10px 12px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('pctAv')">% Avance</th>
+            </tr>
+          </thead>
+          <tbody>${tbody}</tbody>
+          <tfoot>${tfoot}</tfoot>
+        </table>
       </div>
     </div>
     <div class="footer">Click en una UP → detalle lateral · Ingresos: Fact + Ppto · Costos: Directos + Prorrateo · ${tempActiva} · Los Crisoles · BData</div>`;
@@ -1694,63 +1524,30 @@ function renderIngresos() {
   </tr>`;
 
   // ── EVOLUCIÓN MENSUAL ─────────────────────────────────────────────────────
-  // 2 líneas por mes, cada una apilada en 2 colores:
-  //   Mensual (arriba, fina): gris oscuro = facturado real | gris claro = proyectado futuro
-  //   Acumulado (abajo, gruesa): verde oscuro = real | verde claro = proyectado futuro
-  const _hoyMsEv = new Date(); _hoyMsEv.setHours(0,0,0,0);
-  const _hoyTsEv = _hoyMsEv.getTime();
   const porMes = {};
-  // Facturas DTE oficiales (excluyendo NC del cálculo gráfico)
-  filtFact.forEach(r => {
-    if (r.esNC) return;
+  filtTodos.forEach(r => {
     const d = parseDate(r.fecha); if (!d) return;
     const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if (!porMes[key]) porMes[key] = { real:0, proy:0 };
-    porMes[key].real += r.monto;
-  });
-  // Proyecciones futuras (Fecha_Estimada > hoy) — cuentan como "Real esperado"
-  filtEst.forEach(r => {
-    const d = parseDate(r.fecha); if (!d) return;
-    if (d.getTime() <= _hoyTsEv) return;  // solo futuras
-    const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if (!porMes[key]) porMes[key] = { real:0, proy:0 };
-    porMes[key].proy += r.monto;
+    if (!porMes[key]) porMes[key] = { fact:0, est:0 };
+    if (r._fuente==="factura")  porMes[key].fact += r.monto;
+    if (r._fuente==="estimado") porMes[key].est  += r.monto;
   });
   const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
-  const mesMax  = Math.max(...mesRows.map(([,v])=>v.real+v.proy), 1);
-  let acumReal = 0, acumProy = 0;
-  const totalRealEv = filtFact.filter(r=>!r.esNC).reduce((s,r)=>s+r.monto,0);
-  const totalProyEv = filtEst.filter(r => {
-    const d = parseDate(r.fecha);
-    return d && d.getTime() > _hoyTsEv;
-  }).reduce((s,r)=>s+r.monto,0);
-  const totalEspEv = totalRealEv + totalProyEv;
+  const mesMax  = Math.max(...mesRows.map(([,v])=>v.fact+v.est), 1);
+  let acumMes = 0;
+  const totalFiltrado = filtTodos.reduce((s,r)=>s+r.monto,0);
   const mesHTML = mesRows.map(([k,v]) => {
-    acumReal += v.real;
-    acumProy += v.proy;
-    const tot = v.real + v.proy;
-    const wRealMes  = totalEspEv>0 ? Math.round(v.real/mesMax*100) : 0;
-    const wProyMes  = totalEspEv>0 ? Math.round(v.proy/mesMax*100) : 0;
-    const wRealAcum = totalEspEv>0 ? Math.round(acumReal/totalEspEv*100) : 0;
-    const wProyAcum = totalEspEv>0 ? Math.round(acumProy/totalEspEv*100) : 0;
-    const pctA = totalEspEv>0 ? Math.round((acumReal+acumProy)/totalEspEv*100) : 0;
+    const tot = v.fact+v.est; acumMes += tot;
+    const pctA = totalFiltrado>0 ? Math.round(acumMes/totalFiltrado*100) : 0;
     const label = new Date(k+"-15").toLocaleDateString("es-CL",{month:"short",year:"numeric"});
     return `<div class="mes-row">
       <div class="mes-label">${label}</div>
       <div style="flex:1;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
-          <div style="flex:1;height:5px;background:#f0ede6;border-radius:2px;overflow:hidden;display:flex;">
-            <div style="height:100%;background:#475569;width:${wRealMes}%;" title="Facturado real del mes"></div>
-            <div style="height:100%;background:#cbd5e1;width:${wProyMes}%;" title="Proyectado del mes"></div>
-          </div>
-          <div style="font-size:10px;color:#475569;min-width:80px;text-align:right;">${fmtPeso(tot)}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="flex:1;height:8px;background:#f0ede6;border-radius:3px;overflow:hidden;display:flex;">
-            <div style="height:100%;background:#15803d;width:${wRealAcum}%;" title="Acumulado real"></div>
-            <div style="height:100%;background:#86efac;width:${wProyAcum}%;" title="Acumulado proyectado"></div>
-          </div>
-          <div style="font-size:11px;font-weight:600;color:#15803d;min-width:80px;text-align:right;">${fmtPeso(acumReal+acumProy)} <span style="color:#999;font-weight:400;">(${pctA}%)</span></div>
+        ${v.fact>0?`<div style="height:6px;border-radius:2px;background:#1a6e3a;width:${Math.round(v.fact/mesMax*100)}%;margin-bottom:2px;"></div>`:""}
+        ${v.est>0 ?`<div style="height:6px;border-radius:2px;background:#b45309;width:${Math.round(v.est/mesMax*100)}%;margin-bottom:2px;"></div>`:""}
+        <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:#0f6e56;"></div></div>
+          <div class="mes-val" style="color:#0f6e56;">${fmtPeso(acumMes)}</div>
         </div>
       </div>
     </div>`;
@@ -1762,18 +1559,6 @@ function renderIngresos() {
   const tEstF  = sumF(filtEst);
   const tFactCombinado = tFactF + cobradoContratos;
   const pFactCombinado = tEstF>0 ? Math.round(tFactCombinado/tEstF*100) : (tFactCombinado>0?100:0);
-
-  // ── PROYECCIONES FUTURAS (a partir de hoy) ──────────────────────────────
-  const _hoyIngresos = new Date(); _hoyIngresos.setHours(0,0,0,0);
-  const proyFuturas = (filtEst || []).filter(r => {
-    const d = parseDate(r.fecha);
-    return d && d >= _hoyIngresos;
-  });
-  const tProyFuturas = sumF(proyFuturas);
-  // Total proyectado = facturado real + cobrado contratos + proyecciones futuras
-  const tTotalProyectado = tFactCombinado + tProyFuturas;
-  // % facturado del total proyectado (lo que ya entró vs lo que entrará en total)
-  const pctFacturadoBarra = tTotalProyectado > 0 ? Math.round((tFactCombinado / tTotalProyectado) * 100) : 0;
 
   const cultivoRows = {};
   (filtFact || []).forEach(r => {
@@ -1797,19 +1582,6 @@ function renderIngresos() {
     cultivoRows[cultivo].ppto += r.monto;
     if (!cultivoRows[cultivo].ups[r.up]) cultivoRows[cultivo].ups[r.up] = { ppto: 0, fact: 0, ha: HA_MAP[r.up]||0 };
     cultivoRows[cultivo].ups[r.up].ppto += r.monto;
-  });
-  // Agregar proyecciones futuras al detalle del cultivo como filas pendientes
-  (proyFuturas || []).forEach(r => {
-    const cultivo = (CULTIVO_MAP[r.up] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoRows[cultivo]) cultivoRows[cultivo] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
-    cultivoRows[cultivo].facturas.push({
-      fecha:  r.fecha,
-      folio:  "—",
-      razon:  "Proyección manual",
-      up:     r.up,
-      monto:  r.monto,
-      tipo:   "proyeccion"
-    });
   });
   if (cobradoContratos > 0) {
     if (!cultivoRows["Nuez"]) cultivoRows["Nuez"] = { ppto: 0, fact: 0, cobrado: 0, ups: {}, facturas: [] };
@@ -1850,13 +1622,7 @@ function renderIngresos() {
 
   const cultivosHTML = cultivoOrden.map(([cultivo, data], idx) => {
     const factTotal = data.fact + data.cobrado;
-    // Suma de proyecciones futuras de ESTE cultivo (filas tipo proyeccion en data.facturas)
-    const proyFutCultivo = (data.facturas || [])
-      .filter(f => f.tipo === "proyeccion")
-      .reduce((s, f) => s + f.monto, 0);
-    const factMasProy = factTotal + proyFutCultivo;
-    // El avance del cultivo considera lo facturado real + lo que se proyecta facturar
-    const pct = data.ppto > 0 ? Math.round(factMasProy / data.ppto * 100) : (factMasProy > 0 ? 100 : 0);
+    const pct = data.ppto > 0 ? Math.round(factTotal / data.ppto * 100) : (factTotal > 0 ? 100 : 0);
     const pctColor = pct >= 75 ? "#1a6e3a" : pct >= 25 ? "#d97706" : "#ef4444";
     const upsIds = Object.keys(data.ups);
     const haTotal = upsIds.reduce((s, id) => s + (data.ups[id].ha || 0), 0);
@@ -1876,32 +1642,18 @@ function renderIngresos() {
       }).join("");
     const cobradoHint = data.cobrado > 0 ? ` · cobrado contratos ${fmtPeso(data.cobrado)}` : "";
 
-    // Tabla detalle de facturas/anticipos/proyecciones que componen el total
+    // Tabla detalle de facturas/anticipos que componen el Real
     const facturasOrdenadas = (data.facturas || []).slice().sort((a,b) => {
-      // Las proyecciones (futuras) van al final, separadas
-      if (a.tipo === "proyeccion" && b.tipo !== "proyeccion") return 1;
-      if (b.tipo === "proyeccion" && a.tipo !== "proyeccion") return -1;
-      // Dentro de proyecciones: por fecha ascendente (próxima primero)
-      if (a.tipo === "proyeccion" && b.tipo === "proyeccion") {
-        return (parseDate(a.fecha) || 0) - (parseDate(b.fecha) || 0);
-      }
-      // Dentro de facturas/anticipos: por folio descendente
+      // Orden por folio descendente (mayor a menor)
       const fa = Number(String(a.folio||"").replace(/[^0-9]/g,"")) || 0;
       const fb = Number(String(b.folio||"").replace(/[^0-9]/g,"")) || 0;
       return fb - fa;
     });
-    const numFactReal = facturasOrdenadas.filter(f => f.tipo !== "proyeccion").length;
-    const numProyFut  = facturasOrdenadas.filter(f => f.tipo === "proyeccion").length;
-    const sumaReal    = facturasOrdenadas.filter(f => f.tipo !== "proyeccion").reduce((s,f)=>s+f.monto,0);
-    const sumaProy    = facturasOrdenadas.filter(f => f.tipo === "proyeccion").reduce((s,f)=>s+f.monto,0);
-    const labelDet    = numProyFut > 0
-      ? `${numFactReal} factura${numFactReal!==1?'s':''} + ${numProyFut} proyec${numProyFut!==1?'ciones':'ción'}`
-      : `${facturasOrdenadas.length} ${facturasOrdenadas.length===1?'documento':'documentos'}`;
     const facturasHTML = facturasOrdenadas.length > 0 ? `
       <details style="margin-top:12px;border-top:1px dashed #ccc;padding-top:8px;">
         <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;color:#555;font-weight:600;user-select:none;">
-          <span><span style="display:inline-block;transition:transform 0.15s;" class="det-fact-chevron">▶</span> Ver detalle · ${labelDet}</span>
-          <span style="font-size:10px;color:#888;font-weight:400;">${fmtPeso(sumaReal + sumaProy)}</span>
+          <span><span style="display:inline-block;transition:transform 0.15s;" class="det-fact-chevron">▶</span> Ver detalle facturado · ${facturasOrdenadas.length} ${facturasOrdenadas.length===1?'documento':'documentos'}</span>
+          <span style="font-size:10px;color:#888;font-weight:400;">${fmtPeso(facturasOrdenadas.reduce((s,f)=>s+f.monto,0))}</span>
         </summary>
         <div style="padding-top:8px;">
           <div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
@@ -1919,10 +1671,8 @@ function renderIngresos() {
             let montoColor = "#1a6e3a";
             if (f.tipo === "anticipo") tipoIcon = '<span title="Anticipo nueces (contrato)" style="color:#b45309;">●</span> ';
             else if (f.tipo === "nc")  { tipoIcon = '<span title="Nota de crédito" style="color:#b91c1c;">●</span> '; montoColor = "#b91c1c"; }
-            else if (f.tipo === "proyeccion") { tipoIcon = '<span title="Proyección manual (por facturar)" style="color:#86c172;">○</span> '; montoColor = "#86c172"; }
             const montoTxt = f.tipo === "nc" ? "−" + fmtPeso(Math.abs(f.monto)) : fmtPeso(f.monto);
-            const rowStyle = f.tipo === "proyeccion" ? "font-style:italic;" : "";
-            return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;${rowStyle}">
+            return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
               <div style="color:#555;">${tipoIcon}${fechaTxt}</div>
               <div style="color:#555;font-family:monospace;">${f.folio || "—"}</div>
               <div style="color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.razon}">${f.razon || "—"}</div>
@@ -1946,9 +1696,8 @@ function renderIngresos() {
           <div style="font-size:13px;font-weight:600;color:#b45309;">${fmtPeso(data.ppto)}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Facturado${proyFutCultivo > 0 ? ' + proy.' : ''}</div>
-          <div style="font-size:13px;font-weight:600;color:#1a6e3a;">${fmtPeso(factMasProy)}</div>
-          ${proyFutCultivo > 0 ? `<div style="font-size:10px;color:#3b6d11;margin-top:1px;">${fmtPeso(factTotal)} <span style="color:#86c172;">+ ${fmtPeso(proyFutCultivo)}</span></div>` : ''}
+          <div style="font-size:10px;color:#888;">Facturado</div>
+          <div style="font-size:13px;font-weight:600;color:#1a6e3a;">${fmtPeso(factTotal)}</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px;color:#888;">Avance</div>
@@ -1973,11 +1722,7 @@ function renderIngresos() {
 
   const totalPpto = Object.values(cultivoRows).reduce((s,d) => s + d.ppto, 0);
   const totalFact = Object.values(cultivoRows).reduce((s,d) => s + d.fact + d.cobrado, 0);
-  const totalProyFut = Object.values(cultivoRows).reduce((s,d) => {
-    return s + (d.facturas || []).filter(f => f.tipo === "proyeccion").reduce((ss,f)=>ss+f.monto, 0);
-  }, 0);
-  const totalFactProy = totalFact + totalProyFut;
-  const totalPct = totalPpto > 0 ? Math.round(totalFactProy / totalPpto * 100) : 0;
+  const totalPct = totalPpto > 0 ? Math.round(totalFact / totalPpto * 100) : 0;
 
   document.getElementById("app-ingresos").innerHTML = `
 
@@ -2027,28 +1772,15 @@ function renderIngresos() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
 
       <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Presupuesto total${tempActiva?` · Temporada ${tempActiva}`:""}</div>
+        <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🔮 Presupuesto total</div>
         <div style="font-size:22px;font-weight:700;color:#b45309;line-height:1;">${fmtPeso(tEstF)}</div>
         <div style="font-size:11px;color:#b45309;margin-top:4px;">${filtEst.length} registros · Proyecciones_Manuales</div>
       </div>
 
       <div style="background:#eaf3de;border:1px solid #c3e0a0;border-radius:10px;padding:14px 16px;">
-        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado + por facturar${tempActiva?` · Temporada ${tempActiva}`:""}</div>
-        <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado + tProyFuturas)}</div>
-        ${tProyFuturas > 0 ? `
-        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">
-          <span style="font-weight:600;">${fmtPeso(tFactCombinado)}</span> facturado <span style="color:#86c172;">+ <span style="font-weight:600;">${fmtPeso(tProyFuturas)}</span> por facturar</span>
-        </div>
-        <div style="height:8px;background:#eef3e3;border-radius:4px;overflow:hidden;display:flex;margin:8px 0 6px;border:1px solid #c3e0a0;">
-          <div style="background:#1a6e3a;width:${pctFacturadoBarra}%;" title="Facturado real: ${fmtPeso(tFactCombinado)}"></div>
-          <div style="background:#86c172;width:${100-pctFacturadoBarra}%;" title="Por facturar (proyecciones futuras): ${fmtPeso(tProyFuturas)}"></div>
-        </div>
-        <div style="font-size:10px;color:#3b6d11;display:flex;justify-content:space-between;margin-top:4px;">
-          <span><span style="display:inline-block;width:8px;height:8px;background:#1a6e3a;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${pctFacturadoBarra}% facturado</span>
-          <span><span style="display:inline-block;width:8px;height:8px;background:#86c172;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${100-pctFacturadoBarra}% por facturar</span>
-        </div>
-        ` : ""}
-        <div style="font-size:11px;color:#3b6d11;margin-top:6px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}${proyFuturas.length>0?` · ${proyFuturas.length} proyec. futuras`:""}</div>
+        <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real)</div>
+        <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado)}</div>
+        <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
       </div>
 
     </div>
@@ -2063,10 +1795,7 @@ function renderIngresos() {
         <span></span>
         <div style="font-size:13px;font-weight:700;">Total</div>
         <div style="text-align:right;font-size:13px;font-weight:700;color:#b45309;">${fmtPeso(totalPpto)}</div>
-        <div style="text-align:right;">
-          <div style="font-size:13px;font-weight:700;color:#1a6e3a;">${fmtPeso(totalFactProy)}</div>
-          ${totalProyFut > 0 ? `<div style="font-size:10px;color:#3b6d11;font-weight:600;">${fmtPeso(totalFact)} <span style="color:#86c172;">+ ${fmtPeso(totalProyFut)}</span></div>` : ''}
-        </div>
+        <div style="text-align:right;font-size:13px;font-weight:700;color:#1a6e3a;">${fmtPeso(totalFact)}</div>
         <div style="text-align:right;font-size:13px;font-weight:700;color:#1a1a1a;">${totalPpto>0?totalPct+"%":"—"}</div>
       </div>
     </div>
@@ -2081,21 +1810,7 @@ function renderIngresos() {
     </div>
 
     <div class="stat-card" style="margin-bottom:12px;">
-      <div class="stat-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-        <span>Evolución mensual</span>
-        <span style="display:flex;gap:14px;font-size:10px;font-weight:400;color:#888;flex-wrap:wrap;">
-          <span style="display:flex;align-items:center;gap:10px;">
-            <span style="font-weight:600;color:#555;">Acumulado:</span>
-            <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:#15803d;display:inline-block;"></span>Real</span>
-            <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:#86efac;display:inline-block;"></span>Proyectado</span>
-          </span>
-          <span style="display:flex;align-items:center;gap:10px;">
-            <span style="font-weight:600;color:#555;">Mensual:</span>
-            <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:#475569;display:inline-block;"></span>Real</span>
-            <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:#cbd5e1;display:inline-block;"></span>Proyectado</span>
-          </span>
-        </span>
-      </div>
+      <div class="stat-title">Evolución mensual · <span style="font-size:10px;font-weight:400;color:#888;">verde=facturado · naranjo=estimado</span></div>
       ${mesHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}
     </div>
     <div class="footer">Ingresos: Facturas emitidas + Proyecciones_Manuales · Los Crisoles · BData</div>`;
@@ -3234,9 +2949,7 @@ function renderCostos() {
     Centro_Costo: String(r["Centro_Costo"]||"").trim(),
     Fecha:        r["Fecha"],
     Tipo_Labor:   String(r["Tipo_Labor"]||"").trim(),
-    monto:        aplicarIvaMonto(Number(r["Costo Total"]||0), 'bd_registro'),
-    // Identificador del registro: número de fila en BD_Registro
-    docId:        r._row ? String(r._row) : ""
+    monto:        aplicarIvaMonto(Number(r["Costo Total"]||0), 'bd_registro')
   }));
 
   // Costos nuevos Asignaciones_U (desde el corte)
@@ -3271,10 +2984,7 @@ function renderCostos() {
       Centro_Costo: String(r["UP_ID"]||r["UP_Nombre"]||"").trim(),
       Fecha:        r["Fecha_Documento"] || r["fecha_documento"] || r["Fecha_Asignacion"],
       Tipo_Labor:   String(r["Tipo_Doc"]||"").trim(),
-      monto:        aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, montoTotalDoc),
-      // Identificador del documento: folio + RUT emisor para distinguir
-      docId:        String(r["Folio"]||"").trim(),
-      proveedor:    String(r["Proveedor"]||"").trim()
+      monto:        aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, montoTotalDoc)
     };
   });
 
@@ -3424,247 +3134,73 @@ function renderCostos() {
     </tr>`;
   }).join("");
 
-  // ── PRORRATEO (mismo que Resultados) ──────────────────────────────────────
-  // Calcular pool de costos indirectos y reparto por UP productiva
-  const prorrCostos = calcularProrrateo(tempActiva, "ha", null);
-  const poolCostos = prorrCostos.pool || 0;
-  const prorrateoPorUPCostos = prorrCostos.prorrateoPorUP || {};
-
-  // Costos directos por UP productiva: filtrar conCosto que viene de UPs productivas
-  const esProdC = id => BASE_PRORRATEO_MAP[id] === true;
-
-  // Costos directos = los del filtro `conCosto` que están sobre UPs productivas
-  const costosDirectosPorUP = {};
-  conCosto.forEach(r => {
-    const ccId = String(r["Centro_Costo"]||"").trim();
-    if (!esProdC(ccId)) return;
-    costosDirectosPorUP[ccId] = (costosDirectosPorUP[ccId]||0) + (r.monto||0);
-  });
-
-  // Total directos vs prorrateados (globales para el KPI)
-  const totalDirectos = Object.values(costosDirectosPorUP).reduce((s,v)=>s+v, 0);
-  const totalProrrateados = Object.values(prorrateoPorUPCostos).reduce((s,v)=>s+v, 0);
-  const totalConProrr = totalDirectos + totalProrrateados;
-  const pctDirectos = totalConProrr > 0 ? Math.round(totalDirectos / totalConProrr * 100) : 0;
-  const pctProrrateados = 100 - pctDirectos;
-
-  // ── AGRUPACIÓN POR CULTIVO (estilo Ingresos/Resultados) ───────────────────
-  const cultivoCostos = {};
-  Object.keys(costosDirectosPorUP).forEach(ccId => {
-    if (!esProdC(ccId)) return;
-    const cultivo = (CULTIVO_MAP[ccId] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoCostos[cultivo]) {
-      cultivoCostos[cultivo] = { ha:0, cDir:0, cPrr:0, cTot:0, ups:{}, registros:[] };
-    }
-    const c = cultivoCostos[cultivo];
-    const cDir = costosDirectosPorUP[ccId] || 0;
-    const cPrr = prorrateoPorUPCostos[ccId] || 0;
-    c.ha     += HA_MAP[ccId] || 0;
-    c.cDir   += cDir;
-    c.cPrr   += cPrr;
-    c.cTot   += cDir + cPrr;
-    c.ups[ccId] = {
-      id:     ccId,
-      nombre: CC_MAP[ccId] || ccId,
-      fundo:  FUNDO_MAP[ccId] || "",
-      ha:     HA_MAP[ccId] || 0,
-      cDir,
-      cPrr,
-      cTot:   cDir + cPrr
-    };
-  });
-  // Agregar UPs que tienen prorrateo pero no costos directos en el filtro
-  Object.keys(prorrateoPorUPCostos).forEach(ccId => {
-    if (!esProdC(ccId)) return;
-    if (costosDirectosPorUP[ccId]) return; // ya agregado
-    const cultivo = (CULTIVO_MAP[ccId] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoCostos[cultivo]) {
-      cultivoCostos[cultivo] = { ha:0, cDir:0, cPrr:0, cTot:0, ups:{}, registros:[] };
-    }
-    const c = cultivoCostos[cultivo];
-    const cPrr = prorrateoPorUPCostos[ccId] || 0;
-    c.ha     += HA_MAP[ccId] || 0;
-    c.cPrr   += cPrr;
-    c.cTot   += cPrr;
-    c.ups[ccId] = {
-      id:     ccId,
-      nombre: CC_MAP[ccId] || ccId,
-      fundo:  FUNDO_MAP[ccId] || "",
-      ha:     HA_MAP[ccId] || 0,
-      cDir:   0,
-      cPrr,
-      cTot:   cPrr
-    };
-  });
-
-  // Asignar registros (movimientos individuales) a cada cultivo, para detalle expandible
-  conCosto.forEach(r => {
-    const ccId = String(r["Centro_Costo"]||"").trim();
-    if (!esProdC(ccId)) return;
-    const cultivo = (CULTIVO_MAP[ccId] || "Sin clasificar").trim() || "Sin clasificar";
-    if (!cultivoCostos[cultivo]) return;
-    cultivoCostos[cultivo].registros.push(r);
-  });
-
-  const cultivoOrdenCostos = Object.entries(cultivoCostos)
-    .sort((a,b) => b[1].cTot - a[1].cTot);
-
-  const cultivosCostosHTML = cultivoOrdenCostos.map(([cultivo, data]) => {
-    const upsArr = Object.values(data.ups).sort((a,b) => b.cTot - a.cTot);
-    const upsCount = upsArr.length;
-
-    const upsHTML = upsArr.map(u => {
-      const costoHa = u.ha > 0 ? u.cTot / u.ha : 0;
-      return `<div style="display:grid;grid-template-columns:1.4fr 0.5fr 0.9fr 0.9fr 0.9fr 0.7fr;gap:8px;padding:6px 0;border-bottom:1px dotted #eee;align-items:center;font-size:11px;">
-        <div><b>${u.nombre}</b><span style="color:#888;"> · ${u.fundo}</span></div>
-        <div style="text-align:right;color:#888;">${u.ha > 0 ? u.ha.toFixed(0) + " há" : "—"}</div>
-        <div style="text-align:right;color:#cc2222;">${u.cDir > 0 ? fmtPeso(u.cDir) : "—"}</div>
-        <div style="text-align:right;color:#d97706;">${u.cPrr > 0 ? fmtPeso(u.cPrr) : "—"}</div>
-        <div style="text-align:right;font-weight:700;color:#1a3a0a;">${fmtPeso(u.cTot)}</div>
-        <div style="text-align:right;color:#0f6e56;">${u.ha > 0 ? fmtPeso(costoHa)+"/há" : "—"}</div>
-      </div>`;
-    }).join("");
-
-    // Detalle de movimientos (registros individuales)
-    const regsOrden = (data.registros || []).slice().sort((a,b) => (parseDate(b.Fecha)||0) - (parseDate(a.Fecha)||0));
-    const regsHTML = regsOrden.length > 0 ? `
-      <details style="margin-top:12px;border-top:1px dashed #ccc;padding-top:8px;">
-        <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;color:#555;font-weight:600;user-select:none;">
-          <span><span style="display:inline-block;transition:transform 0.15s;">▶</span> Ver detalle directos · ${regsOrden.length} ${regsOrden.length===1?'registro':'registros'}</span>
-          <span style="font-size:10px;color:#cc2222;font-weight:600;">${fmtPeso(data.cDir)}</span>
-        </summary>
-        <div style="padding-top:8px;">
-          <div style="display:grid;grid-template-columns:0.7fr 1.1fr 1.3fr 0.6fr 0.6fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
-            <div>Fecha</div>
-            <div>UP</div>
-            <div>Tipo / Labor</div>
-            <div>Doc</div>
-            <div>Fuente</div>
-            <div style="text-align:right;">Monto</div>
-          </div>
-          ${regsOrden.slice(0, 100).map(r => {
-            const fd = parseDate(r.Fecha);
-            const fechaTxt = fd ? fd.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "—";
-            const cc = CC_MAP[r.Centro_Costo] || r.Centro_Costo;
-            const fuenteTxt = r._fuente === "BD_Registro" ? "BD" : "Asig";
-            const fuenteColor = r._fuente === "BD_Registro" ? "#3b6d11" : "#0c447c";
-            // Doc ID: BD_Registro → FILA del sheet; Asignaciones → folio del DTE
-            const docTxt = r.docId
-              ? (r._fuente === "BD_Registro" ? `FILA ${r.docId}` : r.docId)
-              : "—";
-            const docTitle = r._fuente === "Asignaciones_U" && r.proveedor
-              ? `Folio ${r.docId} · ${r.proveedor}`
-              : (r._fuente === "BD_Registro" ? `Fila ${r.docId} de BD_Registro en Google Sheet` : "");
-            return `<div style="display:grid;grid-template-columns:0.7fr 1.1fr 1.3fr 0.6fr 0.6fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
-              <div style="color:#555;">${fechaTxt}</div>
-              <div style="color:#1a1a1a;">${cc}</div>
-              <div style="color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${r.Tipo_Labor||""}">${r.Tipo_Labor || "—"}</div>
-              <div style="font-size:10px;color:#666;font-family:monospace;" title="${docTitle}">${docTxt}</div>
-              <div style="font-size:9px;"><span style="color:${fuenteColor};font-weight:600;">${fuenteTxt}</span></div>
-              <div style="text-align:right;color:#cc2222;font-weight:600;">${fmtPeso(r.monto)}</div>
-            </div>`;
-          }).join("")}
-          ${regsOrden.length > 100 ? `<div style="text-align:center;color:#aaa;font-size:11px;padding:8px;">Mostrando 100 de ${regsOrden.length} registros</div>` : ""}
-        </div>
-      </details>` : "";
-
-    return `<details style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:6px;background:#fff;">
-      <summary style="display:grid;grid-template-columns:30px 1.3fr 0.6fr 0.9fr 0.9fr 0.9fr 0.7fr;gap:10px;padding:10px 12px;background:#fafafa;align-items:center;cursor:pointer;list-style:none;">
-        <span style="font-size:13px;color:#888;">▶</span>
-        <div>
-          <div style="font-size:13px;font-weight:600;color:#1a1a1a;">${cultivo}</div>
-          <div style="font-size:10px;color:#888;">${data.ha > 0 ? data.ha.toFixed(0) + " há · " : ""}${upsCount} UP${upsCount!==1?'s':''}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Há</div>
-          <div style="font-size:13px;font-weight:600;color:#555;">${data.ha > 0 ? data.ha.toFixed(0) : "—"}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Directos</div>
-          <div style="font-size:13px;font-weight:600;color:#cc2222;">${data.cDir > 0 ? fmtPeso(data.cDir) : "—"}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Prorrateados</div>
-          <div style="font-size:13px;font-weight:600;color:#d97706;">${data.cPrr > 0 ? fmtPeso(data.cPrr) : "—"}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Total</div>
-          <div style="font-size:13px;font-weight:700;color:#1a3a0a;">${fmtPeso(data.cTot)}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">$/Há</div>
-          <div style="font-size:11px;font-weight:600;color:#0f6e56;">${data.ha > 0 ? fmtPeso(data.cTot/data.ha) : "—"}</div>
-        </div>
-      </summary>
-      <div style="padding:8px 14px 10px 44px;background:#fff;border-top:1px dashed #e5e5e5;">
-        <div style="display:grid;grid-template-columns:1.4fr 0.5fr 0.9fr 0.9fr 0.9fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
-          <div>Unidad Productiva</div>
-          <div style="text-align:right;">Há</div>
-          <div style="text-align:right;">Directos</div>
-          <div style="text-align:right;">Prorrateados</div>
-          <div style="text-align:right;">Total</div>
-          <div style="text-align:right;">$/Há</div>
-        </div>
-        ${upsHTML}
-        ${regsHTML}
-      </div>
-    </details>`;
-  }).join("");
-
-  // Totales globales del desglose por cultivo
-  const totalCultivosHa = Object.values(cultivoCostos).reduce((s,d) => s + d.ha, 0);
-
   const promedio = totalRegistros > 0 ? totalGeneral / totalRegistros : 0;
 
   document.getElementById("app-costos").innerHTML = `
 
+    <div style="background:linear-gradient(135deg,#fff 0%,#faf8f0 100%);border:2px solid #1a3a0a;border-radius:14px;padding:22px 26px;margin-bottom:16px;box-shadow:0 2px 8px rgba(26,58,10,0.08);">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#3b6d11;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">💰 Costos totales</div>
+          <div style="font-size:36px;font-weight:800;color:#1a3a0a;line-height:1;">${fmtPeso(totalGeneral)}</div>
+        </div>
+        <div style="text-align:right;font-size:12px;color:#666;">
+          <div>${conCosto.length} registros</div>
+          <div style="margin-top:2px;color:#888;font-size:11px;">${tempActiva || "todas las temporadas"}</div>
+        </div>
+      </div>
+    </div>
+
     ${filtrosHTML}
-
-    <!-- KPI ÚNICO: Costo total con desglose Directos + Prorrateados (estilo Ingresos) -->
-    <div style="background:#fff8f0;border:1px solid #f0d5a0;border-radius:10px;padding:14px 16px;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">💰 Costo total${tempActiva?` · Temporada ${tempActiva}`:""}</div>
-      <div style="font-size:22px;font-weight:700;color:#1a3a0a;line-height:1;">${fmtPeso(totalConProrr)}</div>
-      ${totalProrrateados > 0 ? `
-      <div style="font-size:11px;color:#b45309;margin-top:4px;">
-        <span style="font-weight:600;color:#cc2222;">${fmtPeso(totalDirectos)}</span> directos <span style="color:#d97706;">+ <span style="font-weight:600;">${fmtPeso(totalProrrateados)}</span> prorrateados</span>
-      </div>
-      <div style="height:8px;background:#fbf3e3;border-radius:4px;overflow:hidden;display:flex;margin:8px 0 6px;border:1px solid #f0d5a0;">
-        <div style="background:#cc2222;width:${pctDirectos}%;" title="Directos: ${fmtPeso(totalDirectos)}"></div>
-        <div style="background:#d97706;width:${pctProrrateados}%;" title="Prorrateados: ${fmtPeso(totalProrrateados)}"></div>
-      </div>
-      <div style="font-size:10px;color:#7c2d12;display:flex;justify-content:space-between;margin-top:4px;">
-        <span><span style="display:inline-block;width:8px;height:8px;background:#cc2222;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${pctDirectos}% directos</span>
-        <span><span style="display:inline-block;width:8px;height:8px;background:#d97706;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${pctProrrateados}% prorrateados</span>
-      </div>
-      ` : ""}
-      <div style="font-size:11px;color:#7c2d12;margin-top:6px;">${conCosto.length} registros · ${nReg} BD_Registro + ${nAsig} Asignaciones${poolCostos > 0 ? ` · pool indirectos ${fmtPeso(poolCostos)} repartido por há` : ""}</div>
+    <div class="stat-card" style="margin-bottom:12px;">
+      <div class="stat-title">Costo por unidad productiva</div>
+      <table class="up-table">
+        <thead><tr><th>#</th><th>Unidad Productiva</th><th>Centro de Costos</th><th style="text-align:right;">Hás</th><th style="text-align:right;">Total</th><th style="text-align:right;">$/Há</th><th style="text-align:right;">%</th></tr></thead>
+        <tbody>${upTabla || "<tr><td colspan='7' style='color:#aaa;text-align:center;'>Sin datos</td></tr>"}</tbody>
+      </table>
     </div>
 
-    <!-- DESGLOSE POR CULTIVO -->
-    <div style="background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-size:11px;font-weight:700;color:#1a1a1a;letter-spacing:0.06em;text-transform:uppercase;">Desglose por cultivo</div>
-        <div style="font-size:10px;color:#888;">clic en cada cultivo para ver el detalle por UP</div>
-      </div>
-      ${cultivosCostosHTML || '<div style="color:#aaa;text-align:center;padding:20px;font-size:12px;">Sin datos para los filtros aplicados</div>'}
-      <div style="display:grid;grid-template-columns:30px 1.3fr 0.6fr 0.9fr 0.9fr 0.9fr 0.7fr;gap:10px;padding:10px 12px;margin-top:8px;border-top:2px solid #1a1a1a;align-items:center;">
-        <span></span>
-        <div style="font-size:13px;font-weight:700;">Total</div>
-        <div style="text-align:right;font-size:13px;font-weight:700;color:#555;">${totalCultivosHa > 0 ? totalCultivosHa.toFixed(0) : "—"}</div>
-        <div style="text-align:right;font-size:13px;font-weight:700;color:#cc2222;">${fmtPeso(totalDirectos)}</div>
-        <div style="text-align:right;font-size:13px;font-weight:700;color:#d97706;">${fmtPeso(totalProrrateados)}</div>
-        <div style="text-align:right;font-size:13px;font-weight:700;color:#1a3a0a;">${fmtPeso(totalConProrr)}</div>
-        <div style="text-align:right;font-size:11px;font-weight:600;color:#0f6e56;">${totalCultivosHa > 0 ? fmtPeso(totalConProrr/totalCultivosHa) : "—"}</div>
-      </div>
-    </div>
-
-    <!-- EVOLUCIÓN MENSUAL (mantenido del original) -->
     <div class="stat-card">
       <div class="stat-title">Evolución mensual de costos</div>
       ${mesHTML || "<div style='font-size:12px;color:#aaa;'>Sin datos suficientes</div>"}
     </div>
 
-    <!-- ORIGEN DEL REGISTRO (mantenido del original, colapsado) -->
+    <div class="stat-card" style="margin-top:12px;overflow:hidden;">
+      <div class="stat-title" onclick="toggleBloque('costo-detalle')" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;">
+        <span>Detalle de registros — ${conCosto.length} registros · ${fmtPeso(totalGeneral)}</span>
+        <span id="arrow-costo-detalle" style="font-size:12px;color:#888;transition:transform 0.2s;">▼</span>
+      </div>
+      <div id="body-costo-detalle" style="display:none;">
+      <div style="overflow-x:auto;">
+        <table class="up-table">
+          <thead><tr>
+            <th>Fecha</th><th>UP</th><th>Tipo / Labor</th>
+            <th style="text-align:center;">Fuente</th>
+            <th style="text-align:right;">Monto</th>
+          </tr></thead>
+          <tbody>
+            ${conCosto.sort((a,b)=>(parseDate(b.Fecha)||0)-(parseDate(a.Fecha)||0)).slice(0,50).map(r => {
+              const cc  = CC_MAP[r.Centro_Costo]||r.Centro_Costo;
+              const fnd = FUNDO_MAP[r.Centro_Costo]||"";
+              const d   = parseDate(r.Fecha);
+              const fuenteBadge = r._fuente === "BD_Registro"
+                ? `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#eaf3de;color:#3b6d11;">BD Registro</span>`
+                : `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#e6f1fb;color:#0c447c;">Asignación</span>`;
+              return `<tr>
+                <td style="color:#888;font-size:12px;">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—"}</td>
+                <td>${cc}<span style="color:#888;font-size:11px;"> ${fnd}</span></td>
+                <td style="font-size:12px;color:#555;">${r.Tipo_Labor||"—"}</td>
+                <td style="text-align:center;">${fuenteBadge}</td>
+                <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(r.monto)}</td>
+              </tr>`;
+            }).join("")}
+            ${conCosto.length > 50 ? `<tr><td colspan="5" style="text-align:center;color:#aaa;font-size:12px;padding:10px;">Mostrando 50 de ${conCosto.length} registros</td></tr>` : ""}
+          </tbody>
+        </table>
+      </div>
+      </div>
+    </div>
+
     <details style="margin-top:14px;background:#fafaf7;border:1px solid #e5e2da;border-radius:10px;padding:0;">
       <summary style="padding:10px 16px;cursor:pointer;font-size:11px;font-weight:600;color:#666;letter-spacing:0.05em;text-transform:uppercase;list-style:none;display:flex;align-items:center;justify-content:space-between;">
         <span>🔍 Origen del registro (uso interno)</span>
@@ -3777,31 +3313,7 @@ async function main() {
       if (id) ENC_MAP[id] = String(e["Nombre Encargado"]||id).trim();
     });
 
-    TODOS = window.TODOS = (Array.isArray(registros) ? registros : []).map((r, i) => {
-      // _row: número de fila aproximado en Google Sheet (header en fila 1, datos desde fila 2)
-      r._row = i + 2;
-      // Normalizar campo Fecha: si trae texto (ej: "Cosecha") en vez de fecha,
-      // asumir el último día de la temporada del CC para que entre por filtros pre-corte
-      const raw = String(r["Fecha"]||"").trim();
-      const parseable = raw && /^\d{4}/.test(raw);
-      if (raw && !parseable) {
-        r._fechaOriginal = raw;
-        const ccId = String(r["Centro_Costo"]||"").trim();
-        const tmp  = TEMP_MAP[ccId];
-        if (tmp && tmp.temporada && tmp.mesInicio) {
-          const añoFin = parseInt(tmp.temporada.split("-")[1], 10);
-          const mesIni = Number(tmp.mesInicio) || 4;
-          const lastDay = new Date(añoFin, mesIni - 1, 0);
-          const yyyy = lastDay.getFullYear();
-          const mm   = String(lastDay.getMonth() + 1).padStart(2,"0");
-          const dd   = String(lastDay.getDate()).padStart(2,"0");
-          r["Fecha"] = `${yyyy}-${mm}-${dd}`;
-        } else {
-          r["Fecha"] = "2026-03-29";  // fallback pre-corte
-        }
-      }
-      return r;
-    });
+    TODOS = window.TODOS = registros;
     PROYECCIONES = window.PROYECCIONES = proyecciones;
     DOCUMENTOS   = window.DOCUMENTOS   = documentos;
     ASIGNACIONES = window.ASIGNACIONES = Array.isArray(asignaciones) ? asignaciones : [];
@@ -4116,6 +3628,7 @@ window._ganttState = {
   vista: "semanal",
   anclaFecha: new Date(),
   filtros: { cultivo:"", estado:"", responsable:"" },
+  verCompletadas: false,  // Por defecto ocultar completadas
   editId: null,
   cache: null  // cache de labores cargadas del backend
 };
@@ -4315,7 +3828,10 @@ function getNumSemana(d) {
 
 function ganttFilterData(data) {
   const f = window._ganttState.filtros;
+  const verCompletadas = window._ganttState.verCompletadas;
   return data.filter(r => {
+    // Ocultar completadas por defecto, salvo que verCompletadas=true
+    if (!verCompletadas && r.estado === "Completada") return false;
     if (f.cultivo && r.cultivo !== f.cultivo) return false;
     if (f.estado && r.estado !== f.estado) return false;
     if (f.responsable && !(r.responsables||[]).includes(f.responsable)) return false;
@@ -4359,6 +3875,10 @@ function _renderGanttUI(cont, fcont, data) {
     ESTADOS_LABOR.forEach(e => {
       html += `<button class="gantt-fchip ${f.estado===e?'on':''}" onclick="ganttFilter('estado','${e}')">${e}</button>`;
     });
+    // Toggle de completadas (escondidas por defecto)
+    html += `<span style="border-left:1px solid #e5e2da;margin:0 4px;height:18px;"></span>`;
+    const verComp = window._ganttState.verCompletadas;
+    html += `<button class="gantt-fchip ${verComp?'on':''}" onclick="ganttToggleCompletadas()" title="Mostrar/ocultar labores ya completadas">${verComp?'✓ ':''}Mostrar completadas</button>`;
     fcont.innerHTML = html;
   }
 
@@ -4441,6 +3961,11 @@ function _renderGanttUI(cont, fcont, data) {
 function ganttFilter(key, val) {
   window._ganttState.filtros[key] = val;
   // renderGantt() ya sincroniza el mapa al terminar (ver función renderGantt)
+  renderGantt();
+}
+
+function ganttToggleCompletadas() {
+  window._ganttState.verCompletadas = !window._ganttState.verCompletadas;
   renderGantt();
 }
 
