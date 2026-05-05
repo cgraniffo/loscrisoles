@@ -426,13 +426,13 @@ if (location.search.includes('embed=1')) {
     .glmodal-btn[disabled] { opacity:0.65; cursor:not-allowed; }
 
     /* Toast de feedback */
-    .glm-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a3a0a; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:bold; box-shadow:0 4px 12px rgba(0,0,0,0.25); z-index:2000; opacity:0; transition:opacity 0.25s; pointer-events:none; }
+    .glm-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1a3a0a; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px; font-weight:bold; box-shadow:0 4px 12px rgba(0,0,0,0.25); z-index:10002; opacity:0; transition:opacity 0.25s; pointer-events:none; }
     .glm-toast.on { opacity:1; }
     .glm-toast.error { background:#dc2626; }
     .glm-toast.warn  { background:#f59e0b; color:#000; }
 
     /* Modal */
-    .glmodal-back { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; display:none; align-items:center; justify-content:center; padding:20px; }
+    .glmodal-back { position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:10001; display:none; align-items:center; justify-content:center; padding:20px; }
     .glmodal-back.on { display:flex; }
     .glmodal { background:#fff; border-radius:12px; padding:0; max-width:520px; width:100%; max-height:90vh; overflow-y:auto; box-shadow:0 10px 40px rgba(0,0,0,0.3); }
     .glmodal-head { padding:16px 20px; border-bottom:1px solid #e5e2da; display:flex; justify-content:space-between; align-items:center; background:#1a3a0a; color:#fff; border-radius:12px 12px 0 0; }
