@@ -3656,7 +3656,7 @@ const GANTT_API_URL = "https://script.google.com/macros/s/AKfycbzsEgcVC94wKXamVV
 window._ganttState = {
   vista: "semanal",
   anclaFecha: new Date(),
-  filtros: { cultivo:"", estado:"", responsable:"" },
+  filtros: { cultivo:[], estado:[], responsable:[] },
   verCompletadas: false,  // Por defecto ocultar completadas
   editId: null,
   cache: null  // cache de labores cargadas del backend
@@ -3803,8 +3803,21 @@ function renderGanttBlock() {
 
 function ganttSetVista(v) {
   window._ganttState.vista = v;
+  // Preservar estado de fullscreen antes de re-renderizar
+  const wrapViejo = document.getElementById("app-labores").querySelector(".gantt-wrap");
+  const eraFullscreen = wrapViejo && wrapViejo.classList.contains("fullscreen");
   // Re-render el header completo y luego el contenido
-  document.getElementById("app-labores").querySelector(".gantt-wrap").outerHTML = renderGanttBlock();
+  wrapViejo.outerHTML = renderGanttBlock();
+  // Si estaba en fullscreen, restaurar la clase y el estado del botón
+  if (eraFullscreen) {
+    const wrapNuevo = document.getElementById("app-labores").querySelector(".gantt-wrap");
+    if (wrapNuevo) wrapNuevo.classList.add("fullscreen");
+    const btn = document.getElementById("gantt-fs-btn");
+    if (btn) {
+      btn.innerHTML = "⛶ Salir";
+      btn.title = "Salir de pantalla completa (Esc)";
+    }
+  }
   renderGantt();
 }
 function ganttNav(delta) {
@@ -3863,9 +3876,16 @@ function ganttFilterData(data) {
   return data.filter(r => {
     // Ocultar completadas por defecto, salvo que verCompletadas=true
     if (!verCompletadas && r.estado === "Completada") return false;
-    if (f.cultivo && r.cultivo !== f.cultivo) return false;
-    if (f.estado && r.estado !== f.estado) return false;
-    if (f.responsable && !(r.responsables||[]).includes(f.responsable)) return false;
+    // Cultivo: si hay filtros activos, la labor debe coincidir con AL MENOS uno
+    if (f.cultivo && f.cultivo.length > 0 && !f.cultivo.includes(r.cultivo)) return false;
+    // Estado: si hay filtros activos, la labor debe coincidir con AL MENOS uno
+    if (f.estado && f.estado.length > 0 && !f.estado.includes(r.estado)) return false;
+    // Responsable: si hay filtros activos, AL MENOS un responsable de la labor debe coincidir
+    if (f.responsable && f.responsable.length > 0) {
+      const responsablesLabor = r.responsables || [];
+      const tieneAlguno = f.responsable.some(rsel => responsablesLabor.includes(rsel));
+      if (!tieneAlguno) return false;
+    }
     return true;
   });
 }
@@ -3890,8 +3910,10 @@ function _renderGanttUI(cont, fcont, data) {
   // Filtros chips
   if (fcont) {
     const f = window._ganttState.filtros;
+    const cultivosFil = f.cultivo || [];
+    const estadosFil = f.estado || [];
     let html = `<span style="font-size:10px;color:#888;margin-right:4px;align-self:center;font-weight:bold;">FILTROS:</span>`;
-    html += `<button class="gantt-fchip ${!f.cultivo?'on':''}" onclick="ganttFilter('cultivo','')">Todos cultivos</button>`;
+    html += `<button class="gantt-fchip ${cultivosFil.length===0?'on':''}" onclick="ganttFilter('cultivo','')">Todos cultivos</button>`;
     // Cultivos = lista única de Fundos de BD_CC (ej: "Trigo 26-27", "Nogales 25-26")
     let listaCultivos = CULTIVOS_GANTT;
     try {
@@ -3899,12 +3921,14 @@ function _renderGanttUI(cont, fcont, data) {
       if (reales.length > 0) listaCultivos = reales.sort();
     } catch(e) {}
     listaCultivos.forEach(c => {
-      html += `<button class="gantt-fchip ${f.cultivo===c?'on':''}" onclick="ganttFilter('cultivo','${escapeHtml(c).replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`;
+      const activo = cultivosFil.includes(c);
+      html += `<button class="gantt-fchip ${activo?'on':''}" onclick="ganttFilter('cultivo','${escapeHtml(c).replace(/'/g,"\\'")}')">${activo?'✓ ':''}${escapeHtml(c)}</button>`;
     });
     html += `<span style="border-left:1px solid #e5e2da;margin:0 4px;height:18px;"></span>`;
-    html += `<button class="gantt-fchip ${!f.estado?'on':''}" onclick="ganttFilter('estado','')">Todos estados</button>`;
+    html += `<button class="gantt-fchip ${estadosFil.length===0?'on':''}" onclick="ganttFilter('estado','')">Todos estados</button>`;
     ESTADOS_LABOR.forEach(e => {
-      html += `<button class="gantt-fchip ${f.estado===e?'on':''}" onclick="ganttFilter('estado','${e}')">${e}</button>`;
+      const activo = estadosFil.includes(e);
+      html += `<button class="gantt-fchip ${activo?'on':''}" onclick="ganttFilter('estado','${e}')">${activo?'✓ ':''}${e}</button>`;
     });
     // Toggle de completadas (escondidas por defecto)
     html += `<span style="border-left:1px solid #e5e2da;margin:0 4px;height:18px;"></span>`;
@@ -3992,8 +4016,21 @@ function _renderGanttUI(cont, fcont, data) {
 }
 
 function ganttFilter(key, val) {
-  window._ganttState.filtros[key] = val;
-  // renderGantt() ya sincroniza el mapa al terminar (ver función renderGantt)
+  // Si val es vacío, limpiar todos los filtros de esa categoría (botón "Todos")
+  if (val === "" || val === null) {
+    window._ganttState.filtros[key] = [];
+  } else {
+    // Toggle: si ya está, quitarlo; si no está, agregarlo
+    const arr = window._ganttState.filtros[key] || [];
+    const idx = arr.indexOf(val);
+    if (idx >= 0) {
+      arr.splice(idx, 1);
+    } else {
+      arr.push(val);
+    }
+    window._ganttState.filtros[key] = arr;
+  }
+  // renderGantt() ya sincroniza el mapa al terminar
   renderGantt();
 }
 
