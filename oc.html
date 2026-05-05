@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Órdenes de Compra · Los Crisoles</title>
+<style>
+  :root {
+    --primary: #2c5f2d;
+    --primary-light: #4a8b4c;
+    --secondary: #97bc62;
+    --bg: #f5f6f4;
+    --card: #ffffff;
+    --border: #e1e4dc;
+    --text: #1f2a1d;
+    --text-muted: #6b7568;
+    --danger: #c0392b;
+    --warning: #e67e22;
+    --info: #2980b9;
+    --success: #27ae60;
+    /* Estados */
+    --st-borrador: #95a5a6;
+    --st-aprobada: #2980b9;
+    --st-enviada: #e67e22;
+    --st-recibida: #16a085;
+    --st-cerrada: #27ae60;
+    --st-anulada: #c0392b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  /* Header */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+  }
+  .page-header h1 {
+    color: var(--primary);
+    font-size: 24px;
+    font-weight: 600;
+  }
+  .page-header .subtitle {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  /* Botones */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .btn:hover { background: var(--bg); border-color: var(--primary-light); }
+  .btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-light); border-color: var(--primary-light); }
+  .btn-danger { background: var(--danger); color: white; border-color: var(--danger); }
+  .btn-danger:hover { opacity: 0.9; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-icon { padding: 6px 8px; }
+
+  /* KPIs */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    border-left: 3px solid var(--primary);
+  }
+  .kpi-card.borrador { border-left-color: var(--st-borrador); }
+  .kpi-card.aprobada { border-left-color: var(--st-aprobada); }
+  .kpi-card.enviada  { border-left-color: var(--st-enviada); }
+  .kpi-card.recibida { border-left-color: var(--st-recibida); }
+  .kpi-card .kpi-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .kpi-card .kpi-value {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .kpi-card .kpi-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Filtros */
+  .filters {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filters input, .filters select {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 13px;
+    background: white;
+  }
+  .filters input { min-width: 220px; }
+  .filters .filter-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .filters .spacer { flex: 1; }
+
+  /* Tabla */
+  .table-wrap {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: var(--bg);
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    user-select: none;
+  }
+  th:hover { color: var(--primary); }
+  tbody tr { cursor: pointer; transition: background 0.1s; }
+  tbody tr:hover { background: #fafbf8; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.center { text-align: center; }
+
+  /* Badges de estado */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: white;
+  }
+  .badge.borrador { background: var(--st-borrador); }
+  .badge.aprobada { background: var(--st-aprobada); }
+  .badge.enviada  { background: var(--st-enviada); }
+  .badge.recibida { background: var(--st-recibida); }
+  .badge.cerrada  { background: var(--st-cerrada); }
+  .badge.anulada  { background: var(--st-anulada); }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 1000;
+    padding: 30px 20px;
+    overflow-y: auto;
+  }
+  .modal-backdrop.show { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 900px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    margin: auto;
+  }
+  .modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg);
+    border-radius: 10px 10px 0 0;
+  }
+  .modal-header h2 {
+    font-size: 18px;
+    color: var(--primary);
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
+    padding: 0 8px;
+  }
+  .modal-body { padding: 20px; }
+  .modal-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    border-radius: 0 0 10px 10px;
+  }
+  .modal-footer .actions { display: flex; gap: 8px; }
+
+  /* Form */
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .form-group { display: flex; flex-direction: column; }
+  .form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 13px;
+    font-family: inherit;
+    background: white;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 2px rgba(74, 139, 76, 0.15);
+  }
+  .form-group.full { grid-column: 1 / -1; }
+
+  /* Líneas de OC */
+  .lines-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 2px solid var(--border);
+  }
+  .lines-section h3 {
+    font-size: 14px;
+    color: var(--primary);
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .lines-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .lines-table th, .lines-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .lines-table th {
+    background: var(--bg);
+    font-size: 11px;
+  }
+  .lines-table input, .lines-table select {
+    width: 100%;
+    padding: 5px 7px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12px;
+    background: white;
+  }
+  .lines-table input.num { text-align: right; }
+  .lines-table .col-product { width: 30%; }
+  .lines-table .col-qty { width: 8%; }
+  .lines-table .col-unit { width: 10%; }
+  .lines-table .col-price { width: 14%; }
+  .lines-table .col-subtotal { width: 14%; text-align: right; font-weight: 600; }
+  .lines-table .col-cc { width: 16%; }
+  .lines-table .col-action { width: 8%; text-align: center; }
+
+  /* Totales */
+  .totals {
+    margin-top: 14px;
+    padding: 12px;
+    background: var(--bg);
+    border-radius: 6px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 30px;
+  }
+  .totals .total-item { text-align: right; }
+  .totals .total-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .totals .total-value {
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .totals .total-grand .total-value {
+    font-size: 20px;
+    color: var(--primary);
+  }
+
+  /* Detalle de OC (lectura) */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .detail-item .detail-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 3px;
+  }
+  .detail-item .detail-value {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  /* Timeline de estados */
+  .timeline {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    padding: 14px;
+    background: var(--bg);
+    border-radius: 6px;
+  }
+  .timeline-step {
+    flex: 1;
+    text-align: center;
+    position: relative;
+  }
+  .timeline-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -50%;
+    width: 100%;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+  .timeline-step.done:not(:last-child)::after { background: var(--success); }
+  .timeline-step .step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--border);
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    position: relative;
+    z-index: 1;
+  }
+  .timeline-step.done .step-circle { background: var(--success); }
+  .timeline-step.current .step-circle { background: var(--primary); box-shadow: 0 0 0 4px rgba(44,95,45,0.2); }
+  .timeline-step .step-label {
+    font-size: 11px;
+    margin-top: 6px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .timeline-step.done .step-label, .timeline-step.current .step-label {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--text);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 2000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .form-grid { grid-template-columns: 1fr; }
+    .detail-grid { grid-template-columns: 1fr; }
+    th, td { padding: 8px 6px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div>
+      <h1>📋 Órdenes de Compra</h1>
+      <div class="subtitle">Agrícola Los Crisoles · Gestión de OCs y matching con facturas</div>
+    </div>
+    <button class="btn btn-primary" onclick="openModalNew()">
+      + Nueva Orden de Compra
+    </button>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-row">
+    <div class="kpi-card borrador">
+      <div class="kpi-label">Borradores</div>
+      <div class="kpi-value" id="kpi-borrador">0</div>
+      <div class="kpi-sub" id="kpi-borrador-monto">$0</div>
+    </div>
+    <div class="kpi-card aprobada">
+      <div class="kpi-label">Aprobadas</div>
+      <div class="kpi-value" id="kpi-aprobada">0</div>
+      <div class="kpi-sub" id="kpi-aprobada-monto">$0</div>
+    </div>
+    <div class="kpi-card enviada">
+      <div class="kpi-label">Enviadas</div>
+      <div class="kpi-value" id="kpi-enviada">0</div>
+      <div class="kpi-sub" id="kpi-enviada-monto">$0</div>
+    </div>
+    <div class="kpi-card recibida">
+      <div class="kpi-label">Recibidas (sin cerrar)</div>
+      <div class="kpi-value" id="kpi-recibida">0</div>
+      <div class="kpi-sub" id="kpi-recibida-monto">$0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total comprometido</div>
+      <div class="kpi-value" id="kpi-total">$0</div>
+      <div class="kpi-sub">OCs activas</div>
+    </div>
+  </div>
+
+  <!-- FILTROS -->
+  <div class="filters">
+    <input type="text" id="search" placeholder="🔍 Buscar por número, proveedor o producto..." oninput="renderTable()">
+    <span class="filter-label">Estado:</span>
+    <select id="filter-estado" onchange="renderTable()">
+      <option value="">Todos</option>
+      <option value="Borrador">Borrador</option>
+      <option value="Aprobada">Aprobada</option>
+      <option value="Enviada">Enviada</option>
+      <option value="Recibida">Recibida</option>
+      <option value="Cerrada">Cerrada</option>
+      <option value="Anulada">Anulada</option>
+    </select>
+    <span class="filter-label">UP:</span>
+    <select id="filter-up" onchange="renderTable()">
+      <option value="">Todas</option>
+    </select>
+    <span class="filter-label">Proveedor:</span>
+    <select id="filter-proveedor" onchange="renderTable()">
+      <option value="">Todos</option>
+    </select>
+    <div class="spacer"></div>
+    <button class="btn btn-sm" onclick="exportCSV()">⬇ Exportar CSV</button>
+  </div>
+
+  <!-- TABLA -->
+  <div class="table-wrap">
+    <table id="oc-table">
+      <thead>
+        <tr>
+          <th onclick="sortBy('Numero')">N°</th>
+          <th onclick="sortBy('Fecha')">Fecha</th>
+          <th onclick="sortBy('Estado')">Estado</th>
+          <th onclick="sortBy('Proveedor_Nombre')">Proveedor</th>
+          <th onclick="sortBy('UP_Nombre')">UP</th>
+          <th onclick="sortBy('Total')" class="num">Total</th>
+          <th onclick="sortBy('Fecha_Entrega_Estimada')">Entrega</th>
+          <th>Factura</th>
+          <th class="center">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="oc-tbody">
+        <tr><td colspan="9" class="empty">⏳ Cargando órdenes...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- MODAL: NUEVA / EDITAR OC -->
+<div class="modal-backdrop" id="modal-edit">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-edit-title">Nueva Orden de Compra</h2>
+      <button class="modal-close" onclick="closeModal('modal-edit')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Proveedor *</label>
+          <input type="text" id="f-proveedor-nombre" list="datalist-proveedores" placeholder="Razón Social">
+          <datalist id="datalist-proveedores"></datalist>
+        </div>
+        <div class="form-group">
+          <label>RUT Proveedor</label>
+          <input type="text" id="f-proveedor-rut" placeholder="76.123.456-7">
+        </div>
+        <div class="form-group">
+          <label>Email Proveedor</label>
+          <input type="email" id="f-proveedor-email" placeholder="contacto@proveedor.cl">
+        </div>
+        <div class="form-group">
+          <label>Fecha Entrega Estimada</label>
+          <input type="date" id="f-fecha-entrega">
+        </div>
+        <div class="form-group">
+          <label>UP / Centro de Costo *</label>
+          <select id="f-up">
+            <option value="">Seleccionar...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Solicitante</label>
+          <input type="text" id="f-solicitante" placeholder="Nombre">
+        </div>
+        <div class="form-group full">
+          <label>Observaciones</label>
+          <textarea id="f-observaciones" rows="2" placeholder="Notas, instrucciones de entrega, etc."></textarea>
+        </div>
+      </div>
+
+      <div class="lines-section">
+        <h3>
+          Líneas de Productos
+          <button class="btn btn-sm btn-primary" onclick="addLine()">+ Agregar línea</button>
+        </h3>
+        <table class="lines-table">
+          <thead>
+            <tr>
+              <th class="col-product">Producto</th>
+              <th class="col-qty">Cant.</th>
+              <th class="col-unit">Unidad</th>
+              <th class="col-price">Precio Unit.</th>
+              <th class="col-subtotal">Subtotal</th>
+              <th class="col-cc">Centro Costo</th>
+              <th class="col-action"></th>
+            </tr>
+          </thead>
+          <tbody id="lines-tbody"></tbody>
+        </table>
+
+        <div class="totals">
+          <div class="total-item">
+            <div class="total-label">Subtotal</div>
+            <div class="total-value" id="total-subtotal">$0</div>
+          </div>
+          <div class="total-item">
+            <div class="total-label">IVA 19%</div>
+            <div class="total-value" id="total-iva">$0</div>
+          </div>
+          <div class="total-item total-grand">
+            <div class="total-label">Total</div>
+            <div class="total-value" id="total-grand">$0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div>
+        <span id="modal-edit-status" style="font-size:12px; color:var(--text-muted);"></span>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="closeModal('modal-edit')">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveOC()">💾 Guardar Borrador</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: VER DETALLE OC -->
+<div class="modal-backdrop" id="modal-view">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="modal-view-title">OC-2026-0001</h2>
+      <button class="modal-close" onclick="closeModal('modal-view')">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-view-body">
+    </div>
+    <div class="modal-footer">
+      <div class="actions">
+        <button class="btn btn-sm" onclick="downloadPDF()">📄 PDF</button>
+        <button class="btn btn-sm" onclick="emailOC()">✉️ Reenviar mail</button>
+      </div>
+      <div class="actions" id="modal-view-actions">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN DE APIs
+============================================================ */
+const WORKER_URL = "https://round-night-574d.christian-19c.workers.dev";
+
+// UPs — fallback hardcodeado mientras conectamos a BD_CC vía API_CC
+// (cuando se conecte API_CC, esto se reemplaza por fetch en init())
+let UPS = [
+  { id: '546f06c9',  nombre: 'Piv 1',        cultivo: 'Trigo' },
+  { id: '53be8a81',  nombre: 'Piv 2',        cultivo: 'Pepino' },
+  { id: '546f06c10', nombre: 'Piv 3',        cultivo: 'Achicoria' },
+  { id: '146f0503',  nombre: 'Pot 1',        cultivo: 'Achicoria' },
+  { id: '146f0504',  nombre: 'Pot 2',        cultivo: 'Maíz' },
+  { id: '146f0505',  nombre: 'Pot 3',        cultivo: 'Trigo' },
+  { id: '146f0506',  nombre: 'Pot 4',        cultivo: 'Trigo' },
+  { id: '146f0507',  nombre: 'Pot 5',        cultivo: 'Trigo' },
+  { id: '546f0c613', nombre: 'Pot 6',        cultivo: 'Achicoria' },
+  { id: '546f0c614', nombre: 'Vega',         cultivo: 'Maíz' },
+  { id: '546f0c625', nombre: 'Nogales',      cultivo: 'Nuez' },
+  { id: '546f0c615', nombre: 'Parcela Sur',  cultivo: 'Trigo' },
+  { id: '8be56e2b',  nombre: 'Gastos Generales', cultivo: '—' },
+  { id: 'c81ea92e',  nombre: 'Maquinarias',     cultivo: '—' }
+];
+
+// Proveedores — se carga desde el worker (extraídos de CargaHTML_Demo)
+// Mientras tanto fallback con algunos comunes
+let PROVEEDORES = [];
+
+// OCs — cargadas desde el backend
+let ORDENES = [];
+
+/* ============================================================
+   API CALLS — todas vía Cloudflare Worker
+============================================================ */
+async function apiGet(action, params = {}) {
+  const qs = new URLSearchParams({ api: 'oc', action, ...params }).toString();
+  const r = await fetch(`${WORKER_URL}?${qs}`);
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+  return data;
+}
+
+async function apiPost(action, payload = {}) {
+  const r = await fetch(WORKER_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ api: 'oc', action, ...payload })
+  });
+  const data = await r.json();
+  if (!data.ok) throw new Error(data.error || 'Error desconocido');
+  return data;
+}
+
+async function loadOCs() {
+  try {
+    const data = await apiGet('list');
+    ORDENES = (data.ordenes || []).map(normalizeOC);
+    return true;
+  } catch (e) {
+    console.error('loadOCs error:', e);
+    showToast('Error cargando OCs: ' + e.message, 'error');
+    return false;
+  }
+}
+
+// Normaliza fechas que vienen como ISO/Date desde Apps Script
+function normalizeOC(o) {
+  const dateFields = ['Fecha','Fecha_Entrega_Estimada','Fecha_Aprobacion','Fecha_Envio','Fecha_Recepcion','Fecha_Cierre'];
+  dateFields.forEach(f => {
+    if (o[f]) {
+      const d = new Date(o[f]);
+      if (!isNaN(d)) o[f] = d.toISOString().split('T')[0]; // YYYY-MM-DD
+      else o[f] = '';
+    } else {
+      o[f] = '';
+    }
+  });
+  ['Subtotal','IVA','Total'].forEach(f => o[f] = Number(o[f]) || 0);
+  if (o.Lineas) {
+    o.Lineas = o.Lineas.map(l => ({
+      ...l,
+      Cantidad: Number(l.Cantidad) || 0,
+      Precio_Unit: Number(l.Precio_Unit) || 0,
+      Subtotal_Linea: Number(l.Subtotal_Linea) || 0
+    }));
+  }
+  return o;
+}
+
+/* ============================================================
+   ESTADO
+============================================================ */
+let CURRENT_OC = null;        // OC en edición/visualización
+let CURRENT_LINES = [];       // Líneas en edición
+let SORT_COL = 'Fecha';
+let SORT_DIR = 'desc';
+
+/* ============================================================
+   HELPERS
+============================================================ */
+const fmt = n => '$' + (Number(n) || 0).toLocaleString('es-CL');
+const fmtDate = d => d ? new Date(d).toLocaleDateString('es-CL') : '—';
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function generateNextNumber() {
+  try {
+    const data = await apiGet('next_number');
+    return data.numero;
+  } catch (e) {
+    // Fallback al cálculo local
+    const year = new Date().getFullYear();
+    const yearOCs = ORDENES.filter(o => String(o.Numero || '').startsWith(`OC-${year}-`));
+    const maxNum = yearOCs.reduce((max, o) => {
+      const n = parseInt(String(o.Numero).split('-')[2], 10) || 0;
+      return n > max ? n : max;
+    }, 0);
+    return `OC-${year}-${String(maxNum + 1).padStart(4, '0')}`;
+  }
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+async function init() {
+  // Poblar selects de UPs
+  const upSelect = document.getElementById('f-up');
+  const filterUp = document.getElementById('filter-up');
+  UPS.forEach(up => {
+    const opt = `<option value="${up.id}">${up.nombre}${up.cultivo !== '—' ? ' · ' + up.cultivo : ''}</option>`;
+    upSelect.insertAdjacentHTML('beforeend', opt);
+    filterUp.insertAdjacentHTML('beforeend', `<option value="${up.id}">${up.nombre}</option>`);
+  });
+
+  // Cargar OCs reales del backend
+  await loadOCs();
+
+  // Construir datalist de proveedores a partir de OCs existentes
+  const dl = document.getElementById('datalist-proveedores');
+  const provMap = {};
+  ORDENES.forEach(o => {
+    if (o.Proveedor_Nombre && !provMap[o.Proveedor_Nombre]) {
+      provMap[o.Proveedor_Nombre] = { rut: o.Proveedor_RUT, email: o.Proveedor_Email };
+    }
+  });
+  PROVEEDORES = Object.entries(provMap).map(([nombre, d]) => ({ nombre, ...d }));
+  PROVEEDORES.forEach(p => {
+    dl.insertAdjacentHTML('beforeend', `<option value="${p.nombre}" data-rut="${p.rut || ''}" data-email="${p.email || ''}">`);
+  });
+
+  // Auto-completar RUT/email al seleccionar proveedor
+  document.getElementById('f-proveedor-nombre').addEventListener('input', e => {
+    const p = PROVEEDORES.find(x => x.nombre === e.target.value);
+    if (p) {
+      document.getElementById('f-proveedor-rut').value = p.rut || '';
+      document.getElementById('f-proveedor-email').value = p.email || '';
+    }
+  });
+
+  // Filtro proveedores
+  const filterProv = document.getElementById('filter-proveedor');
+  [...new Set(ORDENES.map(o => o.Proveedor_Nombre).filter(Boolean))].sort().forEach(p => {
+    filterProv.insertAdjacentHTML('beforeend', `<option value="${p}">${p}</option>`);
+  });
+
+  renderKPIs();
+  renderTable();
+}
+
+/* ============================================================
+   KPIs
+============================================================ */
+function renderKPIs() {
+  const byEstado = (e) => ORDENES.filter(o => o.Estado === e);
+  const sumTotal = arr => arr.reduce((s, o) => s + (o.Total || 0), 0);
+
+  const borr = byEstado('Borrador');
+  const apr = byEstado('Aprobada');
+  const env = byEstado('Enviada');
+  const rec = byEstado('Recibida');
+  const activas = ORDENES.filter(o => !['Cerrada', 'Anulada'].includes(o.Estado));
+
+  document.getElementById('kpi-borrador').textContent = borr.length;
+  document.getElementById('kpi-borrador-monto').textContent = fmt(sumTotal(borr));
+  document.getElementById('kpi-aprobada').textContent = apr.length;
+  document.getElementById('kpi-aprobada-monto').textContent = fmt(sumTotal(apr));
+  document.getElementById('kpi-enviada').textContent = env.length;
+  document.getElementById('kpi-enviada-monto').textContent = fmt(sumTotal(env));
+  document.getElementById('kpi-recibida').textContent = rec.length;
+  document.getElementById('kpi-recibida-monto').textContent = fmt(sumTotal(rec));
+  document.getElementById('kpi-total').textContent = fmt(sumTotal(activas));
+}
+
+/* ============================================================
+   TABLA
+============================================================ */
+function renderTable() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const fEstado = document.getElementById('filter-estado').value;
+  const fUp = document.getElementById('filter-up').value;
+  const fProv = document.getElementById('filter-proveedor').value;
+
+  let rows = ORDENES.filter(o => {
+    if (fEstado && o.Estado !== fEstado) return false;
+    if (fUp && o.UP_ID !== fUp) return false;
+    if (fProv && o.Proveedor_Nombre !== fProv) return false;
+    if (search) {
+      const txt = `${o.Numero} ${o.Proveedor_Nombre} ${o.UP_Nombre} ${(o.Lineas || []).map(l => l.Producto).join(' ')}`.toLowerCase();
+      if (!txt.includes(search)) return false;
+    }
+    return true;
+  });
+
+  rows.sort((a, b) => {
+    const va = a[SORT_COL], vb = b[SORT_COL];
+    if (va < vb) return SORT_DIR === 'asc' ? -1 : 1;
+    if (va > vb) return SORT_DIR === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const tbody = document.getElementById('oc-tbody');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">No hay órdenes que coincidan con los filtros</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(o => `
+    <tr onclick="openModalView('${o.ID_OC}')">
+      <td><strong>${o.Numero}</strong></td>
+      <td>${fmtDate(o.Fecha)}</td>
+      <td><span class="badge ${o.Estado.toLowerCase()}">${o.Estado}</span></td>
+      <td>${o.Proveedor_Nombre}</td>
+      <td>${o.UP_Nombre}</td>
+      <td class="num"><strong>${fmt(o.Total)}</strong></td>
+      <td>${fmtDate(o.Fecha_Entrega_Estimada)}</td>
+      <td>${o.KEY_Factura_Asociada ? '✅ ' + o.KEY_Factura_Asociada.split('-').slice(-1) : '—'}</td>
+      <td class="center" onclick="event.stopPropagation()">
+        ${o.Estado === 'Borrador' ? `<button class="btn btn-sm btn-icon" onclick="openModalEdit('${o.ID_OC}')" title="Editar">✏️</button>` : ''}
+        <button class="btn btn-sm btn-icon" onclick="openModalView('${o.ID_OC}')" title="Ver">👁️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function sortBy(col) {
+  if (SORT_COL === col) {
+    SORT_DIR = SORT_DIR === 'asc' ? 'desc' : 'asc';
+  } else {
+    SORT_COL = col;
+    SORT_DIR = 'asc';
+  }
+  renderTable();
+}
+
+/* ============================================================
+   MODAL: NUEVA / EDITAR
+============================================================ */
+async function openModalNew() {
+  CURRENT_OC = null;
+  CURRENT_LINES = [];
+  const numero = await generateNextNumber();
+  document.getElementById('modal-edit-title').textContent = 'Nueva Orden de Compra · ' + numero;
+  ['f-proveedor-nombre','f-proveedor-rut','f-proveedor-email','f-fecha-entrega','f-solicitante','f-observaciones'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-up').value = '';
+  document.getElementById('modal-edit-status').textContent = 'Estado inicial: Borrador';
+  addLine();
+  document.getElementById('modal-edit').classList.add('show');
+}
+
+function openModalEdit(idOC) {
+  const oc = ORDENES.find(o => o.ID_OC === idOC);
+  if (!oc) return;
+  CURRENT_OC = oc;
+  CURRENT_LINES = JSON.parse(JSON.stringify(oc.Lineas || []));
+  document.getElementById('modal-edit-title').textContent = 'Editar ' + oc.Numero;
+  document.getElementById('f-proveedor-nombre').value = oc.Proveedor_Nombre || '';
+  document.getElementById('f-proveedor-rut').value = oc.Proveedor_RUT || '';
+  document.getElementById('f-proveedor-email').value = oc.Proveedor_Email || '';
+  document.getElementById('f-fecha-entrega').value = oc.Fecha_Entrega_Estimada || '';
+  document.getElementById('f-up').value = oc.UP_ID || '';
+  document.getElementById('f-solicitante').value = oc.Solicitante || '';
+  document.getElementById('f-observaciones').value = oc.Observaciones || '';
+  document.getElementById('modal-edit-status').textContent = 'Estado actual: ' + oc.Estado;
+  renderLines();
+  document.getElementById('modal-edit').classList.add('show');
+}
+
+function addLine() {
+  CURRENT_LINES.push({ Producto: '', Cantidad: 1, Unidad: 'unid', Precio_Unit: 0, Subtotal_Linea: 0, ID_CC: '' });
+  renderLines();
+}
+
+function removeLine(idx) {
+  CURRENT_LINES.splice(idx, 1);
+  renderLines();
+}
+
+function updateLine(idx, field, value) {
+  CURRENT_LINES[idx][field] = (field === 'Cantidad' || field === 'Precio_Unit') ? Number(value) || 0 : value;
+  CURRENT_LINES[idx].Subtotal_Linea = (CURRENT_LINES[idx].Cantidad || 0) * (CURRENT_LINES[idx].Precio_Unit || 0);
+  document.getElementById(`subtotal-${idx}`).textContent = fmt(CURRENT_LINES[idx].Subtotal_Linea);
+  updateTotals();
+}
+
+function renderLines() {
+  const tbody = document.getElementById('lines-tbody');
+  tbody.innerHTML = CURRENT_LINES.map((l, idx) => `
+    <tr>
+      <td><input type="text" value="${l.Producto || ''}" placeholder="Producto" onchange="updateLine(${idx}, 'Producto', this.value)"></td>
+      <td><input type="number" class="num" value="${l.Cantidad || 0}" min="0" step="0.01" onchange="updateLine(${idx}, 'Cantidad', this.value)"></td>
+      <td>
+        <select onchange="updateLine(${idx}, 'Unidad', this.value)">
+          ${['unid','kg','sacos','bidones','lt','m','ton','cajas','bins'].map(u => `<option value="${u}" ${l.Unidad===u?'selected':''}>${u}</option>`).join('')}
+        </select>
+      </td>
+      <td><input type="number" class="num" value="${l.Precio_Unit || 0}" min="0" step="1" onchange="updateLine(${idx}, 'Precio_Unit', this.value)"></td>
+      <td class="col-subtotal" id="subtotal-${idx}">${fmt(l.Subtotal_Linea || 0)}</td>
+      <td>
+        <select onchange="updateLine(${idx}, 'ID_CC', this.value)">
+          <option value="">—</option>
+          ${UPS.map(u => `<option value="${u.id}" ${l.ID_CC===u.id?'selected':''}>${u.nombre}</option>`).join('')}
+        </select>
+      </td>
+      <td class="center"><button class="btn btn-sm btn-icon btn-danger" onclick="removeLine(${idx})" title="Eliminar línea">🗑️</button></td>
+    </tr>
+  `).join('');
+  updateTotals();
+}
+
+function updateTotals() {
+  const subtotal = CURRENT_LINES.reduce((s, l) => s + (l.Subtotal_Linea || 0), 0);
+  const iva = Math.round(subtotal * 0.19);
+  const total = subtotal + iva;
+  document.getElementById('total-subtotal').textContent = fmt(subtotal);
+  document.getElementById('total-iva').textContent = fmt(iva);
+  document.getElementById('total-grand').textContent = fmt(total);
+}
+
+async function saveOC() {
+  const proveedorNombre = document.getElementById('f-proveedor-nombre').value.trim();
+  const upId = document.getElementById('f-up').value;
+  if (!proveedorNombre) { showToast('Falta proveedor', 'error'); return; }
+  if (!upId) { showToast('Falta UP', 'error'); return; }
+  if (CURRENT_LINES.length === 0 || CURRENT_LINES.every(l => !l.Producto)) { showToast('Agrega al menos una línea', 'error'); return; }
+
+  const up = UPS.find(u => u.id === upId);
+
+  const payload = {
+    Proveedor_Nombre: proveedorNombre,
+    Proveedor_RUT: document.getElementById('f-proveedor-rut').value,
+    Proveedor_Email: document.getElementById('f-proveedor-email').value,
+    UP_ID: upId,
+    UP_Nombre: up ? up.nombre : '',
+    Fecha_Entrega_Estimada: document.getElementById('f-fecha-entrega').value,
+    Solicitante: document.getElementById('f-solicitante').value,
+    Observaciones: document.getElementById('f-observaciones').value,
+    Lineas: CURRENT_LINES.filter(l => l.Producto)
+  };
+
+  // Disable botón mientras guarda
+  const saveBtn = document.querySelector('#modal-edit .btn-primary');
+  const originalText = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = '⏳ Guardando...';
+
+  try {
+    if (CURRENT_OC) {
+      payload.ID_OC = CURRENT_OC.ID_OC;
+      await apiPost('update', payload);
+      showToast('OC actualizada', 'success');
+    } else {
+      const result = await apiPost('create', payload);
+      showToast('OC creada: ' + result.numero, 'success');
+    }
+    closeModal('modal-edit');
+    await loadOCs();
+    renderKPIs();
+    renderTable();
+  } catch (e) {
+    showToast('Error al guardar: ' + e.message, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalText;
+  }
+}
+
+/* ============================================================
+   MODAL: VER DETALLE
+============================================================ */
+function openModalView(idOC) {
+  const oc = ORDENES.find(o => o.ID_OC === idOC);
+  if (!oc) return;
+  CURRENT_OC = oc;
+
+  document.getElementById('modal-view-title').textContent = oc.Numero + ' · ' + oc.Estado;
+
+  // Timeline
+  const steps = ['Borrador', 'Aprobada', 'Enviada', 'Recibida', 'Cerrada'];
+  const currentIdx = steps.indexOf(oc.Estado);
+  const timelineHTML = `
+    <div class="timeline">
+      ${steps.map((s, i) => {
+        let cls = '';
+        if (i < currentIdx) cls = 'done';
+        else if (i === currentIdx) cls = 'current';
+        return `<div class="timeline-step ${cls}">
+          <div class="step-circle">${i+1}</div>
+          <div class="step-label">${s}</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+
+  // Detalle
+  const body = `
+    ${timelineHTML}
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="detail-label">Proveedor</div>
+        <div class="detail-value">${oc.Proveedor_Nombre}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${oc.Proveedor_RUT || ''}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">UP / Centro de Costo</div>
+        <div class="detail-value">${oc.UP_Nombre}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Total</div>
+        <div class="detail-value" style="color:var(--primary);font-size:16px;">${fmt(oc.Total)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Fecha Emisión</div>
+        <div class="detail-value">${fmtDate(oc.Fecha)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Entrega Estimada</div>
+        <div class="detail-value">${fmtDate(oc.Fecha_Entrega_Estimada)}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Factura asociada</div>
+        <div class="detail-value">${oc.KEY_Factura_Asociada ? '✅ ' + oc.KEY_Factura_Asociada : '⏳ Pendiente'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Solicitante</div>
+        <div class="detail-value">${oc.Solicitante || '—'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Aprobador</div>
+        <div class="detail-value">${oc.Aprobador || '—'}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-label">Email Proveedor</div>
+        <div class="detail-value" style="font-size:12px;">${oc.Proveedor_Email || '—'}</div>
+      </div>
+    </div>
+
+    ${oc.Observaciones ? `
+      <div style="background:var(--bg);padding:10px 12px;border-radius:6px;margin-bottom:16px;">
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Observaciones</div>
+        <div>${oc.Observaciones}</div>
+      </div>
+    ` : ''}
+
+    <h3 style="font-size:14px;color:var(--primary);margin-bottom:10px;">Líneas de productos</h3>
+    <table class="lines-table">
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th class="num" style="text-align:right;">Cantidad</th>
+          <th>Unidad</th>
+          <th class="num" style="text-align:right;">Precio Unit.</th>
+          <th class="num" style="text-align:right;">Subtotal</th>
+          <th>CC</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${(oc.Lineas || []).map(l => `
+          <tr>
+            <td>${l.Producto}</td>
+            <td class="num" style="text-align:right;">${l.Cantidad}</td>
+            <td>${l.Unidad}</td>
+            <td class="num" style="text-align:right;">${fmt(l.Precio_Unit)}</td>
+            <td class="num" style="text-align:right;"><strong>${fmt(l.Subtotal_Linea)}</strong></td>
+            <td>${UPS.find(u => u.id === l.ID_CC)?.nombre || '—'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+
+    <div class="totals">
+      <div class="total-item">
+        <div class="total-label">Subtotal</div>
+        <div class="total-value">${fmt(oc.Subtotal)}</div>
+      </div>
+      <div class="total-item">
+        <div class="total-label">IVA 19%</div>
+        <div class="total-value">${fmt(oc.IVA)}</div>
+      </div>
+      <div class="total-item total-grand">
+        <div class="total-label">Total</div>
+        <div class="total-value">${fmt(oc.Total)}</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('modal-view-body').innerHTML = body;
+
+  // Acciones según estado
+  const actions = document.getElementById('modal-view-actions');
+  actions.innerHTML = '';
+  const next = {
+    'Borrador': { label: '✓ Aprobar', state: 'Aprobada', cls: 'btn-primary' },
+    'Aprobada': { label: '📤 Enviar al proveedor', state: 'Enviada', cls: 'btn-primary' },
+    'Enviada':  { label: '📦 Marcar recibida', state: 'Recibida', cls: 'btn-primary' },
+    'Recibida': { label: '🔒 Cerrar OC', state: 'Cerrada', cls: 'btn-primary' }
+  };
+  if (next[oc.Estado]) {
+    const n = next[oc.Estado];
+    actions.innerHTML += `<button class="btn ${n.cls}" onclick="changeStatus('${oc.ID_OC}', '${n.state}')">${n.label}</button>`;
+  }
+  if (!['Cerrada', 'Anulada'].includes(oc.Estado)) {
+    actions.innerHTML += `<button class="btn btn-danger btn-sm" onclick="changeStatus('${oc.ID_OC}', 'Anulada')">Anular</button>`;
+  }
+
+  document.getElementById('modal-view').classList.add('show');
+}
+
+async function changeStatus(idOC, newStatus) {
+  const oc = ORDENES.find(o => o.ID_OC === idOC);
+  if (!oc) return;
+  if (newStatus === 'Anulada' && !confirm('¿Anular esta OC? Esta acción quedará registrada.')) return;
+
+  // Si va a Aprobada, pedir nombre del aprobador (editable, default último usado o "Eduardo A.")
+  let usuario = oc.Aprobador || localStorage.getItem('oc_last_aprobador') || 'Eduardo A.';
+  if (newStatus === 'Aprobada') {
+    const input = prompt('Nombre del aprobador:', usuario);
+    if (input === null) return; // canceló
+    usuario = input.trim() || usuario;
+    localStorage.setItem('oc_last_aprobador', usuario);
+  }
+
+  try {
+    await apiPost('update_status', {
+      ID_OC: idOC,
+      nuevo_estado: newStatus,
+      usuario: usuario
+    });
+    showToast(`Estado cambiado a: ${newStatus}`, 'success');
+    closeModal('modal-view');
+    await loadOCs();
+    renderKPIs();
+    renderTable();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+/* ============================================================
+   ACCIONES SECUNDARIAS (mock — luego conectar)
+============================================================ */
+function downloadPDF() {
+  showToast('🔧 PDF: pendiente conectar jsPDF', '');
+  // TODO: jsPDF + autoTable
+}
+function emailOC() {
+  if (!CURRENT_OC) return;
+  showToast(`🔧 Mail a ${CURRENT_OC.Proveedor_Email} (pendiente conectar Apps Script)`, '');
+  // TODO: fetch a API_OC ?action=send_email
+}
+function exportCSV() {
+  const headers = ['Numero','Fecha','Estado','Proveedor','RUT','UP','Subtotal','IVA','Total','Entrega','Factura'];
+  const rows = ORDENES.map(o => [
+    o.Numero, o.Fecha, o.Estado, o.Proveedor_Nombre, o.Proveedor_RUT,
+    o.UP_Nombre, o.Subtotal, o.IVA, o.Total,
+    o.Fecha_Entrega_Estimada, o.KEY_Factura_Asociada || ''
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${c||''}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `OCs_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  showToast('CSV exportado', 'success');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+// Cerrar modal al click fuera
+document.querySelectorAll('.modal-backdrop').forEach(m => {
+  m.addEventListener('click', e => {
+    if (e.target === m) m.classList.remove('show');
+  });
+});
+
+// Init al cargar
+document.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>
