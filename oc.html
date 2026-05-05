@@ -646,7 +646,7 @@
             <div class="total-value" id="total-grand">$0</div>
           </div>
         </div>
-        <div id="total-breakdown" style="text-align:right; font-size:11px; color:var(--text-muted); margin-top:4px;"></div>
+        <div id="total-breakdown" style="text-align:right; font-size:12px; color:var(--text-muted); margin-top:6px; line-height:1.6;"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1144,13 +1144,21 @@ function updateTotals() {
   document.getElementById('total-iva').textContent = fmt(Math.round(iva));
   document.getElementById('total-grand').textContent = fmt(Math.round(total));
 
-  // Mostrar desglose por moneda si hay
+  // Mostrar desglose en monedas originales (con y sin IVA)
   const desglose = document.getElementById('total-breakdown');
   if (desglose) {
-    const parts = [];
-    if (subtotalUF) parts.push(`UF ${subtotalUF.toLocaleString('es-CL', {minimumFractionDigits: 2})}`);
-    if (subtotalUSD) parts.push(`US$ ${subtotalUSD.toLocaleString('es-CL', {minimumFractionDigits: 2})}`);
-    desglose.textContent = parts.length ? '(incluye ' + parts.join(' + ') + ' convertidos a CLP)' : '';
+    const lines = [];
+    if (subtotalUF) {
+      const ivaUF = subtotalUF * 0.19;
+      const totalUF = subtotalUF + ivaUF;
+      lines.push(`<div><strong>Total UF:</strong> ${subtotalUF.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 2})} + IVA = <strong>UF ${totalUF.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>`);
+    }
+    if (subtotalUSD) {
+      const ivaUSD = subtotalUSD * 0.19;
+      const totalUSD = subtotalUSD + ivaUSD;
+      lines.push(`<div><strong>Total USD:</strong> ${subtotalUSD.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 2})} + IVA = <strong>US$ ${totalUSD.toLocaleString('es-CL', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></div>`);
+    }
+    desglose.innerHTML = lines.join('');
   }
 }
 
