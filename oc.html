@@ -1140,9 +1140,19 @@ function updateTotals() {
   const iva = subtotalCLP * 0.19;
   const total = subtotalCLP + iva;
 
-  document.getElementById('total-subtotal').textContent = fmt(Math.round(subtotalCLP));
-  document.getElementById('total-iva').textContent = fmt(Math.round(iva));
-  document.getElementById('total-grand').textContent = fmt(Math.round(total));
+  // Si hay líneas en UF/USD, mostrar 2 decimales para no perder precisión
+  const hasOtherCurrency = subtotalUF > 0 || subtotalUSD > 0;
+  const fmtCLP = n => {
+    const num = Number(n) || 0;
+    if (hasOtherCurrency) {
+      return '$' + num.toLocaleString('es-CL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return '$' + Math.round(num).toLocaleString('es-CL');
+  };
+
+  document.getElementById('total-subtotal').textContent = fmtCLP(subtotalCLP);
+  document.getElementById('total-iva').textContent = fmtCLP(iva);
+  document.getElementById('total-grand').textContent = fmtCLP(total);
 
   // Mostrar desglose en monedas originales (con y sin IVA)
   const desglose = document.getElementById('total-breakdown');
