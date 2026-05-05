@@ -616,9 +616,25 @@
           <tbody id="lines-tbody"></tbody>
         </table>
 
+        <div id="conversion-block" style="display:none; background:var(--bg); padding:12px 14px; border-radius:6px; margin:14px 0; border-left:3px solid var(--primary);">
+          <div style="font-size:12px; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">
+            Conversión a CLP <span id="conv-fecha" style="font-weight:400; text-transform:none; color:var(--text-muted);"></span>
+          </div>
+          <div id="conv-uf-row" style="display:none; align-items:center; gap:10px; margin-bottom:6px;">
+            <label style="min-width:80px; font-size:13px;">Valor UF:</label>
+            <input type="number" id="f-valor-uf" step="0.01" min="0" style="flex:1; max-width:160px;" oninput="updateTotals()">
+            <span style="font-size:12px; color:var(--text-muted);">CLP por 1 UF</span>
+          </div>
+          <div id="conv-usd-row" style="display:none; align-items:center; gap:10px;">
+            <label style="min-width:80px; font-size:13px;">Valor USD:</label>
+            <input type="number" id="f-valor-usd" step="0.01" min="0" style="flex:1; max-width:160px;" oninput="updateTotals()">
+            <span style="font-size:12px; color:var(--text-muted);">CLP por 1 USD</span>
+          </div>
+        </div>
+
         <div class="totals">
           <div class="total-item">
-            <div class="total-label">Subtotal</div>
+            <div class="total-label">Subtotal (CLP)</div>
             <div class="total-value" id="total-subtotal">$0</div>
           </div>
           <div class="total-item">
@@ -626,10 +642,11 @@
             <div class="total-value" id="total-iva">$0</div>
           </div>
           <div class="total-item total-grand">
-            <div class="total-label">Total</div>
+            <div class="total-label">Total (CLP)</div>
             <div class="total-value" id="total-grand">$0</div>
           </div>
         </div>
+        <div id="total-breakdown" style="text-align:right; font-size:11px; color:var(--text-muted); margin-top:4px;"></div>
       </div>
     </div>
     <div class="modal-footer">
@@ -678,6 +695,10 @@ let CCS = [];
 
 // Proveedores — cargados desde API_OC ?action=proveedores (BD_Proveedores)
 let PROVEEDORES = [];
+
+// Indicadores económicos (UF, USD) — desde mindicador.cl
+let INDICADORES = { uf: 0, usd: 0, fecha: '' };
+let INDICADORES_LOADED = false;
 
 // OCs — cargadas desde el backend
 let ORDENES = [];
@@ -790,10 +811,12 @@ async function init() {
 
   // Poblar filtros con CCs (productivos primero, después gastos generales)
   const filterUp = document.getElementById('filter-up');
-  const ccsOrdenados = [...CCS].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const ccsOrdenados = [...CCS].sort((a, b) => {
+    if ((a.fundo || '') !== (b.fundo || '')) return (a.fundo || '').localeCompare(b.fundo || '');
+    return a.nombre.localeCompare(b.nombre);
+  });
   ccsOrdenados.forEach(cc => {
-    const label = cc.nombre + (cc.especie ? ' · ' + cc.especie : '') + (cc.temporada ? ' (' + cc.temporada + ')' : '');
-    filterUp.insertAdjacentHTML('beforeend', `<option value="${cc.id}">${label}</option>`);
+    filterUp.insertAdjacentHTML('beforeend', `<option value="${cc.id}">${ccFullLabel(cc)}</option>`);
   });
 
   // Datalist de proveedores
@@ -839,6 +862,23 @@ async function loadProveedores() {
     console.error('loadProveedores error:', e);
     showToast('Error cargando proveedores: ' + e.message, 'error');
   }
+}
+
+// Formatea el nombre completo de un CC: "Fundo - NombreCC (Temporada · Especie)"
+function ccFullLabel(cc) {
+  if (!cc) return '';
+  const fundo = cc.fundo ? cc.fundo + ' - ' : '';
+  const meta = [];
+  if (cc.especie) meta.push(cc.especie);
+  if (cc.temporada) meta.push(cc.temporada);
+  const metaStr = meta.length ? ' (' + meta.join(' · ') + ')' : '';
+  return fundo + cc.nombre + metaStr;
+}
+
+// Etiqueta corta sin temporada/especie (para tablas compactas)
+function ccShortLabel(cc) {
+  if (!cc) return '';
+  return (cc.fundo ? cc.fundo + ' - ' : '') + cc.nombre;
 }
 
 /* ============================================================
@@ -904,20 +944,25 @@ function renderTable() {
   }
 
   tbody.innerHTML = rows.map(o => {
-    // Obtener CCs únicos de las líneas
-    const ccsLineas = [...new Set((o.Lineas || [])
-      .map(l => l.Nombre_CC || l.UP_Nombre || (CCS.find(c => c.id === l.ID_CC)?.nombre))
-      .filter(Boolean))];
-    const ccsLabel = ccsLineas.length === 0
+    // Obtener CCs únicos de las líneas (con fundo)
+    const ccsLineasObj = (o.Lineas || []).map(l => {
+      const cc = CCS.find(c => c.id === l.ID_CC);
+      const fundo = l.Fundo || (cc?.fundo || '');
+      const nombre = l.Nombre_CC || (cc?.nombre) || l.UP_Nombre || '';
+      if (!nombre) return null;
+      return (fundo ? fundo + ' - ' : '') + nombre;
+    }).filter(Boolean);
+    const ccsUnique = [...new Set(ccsLineasObj)];
+    const ccsLabel = ccsUnique.length === 0
       ? (o.UP_Nombre || '—')
-      : (ccsLineas.length <= 2 ? ccsLineas.join(', ') : ccsLineas[0] + ' +' + (ccsLineas.length - 1));
+      : (ccsUnique.length <= 2 ? ccsUnique.join(', ') : ccsUnique[0] + ' +' + (ccsUnique.length - 1));
     return `
     <tr onclick="openModalView('${o.ID_OC}')">
       <td><strong>${o.Numero}</strong></td>
       <td>${fmtDate(o.Fecha)}</td>
       <td><span class="badge ${o.Estado.toLowerCase()}">${o.Estado}</span></td>
       <td>${o.Proveedor_Nombre}</td>
-      <td title="${ccsLineas.join(', ')}">${ccsLabel}</td>
+      <td title="${ccsUnique.join(', ')}">${ccsLabel}</td>
       <td class="num"><strong>${fmt(o.Total)}</strong></td>
       <td>${fmtDate(o.Fecha_Entrega_Estimada)}</td>
       <td>${o.KEY_Factura_Asociada ? '✅ ' + o.KEY_Factura_Asociada.split('-').slice(-1) : '—'}</td>
@@ -949,11 +994,17 @@ async function openModalNew() {
   document.getElementById('modal-edit-title').textContent = 'Nueva Orden de Compra · ' + numero;
   ['f-proveedor-nombre','f-proveedor-rut','f-proveedor-email','f-fecha-entrega','f-solicitante','f-observaciones'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('modal-edit-status').textContent = 'Estado inicial: Borrador';
+
+  // Cargar indicadores y prellenar campos UF/USD
+  await loadIndicadoresIfNeeded();
+  document.getElementById('f-valor-uf').value = INDICADORES.uf || '';
+  document.getElementById('f-valor-usd').value = INDICADORES.usd || '';
+
   addLine();
   document.getElementById('modal-edit').classList.add('show');
 }
 
-function openModalEdit(idOC) {
+async function openModalEdit(idOC) {
   const oc = ORDENES.find(o => o.ID_OC === idOC);
   if (!oc) return;
   CURRENT_OC = oc;
@@ -966,12 +1017,23 @@ function openModalEdit(idOC) {
   document.getElementById('f-solicitante').value = oc.Solicitante || '';
   document.getElementById('f-observaciones').value = oc.Observaciones || '';
   document.getElementById('modal-edit-status').textContent = 'Estado actual: ' + oc.Estado;
+
+  // Si la OC ya tiene valores UF/USD guardados, usarlos. Si no, cargar del servicio.
+  if (oc.Valor_UF || oc.Valor_USD) {
+    document.getElementById('f-valor-uf').value = oc.Valor_UF || '';
+    document.getElementById('f-valor-usd').value = oc.Valor_USD || '';
+  } else {
+    await loadIndicadoresIfNeeded();
+    document.getElementById('f-valor-uf').value = INDICADORES.uf || '';
+    document.getElementById('f-valor-usd').value = INDICADORES.usd || '';
+  }
+
   renderLines();
   document.getElementById('modal-edit').classList.add('show');
 }
 
 function addLine() {
-  CURRENT_LINES.push({ Producto: '', Cantidad: 1, Unidad: 'unid', Moneda: 'CLP', Precio_Unit: 0, Subtotal_Linea: 0, ID_CC: '', Nombre_CC: '' });
+  CURRENT_LINES.push({ Producto: '', Cantidad: 1, Unidad: 'unid', Moneda: 'CLP', Precio_Unit: 0, Subtotal_Linea: 0, ID_CC: '', Nombre_CC: '', Fundo: '' });
   renderLines();
 }
 
@@ -995,12 +1057,9 @@ function renderLines() {
   const ccsOrdenados = [...CCS].sort((a, b) => {
     const tA = a.temporada || 'zz', tB = b.temporada || 'zz';
     if (tA !== tB) return tB.localeCompare(tA); // temporadas más recientes primero
+    if ((a.fundo || '') !== (b.fundo || '')) return (a.fundo || '').localeCompare(b.fundo || '');
     return a.nombre.localeCompare(b.nombre);
   });
-  const ccOptionsHtml = ccsOrdenados.map(cc => {
-    const label = cc.nombre + (cc.especie ? ' · ' + cc.especie : '') + (cc.temporada ? ' (' + cc.temporada + ')' : '');
-    return `<option value="${cc.id}" data-nombre="${cc.nombre}">${label}</option>`;
-  }).join('');
 
   tbody.innerHTML = CURRENT_LINES.map((l, idx) => `
     <tr>
@@ -1012,7 +1071,7 @@ function renderLines() {
         </select>
       </td>
       <td>
-        <select onchange="updateLine(${idx}, 'Moneda', this.value)">
+        <select onchange="updateLineMoneda(${idx}, this.value)">
           ${monedas.map(m => `<option value="${m}" ${(l.Moneda||'CLP')===m?'selected':''}>${m}</option>`).join('')}
         </select>
       </td>
@@ -1022,8 +1081,8 @@ function renderLines() {
         <select onchange="updateLineCC(${idx}, this)">
           <option value="">—</option>
           ${ccsOrdenados.map(cc => {
-            const label = cc.nombre + (cc.especie ? ' · ' + cc.especie : '') + (cc.temporada ? ' (' + cc.temporada + ')' : '');
-            return `<option value="${cc.id}" data-nombre="${cc.nombre}" ${l.ID_CC===cc.id?'selected':''}>${label}</option>`;
+            const label = ccFullLabel(cc);
+            return `<option value="${cc.id}" data-nombre="${cc.nombre}" data-fundo="${cc.fundo || ''}" ${l.ID_CC===cc.id?'selected':''}>${label}</option>`;
           }).join('')}
         </select>
       </td>
@@ -1031,6 +1090,7 @@ function renderLines() {
     </tr>
   `).join('');
   updateTotals();
+  updateConversionBlock();
 }
 
 function updateLineCC(idx, selectEl) {
@@ -1038,6 +1098,14 @@ function updateLineCC(idx, selectEl) {
   const opt = selectEl.options[selectEl.selectedIndex];
   CURRENT_LINES[idx].ID_CC = ccId;
   CURRENT_LINES[idx].Nombre_CC = opt ? (opt.dataset.nombre || '') : '';
+  CURRENT_LINES[idx].Fundo = opt ? (opt.dataset.fundo || '') : '';
+}
+
+function updateLineMoneda(idx, moneda) {
+  CURRENT_LINES[idx].Moneda = moneda;
+  document.getElementById(`subtotal-${idx}`).textContent = fmtMoney(CURRENT_LINES[idx].Subtotal_Linea || 0, moneda);
+  updateTotals();
+  updateConversionBlock();
 }
 
 function fmtMoney(n, moneda) {
@@ -1048,12 +1116,68 @@ function fmtMoney(n, moneda) {
 }
 
 function updateTotals() {
-  const subtotal = CURRENT_LINES.reduce((s, l) => s + (l.Subtotal_Linea || 0), 0);
-  const iva = Math.round(subtotal * 0.19);
-  const total = subtotal + iva;
-  document.getElementById('total-subtotal').textContent = fmt(subtotal);
-  document.getElementById('total-iva').textContent = fmt(iva);
-  document.getElementById('total-grand').textContent = fmt(total);
+  const valorUF = Number(document.getElementById('f-valor-uf')?.value) || 0;
+  const valorUSD = Number(document.getElementById('f-valor-usd')?.value) || 0;
+
+  // Subtotal en CLP, convirtiendo cada línea según su moneda
+  let subtotalCLP = 0;
+  let subtotalUF = 0;
+  let subtotalUSD = 0;
+  CURRENT_LINES.forEach(l => {
+    const monto = Number(l.Subtotal_Linea) || 0;
+    const m = (l.Moneda || 'CLP').toUpperCase();
+    if (m === 'UF') {
+      subtotalUF += monto;
+      subtotalCLP += monto * valorUF;
+    } else if (m === 'USD') {
+      subtotalUSD += monto;
+      subtotalCLP += monto * valorUSD;
+    } else {
+      subtotalCLP += monto;
+    }
+  });
+  // Mantener consistencia: total = subtotal × 1.19 sin redondeos intermedios
+  const iva = subtotalCLP * 0.19;
+  const total = subtotalCLP + iva;
+
+  document.getElementById('total-subtotal').textContent = fmt(Math.round(subtotalCLP));
+  document.getElementById('total-iva').textContent = fmt(Math.round(iva));
+  document.getElementById('total-grand').textContent = fmt(Math.round(total));
+
+  // Mostrar desglose por moneda si hay
+  const desglose = document.getElementById('total-breakdown');
+  if (desglose) {
+    const parts = [];
+    if (subtotalUF) parts.push(`UF ${subtotalUF.toLocaleString('es-CL', {minimumFractionDigits: 2})}`);
+    if (subtotalUSD) parts.push(`US$ ${subtotalUSD.toLocaleString('es-CL', {minimumFractionDigits: 2})}`);
+    desglose.textContent = parts.length ? '(incluye ' + parts.join(' + ') + ' convertidos a CLP)' : '';
+  }
+}
+
+// Muestra/oculta el bloque de conversión según haya líneas con monedas distintas a CLP
+function updateConversionBlock() {
+  const hasUF = CURRENT_LINES.some(l => (l.Moneda || 'CLP').toUpperCase() === 'UF');
+  const hasUSD = CURRENT_LINES.some(l => (l.Moneda || 'CLP').toUpperCase() === 'USD');
+  const block = document.getElementById('conversion-block');
+  if (!block) return;
+  block.style.display = (hasUF || hasUSD) ? 'block' : 'none';
+  document.getElementById('conv-uf-row').style.display = hasUF ? 'flex' : 'none';
+  document.getElementById('conv-usd-row').style.display = hasUSD ? 'flex' : 'none';
+}
+
+// Carga indicadores y prellena los campos UF/USD si están vacíos
+async function loadIndicadoresIfNeeded() {
+  if (INDICADORES_LOADED) return;
+  try {
+    const data = await apiGet('indicadores');
+    INDICADORES = { uf: data.uf || 0, usd: data.usd || 0, fecha: data.fecha || '' };
+    INDICADORES_LOADED = true;
+    document.getElementById('conv-fecha').textContent = data.fecha
+      ? `(valor del ${data.fecha})`
+      : '';
+  } catch (e) {
+    console.error('Error cargando indicadores:', e);
+  }
 }
 
 async function saveOC() {
@@ -1068,16 +1192,20 @@ async function saveOC() {
     return;
   }
 
-  // Resolver Nombre_CC para cada línea (a partir de CCS) por seguridad
+  // Resolver Nombre_CC y Fundo para cada línea (a partir de CCS) por seguridad
   const lineasConCC = CURRENT_LINES.filter(l => l.Producto).map(l => {
     const cc = CCS.find(c => c.id === l.ID_CC);
     return {
       ...l,
       Nombre_CC: l.Nombre_CC || (cc ? cc.nombre : ''),
+      Fundo: l.Fundo || (cc ? (cc.fundo || '') : ''),
       UP_Nombre: l.UP_Nombre || (cc ? cc.nombre : ''),  // legacy
       Moneda: l.Moneda || 'CLP'
     };
   });
+
+  const valorUF = Number(document.getElementById('f-valor-uf').value) || 0;
+  const valorUSD = Number(document.getElementById('f-valor-usd').value) || 0;
 
   const payload = {
     Proveedor_Nombre: proveedorNombre,
@@ -1086,6 +1214,9 @@ async function saveOC() {
     Fecha_Entrega_Estimada: document.getElementById('f-fecha-entrega').value,
     Solicitante: document.getElementById('f-solicitante').value,
     Observaciones: document.getElementById('f-observaciones').value,
+    Valor_UF: valorUF,
+    Valor_USD: valorUSD,
+    Fecha_Indicadores: INDICADORES.fecha || '',
     Lineas: lineasConCC
   };
 
@@ -1143,10 +1274,14 @@ function openModalView(idOC) {
     </div>
   `;
 
-  // CCs únicos a partir de las líneas (con fallback a UP_Nombre legacy)
-  const ccsLineasDetalle = [...new Set((oc.Lineas || [])
-    .map(l => l.Nombre_CC || l.UP_Nombre || (CCS.find(c => c.id === l.ID_CC)?.nombre))
-    .filter(Boolean))];
+  // CCs únicos a partir de las líneas (con fundo)
+  const ccsLineasDetalle = [...new Set((oc.Lineas || []).map(l => {
+    const cc = CCS.find(c => c.id === l.ID_CC);
+    const fundo = l.Fundo || (cc?.fundo || '');
+    const nombre = l.Nombre_CC || (cc?.nombre) || l.UP_Nombre || '';
+    if (!nombre) return null;
+    return (fundo ? fundo + ' - ' : '') + nombre;
+  }).filter(Boolean))];
   const ccsDetalleLabel = ccsLineasDetalle.length ? ccsLineasDetalle.join(', ') : (oc.UP_Nombre || '—');
 
   // Detalle
@@ -1215,7 +1350,10 @@ function openModalView(idOC) {
       </thead>
       <tbody>
         ${(oc.Lineas || []).map(l => {
-          const ccNombre = l.Nombre_CC || (CCS.find(c => c.id === l.ID_CC)?.nombre) || l.UP_Nombre || '—';
+          const cc = CCS.find(c => c.id === l.ID_CC);
+          const fundo = l.Fundo || (cc?.fundo || '');
+          const nombre = l.Nombre_CC || (cc?.nombre) || l.UP_Nombre || '';
+          const ccNombre = nombre ? ((fundo ? fundo + ' - ' : '') + nombre) : '—';
           return `
           <tr>
             <td>${l.Producto}</td>
@@ -1338,9 +1476,13 @@ async function emailOC() {
 function exportCSV() {
   const headers = ['Numero','Fecha','Estado','Proveedor','RUT','Centros de Costo','Subtotal','IVA','Total','Entrega','Factura'];
   const rows = ORDENES.map(o => {
-    const ccs = [...new Set((o.Lineas || [])
-      .map(l => l.Nombre_CC || l.UP_Nombre || (CCS.find(c => c.id === l.ID_CC)?.nombre))
-      .filter(Boolean))].join(' | ') || (o.UP_Nombre || '');
+    const ccs = [...new Set((o.Lineas || []).map(l => {
+      const cc = CCS.find(c => c.id === l.ID_CC);
+      const fundo = l.Fundo || (cc?.fundo || '');
+      const nombre = l.Nombre_CC || (cc?.nombre) || l.UP_Nombre || '';
+      if (!nombre) return null;
+      return (fundo ? fundo + ' - ' : '') + nombre;
+    }).filter(Boolean))].join(' | ') || (o.UP_Nombre || '');
     return [
       o.Numero, o.Fecha, o.Estado, o.Proveedor_Nombre, o.Proveedor_RUT,
       ccs, o.Subtotal, o.IVA, o.Total,
