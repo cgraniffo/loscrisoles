@@ -13,6 +13,8 @@ if (location.search.includes('embed=1')) {
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
@@ -428,6 +430,22 @@ if (location.search.includes('embed=1')) {
     .glmodal-body { padding:18px 20px; }
     .glmodal-row { margin-bottom:14px; }
     .glmodal-label { display:block; font-size:11px; font-weight:bold; color:#666; letter-spacing:0.05em; text-transform:uppercase; margin-bottom:5px; }
+    .glm-info { display:inline-block; width:14px; height:14px; line-height:14px; text-align:center; border-radius:50%; background:#888; color:#fff; font-size:9px; font-weight:bold; margin-left:5px; cursor:help; position:relative; vertical-align:middle; text-transform:none; letter-spacing:0; font-family:Arial; }
+    .glm-info:hover { background:#2d6a4f; }
+    .glm-info-tip {
+      position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+      background:#1a3a0a; color:#fff; padding:8px 11px; border-radius:6px;
+      font-size:10.5px; font-weight:normal; line-height:1.45;
+      width:240px; text-align:left; letter-spacing:0; text-transform:none;
+      opacity:0; visibility:hidden; transition:opacity 0.15s;
+      pointer-events:none; z-index:10000;
+      box-shadow:0 4px 16px rgba(0,0,0,0.35);
+    }
+    .glm-info-tip::after {
+      content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+      border:6px solid transparent; border-top-color:#1a3a0a;
+    }
+    .glm-info:hover .glm-info-tip { opacity:1; visibility:visible; }
     .glmodal-input, .glmodal-select, .glmodal-textarea { width:100%; padding:8px 10px; border:1px solid #d4d1c9; border-radius:6px; font-size:13px; font-family:inherit; background:#fff; }
     .glmodal-textarea { min-height:60px; resize:vertical; }
     .glmodal-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -3760,6 +3778,7 @@ function renderGanttBlock() {
           </div>
           <button class="gantt-add-btn" onclick="ganttOpenModal()">+ Nueva labor</button>
           <button class="gantt-add-btn" style="background:#7c3aed;" onclick="ganttOpenCCModal()" title="Crear nueva Unidad Productiva">+ Nueva UP</button>
+          <button class="gantt-add-btn" style="background:#0e7490;" onclick="ganttExportarPDF()" title="Exportar tareas a PDF para WhatsApp">📄 PDF</button>
         </div>
       </div>
       <div class="gantt-filters" id="gantt-filters"></div>
@@ -3913,9 +3932,10 @@ function _renderGanttUI(cont, fcont, data) {
     const fin = new Date(r.fin); fin.setHours(23,59,59,0);
     const respChips = (r.responsables||[]).slice(0,3).map(x=>`<span class="gantt-resp-chip">${x}</span>`).join("");
     const respMas = (r.responsables||[]).length > 3 ? `<span class="gantt-resp-chip">+${r.responsables.length-3}</span>` : "";
+    const urgIconLeft = r.prioridad === "Urgente" ? '<span style="margin-right:4px;color:#dc2626;font-weight:bold;" title="Urgente">⚠️</span>' : '';
 
     html += `<div class="gantt-cell-task" onclick="ganttOpenModal('${r.id}')" style="cursor:pointer">
-      <div class="gantt-task-line1">${escapeHtml(r.tarea)}</div>
+      <div class="gantt-task-line1">${urgIconLeft}${escapeHtml(r.tarea)}</div>
       <div class="gantt-task-line2">${escapeHtml(r.cultivo)} · ${escapeHtml(r.up||"")}</div>
       <div class="gantt-task-line3">${respChips}${respMas}</div>
     </div>`;
@@ -3944,11 +3964,12 @@ function _renderGanttUI(cont, fcont, data) {
         const span = endIdx - startIdx + 1;
         const estClass = "estado-" + r.estado.toLowerCase().replace(/\s+/g,"").replace("ó","o").replace("á","a");
         const prioClass = r.prioridad === "Urgente" ? "prio-urgente" : "";
+        const urgIcon = r.prioridad === "Urgente" ? '<span style="margin-right:4px;font-weight:bold;">⚠️</span>' : '';
         const w = span * colW - 6;
         const upTxt = r.up ? r.up + " · " : "";
         const cerradoIcon = r.id_registro_ejec ? '<span style="margin-right:4px;font-size:10px;">✓</span>' : '';
         // top:6px para centrar verticalmente; z-index:3 para flotar sobre los borders de las track adyacentes
-        barHtml = `<div class="gantt-bar ${estClass} ${prioClass}" style="left:3px; top:6px; width:${w}px; z-index:3;" onclick="event.stopPropagation(); ganttOpenModal('${r.id}')" title="${escapeHtml(r.tarea)} (${r.estado})${r.id_registro_ejec ? ' [Registrada en BD_Registro: ' + r.id_registro_ejec + ']' : ''}">${cerradoIcon}${upTxt}${escapeHtml(r.tarea)}</div>`;
+        barHtml = `<div class="gantt-bar ${estClass} ${prioClass}" style="left:3px; top:6px; width:${w}px; z-index:3;" onclick="event.stopPropagation(); ganttOpenModal('${r.id}')" title="${escapeHtml(r.tarea)} (${r.estado})${r.prioridad === "Urgente" ? ' [URGENTE]' : ''}${r.id_registro_ejec ? ' [Registrada en BD_Registro: ' + r.id_registro_ejec + ']' : ''}">${cerradoIcon}${urgIcon}${upTxt}${escapeHtml(r.tarea)}</div>`;
       }
       html += `<div class="gantt-cell-track ${isWE?'weekend':''} ${isToday?'today':''}" style="overflow:visible;">${barHtml}</div>`;
     });
@@ -3967,6 +3988,183 @@ function ganttFilter(key, val) {
 function ganttToggleCompletadas() {
   window._ganttState.verCompletadas = !window._ganttState.verCompletadas;
   renderGantt();
+}
+
+/* ============================================================
+   EXPORTAR LABORES A PDF (para WhatsApp)
+============================================================ */
+
+function ganttExportarPDF() {
+  if (typeof window.jspdf === "undefined") {
+    alert("Cargando librería PDF... espera un segundo y vuelve a intentar.");
+    return;
+  }
+
+  const todas = window._ganttState?.cache || [];
+  // Solo activas: Planificada, En curso, Atrasada (no completadas)
+  const activas = todas.filter(l =>
+    ["Planificada","En curso","Atrasada"].includes(l.estado)
+  );
+
+  if (activas.length === 0) {
+    alert("No hay labores activas para exportar.");
+    return;
+  }
+
+  // Agrupar por cultivo, igual al PDF original
+  const grupos = {};
+  activas.forEach(l => {
+    const cult = l.cultivo || "Sin cultivo";
+    if (!grupos[cult]) grupos[cult] = [];
+    grupos[cult].push(l);
+  });
+
+  // Orden de aparición de los grupos (mismo que el PDF de Eduardo)
+  const ordenGrupos = ["Maiz 26-27","Trigo 26-27","Achicoria 26-27","Pepino 26-27","Repollo 26-27","Frejol 26-27","Nogales 26-27","Pivote","Gastos Generales"];
+  const cultivosOrdenados = Object.keys(grupos).sort((a,b) => {
+    const ia = ordenGrupos.indexOf(a);
+    const ib = ordenGrupos.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
+  // Inicializar jsPDF
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const W = doc.internal.pageSize.getWidth();
+  let y = 12;
+
+  // Mapeo cultivo → nombre de sección legible
+  const SECCION_LABEL = {
+    "Maiz 26-27": "MAIZ 26-27",
+    "Trigo 26-27": "TRIGO 26-27",
+    "Achicoria 26-27": "ACHICORIA 26-27",
+    "Pepino 26-27": "PEPINO 26-27",
+    "Repollo 26-27": "REPOLLO 26-27",
+    "Frejol 26-27": "FREJOL 26-27",
+    "Nogales 26-27": "NOGALES",
+    "Pivote": "RIEGO",
+    "Gastos Generales": "CASA / VARIOS"
+  };
+
+  // Header
+  const hoy = new Date();
+  const fechaStr = hoy.toLocaleDateString("es-CL", { day:"2-digit", month:"long", year:"numeric" });
+  doc.setFont("helvetica","bold");
+  doc.setFontSize(14);
+  doc.text("Tareas Pendientes — Los Crisoles", 14, y);
+  y += 6;
+  doc.setFont("helvetica","normal");
+  doc.setFontSize(9);
+  doc.setTextColor(100);
+  doc.text(`Generado el ${fechaStr}  ·  ${activas.length} labores activas`, 14, y);
+  y += 6;
+  doc.setTextColor(0);
+
+  // Helper: formatear fecha "MM-DD" o rango "MM-DD → MM-DD"
+  function fmtRango(ini, fin) {
+    const i = String(ini||"").slice(5);
+    const f = String(fin||"").slice(5);
+    if (!i) return "";
+    if (!f || f === i) return i;
+    return i + " → " + f;
+  }
+
+  cultivosOrdenados.forEach(cult => {
+    const labs = grupos[cult];
+    // Ordenar dentro del grupo: Atrasadas → En curso → Planificadas, y por fecha
+    const ordenEstado = { "Atrasada": 0, "En curso": 1, "Planificada": 2 };
+    labs.sort((a,b) => {
+      const ea = ordenEstado[a.estado] ?? 9;
+      const eb = ordenEstado[b.estado] ?? 9;
+      if (ea !== eb) return ea - eb;
+      return String(a.inicio).localeCompare(String(b.inicio));
+    });
+
+    // Saltar página si no hay espacio
+    if (y > 270) { doc.addPage(); y = 12; }
+
+    // Título de sección
+    doc.setFont("helvetica","bold");
+    doc.setFontSize(11);
+    doc.setFillColor(45, 106, 79);
+    doc.setTextColor(255);
+    doc.rect(10, y - 4, W - 20, 7, "F");
+    const titulo = SECCION_LABEL[cult] || cult.toUpperCase();
+    doc.text(titulo + "  (" + labs.length + ")", 13, y + 1);
+    y += 8;
+    doc.setTextColor(0);
+
+    // Tabla con autoTable
+    const body = labs.map(l => {
+      const urgencia = l.prioridad === "Urgente" ? "⚠" : "";
+      const tareaCompleta = (l.up ? l.up + ": " : "") + (l.tarea || "");
+      const resp = (l.responsables || []).join(", ");
+      const fecha = fmtRango(l.inicio, l.fin);
+      const est = l.estado === "Atrasada" ? "ATRASADA" : (l.estado === "En curso" ? "En curso" : "");
+      return [urgencia, tareaCompleta, resp, fecha, est];
+    });
+
+    doc.autoTable({
+      startY: y,
+      head: [["", "Tarea", "Responsable(s)", "Fecha", "Estado"]],
+      body: body,
+      theme: "grid",
+      styles: {
+        fontSize: 8.5,
+        cellPadding: 2,
+        valign: "top",
+        overflow: "linebreak"
+      },
+      headStyles: {
+        fillColor: [200, 220, 210],
+        textColor: 50,
+        fontSize: 8,
+        fontStyle: "bold"
+      },
+      columnStyles: {
+        0: { cellWidth: 7, halign: "center", textColor: [200, 50, 30], fontStyle: "bold" },
+        1: { cellWidth: 90 },
+        2: { cellWidth: 38, fontSize: 8 },
+        3: { cellWidth: 22, halign: "center", fontSize: 8 },
+        4: { cellWidth: 22, halign: "center", fontSize: 7.5, fontStyle: "bold", textColor: [200, 50, 30] }
+      },
+      didParseCell: function(data) {
+        // Pintar fila con fondo si es atrasada
+        if (data.section === "body" && data.row.index >= 0) {
+          const rowData = body[data.row.index];
+          if (rowData[4] === "ATRASADA") {
+            data.cell.styles.fillColor = [255, 235, 230];
+          } else if (rowData[4] === "En curso") {
+            data.cell.styles.fillColor = [255, 250, 220];
+          }
+        }
+      },
+      margin: { left: 10, right: 10 }
+    });
+
+    y = doc.lastAutoTable.finalY + 6;
+  });
+
+  // Footer
+  const totalPages = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text(
+      `Los Crisoles · BData · Pág ${i}/${totalPages}`,
+      W - 14, doc.internal.pageSize.getHeight() - 6,
+      { align: "right" }
+    );
+  }
+
+  // Guardar
+  const nombreArchivo = "Tareas_LosCrisoles_" + hoy.toISOString().slice(0,10) + ".pdf";
+  doc.save(nombreArchivo);
+  ganttToast("PDF generado: " + nombreArchivo, "");
 }
 
 function escapeHtml(s) {
@@ -4137,16 +4335,16 @@ function _renderGanttModal(id, r, encargados) {  const todayStr = new Date().toI
       </div>
       <div class="glmodal-body">
         <div class="glmodal-row">
-          <label class="glmodal-label">Tarea</label>
+          <label class="glmodal-label">Tarea<span class="glm-info">i<span class="glm-info-tip">Descripción breve de la actividad. Ej: "Pasar rastra cruzada", "Aplicar foliar Acierto + cobre".</span></span></label>
           <input type="text" id="glm-tarea" class="glmodal-input" placeholder="Ej: aplicación de fungicida" value="${r?escapeHtml(r.tarea):''}">
         </div>
         <div class="glmodal-grid2">
           <div class="glmodal-row">
-            <label class="glmodal-label">Cultivo</label>
+            <label class="glmodal-label">Cultivo<span class="glm-info">i<span class="glm-info-tip">Selecciona el cultivo o sección a la que pertenece esta labor (ej: "Trigo 26-27", "Nogales 26-27", "Gastos Generales" para tareas de casa/jardín).</span></span></label>
             <select id="glm-cultivo" class="glmodal-select" onchange="ganttOnCultivoChange()">${cultivoOpts}</select>
           </div>
           <div class="glmodal-row">
-            <label class="glmodal-label">Unidad Productiva</label>
+            <label class="glmodal-label">Unidad Productiva<span class="glm-info">i<span class="glm-info-tip">UP específica donde se ejecuta (Piv 1, Pot 5, NOG12, etc.). Si no aplica, deja "sin UP". Click + para crear una nueva UP.</span></span></label>
             <div style="display:flex; gap:6px;">
               <select id="glm-up" class="glmodal-select" style="flex:1;" onchange="ganttOnUpChange()">${upOptsHtml}</select>
               <button type="button" onclick="ganttOpenCCModal()" title="Crear nueva UP" style="background:#7c3aed; color:#fff; border:none; border-radius:6px; padding:0 12px; font-size:14px; font-weight:bold; cursor:pointer;">+</button>
@@ -4154,31 +4352,31 @@ function _renderGanttModal(id, r, encargados) {  const todayStr = new Date().toI
           </div>
         </div>
         <div class="glmodal-row">
-          <label class="glmodal-label">Responsables</label>
+          <label class="glmodal-label">Responsables<span class="glm-info">i<span class="glm-info-tip">Click para seleccionar/deseleccionar quiénes harán esta labor. Puedes elegir múltiples. Si falta alguien, agrégalo manualmente en la hoja Encargados.</span></span></label>
           <div class="glmodal-resp-wrap" id="glm-resp">${respHtml}</div>
         </div>
         <div class="glmodal-grid2">
           <div class="glmodal-row">
-            <label class="glmodal-label">Fecha inicio</label>
+            <label class="glmodal-label">Fecha inicio<span class="glm-info">i<span class="glm-info-tip">Cuándo empieza la labor. Si es de un día, deja la misma fecha en inicio y fin.</span></span></label>
             <input type="date" id="glm-inicio" class="glmodal-input" value="${inicio}">
           </div>
           <div class="glmodal-row">
-            <label class="glmodal-label">Fecha fin</label>
+            <label class="glmodal-label">Fecha fin<span class="glm-info">i<span class="glm-info-tip">Hasta cuándo. Si la fecha fin es anterior a hoy, la labor pasa automáticamente a "Atrasada".</span></span></label>
             <input type="date" id="glm-fin" class="glmodal-input" value="${fin}">
           </div>
         </div>
         <div class="glmodal-grid2">
           <div class="glmodal-row">
-            <label class="glmodal-label">Estado</label>
+            <label class="glmodal-label">Estado<span class="glm-info">i<span class="glm-info-tip">Planificada (futura), En curso (en ejecución), Atrasada (vencida sin completar), Completada (terminada — al marcar te pide datos para BD_Registro).</span></span></label>
             <select id="glm-estado" class="glmodal-select">${estadoOpts}</select>
           </div>
           <div class="glmodal-row">
-            <label class="glmodal-label">Prioridad</label>
+            <label class="glmodal-label">Prioridad<span class="glm-info">i<span class="glm-info-tip">Urgente: aparece con ⚠️ y borde naranjo. Normal: prioridad estándar.</span></span></label>
             <select id="glm-prio" class="glmodal-select">${prioOpts}</select>
           </div>
         </div>
         <div class="glmodal-row">
-          <label class="glmodal-label">Notas</label>
+          <label class="glmodal-label">Notas<span class="glm-info">i<span class="glm-info-tip">Información adicional opcional: dosis, ubicación específica, contexto. Aparece en el detalle al hacer click en la barra.</span></span></label>
           <textarea id="glm-notas" class="glmodal-textarea" placeholder="Detalles, dosis, observaciones...">${r?escapeHtml(r.notas||""):""}</textarea>
         </div>
       </div>
@@ -4372,7 +4570,7 @@ async function ganttOpenCierreModal(idPlan, planData) {
       </div>
       <div class="glmodal-body">
         <div class="glmodal-row">
-          <label class="glmodal-label">Fecha real ejecución</label>
+          <label class="glmodal-label">Fecha real ejecución<span class="glm-info">i<span class="glm-info-tip">Día en que efectivamente se completó. Esta es la fecha que va a BD_Registro como "Fecha".</span></span></label>
           <input type="date" id="glc-fecha" class="glmodal-input" value="${todayStr}">
         </div>
         <div class="glmodal-grid2">
@@ -4386,7 +4584,7 @@ async function ganttOpenCierreModal(idPlan, planData) {
           </div>
         </div>
         <div class="glmodal-row">
-          <label class="glmodal-label">Encargado real *</label>
+          <label class="glmodal-label">Encargado real *<span class="glm-info">i<span class="glm-info-tip">Quién ejecutó realmente. Puede ser distinto al planificado. Va a BD_Registro como "Encargado".</span></span></label>
           <select id="glc-enc" class="glmodal-select">${encOpts}</select>
         </div>
         <div class="glmodal-row">
