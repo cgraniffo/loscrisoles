@@ -2975,6 +2975,7 @@ function renderCostos() {
     return Number(r["Costo Total"]||0) > 0 && (fecha === "" || fecha < FECHA_CORTE) && passTemp;
   }).map(r => ({
     _fuente:      "BD_Registro",
+    _id:          String(r["ID_Registro"]||"").trim(),
     Centro_Costo: String(r["Centro_Costo"]||"").trim(),
     Fecha:        r["Fecha"],
     Tipo_Labor:   String(r["Tipo_Labor"]||"").trim(),
@@ -3010,6 +3011,9 @@ function renderCostos() {
     const montoTotalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
     return {
       _fuente:      "Asignaciones_U",
+      _doc:         String(r["Folio"]||"").trim(),
+      _proveedor:   String(r["Proveedor"]||"").trim(),
+      _key:         keyDoc,
       Centro_Costo: String(r["UP_ID"]||r["UP_Nombre"]||"").trim(),
       Fecha:        r["Fecha_Documento"] || r["fecha_documento"] || r["Fecha_Asignacion"],
       Tipo_Labor:   String(r["Tipo_Doc"]||"").trim(),
@@ -3205,6 +3209,7 @@ function renderCostos() {
           <thead><tr>
             <th>Fecha</th><th>UP</th><th>Tipo / Labor</th>
             <th style="text-align:center;">Fuente</th>
+            <th style="font-size:11px;">Doc</th>
             <th style="text-align:right;">Monto</th>
           </tr></thead>
           <tbody>
@@ -3215,15 +3220,23 @@ function renderCostos() {
               const fuenteBadge = r._fuente === "BD_Registro"
                 ? `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#eaf3de;color:#3b6d11;">BD Registro</span>`
                 : `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#e6f1fb;color:#0c447c;">Asignación</span>`;
+              let docCell = "—";
+              if (r._fuente === "BD_Registro" && r._id) {
+                docCell = `<span style="font-size:11px;color:#3b6d11;font-family:monospace;" title="ID_Registro">#${r._id}</span>`;
+              } else if (r._fuente === "Asignaciones_U" && r._doc) {
+                const prov = r._proveedor ? `<span style="font-size:10px;color:#888;">${r._proveedor.substring(0,18)}${r._proveedor.length>18?'…':''}</span>` : "";
+                docCell = `<div style="display:flex;flex-direction:column;line-height:1.2;"><span style="font-size:11px;color:#0c447c;font-family:monospace;">F° ${r._doc}</span>${prov}</div>`;
+              }
               return `<tr>
                 <td style="color:#888;font-size:12px;">${d?d.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}):"—"}</td>
                 <td>${cc}<span style="color:#888;font-size:11px;"> ${fnd}</span></td>
                 <td style="font-size:12px;color:#555;">${r.Tipo_Labor||"—"}</td>
                 <td style="text-align:center;">${fuenteBadge}</td>
+                <td>${docCell}</td>
                 <td style="text-align:right;font-weight:bold;color:#1a3a0a;">${fmtPeso(r.monto)}</td>
               </tr>`;
             }).join("")}
-            ${conCosto.length > 50 ? `<tr><td colspan="5" style="text-align:center;color:#aaa;font-size:12px;padding:10px;">Mostrando 50 de ${conCosto.length} registros</td></tr>` : ""}
+            ${conCosto.length > 50 ? `<tr><td colspan="6" style="text-align:center;color:#aaa;font-size:12px;padding:10px;">Mostrando 50 de ${conCosto.length} registros</td></tr>` : ""}
           </tbody>
         </table>
       </div>
@@ -3340,6 +3353,26 @@ async function main() {
     encargados.forEach(e => {
       const id = String(e["id_Encargado"]||"").trim();
       if (id) ENC_MAP[id] = String(e["Nombre Encargado"]||id).trim();
+    });
+
+    // Normalización Cosecha: si Fecha trae texto (ej: "Cosecha") en vez de fecha válida,
+    // asumir último día de la temporada del CC para que entre al cálculo de costos pre-corte.
+    (Array.isArray(registros) ? registros : []).forEach(r => {
+      const raw = String(r["Fecha"]||"").trim();
+      if (!raw) return;
+      // Si empieza con dígito asumimos que es fecha válida (ISO o dd-mm-yyyy)
+      if (/^\d/.test(raw)) return;
+      const ccId = String(r["Centro_Costo"]||"").trim();
+      const tmp  = TEMP_MAP[ccId];
+      if (!tmp || !tmp.temporada) return;
+      const añoFin  = parseInt(tmp.temporada.split("-")[1], 10);
+      const mesIni  = tmp.mesInicio || 4;
+      // Último día de la temporada = día anterior al inicio de la siguiente
+      // Si mesIni=4 y añoFin=2026 → temporada termina 2026-03-31
+      const finMes  = mesIni === 1 ? 12 : mesIni - 1;
+      const finAño  = mesIni === 1 ? añoFin - 1 : añoFin;
+      const ultimoDia = new Date(finAño, finMes, 0).getDate(); // último día del mes finMes
+      r["Fecha"] = `${finAño}-${String(finMes).padStart(2,"0")}-${String(ultimoDia).padStart(2,"0")}`;
     });
 
     TODOS = window.TODOS = registros;
