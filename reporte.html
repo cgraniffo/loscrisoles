@@ -2976,6 +2976,7 @@ function renderCostos() {
   }).map(r => ({
     _fuente:      "BD_Registro",
     _id:          String(r["ID_Registro"]||"").trim(),
+    _fila:        r._fila || null,
     Centro_Costo: String(r["Centro_Costo"]||"").trim(),
     Fecha:        r["Fecha"],
     Tipo_Labor:   String(r["Tipo_Labor"]||"").trim(),
@@ -3121,6 +3122,7 @@ function renderCostos() {
       fecha:     r.Fecha,
       fuente:    r._fuente,
       id:        r._id || "",
+      fila:      r._fila || null,
       folio:     r._doc || "",
       proveedor: r._proveedor || "",
       tipo:      r.Tipo_Labor || "",
@@ -3173,7 +3175,7 @@ function renderCostos() {
               ? `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#eaf3de;color:#3b6d11;">BD Reg</span>`
               : `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#e6f1fb;color:#0c447c;">Asig</span>`;
             const folioCell = d.fuente === "BD_Registro"
-              ? (d.id ? `<span style="font-family:monospace;color:#3b6d11;">#${d.id.substring(0,8)}</span>` : "—")
+              ? (d.fila ? `<span style="font-family:monospace;color:#3b6d11;" title="Fila ${d.fila} de BD_Registro">L${d.fila}</span>` : "—")
               : (d.folio ? `<span style="font-family:monospace;color:#0c447c;">F° ${d.folio}</span>` : "—");
             const descCell = d.fuente === "Asignaciones_U" && d.proveedor
               ? d.proveedor
@@ -3351,8 +3353,8 @@ function renderCostos() {
                 ? `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#eaf3de;color:#3b6d11;">BD Registro</span>`
                 : `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#e6f1fb;color:#0c447c;">Asignación</span>`;
               let docCell = "—";
-              if (r._fuente === "BD_Registro" && r._id) {
-                docCell = `<span style="font-size:11px;color:#3b6d11;font-family:monospace;" title="ID_Registro">#${r._id}</span>`;
+              if (r._fuente === "BD_Registro" && r._fila) {
+                docCell = `<span style="font-size:11px;color:#3b6d11;font-family:monospace;" title="Fila ${r._fila} de BD_Registro">L${r._fila}</span>`;
               } else if (r._fuente === "Asignaciones_U" && r._doc) {
                 const prov = r._proveedor ? `<span style="font-size:10px;color:#888;">${r._proveedor.substring(0,18)}${r._proveedor.length>18?'…':''}</span>` : "";
                 docCell = `<div style="display:flex;flex-direction:column;line-height:1.2;"><span style="font-size:11px;color:#0c447c;font-family:monospace;">F° ${r._doc}</span>${prov}</div>`;
@@ -3503,6 +3505,11 @@ async function main() {
       const finAño  = mesIni === 1 ? añoFin - 1 : añoFin;
       const ultimoDia = new Date(finAño, finMes, 0).getDate(); // último día del mes finMes
       r["Fecha"] = `${finAño}-${String(finMes).padStart(2,"0")}-${String(ultimoDia).padStart(2,"0")}`;
+    });
+
+    // Numerar fila del sheet (header en fila 1 → primer dato en fila 2)
+    (Array.isArray(registros) ? registros : []).forEach((r, idx) => {
+      r._fila = idx + 2;
     });
 
     TODOS = window.TODOS = registros;
