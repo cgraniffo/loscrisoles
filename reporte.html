@@ -3105,6 +3105,29 @@ function renderCostos() {
   });
   const upCostos = Object.values(upCostosMap).sort((a,b) => b.total - a.total);
 
+  // ── PRORRATEO ──────────────────────────────────────────────────────────
+  // Pool de costos de UPs NO productivas (Maquinarias, Gastos Generales, Remuneraciones, etc.)
+  // se reparte entre UPs productivas por hectáreas
+  const prorrCostos = calcularProrrateo(tempActiva, "ha", null);
+  const poolCostos = prorrCostos.pool || 0;
+  const prorrateoPorUPCostos = prorrCostos.prorrateoPorUP || {};
+  const esProdC = id => BASE_PRORRATEO_MAP[id] === true;
+
+  // Costos directos por UP productiva (los que vienen de UPs productivas)
+  const costosDirectosPorUP = {};
+  conCosto.forEach(r => {
+    const ccId = String(r["Centro_Costo"]||"").trim();
+    if (!esProdC(ccId)) return;
+    costosDirectosPorUP[ccId] = (costosDirectosPorUP[ccId]||0) + (r.monto||0);
+  });
+
+  // Totales globales para el KPI
+  const totalDirectos     = Object.values(costosDirectosPorUP).reduce((s,v)=>s+v, 0);
+  const totalProrrateados = Object.values(prorrateoPorUPCostos).reduce((s,v)=>s+v, 0);
+  const totalConProrr     = totalDirectos + totalProrrateados;
+  const pctDirectos       = totalConProrr > 0 ? Math.round(totalDirectos/totalConProrr*100) : 0;
+  const pctProrrateados   = totalConProrr > 0 ? 100 - pctDirectos : 0;
+
   // ── Desglose por cultivo (estructura tipo drilldown como Ingresos) ────────
   const cultivoCostos = {};
   conCosto.forEach(r => {
@@ -3131,22 +3154,58 @@ function renderCostos() {
     });
   });
 
+  // Inyectar prorrateo en cada UP productiva del cultivoCostos
+  // (las UPs no productivas ya están repartidas en el pool y no aparecen en el desglose)
+  Object.entries(prorrateoPorUPCostos).forEach(([ccId, montoProrr]) => {
+    const cultivo = (CULTIVO_MAP[ccId] || "Sin clasificar").trim() || "Sin clasificar";
+    if (!cultivoCostos[cultivo]) cultivoCostos[cultivo] = { total:0, totalReg:0, totalAsig:0, ups:{}, docs:[], directos:0, prorrateados:0 };
+    if (!cultivoCostos[cultivo].ups[ccId]) cultivoCostos[cultivo].ups[ccId] = { total:0, totalReg:0, totalAsig:0, ha:HA_MAP[ccId]||0, directos:0, prorrateados:0 };
+    cultivoCostos[cultivo].ups[ccId].prorrateados = montoProrr;
+    cultivoCostos[cultivo].prorrateados = (cultivoCostos[cultivo].prorrateados||0) + montoProrr;
+  });
+
+  // Calcular directos por UP en cada cultivo (lo que ya estaba en `total` de UP productiva)
+  Object.values(cultivoCostos).forEach(data => {
+    data.directos = data.directos || 0;
+    Object.entries(data.ups).forEach(([ccId, u]) => {
+      // Si la UP es productiva, todo el `total` actual son directos
+      if (esProdC(ccId)) {
+        u.directos = u.total;
+        u.prorrateados = u.prorrateados || 0;
+        u.totalConProrr = u.directos + u.prorrateados;
+        data.directos += u.directos;
+      } else {
+        // UP no productiva: queda como estaba (ya entró al pool, no se muestra desglose)
+        u.directos = 0;
+        u.prorrateados = 0;
+        u.totalConProrr = u.total;
+      }
+    });
+    data.prorrateados = data.prorrateados || 0;
+    data.totalConProrr = data.directos + data.prorrateados;
+  });
+
   const cultivoOrden = Object.entries(cultivoCostos).sort((a,b) => b[1].total - a[1].total);
   const cultivosCostosHTML = cultivoOrden.map(([cultivo, data]) => {
     const upsIds = Object.keys(data.ups);
     const haTotal = upsIds.reduce((s,id) => s + (data.ups[id].ha||0), 0);
     const upsRows = upsIds
-      .sort((a,b) => data.ups[b].total - data.ups[a].total)
+      .sort((a,b) => (data.ups[b].totalConProrr||data.ups[b].total) - (data.ups[a].totalConProrr||data.ups[a].total))
       .map(id => {
         const u = data.ups[id];
         const nombre = CC_MAP[id] || id;
         const fundo = FUNDO_MAP[id] || "—";
         const badgeReg  = u.totalReg  > 0 ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#eaf3de;color:#3b6d11;margin-right:2px;">BD ${fmtPeso(u.totalReg)}</span>` : "";
         const badgeAsig = u.totalAsig > 0 ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#e6f1fb;color:#0c447c;">ASG ${fmtPeso(u.totalAsig)}</span>` : "";
-        return `<div style="display:grid;grid-template-columns:1.6fr 0.5fr 1fr;gap:8px;padding:6px 0;border-bottom:1px dotted #eee;align-items:center;font-size:11px;">
+        const directosTxt    = u.directos > 0     ? fmtPeso(u.directos)     : "—";
+        const prorrateadosTxt= u.prorrateados > 0 ? fmtPeso(u.prorrateados) : "—";
+        const totalTxt       = (u.totalConProrr||u.total) > 0 ? fmtPeso(u.totalConProrr||u.total) : "—";
+        return `<div style="display:grid;grid-template-columns:1.4fr 0.4fr 0.7fr 0.7fr 0.7fr;gap:8px;padding:6px 0;border-bottom:1px dotted #eee;align-items:center;font-size:11px;">
           <div><b>${nombre}</b><span style="color:#888;"> · ${fundo}</span><div style="margin-top:2px;">${badgeReg}${badgeAsig}</div></div>
           <div style="text-align:right;color:#888;">${u.ha > 0 ? u.ha.toFixed(0) + " há" : "—"}</div>
-          <div style="text-align:right;font-weight:600;color:#1a3a0a;">${fmtPeso(u.total)}</div>
+          <div style="text-align:right;color:#b91c1c;">${directosTxt}</div>
+          <div style="text-align:right;color:#b45309;">${prorrateadosTxt}</div>
+          <div style="text-align:right;font-weight:600;color:#1a3a0a;">${totalTxt}</div>
         </div>`;
       }).join("");
 
@@ -3194,30 +3253,32 @@ function renderCostos() {
     ` : "";
 
     return `<details style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:6px;background:#fff;">
-      <summary style="display:grid;grid-template-columns:30px 1.4fr 0.9fr 0.9fr 0.6fr;gap:10px;padding:10px 12px;background:#fafafa;align-items:center;cursor:pointer;list-style:none;">
+      <summary style="display:grid;grid-template-columns:30px 1.4fr 0.9fr 0.9fr 0.7fr;gap:10px;padding:10px 12px;background:#fafafa;align-items:center;cursor:pointer;list-style:none;">
         <span style="font-size:13px;color:#888;" class="cultivo-cost-chevron">▶</span>
         <div>
           <div style="font-size:13px;font-weight:600;color:#1a1a1a;">${cultivo}</div>
           <div style="font-size:10px;color:#888;">${haTotal > 0 ? haTotal.toFixed(0) + " há · " : ""}${upsIds.length} UP${upsIds.length!==1?'s':''} · ${docsOrdenados.length} doc${docsOrdenados.length!==1?'s':''}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">BD Registro</div>
-          <div style="font-size:13px;font-weight:600;color:#3b6d11;">${data.totalReg > 0 ? fmtPeso(data.totalReg) : "—"}</div>
+          <div style="font-size:10px;color:#888;">Directos</div>
+          <div style="font-size:13px;font-weight:600;color:#b91c1c;">${data.directos > 0 ? fmtPeso(data.directos) : "—"}</div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:10px;color:#888;">Asignaciones</div>
-          <div style="font-size:13px;font-weight:600;color:#0c447c;">${data.totalAsig > 0 ? fmtPeso(data.totalAsig) : "—"}</div>
+          <div style="font-size:10px;color:#888;">Prorrateados</div>
+          <div style="font-size:13px;font-weight:600;color:#b45309;">${data.prorrateados > 0 ? fmtPeso(data.prorrateados) : "—"}</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:10px;color:#888;">Total</div>
-          <div style="font-size:13px;font-weight:700;color:#1a3a0a;">${fmtPeso(data.total)}</div>
+          <div style="font-size:13px;font-weight:700;color:#1a3a0a;">${fmtPeso(data.totalConProrr||data.total)}</div>
         </div>
       </summary>
       <div style="padding:8px 14px 10px 44px;background:#fff;border-top:1px dashed #e5e5e5;">
         ${upsIds.length > 0 ? `
-          <div style="display:grid;grid-template-columns:1.6fr 0.5fr 1fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
+          <div style="display:grid;grid-template-columns:1.4fr 0.4fr 0.7fr 0.7fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
             <div>Unidad Productiva</div>
             <div style="text-align:right;">Há</div>
+            <div style="text-align:right;">Directos</div>
+            <div style="text-align:right;">Prorrateados</div>
             <div style="text-align:right;">Total</div>
           </div>
           ${upsRows}
@@ -3295,16 +3356,31 @@ function renderCostos() {
   document.getElementById("app-costos").innerHTML = `
 
     <div style="background:linear-gradient(135deg,#fff 0%,#faf8f0 100%);border:2px solid #1a3a0a;border-radius:14px;padding:22px 26px;margin-bottom:16px;box-shadow:0 2px 8px rgba(26,58,10,0.08);">
-      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
         <div>
-          <div style="font-size:11px;font-weight:700;color:#3b6d11;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">💰 Costos totales</div>
-          <div style="font-size:36px;font-weight:800;color:#1a3a0a;line-height:1;">${fmtPeso(totalGeneral)}</div>
+          <div style="font-size:11px;font-weight:700;color:#3b6d11;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">💰 Costos totales · ${tempActiva || "todas las temporadas"}</div>
+          <div style="font-size:36px;font-weight:800;color:#1a3a0a;line-height:1;">${fmtPeso(totalConProrr || totalGeneral)}</div>
+          <div style="font-size:12px;color:#666;margin-top:6px;">
+            <span style="color:#b91c1c;font-weight:600;">${fmtPeso(totalDirectos)}</span> directos +
+            <span style="color:#b45309;font-weight:600;">${fmtPeso(totalProrrateados)}</span> prorrateados
+          </div>
         </div>
         <div style="text-align:right;font-size:12px;color:#666;">
           <div>${conCosto.length} registros</div>
-          <div style="margin-top:2px;color:#888;font-size:11px;">${tempActiva || "todas las temporadas"}</div>
+          <div style="margin-top:2px;color:#888;font-size:11px;">BD ${nReg} + Asig ${nAsig}</div>
+          ${poolCostos > 0 ? `<div style="margin-top:2px;color:#888;font-size:11px;">pool indirectos ${fmtPeso(poolCostos)} repartido por há</div>` : ""}
         </div>
       </div>
+      ${totalConProrr > 0 ? `
+        <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;background:#eee;margin-bottom:8px;">
+          <div style="width:${pctDirectos}%;background:#b91c1c;" title="Directos: ${pctDirectos}%"></div>
+          <div style="width:${pctProrrateados}%;background:#b45309;" title="Prorrateados: ${pctProrrateados}%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;">
+          <span><span style="display:inline-block;width:8px;height:8px;background:#b91c1c;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${pctDirectos}% directos</span>
+          <span><span style="display:inline-block;width:8px;height:8px;background:#b45309;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>${pctProrrateados}% prorrateados</span>
+        </div>
+      ` : ""}
     </div>
 
     ${filtrosHTML}
