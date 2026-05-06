@@ -3104,6 +3104,127 @@ function renderCostos() {
   });
   const upCostos = Object.values(upCostosMap).sort((a,b) => b.total - a.total);
 
+  // ── Desglose por cultivo (estructura tipo drilldown como Ingresos) ────────
+  const cultivoCostos = {};
+  conCosto.forEach(r => {
+    const ccId    = String(r["Centro_Costo"]||"").trim();
+    const cultivo = (CULTIVO_MAP[ccId] || "Sin clasificar").trim() || "Sin clasificar";
+    if (!cultivoCostos[cultivo]) cultivoCostos[cultivo] = { total:0, totalReg:0, totalAsig:0, ups:{}, docs:[] };
+    cultivoCostos[cultivo].total += r.monto||0;
+    if (r._fuente === "BD_Registro")    cultivoCostos[cultivo].totalReg  += r.monto||0;
+    if (r._fuente === "Asignaciones_U") cultivoCostos[cultivo].totalAsig += r.monto||0;
+    if (!cultivoCostos[cultivo].ups[ccId]) cultivoCostos[cultivo].ups[ccId] = { total:0, totalReg:0, totalAsig:0, ha:HA_MAP[ccId]||0 };
+    cultivoCostos[cultivo].ups[ccId].total += r.monto||0;
+    if (r._fuente === "BD_Registro")    cultivoCostos[cultivo].ups[ccId].totalReg  += r.monto||0;
+    if (r._fuente === "Asignaciones_U") cultivoCostos[cultivo].ups[ccId].totalAsig += r.monto||0;
+    cultivoCostos[cultivo].docs.push({
+      fecha:     r.Fecha,
+      fuente:    r._fuente,
+      id:        r._id || "",
+      folio:     r._doc || "",
+      proveedor: r._proveedor || "",
+      tipo:      r.Tipo_Labor || "",
+      ccId:      ccId,
+      monto:     r.monto || 0
+    });
+  });
+
+  const cultivoOrden = Object.entries(cultivoCostos).sort((a,b) => b[1].total - a[1].total);
+  const cultivosCostosHTML = cultivoOrden.map(([cultivo, data]) => {
+    const upsIds = Object.keys(data.ups);
+    const haTotal = upsIds.reduce((s,id) => s + (data.ups[id].ha||0), 0);
+    const upsRows = upsIds
+      .sort((a,b) => data.ups[b].total - data.ups[a].total)
+      .map(id => {
+        const u = data.ups[id];
+        const nombre = CC_MAP[id] || id;
+        const fundo = FUNDO_MAP[id] || "—";
+        const badgeReg  = u.totalReg  > 0 ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#eaf3de;color:#3b6d11;margin-right:2px;">BD ${fmtPeso(u.totalReg)}</span>` : "";
+        const badgeAsig = u.totalAsig > 0 ? `<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:#e6f1fb;color:#0c447c;">ASG ${fmtPeso(u.totalAsig)}</span>` : "";
+        return `<div style="display:grid;grid-template-columns:1.6fr 0.5fr 1fr;gap:8px;padding:6px 0;border-bottom:1px dotted #eee;align-items:center;font-size:11px;">
+          <div><b>${nombre}</b><span style="color:#888;"> · ${fundo}</span><div style="margin-top:2px;">${badgeReg}${badgeAsig}</div></div>
+          <div style="text-align:right;color:#888;">${u.ha > 0 ? u.ha.toFixed(0) + " há" : "—"}</div>
+          <div style="text-align:right;font-weight:600;color:#1a3a0a;">${fmtPeso(u.total)}</div>
+        </div>`;
+      }).join("");
+
+    // Detalle de documentos del cultivo, orden descendente por fecha
+    const docsOrdenados = data.docs.slice().sort((a,b) => (parseDate(b.fecha)||0) - (parseDate(a.fecha)||0));
+    const docsHTML = docsOrdenados.length > 0 ? `
+      <details style="margin-top:12px;border-top:1px dashed #ccc;padding-top:8px;">
+        <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:11px;color:#555;font-weight:600;user-select:none;">
+          <span><span style="display:inline-block;transition:transform 0.15s;" class="det-cost-chevron">▶</span> Ver detalle costos · ${docsOrdenados.length} ${docsOrdenados.length===1?'documento':'documentos'}</span>
+          <span style="font-size:10px;color:#888;font-weight:400;">${fmtPeso(data.total)}</span>
+        </summary>
+        <div style="padding-top:8px;">
+          <div style="display:grid;grid-template-columns:0.7fr 0.5fr 0.6fr 1.5fr 0.7fr 0.7fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
+            <div>Fecha</div>
+            <div>Fuente</div>
+            <div>Folio / ID</div>
+            <div>Proveedor / Labor</div>
+            <div>UP</div>
+            <div style="text-align:right;">Monto</div>
+          </div>
+          ${docsOrdenados.map(d => {
+            const fd = parseDate(d.fecha);
+            const fechaTxt = fd ? fd.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "—";
+            const upTxt = CC_MAP[d.ccId] || d.ccId || "—";
+            const fuenteBadge = d.fuente === "BD_Registro"
+              ? `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#eaf3de;color:#3b6d11;">BD Reg</span>`
+              : `<span style="font-size:9px;padding:1px 6px;border-radius:3px;background:#e6f1fb;color:#0c447c;">Asig</span>`;
+            const folioCell = d.fuente === "BD_Registro"
+              ? (d.id ? `<span style="font-family:monospace;color:#3b6d11;">#${d.id.substring(0,8)}</span>` : "—")
+              : (d.folio ? `<span style="font-family:monospace;color:#0c447c;">F° ${d.folio}</span>` : "—");
+            const descCell = d.fuente === "Asignaciones_U" && d.proveedor
+              ? d.proveedor
+              : (d.tipo || "—");
+            return `<div style="display:grid;grid-template-columns:0.7fr 0.5fr 0.6fr 1.5fr 0.7fr 0.7fr;gap:8px;padding:5px 0;border-bottom:1px dotted #eee;font-size:11px;align-items:center;">
+              <div style="color:#555;">${fechaTxt}</div>
+              <div>${fuenteBadge}</div>
+              <div>${folioCell}</div>
+              <div style="color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${descCell}">${descCell}</div>
+              <div style="color:#888;font-size:10px;">${upTxt}</div>
+              <div style="text-align:right;color:#1a3a0a;font-weight:600;">${fmtPeso(d.monto)}</div>
+            </div>`;
+          }).join("")}
+        </div>
+      </details>
+    ` : "";
+
+    return `<details style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:6px;background:#fff;">
+      <summary style="display:grid;grid-template-columns:30px 1.4fr 0.9fr 0.9fr 0.6fr;gap:10px;padding:10px 12px;background:#fafafa;align-items:center;cursor:pointer;list-style:none;">
+        <span style="font-size:13px;color:#888;" class="cultivo-cost-chevron">▶</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#1a1a1a;">${cultivo}</div>
+          <div style="font-size:10px;color:#888;">${haTotal > 0 ? haTotal.toFixed(0) + " há · " : ""}${upsIds.length} UP${upsIds.length!==1?'s':''} · ${docsOrdenados.length} doc${docsOrdenados.length!==1?'s':''}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:#888;">BD Registro</div>
+          <div style="font-size:13px;font-weight:600;color:#3b6d11;">${data.totalReg > 0 ? fmtPeso(data.totalReg) : "—"}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:#888;">Asignaciones</div>
+          <div style="font-size:13px;font-weight:600;color:#0c447c;">${data.totalAsig > 0 ? fmtPeso(data.totalAsig) : "—"}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:10px;color:#888;">Total</div>
+          <div style="font-size:13px;font-weight:700;color:#1a3a0a;">${fmtPeso(data.total)}</div>
+        </div>
+      </summary>
+      <div style="padding:8px 14px 10px 44px;background:#fff;border-top:1px dashed #e5e5e5;">
+        ${upsIds.length > 0 ? `
+          <div style="display:grid;grid-template-columns:1.6fr 0.5fr 1fr;gap:8px;padding:4px 0;border-bottom:1px solid #ddd;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
+            <div>Unidad Productiva</div>
+            <div style="text-align:right;">Há</div>
+            <div style="text-align:right;">Total</div>
+          </div>
+          ${upsRows}
+        ` : '<div style="color:#888;font-size:11px;font-style:italic;padding:6px 0;">Sin datos por UP</div>'}
+        ${docsHTML}
+      </div>
+    </details>`;
+  }).join("");
+
   // Por tipo labor
   const tipoCostos = sumBy(conCosto,
     r => String(r["Tipo_Labor"]||"—").trim(),
@@ -3185,6 +3306,15 @@ function renderCostos() {
     </div>
 
     ${filtrosHTML}
+
+    <div class="stat-card" style="margin-bottom:12px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:#3b6d11;letter-spacing:0.08em;text-transform:uppercase;">Desglose por cultivo</div>
+        <div style="font-size:10px;color:#888;">clic en cada cultivo para ver el detalle por UP y documentos</div>
+      </div>
+      ${cultivosCostosHTML || "<div style='color:#aaa;text-align:center;font-size:12px;padding:14px;'>Sin datos</div>"}
+    </div>
+
     <div class="stat-card" style="margin-bottom:12px;">
       <div class="stat-title">Costo por unidad productiva</div>
       <table class="up-table">
