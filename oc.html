@@ -1051,7 +1051,7 @@ function updateLine(idx, field, value) {
 
 function renderLines() {
   const tbody = document.getElementById('lines-tbody');
-  const unidades = ['unid','UF','kg','sacos','bidones','lt','m','m²','m³','ton','cajas','bins','hh','día','mes'];
+  const unidades = ['unid','UF','kg','sacos','hás ','bidones','lt','m','m²','m³','ton','cajas','bins','hh','día','mes'];
   const monedas = ['CLP','UF','USD'];
   // Agrupar CCs por temporada para el dropdown
   const ccsOrdenados = [...CCS].sort((a, b) => {
