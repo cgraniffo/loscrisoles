@@ -570,7 +570,11 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Proveedor *</label>
-          <input type="text" id="f-proveedor-nombre" list="datalist-proveedores" placeholder="Razón Social">
+          <div style="display:flex; gap:6px; align-items:stretch;">
+            <input type="text" id="f-proveedor-nombre" list="datalist-proveedores" placeholder="Razón Social" style="flex:1;">
+            <button type="button" class="btn btn-sm btn-icon" onclick="openModalProveedor(false)" title="Nuevo proveedor" style="padding:6px 10px; white-space:nowrap;">+ Nuevo</button>
+            <button type="button" class="btn btn-sm btn-icon" id="btn-edit-prov" onclick="openModalProveedor(true)" title="Editar proveedor seleccionado" style="padding:6px 10px;">✏️</button>
+          </div>
           <datalist id="datalist-proveedores"></datalist>
         </div>
         <div class="form-group">
@@ -676,6 +680,77 @@
         <button class="btn btn-sm" onclick="emailOC()">✉️ Reenviar mail</button>
       </div>
       <div class="actions" id="modal-view-actions">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: NUEVO / EDITAR PROVEEDOR -->
+<div class="modal-backdrop" id="modal-proveedor">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header">
+      <h2 id="modal-proveedor-title">Nuevo Proveedor</h2>
+      <button class="modal-close" onclick="closeModal('modal-proveedor')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Razón Social *</label>
+          <input type="text" id="prov-nombre" placeholder="Nombre legal del proveedor">
+        </div>
+        <div class="form-group">
+          <label>RUT *</label>
+          <input type="text" id="prov-rut" placeholder="76.123.456-7">
+        </div>
+        <div class="form-group">
+          <label>Giro</label>
+          <input type="text" id="prov-giro" placeholder="Actividad económica">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="prov-email" placeholder="contacto@proveedor.cl">
+        </div>
+        <div class="form-group">
+          <label>Contacto</label>
+          <input type="text" id="prov-contacto" placeholder="Nombre persona de contacto">
+        </div>
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="text" id="prov-telefono" placeholder="+56 9 ...">
+        </div>
+        <div class="form-group">
+          <label>Dirección</label>
+          <input type="text" id="prov-direccion" placeholder="Calle 123">
+        </div>
+        <div class="form-group">
+          <label>Ciudad</label>
+          <input type="text" id="prov-ciudad" placeholder="Santiago">
+        </div>
+        <div class="form-group">
+          <label>Condición de Pago</label>
+          <input type="text" id="prov-cond-pago" placeholder="30 días, contado, etc.">
+        </div>
+        <div class="form-group">
+          <label>Tipo de Cuenta</label>
+          <input type="text" id="prov-tipo-cuenta" placeholder="Corriente / Vista">
+        </div>
+        <div class="form-group">
+          <label>Cuenta</label>
+          <input type="text" id="prov-cuenta" placeholder="Número de cuenta">
+        </div>
+        <div class="form-group">
+          <label>Cód. Banco</label>
+          <input type="text" id="prov-cod-banco" placeholder="Código del banco">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <div>
+        <span id="modal-proveedor-status" style="font-size:12px; color:var(--text-muted);"></span>
+      </div>
+      <div class="actions">
+        <button class="btn" onclick="closeModal('modal-proveedor')">Cancelar</button>
+        <button class="btn btn-primary" id="btn-save-prov" onclick="saveProveedor()">💾 Guardar</button>
       </div>
     </div>
   </div>
@@ -1515,6 +1590,115 @@ function exportCSV() {
   a.download = `OCs_${new Date().toISOString().split('T')[0]}.csv`;
   a.click();
   showToast('CSV exportado', 'success');
+}
+
+/* ============================================================
+   MODAL: NUEVO / EDITAR PROVEEDOR
+============================================================ */
+let PROV_EDIT_ID = null; // si está en modo edición, el Id del proveedor
+
+function openModalProveedor(editMode) {
+  PROV_EDIT_ID = null;
+  const fields = ['prov-nombre','prov-rut','prov-giro','prov-email','prov-contacto','prov-telefono','prov-direccion','prov-ciudad','prov-cond-pago','prov-tipo-cuenta','prov-cuenta','prov-cod-banco'];
+  fields.forEach(id => document.getElementById(id).value = '');
+
+  if (editMode) {
+    const nombreInput = document.getElementById('f-proveedor-nombre').value.trim();
+    if (!nombreInput) {
+      showToast('Primero seleccioná un proveedor del listado', 'error');
+      return;
+    }
+    const p = PROVEEDORES.find(x => x.nombre === nombreInput);
+    if (!p) {
+      showToast('Proveedor no encontrado en BD_Proveedores. Si es nuevo, usá el botón + Nuevo.', 'error');
+      return;
+    }
+    PROV_EDIT_ID = p.id;
+    document.getElementById('modal-proveedor-title').textContent = 'Editar: ' + p.nombre;
+    document.getElementById('prov-nombre').value = p.nombre || '';
+    document.getElementById('prov-rut').value = p.rut || '';
+    document.getElementById('prov-giro').value = p.giro || '';
+    document.getElementById('prov-email').value = p.email || '';
+    document.getElementById('prov-contacto').value = p.contacto || '';
+    document.getElementById('prov-telefono').value = p.telefono || '';
+    document.getElementById('prov-direccion').value = p.direccion || '';
+    document.getElementById('prov-ciudad').value = p.ciudad || '';
+    document.getElementById('prov-cond-pago').value = p.condPago || '';
+    document.getElementById('modal-proveedor-status').textContent = 'ID: ' + p.id;
+  } else {
+    document.getElementById('modal-proveedor-title').textContent = 'Nuevo Proveedor';
+    document.getElementById('modal-proveedor-status').textContent = '';
+    // Si en el campo de OC ya escribieron algo, prellenarlo
+    const nombreSugerido = document.getElementById('f-proveedor-nombre').value.trim();
+    if (nombreSugerido && !PROVEEDORES.find(x => x.nombre === nombreSugerido)) {
+      document.getElementById('prov-nombre').value = nombreSugerido;
+    }
+  }
+
+  document.getElementById('modal-proveedor').classList.add('show');
+}
+
+async function saveProveedor() {
+  const nombre = document.getElementById('prov-nombre').value.trim();
+  const rut = document.getElementById('prov-rut').value.trim();
+
+  if (!nombre) { showToast('Falta razón social', 'error'); return; }
+  if (!rut)    { showToast('Falta RUT', 'error'); return; }
+
+  const payload = {
+    nombre: nombre,
+    rut: rut,
+    giro: document.getElementById('prov-giro').value.trim(),
+    email: document.getElementById('prov-email').value.trim(),
+    contacto: document.getElementById('prov-contacto').value.trim(),
+    telefono: document.getElementById('prov-telefono').value.trim(),
+    direccion: document.getElementById('prov-direccion').value.trim(),
+    ciudad: document.getElementById('prov-ciudad').value.trim(),
+    condPago: document.getElementById('prov-cond-pago').value.trim(),
+    tipoCuenta: document.getElementById('prov-tipo-cuenta').value.trim(),
+    cuenta: document.getElementById('prov-cuenta').value.trim(),
+    codBanco: document.getElementById('prov-cod-banco').value.trim()
+  };
+
+  const btn = document.getElementById('btn-save-prov');
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Guardando...';
+
+  try {
+    if (PROV_EDIT_ID) {
+      payload.id = PROV_EDIT_ID;
+      await apiPost('update_proveedor', payload);
+      showToast('Proveedor actualizado', 'success');
+    } else {
+      await apiPost('create_proveedor', payload);
+      showToast('Proveedor creado: ' + nombre, 'success');
+    }
+    // Recargar lista de proveedores y refrescar datalist
+    await loadProveedores();
+    refreshDatalistProveedores();
+    // Setear el nombre creado/editado en la OC actual
+    document.getElementById('f-proveedor-nombre').value = nombre;
+    const p = PROVEEDORES.find(x => x.nombre === nombre);
+    if (p) {
+      document.getElementById('f-proveedor-rut').value = p.rut || '';
+      document.getElementById('f-proveedor-email').value = p.email || '';
+    }
+    closeModal('modal-proveedor');
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = original;
+  }
+}
+
+function refreshDatalistProveedores() {
+  const dl = document.getElementById('datalist-proveedores');
+  dl.innerHTML = '';
+  PROVEEDORES.forEach(p => {
+    dl.insertAdjacentHTML('beforeend', `<option value="${p.nombre}">`);
+  });
 }
 
 function closeModal(id) {
