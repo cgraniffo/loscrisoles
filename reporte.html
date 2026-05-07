@@ -2837,9 +2837,9 @@ function buildMapaPanel() {
   // Lógica unificada con Dashboard: cuenta como atrasada si estado="Atrasada" O (Fecha_Fin < hoy y no completada)
   const _hoyAtr = new Date(); _hoyAtr.setHours(0,0,0,0);
   function _esAtrasada(l) {
+    // Misma lógica que Dashboard: solo cuenta por fecha real, NO por campo estado="Atrasada"
     const est = String(l.estado||"").trim();
     if (est === "Completada") return false;
-    if (est === "Atrasada") return true;
     const ffin = String(l.fin||"").trim();
     if (!ffin) return false;
     const p = ffin.slice(0,10).split("-");
@@ -2960,7 +2960,6 @@ function initMap() {
       const atrasadas = labCC.filter(l => {
         const est = String(l.estado||"").trim();
         if (est === "Completada") return false;
-        if (est === "Atrasada") return true;
         const ffin = String(l.fin||"").trim();
         if (!ffin) return false;
         const p = ffin.slice(0,10).split("-");
@@ -4282,7 +4281,6 @@ function ganttFilterData(data) {
   const _esAtrasadaFD = (l) => {
     const est = String(l.estado||"").trim();
     if (est === "Completada") return false;
-    if (est === "Atrasada") return true;
     const ffin = String(l.fin||"").trim();
     if (!ffin) return false;
     const p = ffin.slice(0,10).split("-");
