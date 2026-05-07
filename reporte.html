@@ -1566,13 +1566,6 @@ function renderIngresos() {
     if (!porMes[key]) porMes[key] = { real:0, proy:0 };
     porMes[key].real += r.monto;  // r.monto ya viene negativo si es NC (línea 1435)
   });
-  // ====== DEBUG TEMPORAL ======
-  console.log("[DEBUG] filtFact length:", filtFact.length);
-  console.log("[DEBUG] filtFact suma:", filtFact.reduce((s,r)=>s+r.monto,0));
-  console.log("[DEBUG] NC en filtFact:", filtFact.filter(r=>r.esNC).length);
-  console.log("[DEBUG] NC montos:", filtFact.filter(r=>r.esNC).map(r=>({folio:r.folio, monto:r.monto, fecha:r.fecha, esNC:r.esNC})));
-  console.log("[DEBUG] porMes después de filtFact.forEach:", JSON.parse(JSON.stringify(porMes)));
-  // ====== FIN DEBUG ======
   // Proyecciones futuras (Fecha_Estimada > hoy) — cuentan como "Real esperado"
   filtEst.forEach(r => {
     const d = parseDate(r.fecha); if (!d) return;
@@ -1849,6 +1842,18 @@ function renderIngresos() {
         <div style="font-size:10px;font-weight:700;color:#1a6e3a;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">🧾 Facturado (Real)</div>
         <div style="font-size:22px;font-weight:700;color:#1a6e3a;line-height:1;">${fmtPeso(tFactCombinado)}</div>
         <div style="font-size:11px;color:#3b6d11;margin-top:4px;">${pFactCombinado}% del presupuesto · ${filtFact.filter(r=>!r.esNC).length} facturas${filtFact.filter(r=>r.esNC).length>0?` − ${filtFact.filter(r=>r.esNC).length} NC`:""}${cobradoContratos>0?` + anticipos nueces ${fmtPeso(cobradoContratos)}`:""}</div>
+        ${(() => {
+          const _hoyMs = new Date(); _hoyMs.setHours(0,0,0,0);
+          const _proyFut = filtEst.filter(r => {
+            const d = parseDate(r.fecha);
+            return d && d.getTime() > _hoyMs.getTime();
+          }).reduce((s,r)=>s+r.monto,0);
+          const _totalEsperado = tFactCombinado + _proyFut;
+          const _pctTotal = tEstF>0 ? Math.round(_totalEsperado/tEstF*100) : 0;
+          return _proyFut > 0
+            ? `<div style="font-size:11px;color:#3b6d11;margin-top:2px;">+ ${fmtPeso(_proyFut)} proyectado = <strong>${fmtPeso(_totalEsperado)}</strong> (${_pctTotal}% del presupuesto)</div>`
+            : "";
+        })()}
       </div>
 
     </div>
