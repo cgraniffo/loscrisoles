@@ -1559,14 +1559,20 @@ function renderIngresos() {
   const _hoyMsEv = new Date(); _hoyMsEv.setHours(0,0,0,0);
   const _hoyTsEv = _hoyMsEv.getTime();
   const porMes = {};
-  // Facturas DTE oficiales (excluyendo NC del cálculo gráfico)
+  // Facturas DTE oficiales — NC se restan (no se excluyen)
   filtFact.forEach(r => {
-    if (r.esNC) return;
     const d = parseDate(r.fecha); if (!d) return;
     const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
     if (!porMes[key]) porMes[key] = { real:0, proy:0 };
-    porMes[key].real += r.monto;
+    porMes[key].real += r.monto;  // r.monto ya viene negativo si es NC (línea 1435)
   });
+  // ====== DEBUG TEMPORAL ======
+  console.log("[DEBUG] filtFact length:", filtFact.length);
+  console.log("[DEBUG] filtFact suma:", filtFact.reduce((s,r)=>s+r.monto,0));
+  console.log("[DEBUG] NC en filtFact:", filtFact.filter(r=>r.esNC).length);
+  console.log("[DEBUG] NC montos:", filtFact.filter(r=>r.esNC).map(r=>({folio:r.folio, monto:r.monto, fecha:r.fecha, esNC:r.esNC})));
+  console.log("[DEBUG] porMes después de filtFact.forEach:", JSON.parse(JSON.stringify(porMes)));
+  // ====== FIN DEBUG ======
   // Proyecciones futuras (Fecha_Estimada > hoy) — cuentan como "Real esperado"
   filtEst.forEach(r => {
     const d = parseDate(r.fecha); if (!d) return;
@@ -1578,7 +1584,7 @@ function renderIngresos() {
   const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
   const mesMax  = Math.max(...mesRows.map(([,v])=>v.real+v.proy), 1);
   let acumReal = 0, acumProy = 0;
-  const totalRealEv = filtFact.filter(r=>!r.esNC).reduce((s,r)=>s+r.monto,0);
+  const totalRealEv = filtFact.reduce((s,r)=>s+r.monto,0);  // r.monto ya viene negativo si es NC
   const totalProyEv = filtEst.filter(r => {
     const d = parseDate(r.fecha);
     return d && d.getTime() > _hoyTsEv;
