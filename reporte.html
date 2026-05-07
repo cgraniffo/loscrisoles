@@ -2149,19 +2149,11 @@ function renderCaja() {
   const tCobrarM60  = sum(cobrarMas60);
   const tPagarM60   = sum(pagarMas60);
 
-  // Filtro por temporada: activa + futuras (ej: si activa es 25-26, incluye 25-26 y 26-27)
-  // Excluye temporadas anteriores ya pasadas
-  const _añoIniActiva = (typeof TEMPORADA_ACTIVA === 'string' && TEMPORADA_ACTIVA)
-    ? parseInt(TEMPORADA_ACTIVA.split("-")[0], 10) : 0;
-  const tempVigente = (ccId) => {
-    if (!_añoIniActiva) return true;  // sin temporada activa → no filtrar
-    const tmp = TEMP_MAP[ccId];
-    if (!tmp || !tmp.temporada) return true;  // proyección sin temp asignada → incluir
-    const añoIniProy = parseInt(String(tmp.temporada).split("-")[0], 10);
-    return añoIniProy >= _añoIniActiva;
-  };
+  // La caja muestra TODAS las proyecciones con fecha futura, sin filtro de temporada
+  // (es flujo de fondos real, no análisis de temporada)
+  // El desglose por temporada se muestra como info en la fila si hay mezcla
   const sumaPorTemp = (rows) => {
-    const out = { actual: 0, prox: {} };  // {actual: $X, prox: {"2026-2027": $Y, ...}}
+    const out = { actual: 0, prox: {} };  // {actual: temp activa, prox: {"otra-temp": $Y, ...}}
     rows.forEach(r => {
       const id = String(r["Unidad_Productiva"]||"").trim();
       const monto = Number(r["Monto_Total"]||0);
@@ -2176,8 +2168,6 @@ function renderCaja() {
   const ingPorPeriodo = (desde, hasta) => PROYECCIONES.filter(r => {
     const d = parseDate(r["Fecha_Estimada"]);
     if (!d) return false; d.setHours(0,0,0,0);
-    const id = String(r["Unidad_Productiva"]||"").trim();
-    if (!tempVigente(id)) return false;  // excluir temporadas anteriores
     if (hasta === null) return d >= desde;
     return d >= desde && d <= hasta;
   });
