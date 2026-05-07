@@ -2834,12 +2834,27 @@ function buildMapaPanel() {
   const laboresActivas = todasLasLabores.filter(l => l.estado !== "Completada");
 
   // KPI 3: Atrasadas (CON filtros del Gantt)
-  const atrasadasFiltro = laboresFiltradas.filter(l => l.estado === "Atrasada").length;
+  // Lógica unificada con Dashboard: cuenta como atrasada si estado="Atrasada" O (Fecha_Fin < hoy y no completada)
+  const _hoyAtr = new Date(); _hoyAtr.setHours(0,0,0,0);
+  function _esAtrasada(l) {
+    const est = String(l.estado||"").trim();
+    if (est === "Completada") return false;
+    if (est === "Atrasada") return true;
+    const ffin = String(l.fin||"").trim();
+    if (!ffin) return false;
+    const p = ffin.slice(0,10).split("-");
+    if (p.length !== 3) return false;
+    const d = new Date(+p[0], +p[1]-1, +p[2]);
+    d.setHours(0,0,0,0);
+    return d < _hoyAtr;
+  }
+  const atrasadasFiltro = laboresFiltradas.filter(_esAtrasada).length;
 
   // KPI 4: UPs con labores Atrasadas o En curso (sin filtros)
   const upsConAtencion = new Set();
   todasLasLabores.forEach(l => {
-    if (l.estado === "Atrasada" || l.estado === "En curso") {
+    const enCurso = String(l.estado||"").trim() === "En curso";
+    if (_esAtrasada(l) || enCurso) {
       const ccId = matchUpToCC(l.up);
       if (ccId) upsConAtencion.add(ccId);
     }
@@ -2941,7 +2956,19 @@ function initMap() {
       const ha     = HA_MAP[id] || 0;
       const labCC  = laboresPorCC[id] || [];
       const total     = labCC.length;
-      const atrasadas = labCC.filter(l => l.estado === "Atrasada").length;
+      const _hoyMrk = new Date(); _hoyMrk.setHours(0,0,0,0);
+      const atrasadas = labCC.filter(l => {
+        const est = String(l.estado||"").trim();
+        if (est === "Completada") return false;
+        if (est === "Atrasada") return true;
+        const ffin = String(l.fin||"").trim();
+        if (!ffin) return false;
+        const p = ffin.slice(0,10).split("-");
+        if (p.length !== 3) return false;
+        const d = new Date(+p[0], +p[1]-1, +p[2]);
+        d.setHours(0,0,0,0);
+        return d < _hoyMrk;
+      }).length;
       const enCurso   = labCC.filter(l => l.estado === "En curso").length;
       const planif    = labCC.filter(l => l.estado === "Planificada").length;
 
@@ -4250,13 +4277,32 @@ function getNumSemana(d) {
 function ganttFilterData(data) {
   const f = window._ganttState.filtros;
   const verCompletadas = window._ganttState.verCompletadas;
+  // Helper: ¿es atrasada? (alineado con Dashboard: por fecha real, no solo por campo estado)
+  const _hoyFD = new Date(); _hoyFD.setHours(0,0,0,0);
+  const _esAtrasadaFD = (l) => {
+    const est = String(l.estado||"").trim();
+    if (est === "Completada") return false;
+    if (est === "Atrasada") return true;
+    const ffin = String(l.fin||"").trim();
+    if (!ffin) return false;
+    const p = ffin.slice(0,10).split("-");
+    if (p.length !== 3) return false;
+    const d = new Date(+p[0], +p[1]-1, +p[2]);
+    d.setHours(0,0,0,0);
+    return d < _hoyFD;
+  };
   return data.filter(r => {
     // Ocultar completadas por defecto, salvo que verCompletadas=true
     if (!verCompletadas && r.estado === "Completada") return false;
     // Cultivo: si hay filtros activos, la labor debe coincidir con AL MENOS uno
     if (f.cultivo && f.cultivo.length > 0 && !f.cultivo.includes(r.cultivo)) return false;
-    // Estado: si hay filtros activos, la labor debe coincidir con AL MENOS uno
-    if (f.estado && f.estado.length > 0 && !f.estado.includes(r.estado)) return false;
+    // Estado: si el filtro incluye "Atrasada", evaluar por fecha (no solo por campo estado)
+    if (f.estado && f.estado.length > 0) {
+      const filtraAtrasada = f.estado.includes("Atrasada");
+      const matchExacto = f.estado.includes(r.estado);
+      const matchAtrasadaFecha = filtraAtrasada && _esAtrasadaFD(r);
+      if (!matchExacto && !matchAtrasadaFecha) return false;
+    }
     // Responsable: si hay filtros activos, AL MENOS un responsable de la labor debe coincidir
     if (f.responsable && f.responsable.length > 0) {
       const responsablesLabor = r.responsables || [];
