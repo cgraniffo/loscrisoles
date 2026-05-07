@@ -2208,6 +2208,44 @@ function renderCaja() {
   document.getElementById("m-caja-p30").style.color     = acum_30  >= 0 ? "#86efac" : "#fca5a5";
   document.getElementById("m-caja-p60").textContent     = fmtPeso(acum_60);
   document.getElementById("m-caja-p60").style.color     = acum_60  >= 0 ? "#86efac" : "#fca5a5";
+
+  // Split +60d en dos sub-filas: hasta 31-dic-2026 vs desde 01-ene-2027
+  const _corte2027 = new Date(2027, 0, 1); _corte2027.setHours(0,0,0,0);
+  const _corte2027Ts = _corte2027.getTime();
+  const splitRows = (rows) => ({
+    hasta2026: rows.filter(r => {
+      const d = parseDate(r["Fecha_Real"]||r["Fecha_Estimada"]);
+      if (!d) return false; d.setHours(0,0,0,0);
+      return d.getTime() < _corte2027Ts;
+    }),
+    desde2027: rows.filter(r => {
+      const d = parseDate(r["Fecha_Real"]||r["Fecha_Estimada"]);
+      if (!d) return false; d.setHours(0,0,0,0);
+      return d.getTime() >= _corte2027Ts;
+    })
+  });
+  const sumIng  = arr => arr.reduce((s,r)=>s+Number(r["Monto_Total"]||0),0);
+  const sumDoc  = arr => arr.reduce((s,r)=>s+Number(r["Monto Total"]||r["Monto_Total"]||0),0);
+
+  const ingM60Split    = splitRows(ingM60Rows);
+  const cobrarM60Split = splitRows(cobrarMas60);
+  const pagarM60Split  = splitRows(pagarMas60);
+
+  const ingHasta2026   = sumIng(ingM60Split.hasta2026);
+  const ingDesde2027   = sumIng(ingM60Split.desde2027);
+  const cobrarHasta2026 = sumDoc(cobrarM60Split.hasta2026);
+  const cobrarDesde2027 = sumDoc(cobrarM60Split.desde2027);
+  const pagarHasta2026  = sumDoc(pagarM60Split.hasta2026);
+  const pagarDesde2027  = sumDoc(pagarM60Split.desde2027);
+
+  const netoHasta2026 = cobrarHasta2026 - pagarHasta2026 + ingHasta2026;
+  const netoDesde2027 = cobrarDesde2027 - pagarDesde2027 + ingDesde2027;
+  const acumHasta2026 = acum_60 + netoHasta2026;
+  const acumDesde2027 = acumHasta2026 + netoDesde2027;
+
+  const ingHasta2026Tmp = sumaPorTemp(ingM60Split.hasta2026);
+  const ingDesde2027Tmp = sumaPorTemp(ingM60Split.desde2027);
+
   document.getElementById("m-caja-pm60").textContent    = fmtPeso(acum_m60);
   document.getElementById("m-caja-pm60").style.color    = acum_m60 >= 0 ? "#86efac" : "#fca5a5";
 
@@ -2221,10 +2259,16 @@ function renderCaja() {
     if (ingTmp && ingEst > 0) {
       const proxEntries = Object.entries(ingTmp.prox).filter(([,v]) => v > 0);
       if (proxEntries.length > 0) {
+        // Helper para abreviar "2025-2026" → "Temp 25-26"
+        const abrevTemp = (t) => {
+          const m = String(t).match(/^(\d{4})-(\d{4})$/);
+          if (!m) return `(${t})`;
+          return `(Temp ${m[1].slice(2)}-${m[2].slice(2)})`;
+        };
         const partes = [];
-        if (ingTmp.actual > 0) partes.push(`${fmtPesoFull(ingTmp.actual)} actual`);
+        if (ingTmp.actual > 0 && TEMPORADA_ACTIVA) partes.push(`${fmtPesoFull(ingTmp.actual)} ${abrevTemp(TEMPORADA_ACTIVA)}`);
         proxEntries.forEach(([temp, monto]) => {
-          partes.push(`${fmtPesoFull(monto)} ${temp.replace("20","")}`);  // "2026-2027" → "26-27"
+          partes.push(`${fmtPesoFull(monto)} ${abrevTemp(temp)}`);
         });
         desgloseHTML = `<div style="font-size:10px;color:#888;font-weight:400;margin-top:2px;">= ${partes.join(" + ")}</div>`;
       }
@@ -2265,7 +2309,8 @@ function renderCaja() {
             ${cascRow("📅 0 — 15 días",  tCobrar15,  tPagar15,  ing15, acum_15, false, ing15Tmp)}
             ${cascRow("📅 15 — 30 días", tCobrar30,  tPagar30,  ing30,  acum_30, false, ing30Tmp)}
             ${cascRow("📅 30 — 60 días", tCobrar60,  tPagar60,  ing60,  acum_60, false, ing60Tmp)}
-            ${cascRow("📅 + 60 días",    tCobrarM60, tPagarM60, ingM60, acum_m60, false, ingM60Tmp)}
+            ${cascRow("📅 + 60 días · hasta 31-dic-2026", cobrarHasta2026, pagarHasta2026, ingHasta2026, acumHasta2026, false, ingHasta2026Tmp)}
+            ${cascRow("📅 + 60 días · desde 01-ene-2027", cobrarDesde2027, pagarDesde2027, ingDesde2027, acumDesde2027, false, ingDesde2027Tmp)}
           </tbody>
         </table>
       </div>
@@ -2403,7 +2448,8 @@ function renderCaja() {
     periodoBlock("p15",   "📅 0 — 15 días",     false, cobrar15,    tCobrar15, pagar15,     tPagar15,  ing15Rows,  ing15)  +
     periodoBlock("p30",   "📅 15 — 30 días",    false, cobrar30,    tCobrar30, pagar30,     tPagar30,  ing30Rows,  ing30)  +
     periodoBlock("p60",   "📅 30 — 60 días",    false, cobrar60,    tCobrar60, pagar60,     tPagar60,  ing60Rows,  ing60)  +
-    periodoBlock("pm60",  "📅 Más de 60 días",  false, cobrarMas60, tCobrarM60, pagarMas60, tPagarM60, ingM60Rows, ingM60) +
+    periodoBlock("pm60a", "📅 + 60 días · hasta 31-dic-2026", false, cobrarM60Split.hasta2026, cobrarHasta2026, pagarM60Split.hasta2026, pagarHasta2026, ingM60Split.hasta2026, ingHasta2026) +
+    periodoBlock("pm60b", "📅 + 60 días · desde 01-ene-2027", false, cobrarM60Split.desde2027, cobrarDesde2027, pagarM60Split.desde2027, pagarDesde2027, ingM60Split.desde2027, ingDesde2027) +
     `<div class="footer">Caja calculada en tiempo real · Los Crisoles · BData</div>`;
 
   // Draw chart after DOM update
@@ -2411,8 +2457,8 @@ function renderCaja() {
     const canvas = document.getElementById("caja-chart");
     if (!canvas || !window.Chart) return;
     if (canvas._chart) canvas._chart.destroy();
-    const labels = ["Vencido", "0-15d", "15-30d", "30-60d", "+60d"];
-    const acums  = [acum_venc, acum_15, acum_30, acum_60, acum_m60];
+    const labels = ["Vencido", "0-15d", "15-30d", "30-60d", "+60d hasta 2026", "+60d desde 2027"];
+    const acums  = [acum_venc, acum_15, acum_30, acum_60, acumHasta2026, acumDesde2027];
     const colors = acums.map(v => v >= 0 ? "#1a3a0a" : "#cc2222");
     canvas._chart = new Chart(canvas, {
       type: "bar",
