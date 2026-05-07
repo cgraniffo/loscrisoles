@@ -1806,10 +1806,24 @@ async function actualizarVencidasDesdePlanLabores() {
     const resp = await fetch(API_PLAN + "?action=list_plan");
     const json = await resp.json();
     const planLabores = (json && json.data) ? json.data : [];
-    const vencidas = planLabores.filter(l => String(l.estado||"").trim() === "Atrasada").length;
+    // Recalcular: cualquier labor con Fecha_Fin < hoy y no Completada cuenta como vencida.
+    // No depende del campo "estado" del sheet (que solo cambia al crear/editar).
+    const hoyV = new Date(); hoyV.setHours(0,0,0,0);
+    const esVencida = (l) => {
+      const est = String(l.estado||"").trim();
+      if (est === "Completada") return false;
+      const ffin = String(l.fin||"").trim();
+      if (!ffin) return false;
+      const p = ffin.slice(0,10).split("-");
+      if (p.length !== 3) return false;
+      const d = new Date(+p[0], +p[1]-1, +p[2]);
+      d.setHours(0,0,0,0);
+      return d < hoyV;
+    };
+    const vencidas = planLabores.filter(esVencida).length;
     const activas = planLabores.filter(l => {
       const e = String(l.estado||"").trim();
-      return e === "Planificada" || e === "En curso" || e === "Atrasada";
+      return e !== "Completada"; // todo lo no completado es activa
     }).length;
     const elV = document.getElementById('h-vencidas');
     if (elV) elV.textContent = vencidas;
