@@ -539,6 +539,8 @@ if (location.search.includes('embed=1')) {
       </div>
     </div>
 
+    <!-- Bloque headline ocultado a pedido del usuario (KPIs h-caja, h-costos, h-vencidas, h-sin-asignar)
+         Si se necesitan estos IDs en algún momento, descomentar este bloque.
     <div class="headline">
       <div>
         <div class="headline-title">Gestión<br><span>inteligente</span><br>del campo</div>
@@ -563,6 +565,7 @@ if (location.search.includes('embed=1')) {
         </div>
       </div>
     </div>
+    -->
   </div>
 </div>
 
@@ -1224,7 +1227,7 @@ async function main() {
       }
     }
 
-    document.getElementById('h-vencidas').textContent = vencidas.length;
+    { const _eV = document.getElementById('h-vencidas'); if (_eV) _eV.textContent = vencidas.length; }
     const _hL = document.getElementById('hint-labores');
     if (_hL) _hL.textContent = vencidas.length > 0 ? `${vencidas.length} vencidas · ${activos.length} activas` : `${activos.length} activas`;
     if (_hL) _hL.style.color = vencidas.length > 0 ? '#A32D2D' : 'var(--gris)';
@@ -1339,7 +1342,7 @@ async function main() {
     const saldo60   = saldo30   + neto60;
     const saldoM60  = saldo60   + netoM60;
 
-    document.getElementById('h-caja').textContent = fmtPeso(CAJA_ACTUAL);
+    { const _eC = document.getElementById('h-caja'); if (_eC) _eC.textContent = fmtPeso(CAJA_ACTUAL); }
 
     const fila = (label, pagar, cobrar, ingProy, saldo) => {
       const cP = fmtPeso(sumD(pagar));
@@ -1428,7 +1431,7 @@ function renderHome({ registros, asignaciones, proyecciones }) {
   const costoRows  = Object.entries(costoPorCC).map(([id,v])=>([CC_MAP[id]||id,v])).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const costoMax   = costoRows[0]?.[1]||1;
 
-  document.getElementById('h-costos').textContent = fmtPeso(costoTotal);
+  { const _eK = document.getElementById('h-costos'); if (_eK) _eK.textContent = fmtPeso(costoTotal); }
   const costFechas  = costosHist.map(r=>String(r["Fecha"]||"").split("T")[0]).filter(Boolean).sort();
   const costPeriodo = costFechas.length > 0
     ? costFechas[0].slice(0,7).replace("-","/") + " — " + costFechas[costFechas.length-1].slice(0,7).replace("-","/")
@@ -1513,7 +1516,7 @@ function renderHome({ registros, asignaciones, proyecciones }) {
     });
     const sinAsigNuevos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] >= CORTE_ASIG);
     const sinAsigViejos = sinAsignar.filter(d => String(d["Fecha Emisión"]||"").split("T")[0] < CORTE_ASIG);
-    document.getElementById('h-sin-asignar').textContent = sinAsigNuevos.length;
+    { const _eS = document.getElementById('h-sin-asignar'); if (_eS) _eS.textContent = sinAsigNuevos.length; }
     const _hS = document.getElementById('hint-sin-asignar');
     if (_hS) _hS.textContent = sinAsignar.length > 0 ? `${sinAsigNuevos.length} nuevos · ${sinAsigViejos.length} anteriores` : 'todo asignado';
     if (_hS) _hS.style.color = sinAsigNuevos.length > 0 ? '#A32D2D' : 'var(--gris)';
