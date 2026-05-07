@@ -2149,9 +2149,35 @@ function renderCaja() {
   const tCobrarM60  = sum(cobrarMas60);
   const tPagarM60   = sum(pagarMas60);
 
+  // Filtro por temporada: activa + futuras (ej: si activa es 25-26, incluye 25-26 y 26-27)
+  // Excluye temporadas anteriores ya pasadas
+  const _añoIniActiva = (typeof TEMPORADA_ACTIVA === 'string' && TEMPORADA_ACTIVA)
+    ? parseInt(TEMPORADA_ACTIVA.split("-")[0], 10) : 0;
+  const tempVigente = (ccId) => {
+    if (!_añoIniActiva) return true;  // sin temporada activa → no filtrar
+    const tmp = TEMP_MAP[ccId];
+    if (!tmp || !tmp.temporada) return true;  // proyección sin temp asignada → incluir
+    const añoIniProy = parseInt(String(tmp.temporada).split("-")[0], 10);
+    return añoIniProy >= _añoIniActiva;
+  };
+  const sumaPorTemp = (rows) => {
+    const out = { actual: 0, prox: {} };  // {actual: $X, prox: {"2026-2027": $Y, ...}}
+    rows.forEach(r => {
+      const id = String(r["Unidad_Productiva"]||"").trim();
+      const monto = Number(r["Monto_Total"]||0);
+      const tmp = TEMP_MAP[id];
+      const tempStr = tmp?.temporada || "(sin temp)";
+      if (tempStr === TEMPORADA_ACTIVA) out.actual += monto;
+      else { out.prox[tempStr] = (out.prox[tempStr]||0) + monto; }
+    });
+    return out;
+  };
+
   const ingPorPeriodo = (desde, hasta) => PROYECCIONES.filter(r => {
     const d = parseDate(r["Fecha_Estimada"]);
     if (!d) return false; d.setHours(0,0,0,0);
+    const id = String(r["Unidad_Productiva"]||"").trim();
+    if (!tempVigente(id)) return false;  // excluir temporadas anteriores
     if (hasta === null) return d >= desde;
     return d >= desde && d <= hasta;
   });
@@ -2165,6 +2191,12 @@ function renderCaja() {
   const ing30  = ing30Rows.reduce((s,r)  => s + Number(r["Monto_Total"]||0), 0);
   const ing60  = ing60Rows.reduce((s,r)  => s + Number(r["Monto_Total"]||0), 0);
   const ingM60 = ingM60Rows.reduce((s,r) => s + Number(r["Monto_Total"]||0), 0);
+
+  // Desglose por temporada para mostrar en cascRow
+  const ing15Tmp  = sumaPorTemp(ing15Rows);
+  const ing30Tmp  = sumaPorTemp(ing30Rows);
+  const ing60Tmp  = sumaPorTemp(ing60Rows);
+  const ingM60Tmp = sumaPorTemp(ingM60Rows);
 
   // Resumen cascada
   const neto_venc  = tCobrarV  - tPagarV;
@@ -2190,14 +2222,27 @@ function renderCaja() {
   document.getElementById("m-caja-pm60").style.color    = acum_m60 >= 0 ? "#86efac" : "#fca5a5";
 
   // Cascada summary rows
-  const cascRow = (label, cobrar, pagar, ingEst, acum, isVenc) => {
+  const cascRow = (label, cobrar, pagar, ingEst, acum, isVenc, ingTmp) => {
     const neto = cobrar - pagar + ingEst;
     const bg   = isVenc ? "#fff8f8" : "#fff";
     const acumColor = acum >= 0 ? "#1a3a0a" : "#cc2222";
+    // Construir texto chico de desglose si hay proyecciones de temporada próxima
+    let desgloseHTML = "";
+    if (ingTmp && ingEst > 0) {
+      const proxEntries = Object.entries(ingTmp.prox).filter(([,v]) => v > 0);
+      if (proxEntries.length > 0) {
+        const partes = [];
+        if (ingTmp.actual > 0) partes.push(`${fmtPesoFull(ingTmp.actual)} actual`);
+        proxEntries.forEach(([temp, monto]) => {
+          partes.push(`${fmtPesoFull(monto)} ${temp.replace("20","")}`);  // "2026-2027" → "26-27"
+        });
+        desgloseHTML = `<div style="font-size:10px;color:#888;font-weight:400;margin-top:2px;">= ${partes.join(" + ")}</div>`;
+      }
+    }
     return `<tr style="background:${bg};">
       <td style="padding:8px 12px;font-size:12px;color:#444;border-bottom:1px solid #f0ede6;">${label}</td>
       <td style="padding:8px 12px;text-align:right;font-size:12px;color:#1a3a0a;font-weight:bold;border-bottom:1px solid #f0ede6;">${cobrar>0?fmtPesoFull(cobrar):"—"}</td>
-      ${ingEst>0?`<td style="padding:8px 12px;text-align:right;font-size:12px;color:#0f6e56;font-weight:bold;border-bottom:1px solid #f0ede6;">+${fmtPesoFull(ingEst)}</td>`:`<td style="padding:8px 12px;text-align:right;font-size:12px;color:#aaa;border-bottom:1px solid #f0ede6;">—</td>`}
+      ${ingEst>0?`<td style="padding:8px 12px;text-align:right;font-size:12px;color:#0f6e56;font-weight:bold;border-bottom:1px solid #f0ede6;">+${fmtPesoFull(ingEst)}${desgloseHTML}</td>`:`<td style="padding:8px 12px;text-align:right;font-size:12px;color:#aaa;border-bottom:1px solid #f0ede6;">—</td>`}
       <td style="padding:8px 12px;text-align:right;font-size:12px;color:#cc2222;font-weight:bold;border-bottom:1px solid #f0ede6;">${pagar>0?fmtPesoFull(pagar):"—"}</td>
       <td style="padding:8px 12px;text-align:right;font-size:12px;font-weight:bold;color:${neto>=0?"#1a3a0a":"#cc2222"};border-bottom:1px solid #f0ede6;">${fmtPesoFull(neto)}</td>
       <td style="padding:8px 12px;text-align:right;font-size:14px;font-weight:bold;color:${acumColor};border-bottom:1px solid #f0ede6;">${fmtPesoFull(acum)}</td>
@@ -2227,10 +2272,10 @@ function renderCaja() {
           </thead>
           <tbody>
             ${cascRow("🔴 Vencido", tCobrarV, tPagarV, 0, acum_venc, true)}
-            ${cascRow("📅 0 — 15 días",  tCobrar15,  tPagar15,  ing15, acum_15, false)}
-            ${cascRow("📅 15 — 30 días", tCobrar30,  tPagar30,  ing30,  acum_30, false)}
-            ${cascRow("📅 30 — 60 días", tCobrar60,  tPagar60,  ing60,  acum_60, false)}
-            ${cascRow("📅 + 60 días",    tCobrarM60, tPagarM60, ingM60, acum_m60, false)}
+            ${cascRow("📅 0 — 15 días",  tCobrar15,  tPagar15,  ing15, acum_15, false, ing15Tmp)}
+            ${cascRow("📅 15 — 30 días", tCobrar30,  tPagar30,  ing30,  acum_30, false, ing30Tmp)}
+            ${cascRow("📅 30 — 60 días", tCobrar60,  tPagar60,  ing60,  acum_60, false, ing60Tmp)}
+            ${cascRow("📅 + 60 días",    tCobrarM60, tPagarM60, ingM60, acum_m60, false, ingM60Tmp)}
           </tbody>
         </table>
       </div>
