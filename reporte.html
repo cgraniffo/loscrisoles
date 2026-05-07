@@ -1553,30 +1553,63 @@ function renderIngresos() {
   </tr>`;
 
   // ── EVOLUCIÓN MENSUAL ─────────────────────────────────────────────────────
+  // 2 líneas por mes, cada una apilada en 2 colores:
+  //   Mensual (arriba, fina): gris azul oscuro = facturado real | gris claro = proyectado
+  //   Acumulado (abajo, gruesa): verde oscuro = real | verde claro = proyectado
+  const _hoyMsEv = new Date(); _hoyMsEv.setHours(0,0,0,0);
+  const _hoyTsEv = _hoyMsEv.getTime();
   const porMes = {};
-  filtTodos.forEach(r => {
+  // Facturas DTE oficiales (excluyendo NC del cálculo gráfico)
+  filtFact.forEach(r => {
+    if (r.esNC) return;
     const d = parseDate(r.fecha); if (!d) return;
     const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
-    if (!porMes[key]) porMes[key] = { fact:0, est:0 };
-    if (r._fuente==="factura")  porMes[key].fact += r.monto;
-    if (r._fuente==="estimado") porMes[key].est  += r.monto;
+    if (!porMes[key]) porMes[key] = { real:0, proy:0 };
+    porMes[key].real += r.monto;
+  });
+  // Proyecciones futuras (Fecha_Estimada > hoy) — cuentan como "Real esperado"
+  filtEst.forEach(r => {
+    const d = parseDate(r.fecha); if (!d) return;
+    if (d.getTime() <= _hoyTsEv) return;  // solo futuras
+    const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+    if (!porMes[key]) porMes[key] = { real:0, proy:0 };
+    porMes[key].proy += r.monto;
   });
   const mesRows = Object.entries(porMes).sort((a,b)=>a[0].localeCompare(b[0]));
-  const mesMax  = Math.max(...mesRows.map(([,v])=>v.fact+v.est), 1);
-  let acumMes = 0;
-  const totalFiltrado = filtTodos.reduce((s,r)=>s+r.monto,0);
+  const mesMax  = Math.max(...mesRows.map(([,v])=>v.real+v.proy), 1);
+  let acumReal = 0, acumProy = 0;
+  const totalRealEv = filtFact.filter(r=>!r.esNC).reduce((s,r)=>s+r.monto,0);
+  const totalProyEv = filtEst.filter(r => {
+    const d = parseDate(r.fecha);
+    return d && d.getTime() > _hoyTsEv;
+  }).reduce((s,r)=>s+r.monto,0);
+  const totalEspEv = totalRealEv + totalProyEv;
   const mesHTML = mesRows.map(([k,v]) => {
-    const tot = v.fact+v.est; acumMes += tot;
-    const pctA = totalFiltrado>0 ? Math.round(acumMes/totalFiltrado*100) : 0;
+    acumReal += v.real;
+    acumProy += v.proy;
+    const tot = v.real + v.proy;
+    const wRealMes  = totalEspEv>0 ? Math.round(v.real/mesMax*100) : 0;
+    const wProyMes  = totalEspEv>0 ? Math.round(v.proy/mesMax*100) : 0;
+    const wRealAcum = totalEspEv>0 ? Math.round(acumReal/totalEspEv*100) : 0;
+    const wProyAcum = totalEspEv>0 ? Math.round(acumProy/totalEspEv*100) : 0;
+    const pctA = totalEspEv>0 ? Math.round((acumReal+acumProy)/totalEspEv*100) : 0;
     const label = new Date(k+"-15").toLocaleDateString("es-CL",{month:"short",year:"numeric"});
     return `<div class="mes-row">
       <div class="mes-label">${label}</div>
       <div style="flex:1;">
-        ${v.fact>0?`<div style="height:6px;border-radius:2px;background:#1a6e3a;width:${Math.round(v.fact/mesMax*100)}%;margin-bottom:2px;"></div>`:""}
-        ${v.est>0 ?`<div style="height:6px;border-radius:2px;background:#b45309;width:${Math.round(v.est/mesMax*100)}%;margin-bottom:2px;"></div>`:""}
-        <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
-          <div class="mes-bar-wrap"><div class="mes-bar-fill" style="width:${pctA}%;background:#0f6e56;"></div></div>
-          <div class="mes-val" style="color:#0f6e56;">${fmtPeso(acumMes)}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <div style="flex:1;height:5px;background:#f0ede6;border-radius:2px;overflow:hidden;display:flex;">
+            <div style="height:100%;background:#475569;width:${wRealMes}%;" title="Facturado real del mes"></div>
+            <div style="height:100%;background:#cbd5e1;width:${wProyMes}%;" title="Proyectado del mes"></div>
+          </div>
+          <div style="font-size:10px;color:#475569;min-width:80px;text-align:right;">${fmtPeso(tot)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;height:8px;background:#f0ede6;border-radius:3px;overflow:hidden;display:flex;">
+            <div style="height:100%;background:#15803d;width:${wRealAcum}%;" title="Acumulado real"></div>
+            <div style="height:100%;background:#86efac;width:${wProyAcum}%;" title="Acumulado proyectado"></div>
+          </div>
+          <div style="font-size:11px;font-weight:600;color:#15803d;min-width:80px;text-align:right;">${fmtPeso(acumReal+acumProy)} <span style="color:#999;font-weight:400;">(${pctA}%)</span></div>
         </div>
       </div>
     </div>`;
@@ -1839,7 +1872,21 @@ function renderIngresos() {
     </div>
 
     <div class="stat-card" style="margin-bottom:12px;">
-      <div class="stat-title">Evolución mensual · <span style="font-size:10px;font-weight:400;color:#888;">verde=facturado · naranjo=estimado</span></div>
+      <div class="stat-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <span>Evolución mensual</span>
+        <span style="display:flex;gap:14px;font-size:10px;font-weight:400;color:#888;flex-wrap:wrap;">
+          <span style="display:flex;align-items:center;gap:10px;">
+            <span style="font-weight:600;color:#555;">Acumulado:</span>
+            <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:#15803d;display:inline-block;"></span>Real</span>
+            <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:#86efac;display:inline-block;"></span>Proyectado</span>
+          </span>
+          <span style="display:flex;align-items:center;gap:10px;">
+            <span style="font-weight:600;color:#555;">Mensual:</span>
+            <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:#475569;display:inline-block;"></span>Real</span>
+            <span style="display:flex;align-items:center;gap:3px;"><span style="width:8px;height:8px;border-radius:2px;background:#cbd5e1;display:inline-block;"></span>Proyectado</span>
+          </span>
+        </span>
+      </div>
       ${mesHTML||"<div style='font-size:12px;color:#aaa;'>Sin datos</div>"}
     </div>
     <div class="footer">Ingresos: Facturas emitidas + Proyecciones_Manuales · Los Crisoles · BData</div>`;
