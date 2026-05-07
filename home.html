@@ -868,6 +868,7 @@ const API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3Wg
 const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
 const API_FIN     = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
 const API_LABORES = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
+const API_PLAN    = "https://script.google.com/macros/s/AKfycbzsEgcVC94wKXamVV5TOQuRXpSiXr4di2CJU3BVfYIcNgP9j-OS3dMOWauFwijCxSnO/exec";
 const RUT_LC  = "76099766-8";
 let CAJA_ACTUAL = 61805719; // se actualiza desde BD_Banco
 const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -1796,6 +1797,42 @@ function renderHeadlines() {
 }
 
 main();
+
+// Sincronizar KPI "Labores vencidas" con la Carta Gantt (Plan_Labores).
+// Sobreescribe el valor calculado desde BD_Registro con el conteo de labores
+// en estado "Atrasada" desde Plan_Labores, manteniéndolo alineado con el Gantt.
+async function actualizarVencidasDesdePlanLabores() {
+  try {
+    const resp = await fetch(API_PLAN + "?action=list_plan");
+    const json = await resp.json();
+    const planLabores = (json && json.data) ? json.data : [];
+    const vencidas = planLabores.filter(l => String(l.estado||"").trim() === "Atrasada").length;
+    const activas = planLabores.filter(l => {
+      const e = String(l.estado||"").trim();
+      return e === "Planificada" || e === "En curso" || e === "Atrasada";
+    }).length;
+    const elV = document.getElementById('h-vencidas');
+    if (elV) elV.textContent = vencidas;
+    const _hL = document.getElementById('hint-labores');
+    if (_hL) {
+      _hL.textContent = vencidas > 0 ? `${vencidas} vencidas · ${activas} activas` : `${activas} activas`;
+      _hL.style.color = vencidas > 0 ? '#A32D2D' : 'var(--gris)';
+    }
+    const _bdgL = document.getElementById('badge-labores');
+    if (_bdgL) {
+      if (vencidas === 0) { _bdgL.textContent = 'Al día'; _bdgL.className = 'status-badge ok'; }
+      else if (vencidas <= 5) { _bdgL.textContent = `${vencidas} atrasadas`; _bdgL.className = 'status-badge warn'; }
+      else { _bdgL.textContent = `${vencidas} atrasadas`; _bdgL.className = 'status-badge danger'; }
+    }
+    const _nb1 = document.getElementById('nav-labores-badge');
+    if (_nb1) {
+      _nb1.textContent = vencidas + " vencidas · " + activas + " activas";
+      _nb1.className = "nav-badge " + (vencidas > 0 ? "badge-rojo" : "badge-verde");
+    }
+  } catch(e) { console.error("Error sincronizando vencidas con Plan_Labores:", e); }
+}
+// Esperar 1.5s para que main() termine y luego sobreescribir con datos de Plan_Labores
+setTimeout(actualizarVencidasDesdePlanLabores, 1500);
 
 document.querySelectorAll('details.card').forEach(d => {
   const summary = d.querySelector('summary');
