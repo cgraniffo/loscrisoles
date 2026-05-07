@@ -720,14 +720,24 @@
       document.getElementById("k-margen").className = "kpi-eq-val " + (margenPpto >= 0 ? "green" : "red");
       document.getElementById("k-margen-label").textContent = "📊 Margen proyectado · Temp " + (temporada || "");
 
-      // Labores vencidas — fuente: Plan_Labores (Carta Gantt). Cuenta labores con estado "Atrasada".
-      // Esto se actualiza dinámicamente conforme se crean/cierran labores en la Gantt.
+      // Labores vencidas — fuente: Plan_Labores (Carta Gantt).
+      // Recalcula: cualquier labor con Fecha_Fin < hoy y estado != Completada cuenta como vencida.
+      // No depende del campo "estado" del sheet (que solo se actualiza al crear/editar).
       try {
         var planResp = await fetch(API_PLAN + "?action=list_plan");
         var planJson = await planResp.json();
         var planLabores = (planJson && planJson.data) ? planJson.data : [];
+        var hoyV = new Date(); hoyV.setHours(0,0,0,0);
         var vencidas = planLabores.filter(function(l){
-          return String(l.estado||"").trim() === "Atrasada";
+          var est = String(l.estado||"").trim();
+          if (est === "Completada") return false;
+          var ffin = String(l.fin||"").trim();
+          if (!ffin) return false;
+          var partes = ffin.slice(0,10).split("-");
+          if (partes.length !== 3) return false;
+          var d = new Date(+partes[0], +partes[1]-1, +partes[2]);
+          d.setHours(0,0,0,0);
+          return d < hoyV;
         }).length;
         document.getElementById("k-vencidas").textContent = vencidas;
         document.getElementById("k-vencidas").className = "kpi-val " + (vencidas > 0 ? "amber" : "green");
