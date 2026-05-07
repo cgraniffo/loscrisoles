@@ -280,6 +280,7 @@
   var API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt940MoPabyDV1PD0dvHimjfLKt8IJ-tDFFZaakFQtvBgkL/exec";
   var API_FIN = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
   var API_REG = "https://script.google.com/macros/s/AKfycbwmWfb90F9JEc7peFqTU3WgeKXx9fG21JzfIWgKsWaiARti7ds1_TBtQzjTzVraliNg/exec";
+  var API_PLAN = "https://script.google.com/macros/s/AKfycbzsEgcVC94wKXamVV5TOQuRXpSiXr4di2CJU3BVfYIcNgP9j-OS3dMOWauFwijCxSnO/exec";
   var RUT_LC  = "76099766-8";
   var CORTE   = "2026-04-01";
 
@@ -719,39 +720,21 @@
       document.getElementById("k-margen").className = "kpi-eq-val " + (margenPpto >= 0 ? "green" : "red");
       document.getElementById("k-margen-label").textContent = "📊 Margen proyectado · Temp " + (temporada || "");
 
-      // Labores vencidas — lógica alineada con home.html (parseo robusto + horas a 0)
-      var hoy = new Date(); hoy.setHours(0,0,0,0);
-      function _parseFecha(v) {
-        if (!v) return null;
-        var s = String(v).trim();
-        // ISO con T: 2026-04-30T...
-        if (/^\d{4}-\d{2}-\d{2}T/.test(s)) {
-          var p = s.split("T")[0].split("-");
-          return new Date(+p[0], +p[1]-1, +p[2]);
-        }
-        // ISO sin T: 2026-04-30
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-          var p = s.split("-");
-          return new Date(+p[0], +p[1]-1, +p[2]);
-        }
-        // Formato chileno: dd-mm-yyyy o dd/mm/yyyy
-        if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(s)) {
-          var sep = s.includes("-") ? "-" : "/";
-          var p = s.split(sep);
-          return new Date(+p[2], +p[1]-1, +p[0]);
-        }
-        return null;
+      // Labores vencidas — fuente: Plan_Labores (Carta Gantt). Cuenta labores con estado "Atrasada".
+      // Esto se actualiza dinámicamente conforme se crean/cierran labores en la Gantt.
+      try {
+        var planResp = await fetch(API_PLAN + "?action=list_plan");
+        var planJson = await planResp.json();
+        var planLabores = (planJson && planJson.data) ? planJson.data : [];
+        var vencidas = planLabores.filter(function(l){
+          return String(l.estado||"").trim() === "Atrasada";
+        }).length;
+        document.getElementById("k-vencidas").textContent = vencidas;
+        document.getElementById("k-vencidas").className = "kpi-val " + (vencidas > 0 ? "amber" : "green");
+      } catch(ePlan) {
+        console.error("Error cargando Plan_Labores:", ePlan);
+        document.getElementById("k-vencidas").textContent = "—";
       }
-      var vencidas = (Array.isArray(registros) ? registros : []).filter(function(r) {
-        var est = String(r["Estado Operativo"]||"").trim();
-        if (est === "Completado" || est === "Anulado") return false;
-        var d = _parseFecha(r["Fecha"]);
-        if (!d) return false;
-        d.setHours(0,0,0,0);
-        return d < hoy;
-      }).length;
-      document.getElementById("k-vencidas").textContent = vencidas;
-      document.getElementById("k-vencidas").className = "kpi-val " + (vencidas > 0 ? "amber" : "green");
 
       // Sin asignar desde corte (KPI eliminado del header pero cálculo conservado)
       var sinAsignar = (Array.isArray(docs) ? docs : []).filter(function(d) {
