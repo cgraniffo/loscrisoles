@@ -861,15 +861,19 @@ function renderPendientes() {
 
   const rows = filtrados.map(p => {
     const origenClass = 'origen-' + String(p.Origen).toLowerCase();
+    const codigoTag = p.Codigo_Original
+      ? `<br><small style="color:var(--txt-soft); font-family: monospace;">cód: ${p.Codigo_Original}</small>`
+      : '';
+    const valorMapear = p.Nombre_Item_Mapear || p.Nombre_Item;
     return `
       <tr>
         <td><span class="badge ${origenClass}">${p.Origen}</span></td>
-        <td><strong>${p.Nombre_Item}</strong></td>
+        <td><strong>${p.Nombre_Item}</strong>${codigoTag}</td>
         <td class="num">${p.Apariciones}</td>
         <td class="num">${formatNum(p.Cantidad_Total)}</td>
         <td>${p.Ejemplo_Folio || '—'}</td>
         <td>
-          <button class="btn btn-primary btn-sm" onclick="abrirModalMapeoDesdePendiente('${escapeAttr(p.Nombre_Item)}', '${p.Origen}')">Mapear →</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalMapeoDesdePendiente('${escapeAttr(valorMapear)}', '${p.Origen}', '${escapeAttr(p.Nombre_Item)}')">Mapear →</button>
         </td>
       </tr>
     `;
@@ -1098,19 +1102,25 @@ function abrirModalMapeo(idMapeo) {
   document.getElementById('modalMapeo').classList.add('show');
 }
 
-function abrirModalMapeoDesdePendiente(nombreItem, origen) {
+function abrirModalMapeoDesdePendiente(valorMapear, origen, displayNombre) {
   poblarSelectProductos();
   document.getElementById('modalMapeoTitulo').textContent = 'Mapear item pendiente';
   document.getElementById('mapeo_id').value = '';
   document.getElementById('btnEliminarMapeo').style.display = 'none';
-  document.getElementById('mapeo_nombre_item').value = nombreItem;
+  document.getElementById('mapeo_nombre_item').value = valorMapear;
   document.getElementById('mapeo_origen').value = origen;
   document.getElementById('mapeo_factor').value = 1;
   document.getElementById('mapeo_id_producto').value = '';
 
+  // Si el valor a guardar es un código (distinto al nombre display), mostrar info extra
+  if (displayNombre && displayNombre !== valorMapear) {
+    document.getElementById('modalMapeoTitulo').innerHTML =
+      `Mapear item pendiente<br><small style="font-size:13px; color:var(--txt-soft); font-weight:400;">${displayNombre}</small>`;
+  }
+
   document.getElementById('modalMapeo').classList.add('show');
 }
-
+  
 async function guardarMapeo() {
   const idMapeo = document.getElementById('mapeo_id').value;
   const esEdicion = !!idMapeo;
