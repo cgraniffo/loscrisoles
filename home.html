@@ -649,7 +649,7 @@ if (location.search.includes('embed=1')) {
       </div>
 
       <!-- 5 buckets horizontales: 0-15d, 15-30d, 30-60d, +60d hasta dic 2026, +60d desde ene 2027 -->
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;" id="caja-buckets">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="caja-buckets">
         <!-- Bucket 0-15d -->
         <div style="background:#f6f4ec;border-radius:8px;padding:10px 11px;">
           <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">0 — 15d</div>
@@ -690,24 +690,14 @@ if (location.search.includes('embed=1')) {
           <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Caja acumulada</div>
           <div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;" id="b4-acum">—</div>
         </div>
-        <!-- Bucket +60d desde ene 2027 -->
-        <div style="background:#f6f4ec;border-radius:8px;padding:10px 11px;">
-          <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">+60d <span style="text-transform:none;letter-spacing:0;color:var(--gris);font-size:9px;">desde ene 2027</span></div>
-          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Neto del período</div>
-          <div style="display:flex;align-items:center;gap:3px;font-size:10px;margin-bottom:3px;" id="b5-detalle">—</div>
-          <div style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;" id="b5-neto">—</div>
-          <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 0;"></div>
-          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Caja acumulada</div>
-          <div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;" id="b5-acum">—</div>
-        </div>
       </div>
 
       <!-- Leyenda -->
       <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px;font-size:11px;color:#5a5a55;flex-wrap:wrap;">
-        <span style="display:inline-flex;align-items:center;gap:4px;">⬇️ cobros</span>
-        <span style="display:inline-flex;align-items:center;gap:4px;">⬆️ pagos</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;color:#1D9E75;">⬇️ cobros</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;color:#A32D2D;">⬆️ pagos</span>
         <span style="color:var(--gris);">·</span>
-        <span><b>Neto</b> = cobros − pagos del bucket</span>
+        <span><b>Neto</b> = <span style="color:#1D9E75;">cobros</span> − <span style="color:#A32D2D;">pagos</span> del período</span>
         <span style="color:var(--gris);">·</span>
         <span><b>Acumulada</b> = caja al final del período</span>
       </div>
@@ -1661,9 +1651,7 @@ function renderHome({ registros, asignaciones, proyecciones }) {
       return d > _en60;
     });
     const _b4cobrar = _mas60cobrar.filter(r => { const d=parseDate(r["Fecha_Real"]); return d && d.setHours(0,0,0,0)<_corte2027Ts; });
-    const _b5cobrar = _mas60cobrar.filter(r => { const d=parseDate(r["Fecha_Real"]); return d && d.setHours(0,0,0,0)>=_corte2027Ts; });
     const _b4pagar  = _mas60pagar.filter(r =>  { const d=parseDate(r["Fecha_Real"]); return d && d.setHours(0,0,0,0)<_corte2027Ts; });
-    const _b5pagar  = _mas60pagar.filter(r =>  { const d=parseDate(r["Fecha_Real"]); return d && d.setHours(0,0,0,0)>=_corte2027Ts; });
 
     // Proyecciones_Manuales por bucket (Fecha_Estimada)
     const _proyecciones = Array.isArray(proyecciones) ? proyecciones : [];
@@ -1678,15 +1666,13 @@ function renderHome({ registros, asignaciones, proyecciones }) {
     const _b3ing = _bucketProy(_b3desde, _en60);
     const _mas60ing = _bucketProy(new Date(_en60.getTime() + 86400000), null);
     const _b4ing = _mas60ing.filter(r => { const d=parseDate(r["Fecha_Estimada"]); return d && d.setHours(0,0,0,0)<_corte2027Ts; });
-    const _b5ing = _mas60ing.filter(r => { const d=parseDate(r["Fecha_Estimada"]); return d && d.setHours(0,0,0,0)>=_corte2027Ts; });
 
     // Sumas por bucket
     const buckets = [
       { id:'b1', cobr:_sumDoc(_b1cobrar)+_sumIng(_b1ing), pago:_sumDoc(_b1pagar) },
       { id:'b2', cobr:_sumDoc(_b2cobrar)+_sumIng(_b2ing), pago:_sumDoc(_b2pagar) },
       { id:'b3', cobr:_sumDoc(_b3cobrar)+_sumIng(_b3ing), pago:_sumDoc(_b3pagar) },
-      { id:'b4', cobr:_sumDoc(_b4cobrar)+_sumIng(_b4ing), pago:_sumDoc(_b4pagar) },
-      { id:'b5', cobr:_sumDoc(_b5cobrar)+_sumIng(_b5ing), pago:_sumDoc(_b5pagar) }
+      { id:'b4', cobr:_sumDoc(_b4cobrar)+_sumIng(_b4ing), pago:_sumDoc(_b4pagar) }
     ];
 
     // Calcular neto y acumulada (cascada desde caja hoy)
