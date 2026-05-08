@@ -372,6 +372,7 @@
   <div class="tabs" style="margin-bottom: 8px;">
     <button class="tab active" data-subtab="pendientes">Pendientes <span class="count" id="countPendientesSubtab" style="display:none">0</span></button>
     <button class="tab" data-subtab="existentes">Mapeos existentes</button>
+    <button class="tab" data-subtab="ignorados">🚫 Ignorados <span class="count" id="countIgnorados" style="display:none; background: var(--txt-soft);">0</span></button>
   </div>
 
   <!-- Subtab Pendientes -->
@@ -401,6 +402,13 @@
       <button class="btn btn-primary" onclick="abrirModalMapeo()">+ Nuevo mapeo</button>
     </div>
     <div id="tablaMapeos"><div class="loader">Cargando…</div></div>
+  </div>
+  <!-- Subtab Ignorados -->
+  <div class="subtab-content" id="subtab-ignorados" style="display:none">
+    <div class="filters">
+      <input type="text" id="filtroIgnorado" placeholder="Buscar item ignorado…">
+    </div>
+    <div id="tablaIgnorados"><div class="loader">Cargando…</div></div>
   </div>
 </div>
 
@@ -560,6 +568,7 @@ const API_INVENTARIO_POST = 'https://round-night-574d.christian-19c.workers.dev/
 window.PRODUCTOS = [];
 window.MOVIMIENTOS = [];
 window.MAPEOS = [];
+window.IGNORADOS = [];
 window.PENDIENTES = [];
 
 // ====== CARGA INICIAL ======
@@ -595,7 +604,9 @@ async function cargarMapeos() {
     const res = await fetch(`${API_INVENTARIO}&action=get_mapeos`).then(r => r.json());
     if (!res.ok) throw new Error(res.error);
     window.MAPEOS = res.mapeos || [];
+    window.IGNORADOS = res.ignorados || [];
     renderMapeos();
+    renderIgnorados();
   } catch (err) {
     console.error('Error cargando mapeos:', err);
   }
@@ -869,8 +880,9 @@ function renderPendientes() {
         <td class="num">${formatNum(p.Cantidad_Total)}</td>
         <td>${p.Ejemplo_Folio || '—'}</td>
         <td>${p.Ejemplo_RUT || '—'}</td>
-        <td>
+        <td style="white-space: nowrap;">
           <button class="btn btn-primary btn-sm" onclick="abrirModalMapeoDesdePendiente('${escapeAttr(p.Nombre_Item)}')">Mapear →</button>
+          <button class="btn-icon" onclick="ignorarItem('${escapeAttr(p.Nombre_Item)}')" title="Marcar como ignorado (no va a inventario)">🚫</button>
         </td>
       </tr>
     `;
@@ -1183,6 +1195,117 @@ async function eliminarMapeoActual() {
   }
 }
 
+
+async function ignorarItem(nombreItem) {
+  if (!confirm(`¿Marcar "${nombreItem}" como ignorado?\n\nEste item no aparecerá más en Pendientes y no descontará stock cuando se procesen las guías. Puedes des-ignorarlo después en la pestaña "Ignorados".`)) return;
+
+  try {
+    const res = await fetch(API_INVENTARIO_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api: 'inventario',
+        action: 'mark_as_ignored',
+        nombre_item: nombreItem,
+        usuario: 'dashboard'
+      })
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error || 'Error desconocido');
+
+    toast('Item marcado como ignorado');
+    await cargarMapeos();
+    await cargarPendientes();
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+  }
+}
+
+async function designorarItem(idMapeo, nombreItem) {
+  if (!confirm(`¿Quitar "${nombreItem}" de la lista de ignorados? Volverá a aparecer en Pendientes.`)) return;
+
+  try {
+    const res = await fetch(API_INVENTARIO_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api: 'inventario',
+        action: 'unmark_ignored',
+        id_mapeo: idMapeo
+      })
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error || 'Error desconocido');
+
+    toast('Item restaurado a Pendientes');
+    await cargarMapeos();
+    await cargarPendientes();
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+  }
+}
+
+function renderIgnorados() {
+  const filtro = document.getElementById('filtroIgnorado')
+    ? document.getElementById('filtroIgnorado').value.toLowerCase()
+    : '';
+
+  let filtrados = window.IGNORADOS.filter(i => {
+    if (filtro && !String(i.Nombre_Item).toLowerCase().includes(filtro)) return false;
+    return true;
+  });
+
+  filtrados.sort((a, b) => String(a.Nombre_Item).localeCompare(String(b.Nombre_Item)));
+
+  // Badge contador
+  const count = window.IGNORADOS.length;
+  const badge = document.getElementById('countIgnorados');
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  const cont = document.getElementById('tablaIgnorados');
+  if (!cont) return;
+
+  if (filtrados.length === 0) {
+    cont.innerHTML = '<div class="empty">No hay items ignorados.</div>';
+    return;
+  }
+
+  const rows = filtrados.map(i => {
+    const fecha = i.Fecha_Creacion ? new Date(i.Fecha_Creacion).toLocaleDateString('es-CL') : '—';
+    return `
+      <tr>
+        <td><strong>${i.Nombre_Item}</strong></td>
+        <td>${fecha}</td>
+        <td>${i.Usuario || '—'}</td>
+        <td>
+          <button class="btn-icon" onclick="designorarItem('${i.Id_Mapeo}', '${escapeAttr(i.Nombre_Item)}')" title="Quitar de ignorados">↩️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  cont.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Item ignorado</th>
+          <th>Fecha</th>
+          <th>Usuario</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+  
 // ====== UTILIDADES ======
 function cerrarModal(id) {
   document.getElementById(id).classList.remove('show');
@@ -1254,7 +1377,8 @@ document.querySelectorAll('.tab[data-subtab]').forEach(btn => {
 ['filtroMapeo','filtroMapeoOrigen'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderMapeos);
 });
-
+const filtroIgn = document.getElementById('filtroIgnorado');
+if (filtroIgn) filtroIgn.addEventListener('input', renderIgnorados);
 cargarTodo();
 </script>
 </body>
