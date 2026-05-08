@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inventario · Los Crisoles</title>
+<style>
+  :root {
+    --verde: #1a4d2e;
+    --verde-claro: #4a7c59;
+    --bg: #f5f7f4;
+    --card: #ffffff;
+    --txt: #2c2c2c;
+    --txt-soft: #6b7a6e;
+    --border: #d8dfd9;
+    --rojo: #c0392b;
+    --amarillo: #d4a017;
+    --verde-ok: #27ae60;
+    --azul: #2c6e9b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--txt);
+    padding: 16px;
+    font-size: 14px;
+  }
+  h1 { color: var(--verde); font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: var(--txt-soft); margin-bottom: 16px; }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .kpi {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 14px;
+    border-left: 4px solid var(--verde);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .kpi-label { font-size: 11px; color: var(--txt-soft); text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 22px; font-weight: 700; color: var(--verde); margin-top: 4px; }
+  .kpi.warn { border-left-color: var(--amarillo); }
+  .kpi.warn .kpi-value { color: var(--amarillo); }
+  .kpi.danger { border-left-color: var(--rojo); }
+  .kpi.danger .kpi-value { color: var(--rojo); }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+  }
+  .tab {
+    padding: 10px 18px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--txt-soft);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    font-weight: 500;
+  }
+  .tab.active {
+    color: var(--verde);
+    border-bottom-color: var(--verde);
+    font-weight: 600;
+  }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .filters input, .filters select {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--card);
+  }
+  .filters input { flex: 1; min-width: 180px; }
+
+  table {
+    width: 100%;
+    background: var(--card);
+    border-radius: 8px;
+    overflow: hidden;
+    border-collapse: collapse;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  th {
+    background: var(--verde);
+    color: white;
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  tr:hover td { background: #fafbfa; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge.verde { background: #d6f0db; color: var(--verde-ok); }
+  .badge.amarillo { background: #fcf3d9; color: #8a6d10; }
+  .badge.rojo { background: #fadbd8; color: var(--rojo); }
+  .badge.cat-insumo { background: #e3edf7; color: var(--azul); }
+  .badge.cat-produccion { background: #e8f5d8; color: var(--verde); }
+
+  .badge-mov {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-mov.entrada { background: #d6f0db; color: var(--verde-ok); }
+  .badge-mov.salida { background: #fadbd8; color: var(--rojo); }
+  .badge-mov.ajuste { background: #e3edf7; color: var(--azul); }
+
+  .empty {
+    text-align: center;
+    padding: 40px;
+    color: var(--txt-soft);
+    background: var(--card);
+    border-radius: 8px;
+  }
+  .loader {
+    text-align: center;
+    padding: 40px;
+    color: var(--txt-soft);
+  }
+  .err {
+    background: #fadbd8;
+    color: var(--rojo);
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<h1>📦 Inventario</h1>
+<div class="subtitle">Los Crisoles · Stock actual, movimientos y alertas</div>
+
+<div class="kpis" id="kpis">
+  <div class="loader">Cargando…</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="stock">Stock actual</button>
+  <button class="tab" data-tab="movs">Movimientos</button>
+</div>
+
+<!-- TAB STOCK -->
+<div class="tab-content active" id="tab-stock">
+  <div class="filters">
+    <input type="text" id="filtroProducto" placeholder="Buscar producto…">
+    <select id="filtroCategoria">
+      <option value="">Todas las categorías</option>
+      <option value="INSUMO">Insumos</option>
+      <option value="PRODUCCION">Producción</option>
+    </select>
+    <select id="filtroSemaforo">
+      <option value="">Todos</option>
+      <option value="rojo">🔴 Sin stock</option>
+      <option value="amarillo">🟡 Bajo mínimo</option>
+      <option value="verde">🟢 OK</option>
+    </select>
+  </div>
+  <div id="tablaStock"><div class="loader">Cargando productos…</div></div>
+</div>
+
+<!-- TAB MOVIMIENTOS -->
+<div class="tab-content" id="tab-movs">
+  <div class="filters">
+    <input type="text" id="filtroMovProducto" placeholder="Buscar producto…">
+    <select id="filtroMovTipo">
+      <option value="">Todos los tipos</option>
+      <option value="ENTRADA">Entradas</option>
+      <option value="SALIDA">Salidas</option>
+      <option value="AJUSTE">Ajustes</option>
+    </select>
+    <select id="filtroMovOrigen">
+      <option value="">Todos los orígenes</option>
+      <option value="GUIA">Guía</option>
+      <option value="BD_REGISTRO">BD_Registro</option>
+      <option value="COSECHA">Cosecha</option>
+      <option value="MANUAL">Manual</option>
+    </select>
+  </div>
+  <div id="tablaMovs"><div class="loader">Cargando movimientos…</div></div>
+</div>
+
+<script>
+// ⚠️ REEMPLAZAR con la URL real de API_INVENTARIO una vez deployado el Apps Script
+const API_INVENTARIO = 'https://round-night-574d.christian-19c.workers.dev/?api=inventario';
+// Fallback directo (si el worker aún no está configurado): pegar la URL del Apps Script
+// const API_INVENTARIO = 'https://script.google.com/macros/s/AKfycbzRiD5DlPt0ApBFETgNanVDYyyIUN7qijvJW5Qy2m3WlhHrCRNWaCZwMAACPFr7Awgf/exec';
+
+window.PRODUCTOS = [];
+window.MOVIMIENTOS = [];
+
+async function cargarTodo() {
+  try {
+    const [invRes, movRes] = await Promise.all([
+      fetch(`${API_INVENTARIO}&action=get_inventario`).then(r => r.json()),
+      fetch(`${API_INVENTARIO}&action=get_movimientos`).then(r => r.json())
+    ]);
+
+    if (!invRes.ok) throw new Error(invRes.error || 'Error inventario');
+    if (!movRes.ok) throw new Error(movRes.error || 'Error movimientos');
+
+    window.PRODUCTOS = invRes.productos || [];
+    window.MOVIMIENTOS = movRes.movimientos || [];
+
+    renderKPIs();
+    renderStock();
+    renderMovs();
+  } catch (err) {
+    document.getElementById('kpis').innerHTML =
+      `<div class="err">Error cargando datos: ${err.message}</div>`;
+    console.error(err);
+  }
+}
+
+function renderKPIs() {
+  const productos = window.PRODUCTOS;
+  const total = productos.length;
+  const valor = productos.reduce((s, p) => s + (p.Valorizacion || 0), 0);
+  const bajoMin = productos.filter(p => p.Semaforo === 'amarillo').length;
+  const sinStock = productos.filter(p => p.Semaforo === 'rojo').length;
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi">
+      <div class="kpi-label">Productos activos</div>
+      <div class="kpi-value">${total}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Valorización total</div>
+      <div class="kpi-value">$${formatM(valor)}</div>
+    </div>
+    <div class="kpi ${bajoMin > 0 ? 'warn' : ''}">
+      <div class="kpi-label">Bajo mínimo</div>
+      <div class="kpi-value">${bajoMin}</div>
+    </div>
+    <div class="kpi ${sinStock > 0 ? 'danger' : ''}">
+      <div class="kpi-label">Sin stock</div>
+      <div class="kpi-value">${sinStock}</div>
+    </div>
+  `;
+}
+
+function renderStock() {
+  const filtroProd = document.getElementById('filtroProducto').value.toLowerCase();
+  const filtroCat = document.getElementById('filtroCategoria').value;
+  const filtroSem = document.getElementById('filtroSemaforo').value;
+
+  let filtrados = window.PRODUCTOS.filter(p => {
+    if (filtroCat && p.Categoria !== filtroCat) return false;
+    if (filtroSem && p.Semaforo !== filtroSem) return false;
+    if (filtroProd && !String(p.Producto).toLowerCase().includes(filtroProd)) return false;
+    return true;
+  });
+
+  filtrados.sort((a, b) => {
+    const order = { rojo: 0, amarillo: 1, verde: 2 };
+    if (order[a.Semaforo] !== order[b.Semaforo]) return order[a.Semaforo] - order[b.Semaforo];
+    return String(a.Producto).localeCompare(String(b.Producto));
+  });
+
+  if (filtrados.length === 0) {
+    document.getElementById('tablaStock').innerHTML =
+      '<div class="empty">No hay productos con los filtros aplicados</div>';
+    return;
+  }
+
+  const rows = filtrados.map(p => {
+    const semIcon = p.Semaforo === 'rojo' ? '🔴' : (p.Semaforo === 'amarillo' ? '🟡' : '🟢');
+    const catBadge = p.Categoria === 'INSUMO' ? 'cat-insumo' : 'cat-produccion';
+    return `
+      <tr>
+        <td>${semIcon}</td>
+        <td><strong>${p.Producto || ''}</strong><br><small style="color:var(--txt-soft)">${p.Tipo || ''}</small></td>
+        <td><span class="badge ${catBadge}">${p.Categoria || ''}</span></td>
+        <td class="num"><strong>${formatNum(p.Stock_Actual)}</strong> ${p.Unidad || ''}</td>
+        <td class="num">${formatNum(p.Stock_Minimo)}</td>
+        <td class="num">$${formatNum(p.Precio_Unitario)}</td>
+        <td class="num"><strong>$${formatM(p.Valorizacion)}</strong></td>
+        <td>${p.Bodega || '—'}</td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('tablaStock').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>Producto</th>
+          <th>Categoría</th>
+          <th style="text-align:right">Stock actual</th>
+          <th style="text-align:right">Mínimo</th>
+          <th style="text-align:right">$ Unit.</th>
+          <th style="text-align:right">Valorización</th>
+          <th>Bodega</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function renderMovs() {
+  const filtroProd = document.getElementById('filtroMovProducto').value.toLowerCase();
+  const filtroTipo = document.getElementById('filtroMovTipo').value;
+  const filtroOrigen = document.getElementById('filtroMovOrigen').value;
+
+  let filtrados = window.MOVIMIENTOS.filter(m => {
+    if (filtroTipo && String(m.Tipo_Mov).toUpperCase() !== filtroTipo) return false;
+    if (filtroOrigen && String(m.Origen).toUpperCase() !== filtroOrigen) return false;
+    if (filtroProd && !String(m.Producto_Nombre || '').toLowerCase().includes(filtroProd)) return false;
+    return true;
+  });
+
+  if (filtrados.length === 0) {
+    document.getElementById('tablaMovs').innerHTML =
+      '<div class="empty">No hay movimientos registrados</div>';
+    return;
+  }
+
+  const rows = filtrados.map(m => {
+    const tipo = String(m.Tipo_Mov || '').toLowerCase();
+    const cantidad = Number(m.Cantidad) || 0;
+    const fecha = m.Fecha ? new Date(m.Fecha).toLocaleDateString('es-CL') : '—';
+    return `
+      <tr>
+        <td>${fecha}</td>
+        <td><strong>${m.Producto_Nombre || ''}</strong></td>
+        <td><span class="badge-mov ${tipo}">${m.Tipo_Mov || ''}</span></td>
+        <td>${m.Origen || ''}</td>
+        <td class="num" style="color:${cantidad >= 0 ? 'var(--verde-ok)' : 'var(--rojo)'}">
+          <strong>${cantidad >= 0 ? '+' : ''}${formatNum(cantidad)}</strong> ${m.Unidad || ''}
+        </td>
+        <td>${m.UP_Nombre || '—'}</td>
+        <td class="num">$${formatNum(m.Valor_Total)}</td>
+        <td>${m.Observacion || ''}</td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('tablaMovs').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Producto</th>
+          <th>Tipo</th>
+          <th>Origen</th>
+          <th style="text-align:right">Cantidad</th>
+          <th>UP</th>
+          <th style="text-align:right">Valor</th>
+          <th>Obs.</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function formatNum(n) {
+  const num = Number(n) || 0;
+  return num.toLocaleString('es-CL', { maximumFractionDigits: 2 });
+}
+function formatM(n) {
+  const num = Number(n) || 0;
+  if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+  if (Math.abs(num) >= 1e3) return (num / 1e3).toFixed(0) + 'k';
+  return num.toFixed(0);
+}
+
+// Tabs
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// Filtros
+['filtroProducto','filtroCategoria','filtroSemaforo'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderStock);
+});
+['filtroMovProducto','filtroMovTipo','filtroMovOrigen'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderMovs);
+});
+
+cargarTodo();
+</script>
+</body>
+</html>
