@@ -2783,9 +2783,28 @@ function buildMapaPanel() {
   const panel = document.getElementById("mapa-panel-labores");
   if (!panel) return;
 
-  const todasLasLabores = (window._ganttState && window._ganttState.cache) || [];
+  const todasLasLaboresRaw = (window._ganttState && window._ganttState.cache) || [];
+  // Filtrar por temporada activa (alineado con Gantt)
+  const _tempActivaM = (typeof TEMPORADA_ACTIVA !== "undefined" && TEMPORADA_ACTIVA) ||
+                       (typeof getTemporadaActiva === "function" ? getTemporadaActiva() : "");
+  // Helper: temporada de una labor (con fallback por CC)
+  function _tempDeLab(r) {
+    let t = String(r.temporada || r.Temporada || "").trim();
+    if (t) return t;
+    const cc = String(r.centro_costo || r.Centro_Costo || r.cc || "").trim();
+    if (cc && typeof TEMP_MAP !== "undefined" && TEMP_MAP[cc]) {
+      return TEMP_MAP[cc].temporada || "";
+    }
+    return "";
+  }
+  const todasLasLabores = _tempActivaM
+    ? todasLasLaboresRaw.filter(l => {
+        const tl = _tempDeLab(l);
+        return !tl || tl === _tempActivaM; // si no hay temp, dejar pasar (legacy)
+      })
+    : todasLasLaboresRaw;
   // Filtradas según los chips del Gantt (para KPI 3)
-  const laboresFiltradas = (typeof ganttFilterData === "function") ? ganttFilterData(todasLasLabores) : todasLasLabores;
+  const laboresFiltradas = (typeof ganttFilterData === "function") ? ganttFilterData(todasLasLaboresRaw) : todasLasLabores;
 
   // Helper: matching tolerante de UP de labor → CC ID de BD_CC
   // Las labores legacy tienen up="VEGA", "PIV1", "NOG12"; BD_CC tiene "Vega", "Piv 1", "Nogales 25-26"
@@ -4287,7 +4306,28 @@ function ganttFilterData(data) {
     d.setHours(0,0,0,0);
     return d < _hoyFD;
   };
+  // Filtro por temporada activa: usar campo .temporada de la labor (viene del sheet)
+  // Si la labor no trae temporada, derivar del CC mediante TEMP_MAP (defensivo)
+  const _tempActivaG = (typeof TEMPORADA_ACTIVA !== "undefined" && TEMPORADA_ACTIVA) ||
+                       (typeof getTemporadaActiva === "function" ? getTemporadaActiva() : "");
+  // Helper local para mapear UP de labor a CC y obtener temporada
+  function _tempDeLabor(r) {
+    let t = String(r.temporada || r.Temporada || "").trim();
+    if (t) return t;
+    // Fallback: derivar via CC
+    const cc = String(r.centro_costo || r.Centro_Costo || r.cc || "").trim();
+    if (cc && typeof TEMP_MAP !== "undefined" && TEMP_MAP[cc]) {
+      return TEMP_MAP[cc].temporada || "";
+    }
+    return "";
+  }
   return data.filter(r => {
+    // Filtro estricto por temporada activa (alineado con el header)
+    if (_tempActivaG) {
+      const tempLab = _tempDeLabor(r);
+      // Si no se pudo determinar temporada, dejar pasar (no romper labores legacy)
+      if (tempLab && tempLab !== _tempActivaG) return false;
+    }
     // Ocultar completadas por defecto, salvo que verCompletadas=true
     if (!verCompletadas && r.estado === "Completada") return false;
     // Cultivo: si hay filtros activos, la labor debe coincidir con AL MENOS uno
