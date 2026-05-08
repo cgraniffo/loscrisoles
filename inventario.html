@@ -54,6 +54,7 @@
     gap: 4px;
     margin-bottom: 12px;
     border-bottom: 2px solid var(--border);
+    flex-wrap: wrap;
   }
   .tab {
     padding: 10px 18px;
@@ -70,6 +71,16 @@
     color: var(--verde);
     border-bottom-color: var(--verde);
     font-weight: 600;
+  }
+  .tab .count {
+    display: inline-block;
+    background: var(--rojo);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 7px;
+    font-size: 10px;
+    margin-left: 4px;
+    font-weight: 700;
   }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
@@ -128,6 +139,9 @@
   .badge.rojo { background: #fadbd8; color: var(--rojo); }
   .badge.cat-insumo { background: #e3edf7; color: var(--azul); }
   .badge.cat-produccion { background: #e8f5d8; color: var(--verde); }
+  .badge.origen-guia { background: #e3edf7; color: var(--azul); }
+  .badge.origen-bd_registro { background: #f5e6d3; color: #8a5a10; }
+  .badge.origen-ambos { background: #e8e3f7; color: #5d3a8a; }
 
   .badge-mov {
     display: inline-block;
@@ -174,6 +188,8 @@
   .btn-primary:hover { background: var(--verde-claro); }
   .btn-secondary { background: var(--border); color: var(--txt); }
   .btn-secondary:hover { background: #c5cdc6; }
+  .btn-danger { background: var(--rojo); color: white; }
+  .btn-danger:hover { background: #a02e22; }
   .btn-sm { padding: 4px 10px; font-size: 12px; }
   .btn-icon {
     background: transparent;
@@ -246,6 +262,15 @@
     padding-top: 12px;
     border-top: 1px solid var(--border);
   }
+  .info-box {
+    background: #fff8e6;
+    border-left: 3px solid var(--amarillo);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #6d5210;
+    margin-bottom: 10px;
+  }
 
   /* Toast */
   .toast {
@@ -280,6 +305,7 @@
   <button class="tab active" data-tab="stock">Stock actual</button>
   <button class="tab" data-tab="movs">Movimientos</button>
   <button class="tab" data-tab="maestro">Maestro</button>
+  <button class="tab" data-tab="mapeos">Mapeos<span class="count" id="countPendientes" style="display:none">0</span></button>
 </div>
 
 <!-- TAB STOCK -->
@@ -334,6 +360,48 @@
     <button class="btn btn-primary" onclick="abrirModalProducto()">+ Nuevo producto</button>
   </div>
   <div id="tablaMaestro"><div class="loader">Cargando productos…</div></div>
+</div>
+
+<!-- TAB MAPEOS -->
+<div class="tab-content" id="tab-mapeos">
+  <div class="info-box">
+    💡 Los mapeos vinculan los nombres de productos que aparecen en <strong>guías de despacho</strong> y <strong>BD_Registro</strong> con los productos del maestro de inventario.
+    Una vez mapeados, los movimientos de stock se generarán automáticamente.
+  </div>
+
+  <div class="tabs" style="margin-bottom: 8px;">
+    <button class="tab active" data-subtab="pendientes">Pendientes <span class="count" id="countPendientesSubtab" style="display:none">0</span></button>
+    <button class="tab" data-subtab="existentes">Mapeos existentes</button>
+  </div>
+
+  <!-- Subtab Pendientes -->
+  <div class="subtab-content active" id="subtab-pendientes">
+    <div class="filters">
+      <input type="text" id="filtroPendiente" placeholder="Buscar item…">
+      <select id="filtroPendienteOrigen">
+        <option value="">Todos los orígenes</option>
+        <option value="GUIA">Guías</option>
+        <option value="BD_REGISTRO">BD_Registro</option>
+      </select>
+      <button class="btn btn-secondary btn-sm" onclick="cargarPendientes()">🔄 Refrescar</button>
+    </div>
+    <div id="tablaPendientes"><div class="loader">Cargando…</div></div>
+  </div>
+
+  <!-- Subtab Existentes -->
+  <div class="subtab-content" id="subtab-existentes" style="display:none">
+    <div class="filters">
+      <input type="text" id="filtroMapeo" placeholder="Buscar mapeo…">
+      <select id="filtroMapeoOrigen">
+        <option value="">Todos los orígenes</option>
+        <option value="GUIA">Guías</option>
+        <option value="BD_REGISTRO">BD_Registro</option>
+        <option value="AMBOS">Ambos</option>
+      </select>
+      <button class="btn btn-primary" onclick="abrirModalMapeo()">+ Nuevo mapeo</button>
+    </div>
+    <div id="tablaMapeos"><div class="loader">Cargando…</div></div>
+  </div>
 </div>
 
 <!-- MODAL PRODUCTO (alta/edición) -->
@@ -398,7 +466,7 @@
           <input type="number" id="prod_umbral_amarillo" step="0.01" placeholder="Ej: 200">
         </div>
         <div class="full" style="font-size: 11px; color: var(--txt-soft); padding: 6px 10px; background: var(--bg); border-radius: 4px;">
-          💡 Si dejás los umbrales vacíos, se usa la regla global: 🔴 ≤ 50% del mínimo · 🟡 ≤ mínimo
+          💡 Si dejas los umbrales vacíos, se usa la regla global: 🔴 ≤ 50% del mínimo · 🟡 ≤ mínimo
         </div>
         <div class="full">
           <label>Observación</label>
@@ -441,6 +509,48 @@
   </div>
 </div>
 
+<!-- MODAL MAPEO (alta/edición) -->
+<div class="modal-bg" id="modalMapeo">
+  <div class="modal">
+    <h2 id="modalMapeoTitulo">Nuevo mapeo</h2>
+    <form onsubmit="event.preventDefault(); guardarMapeo();">
+      <input type="hidden" id="mapeo_id">
+      <div class="form-grid">
+        <div class="full">
+          <label>Nombre del item (tal como aparece en la fuente) *</label>
+          <input type="text" id="mapeo_nombre_item" required placeholder="Ej: UREA GRANULADA 46% SACO 50KG">
+        </div>
+        <div>
+          <label>Origen *</label>
+          <select id="mapeo_origen" required>
+            <option value="AMBOS">Ambos (guías + BD_Registro)</option>
+            <option value="GUIA">Solo guías</option>
+            <option value="BD_REGISTRO">Solo BD_Registro</option>
+          </select>
+        </div>
+        <div>
+          <label>Factor de conversión</label>
+          <input type="number" id="mapeo_factor" step="0.01" value="1" placeholder="Ej: 50 (saco a kg)">
+        </div>
+        <div class="full">
+          <label>Producto del inventario *</label>
+          <select id="mapeo_id_producto" required>
+            <option value="">— Selecciona un producto —</option>
+          </select>
+        </div>
+        <div class="full" style="font-size: 11px; color: var(--txt-soft); padding: 6px 10px; background: var(--bg); border-radius: 4px;">
+          💡 <strong>Factor de conversión:</strong> si la guía dice "10 sacos" y tu inventario es en kg, el factor sería 50 (cada saco = 50 kg). Si las unidades coinciden, déjalo en 1.
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="btnEliminarMapeo" onclick="eliminarMapeoActual()" style="display:none; margin-right: auto;">Eliminar</button>
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modalMapeo')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -449,6 +559,8 @@ const API_INVENTARIO_POST = 'https://round-night-574d.christian-19c.workers.dev/
 
 window.PRODUCTOS = [];
 window.MOVIMIENTOS = [];
+window.MAPEOS = [];
+window.PENDIENTES = [];
 
 // ====== CARGA INICIAL ======
 async function cargarTodo() {
@@ -467,9 +579,52 @@ async function cargarTodo() {
     renderStock();
     renderMovs();
     renderMaestro();
+
+    // Cargar mapeos en background
+    cargarMapeos();
+    cargarPendientes();
   } catch (err) {
     document.getElementById('kpis').innerHTML =
       `<div class="err">Error cargando datos: ${err.message}</div>`;
+    console.error(err);
+  }
+}
+
+async function cargarMapeos() {
+  try {
+    const res = await fetch(`${API_INVENTARIO}&action=get_mapeos`).then(r => r.json());
+    if (!res.ok) throw new Error(res.error);
+    window.MAPEOS = res.mapeos || [];
+    renderMapeos();
+  } catch (err) {
+    console.error('Error cargando mapeos:', err);
+  }
+}
+
+async function cargarPendientes() {
+  try {
+    document.getElementById('tablaPendientes').innerHTML = '<div class="loader">Cargando…</div>';
+    const res = await fetch(`${API_INVENTARIO}&action=get_items_sin_mapear`).then(r => r.json());
+    if (!res.ok) throw new Error(res.error);
+    window.PENDIENTES = res.items || [];
+    renderPendientes();
+
+    // Badge contador en tab principal
+    const count = window.PENDIENTES.length;
+    const badge = document.getElementById('countPendientes');
+    const badgeSub = document.getElementById('countPendientesSubtab');
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline-block';
+      badgeSub.textContent = count;
+      badgeSub.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+      badgeSub.style.display = 'none';
+    }
+  } catch (err) {
+    document.getElementById('tablaPendientes').innerHTML =
+      `<div class="err">Error: ${err.message}</div>`;
     console.error(err);
   }
 }
@@ -687,6 +842,108 @@ function renderMaestro() {
   `;
 }
 
+// ====== TAB MAPEOS ======
+function renderPendientes() {
+  const filtro = document.getElementById('filtroPendiente').value.toLowerCase();
+  const filtroOrigen = document.getElementById('filtroPendienteOrigen').value;
+
+  let filtrados = window.PENDIENTES.filter(p => {
+    if (filtroOrigen && p.Origen !== filtroOrigen) return false;
+    if (filtro && !String(p.Nombre_Item).toLowerCase().includes(filtro)) return false;
+    return true;
+  });
+
+  if (filtrados.length === 0) {
+    document.getElementById('tablaPendientes').innerHTML =
+      '<div class="empty">🎉 Sin items pendientes de mapear. Todos los items de guías y BD_Registro están vinculados.</div>';
+    return;
+  }
+
+  const rows = filtrados.map(p => {
+    const origenClass = 'origen-' + String(p.Origen).toLowerCase();
+    return `
+      <tr>
+        <td><span class="badge ${origenClass}">${p.Origen}</span></td>
+        <td><strong>${p.Nombre_Item}</strong></td>
+        <td class="num">${p.Apariciones}</td>
+        <td class="num">${formatNum(p.Cantidad_Total)}</td>
+        <td>${p.Ejemplo_Folio || '—'}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalMapeoDesdePendiente('${escapeAttr(p.Nombre_Item)}', '${p.Origen}')">Mapear →</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('tablaPendientes').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Origen</th>
+          <th>Nombre del item</th>
+          <th style="text-align:right">Apariciones</th>
+          <th style="text-align:right">Cantidad total</th>
+          <th>Ejemplo (folio)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function renderMapeos() {
+  const filtro = document.getElementById('filtroMapeo').value.toLowerCase();
+  const filtroOrigen = document.getElementById('filtroMapeoOrigen').value;
+
+  let filtrados = window.MAPEOS.filter(m => {
+    if (filtroOrigen && m.Origen !== filtroOrigen) return false;
+    if (filtro && !String(m.Nombre_Item).toLowerCase().includes(filtro) &&
+        !String(m.Producto_Actual).toLowerCase().includes(filtro)) return false;
+    return true;
+  });
+
+  filtrados.sort((a, b) => String(a.Nombre_Item).localeCompare(String(b.Nombre_Item)));
+
+  if (filtrados.length === 0) {
+    document.getElementById('tablaMapeos').innerHTML =
+      '<div class="empty">No hay mapeos. Crea el primero desde "Pendientes" o con "+ Nuevo mapeo".</div>';
+    return;
+  }
+
+  const rows = filtrados.map(m => {
+    const origenClass = 'origen-' + String(m.Origen).toLowerCase();
+    return `
+      <tr>
+        <td><span class="badge ${origenClass}">${m.Origen}</span></td>
+        <td><strong>${m.Nombre_Item}</strong></td>
+        <td>→</td>
+        <td>${m.Producto_Actual || '(eliminado)'} <small style="color:var(--txt-soft)">(${m.Unidad_Producto || ''})</small></td>
+        <td class="num">×${formatNum(m.Factor_Conversion)}</td>
+        <td>
+          <button class="btn-icon" onclick="abrirModalMapeo('${m.Id_Mapeo}')" title="Editar">✏️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('tablaMapeos').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Origen</th>
+          <th>Nombre item</th>
+          <th></th>
+          <th>Producto del inventario</th>
+          <th style="text-align:right">Factor</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
 // ====== MODAL PRODUCTO ======
 function abrirModalProducto(idProducto) {
   document.getElementById('modalProductoTitulo').textContent = idProducto ? 'Editar producto' : 'Nuevo producto';
@@ -809,6 +1066,118 @@ async function guardarAjuste() {
   }
 }
 
+// ====== MODAL MAPEO ======
+function poblarSelectProductos() {
+  const sel = document.getElementById('mapeo_id_producto');
+  const productos = [...window.PRODUCTOS].sort((a, b) =>
+    String(a.Producto).localeCompare(String(b.Producto)));
+  sel.innerHTML = '<option value="">— Selecciona un producto —</option>' +
+    productos.map(p => `<option value="${p.Id_Producto}">${p.Producto} (${p.Unidad})</option>`).join('');
+}
+
+function abrirModalMapeo(idMapeo) {
+  poblarSelectProductos();
+  document.getElementById('modalMapeoTitulo').textContent = idMapeo ? 'Editar mapeo' : 'Nuevo mapeo';
+  document.getElementById('mapeo_id').value = idMapeo || '';
+  document.getElementById('btnEliminarMapeo').style.display = idMapeo ? 'inline-block' : 'none';
+
+  if (idMapeo) {
+    const m = window.MAPEOS.find(x => x.Id_Mapeo === idMapeo);
+    if (!m) return;
+    document.getElementById('mapeo_nombre_item').value = m.Nombre_Item || '';
+    document.getElementById('mapeo_origen').value = m.Origen || 'AMBOS';
+    document.getElementById('mapeo_factor').value = m.Factor_Conversion || 1;
+    document.getElementById('mapeo_id_producto').value = m.Id_Producto || '';
+  } else {
+    document.getElementById('mapeo_nombre_item').value = '';
+    document.getElementById('mapeo_origen').value = 'AMBOS';
+    document.getElementById('mapeo_factor').value = 1;
+    document.getElementById('mapeo_id_producto').value = '';
+  }
+
+  document.getElementById('modalMapeo').classList.add('show');
+}
+
+function abrirModalMapeoDesdePendiente(nombreItem, origen) {
+  poblarSelectProductos();
+  document.getElementById('modalMapeoTitulo').textContent = 'Mapear item pendiente';
+  document.getElementById('mapeo_id').value = '';
+  document.getElementById('btnEliminarMapeo').style.display = 'none';
+  document.getElementById('mapeo_nombre_item').value = nombreItem;
+  document.getElementById('mapeo_origen').value = origen;
+  document.getElementById('mapeo_factor').value = 1;
+  document.getElementById('mapeo_id_producto').value = '';
+
+  document.getElementById('modalMapeo').classList.add('show');
+}
+
+async function guardarMapeo() {
+  const idMapeo = document.getElementById('mapeo_id').value;
+  const esEdicion = !!idMapeo;
+
+  const payload = {
+    api: 'inventario',
+    action: esEdicion ? 'update_mapeo' : 'add_mapeo',
+    id_mapeo: idMapeo || undefined,
+    nombre_item: document.getElementById('mapeo_nombre_item').value.trim(),
+    origen: document.getElementById('mapeo_origen').value,
+    factor_conversion: Number(document.getElementById('mapeo_factor').value) || 1,
+    id_producto: document.getElementById('mapeo_id_producto').value,
+    activo: 'TRUE',
+    usuario: 'dashboard'
+  };
+
+  if (!payload.id_producto) {
+    toast('Selecciona un producto', true);
+    return;
+  }
+
+  try {
+    const res = await fetch(API_INVENTARIO_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error || 'Error desconocido');
+
+    cerrarModal('modalMapeo');
+    toast(esEdicion ? 'Mapeo actualizado' : 'Mapeo creado');
+    await cargarMapeos();
+    await cargarPendientes();
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+    console.error(err);
+  }
+}
+
+async function eliminarMapeoActual() {
+  const idMapeo = document.getElementById('mapeo_id').value;
+  if (!idMapeo) return;
+  if (!confirm('¿Seguro que quieres eliminar este mapeo? El item volverá a aparecer en la lista de pendientes.')) return;
+
+  try {
+    const res = await fetch(API_INVENTARIO_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api: 'inventario',
+        action: 'delete_mapeo',
+        id_mapeo: idMapeo
+      })
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error || 'Error desconocido');
+
+    cerrarModal('modalMapeo');
+    toast('Mapeo eliminado');
+    await cargarMapeos();
+    await cargarPendientes();
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+  }
+}
+
 // ====== UTILIDADES ======
 function cerrarModal(id) {
   document.getElementById(id).classList.remove('show');
@@ -833,6 +1202,10 @@ function formatM(n) {
   return num.toFixed(0);
 }
 
+function escapeAttr(s) {
+  return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
 // Cerrar modal al click en fondo
 document.querySelectorAll('.modal-bg').forEach(bg => {
   bg.addEventListener('click', e => {
@@ -840,13 +1213,23 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
   });
 });
 
-// Tabs
-document.querySelectorAll('.tab').forEach(btn => {
+// Tabs principales
+document.querySelectorAll('.tabs > .tab[data-tab]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tabs > .tab[data-tab]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('body > .tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// Subtabs (dentro de Mapeos)
+document.querySelectorAll('.tab[data-subtab]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab[data-subtab]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.subtab-content').forEach(c => c.style.display = 'none');
+    btn.classList.add('active');
+    document.getElementById('subtab-' + btn.dataset.subtab).style.display = 'block';
   });
 });
 
@@ -859,6 +1242,12 @@ document.querySelectorAll('.tab').forEach(btn => {
 });
 ['filtroMaestro','filtroMaestroCat'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderMaestro);
+});
+['filtroPendiente','filtroPendienteOrigen'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderPendientes);
+});
+['filtroMapeo','filtroMapeoOrigen'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderMapeos);
 });
 
 cargarTodo();
