@@ -89,9 +89,11 @@
       background: #1a3a0a; padding: 10px 12px;
       border-bottom: 1px solid rgba(134,239,172,0.15);
       flex-shrink: 0;
-      overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       margin-top: 10px;
+      position: relative;
+      z-index: 200;
+      overflow: visible;
     }
 
     .nav-item {
@@ -150,7 +152,7 @@
       border-radius: 10px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.18);
       padding: 6px;
-      z-index: 100;
+      z-index: 1000;
       animation: dropdownIn 0.12s ease-out;
     }
     .nav-item.open .nav-dropdown { display: block; }
