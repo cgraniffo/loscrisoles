@@ -574,18 +574,21 @@ if (location.search.includes('embed=1')) {
   <!-- ── RESUMEN ───────────────────────────────────────────── -->
   <div class="section on" id="sec-resumen">
 
-    <!-- ═══ ZONA 1 · ACCIÓN INMEDIATA ═══ -->
+    <!-- ═══ ZONA 1 · OPERACIÓN DEL CAMPO (fusión ex-1 + ex-3) ═══ -->
     <section class="zona-box">
     <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
       <div class="zona-num-circle" style="background:#1A3A0A;">1</div>
       <div class="zona-titulo-text">
-        <div class="zona-titulo-name" style="color:#1A3A0A;">Acción inmediata</div>
-        <div class="zona-titulo-hint">¿qué tengo que resolver hoy?</div>
+        <div class="zona-titulo-name" style="color:#1A3A0A;">Operación del campo</div>
+        <div class="zona-titulo-hint">¿qué está pasando y qué hay que hacer?</div>
         <div class="zona-headline" id="headline-zona-1">—</div>
       </div>
     </div>
 
-    <div class="grid-2">
+    <!-- 3 cards: Atrasadas (expandible) · Esta semana (expandible) · Productividad mensual (link) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+
+      <!-- Card 1: Labores atrasadas (expandible) -->
       <details class="card zona-card zona-alerta" data-zona="1">
         <summary>
           <div style="display:flex;align-items:center;gap:12px;flex:1;">
@@ -602,22 +605,40 @@ if (location.search.includes('embed=1')) {
         </summary>
         <div class="card-body" id="card-labores"><div class="loading pulse">Cargando...</div></div>
       </details>
+
+      <!-- Card 2: Esta semana (expandible) -->
       <details class="card zona-card" data-zona="1">
         <summary>
           <div style="display:flex;align-items:center;gap:12px;flex:1;">
-            <div style="font-size:18px;" id="icon-sin-asignar">📎</div>
+            <div style="font-size:18px;">📅</div>
             <div>
-              <div class="card-title">Documentos sin asignar</div>
-              <div class="summary-hint" id="hint-sin-asignar">—</div>
+              <div class="card-title">Esta semana</div>
+              <div class="summary-hint" id="hint-semana">—</div>
             </div>
           </div>
           <div class="summary-meta">
-            <span class="status-badge" id="badge-sin-asignar">—</span>
-            <span class="caret">▶</span><span class="meta-sep"></span><a href="#" onclick="navTo('asignar','/asignar');return false;" class="ver-btn">Asignar →</a>
+            <span class="status-badge" id="badge-semana">—</span>
+            <span class="caret">▶</span><span class="meta-sep"></span><a href="#" onclick="navTo('labores','/reporte');return false;" class="ver-btn">Ver →</a>
           </div>
         </summary>
-        <div class="card-body" id="card-sin-asignar"><div class="loading pulse">Cargando...</div></div>
+        <div class="card-body" id="card-semana"><div class="loading pulse">Cargando...</div></div>
       </details>
+
+      <!-- Card 3: Productividad mensual (link directo, no expandible) -->
+      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-avance" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;display:flex;flex-direction:column;justify-content:space-between;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <div style="font-size:18px;">📈</div>
+            <div style="font-size:13px;font-weight:600;color:#1c1c1a;">Productividad mensual</div>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:6px;" id="pipe-avance-nums">
+            <span style="font-size:14px;color:var(--gris);">cargando...</span>
+          </div>
+          <div style="font-size:10px;color:var(--gris);margin-top:4px;" id="pipe-avance-sub">&nbsp;</div>
+        </div>
+        <div style="font-size:10px;color:var(--gris);margin-top:8px;text-align:right;">Ver detalle →</div>
+      </a>
+
     </div>
     </section>
 
@@ -739,50 +760,12 @@ if (location.search.includes('embed=1')) {
     </div>
     </section>
 
-    <!-- ═══ ZONA 3 · PIPELINE PRODUCTIVO ═══ -->
-    <section class="zona-box">
-    <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
-      <div class="zona-num-circle" style="background:#1A3A0A;">3</div>
-      <div class="zona-titulo-text">
-        <div class="zona-titulo-name" style="color:#1A3A0A;">Pipeline productivo</div>
-        <div class="zona-titulo-hint">¿cómo va el campo?</div>
-        <div class="zona-headline" id="headline-zona-3">—</div>
-      </div>
-    </div>
 
-    <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;">
-      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-labores" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
-        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">📋 Labores esta semana</div>
-        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap;" id="pipe-labores-nums">
-          <span style="font-size:14px;color:var(--gris);">cargando...</span>
-        </div>
-        <div style="background:#F1EFE8;border-radius:3px;height:4px;display:flex;overflow:hidden;" id="pipe-labores-bar">
-          <div style="background:#E24B4A;width:0%;"></div>
-          <div style="background:#BA7517;width:0%;"></div>
-        </div>
-      </a>
-
-      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-avance" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
-        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">📈 Productividad mensual</div>
-        <div style="display:flex;align-items:baseline;gap:6px;" id="pipe-avance-nums">
-          <span style="font-size:14px;color:var(--gris);">cargando...</span>
-        </div>
-        <div style="font-size:10px;color:var(--gris);margin-top:4px;" id="pipe-avance-sub">&nbsp;</div>
-      </a>
-
-      <a href="#" onclick="navTo('labores','/reporte');return false;" class="pipeline-card" id="pipe-eventos" style="background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:10px;padding:12px 14px;text-decoration:none;color:inherit;transition:all 0.15s;">
-        <div style="font-size:11px;color:var(--gris);margin-bottom:6px;">📅 Atrasadas y urgentes</div>
-        <div style="font-size:12px;color:#1c1c1a;line-height:1.5;" id="pipe-eventos-list">
-          <span style="color:var(--gris);">cargando...</span>
-        </div>
-      </a>
-    </div>
-    </section>
 
     <!-- ═══ ZONA 4 · HERRAMIENTAS ═══ -->
     <section class="zona-box">
     <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
-      <div class="zona-num-circle" style="background:#1A3A0A;">4</div>
+      <div class="zona-num-circle" style="background:#1A3A0A;">3</div>
       <div class="zona-titulo-text">
         <div class="zona-titulo-name" style="color:#1A3A0A;">Herramientas</div>
         <div class="zona-titulo-hint">acciones proactivas</div>
@@ -804,7 +787,7 @@ if (location.search.includes('embed=1')) {
     <!-- ═══ ZONA 5 · CONTRATOS ═══ -->
     <section class="zona-box">
     <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
-      <div class="zona-num-circle" style="background:#1A3A0A;">5</div>
+      <div class="zona-num-circle" style="background:#1A3A0A;">4</div>
       <div class="zona-titulo-text">
         <div class="zona-titulo-name" style="color:#1A3A0A;">Contratos</div>
         <div class="zona-titulo-hint">compromisos vigentes de venta</div>
@@ -877,7 +860,7 @@ if (location.search.includes('embed=1')) {
     <!-- ═══ ZONA 6 · MAPA ═══ -->
     <section class="zona-box">
     <div class="zona-titulo" style="display:flex;align-items:center;gap:12px;">
-      <div class="zona-num-circle" style="background:#1A3A0A;">6</div>
+      <div class="zona-num-circle" style="background:#1A3A0A;">5</div>
       <div class="zona-titulo-text">
         <div class="zona-titulo-name" style="color:#1A3A0A;">Mapa</div>
         <div class="zona-titulo-hint">vista del campo</div>
@@ -1731,13 +1714,15 @@ function renderHome({ registros, asignaciones, proyecciones }) {
       }).join('');
     document.getElementById('card-cobrar').innerHTML = `<table class="mini-tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${cobrar30HTML}</tbody></table>`;
 
-    document.getElementById('card-sin-asignar').innerHTML = sinAsignar.slice(0,8).map(r => `
+    { const _csa1 = document.getElementById('card-sin-asignar');
+      if (_csa1) _csa1.innerHTML = sinAsignar.slice(0,8).map(r => `
       <tr><td>${String(r["Razón Social"]||"").trim().slice(0,30)}</td>
       <td style="color:var(--gris);">F:${r["Folio"]||"—"}</td>
       <td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`)
-      .join('');
+      .join(''); }
     const docRow = r => `<tr><td>${String(r["Razón Social"]||"").trim().slice(0,28)}</td><td style="color:var(--gris);">F:${r["Folio"]||"—"}</td><td style="color:var(--gris);font-size:10px;">${String(r["Fecha Emisión"]||"").split("T")[0]}</td><td style="text-align:right;font-weight:600;color:var(--amber);">${fmtPeso(Number(r["Monto Total"]||0))}</td></tr>`;
-    document.getElementById('card-sin-asignar').innerHTML = `
+    { const _csa2 = document.getElementById('card-sin-asignar');
+      if (_csa2) _csa2.innerHTML = `
       ${sinAsigNuevos.length>0?`
         <div style="font-size:10px;font-weight:bold;color:#c0392b;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Desde 01-Abr (${sinAsigNuevos.length})</div>
         <table class="mini-tbl" style="margin-bottom:12px;"><thead><tr><th>Proveedor</th><th>Folio</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsigNuevos.slice(0,5).map(docRow).join('')}</tbody></table>
@@ -1746,7 +1731,7 @@ function renderHome({ registros, asignaciones, proyecciones }) {
         <div style="font-size:10px;font-weight:bold;color:var(--gris);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Anteriores al 01-Abr (${sinAsigViejos.length})</div>
         <table class="mini-tbl"><thead><tr><th>Proveedor</th><th>Folio</th><th>Fecha</th><th style="text-align:right;">Monto</th></tr></thead><tbody>${sinAsigViejos.slice(0,5).map(docRow).join('')}</tbody></table>
       `:""}
-      ${sinAsignar.length===0?'<div style="text-align:center;color:var(--gris);padding:20px;">🎉 Todo asignado</div>':""}`;
+      ${sinAsignar.length===0?'<div style="text-align:center;color:var(--gris);padding:20px;">🎉 Todo asignado</div>':""}`; }
 
     window._activos      = activos;
     window._proyecciones = Array.isArray(proyecciones) ? proyecciones : [];
@@ -1972,12 +1957,31 @@ async function actualizarVencidasDesdePlanLabores() {
     const activas  = planLabores.filter(l => String(l.estado||"").trim() !== "Completada").length;
 
     // Próximos 7 días: labores no completadas con Fecha_Inicio entre hoy y hoy+7
-    const prox7d = planLabores.filter(l => {
+    const prox7Filter = planLabores.filter(l => {
       const est = String(l.estado||"").trim();
       if (est === "Completada") return false;
       const di = parseFecha(l.inicio);
       return di && di >= hoyV && di <= en7;
-    }).length;
+    });
+    const prox7d = prox7Filter.length;
+
+    // Lista detallada para card "Esta semana": ordenada por fecha de inicio ascendente
+    const prox7List = prox7Filter.map(l => {
+      const di = parseFecha(l.inicio);
+      const df = parseFecha(l.fin);
+      const diasParaInicio = di ? Math.round((di - hoyV) / 86400000) : null;
+      return {
+        tarea: String(l.tarea||"").trim(),
+        cultivo: String(l.cultivo||"").trim(),
+        up: String(l.up||"").trim(),
+        prioridad: String(l.prioridad||"").trim(),
+        responsables: String(l.responsables||"").trim(),
+        estado: String(l.estado||"").trim(),
+        inicio: di,
+        fin: df,
+        diasParaInicio
+      };
+    }).sort((a,b) => (a.inicio || 0) - (b.inicio || 0));
 
     // Productividad: completadas este mes vs mes pasado
     let compMesAct = 0, compMesPas = 0;
@@ -2005,7 +2009,7 @@ async function actualizarVencidasDesdePlanLabores() {
     }).sort((a,b) => b.dias - a.dias).slice(0, 4);
 
     window._planLaboresStats = {
-      vencidas, activas, prox7d,
+      vencidas, activas, prox7d, prox7List,
       compMesAct, compMesPas, varPct,
       atrasadasList
     };
@@ -2048,42 +2052,75 @@ function sincronizarUIDesdePlanLabores() {
   // ── Headline zona 1 (Acción inmediata) ──────────────────────────────────
   const _h1 = document.getElementById('headline-zona-1');
   if (_h1) {
-    const docs = window.DOCUMENTOS || [];
-    const CORTE = "2026-04-01";
-    const sinAsig = docs.filter(d => {
-      const f = String(d["Fundo"]||"").trim();
-      const fe = String(d["Fecha Emisión"]||"").split("T")[0];
-      return (f===""||f==="FUNDO_NO_ENCONTRADO") && fe>=CORTE;
-    }).length;
-    if (vencidas === 0 && sinAsig === 0) {
-      _h1.innerHTML = 'Sin pendientes urgentes hoy. Todo al día.';
+    // Headline narrativo: combinar productividad + atrasadas + esta semana
+    const prox7 = stats.prox7d || 0;
+    const compMesActL = stats.compMesAct != null ? stats.compMesAct : 0;
+    const varPctL = stats.varPct;
+    const partesProd = [];
+    if (compMesActL > 0) {
+      let prodTxt = `<b>${compMesActL}</b> labor${compMesActL===1?'':'es'} completada${compMesActL===1?'':'s'} este mes`;
+      if (varPctL != null) {
+        const colorVar = varPctL >= 0 ? '#3B6D11' : '#A32D2D';
+        const signo = varPctL >= 0 ? '+' : '';
+        prodTxt += ` (<span style="color:${colorVar};font-weight:600;">${signo}${varPctL}% vs mes pasado</span>)`;
+      }
+      partesProd.push(prodTxt);
+    }
+    const partesPend = [];
+    if (vencidas > 0) partesPend.push(`<b>${vencidas}</b> atrasada${vencidas===1?'':'s'}`);
+    if (prox7 > 0) partesPend.push(`<b>${prox7}</b> programada${prox7===1?'':'s'} esta semana`);
+
+    if (vencidas === 0 && prox7 === 0 && compMesActL === 0) {
+      _h1.innerHTML = 'Sin actividad reciente registrada.';
+      _h1.className = 'zona-headline';
+    } else if (vencidas === 0 && partesPend.length === 0) {
+      // Solo productividad para mostrar
+      _h1.innerHTML = partesProd.join('') + '. Sin labores pendientes.';
       _h1.className = 'zona-headline';
     } else {
-      const partes = [];
-      if (vencidas > 0) partes.push(`<b>${vencidas}</b> labor${vencidas===1?'':'es'} atrasada${vencidas===1?'':'s'}`);
-      if (sinAsig > 0) partes.push(`<b>${sinAsig}</b> documento${sinAsig===1?'':'s'} sin asignar`);
-      _h1.innerHTML = `Atención: hay ${partes.join(' y ')} esperando resolución.`;
-      _h1.className = 'zona-headline alerta';
+      const txt = partesProd.length > 0
+        ? `${partesProd.join('')}, pero quedan ${partesPend.join(' y ')}.`
+        : `Quedan ${partesPend.join(' y ')}.`;
+      _h1.innerHTML = txt;
+      _h1.className = vencidas > 0 ? 'zona-headline alerta' : 'zona-headline';
     }
   }
 
-  // ── Card "Labores esta semana" en zona 3 (números grandes + barra) ──────
-  // Usa stats.prox7d que viene de Plan_Labores (no de BD_Registro)
-  const prox7d = stats.prox7d != null ? stats.prox7d : (window._labProg7d || 0);
-  const _pLabs = document.getElementById('pipe-labores-nums');
-  if (_pLabs) {
-    const colorAtr = vencidas > 0 ? '#A32D2D' : '#3B6D11';
-    _pLabs.innerHTML =
-        `<span style="font-size:22px;font-weight:700;color:${colorAtr};font-variant-numeric:tabular-nums;">${vencidas}</span><span style="font-size:12px;color:var(--gris);">atrasadas</span>`
-      + ` <span style="color:rgba(0,0,0,0.2);">·</span> `
-      + `<span style="font-size:16px;font-weight:600;color:#1c1c1a;font-variant-numeric:tabular-nums;">${prox7d}</span><span style="font-size:12px;color:var(--gris);">próximos 7 días</span>`;
+  // ── Card "Esta semana" (zona 1) — nuevo card expandible ───────────────
+  const prox7d = stats.prox7d != null ? stats.prox7d : 0;
+  const _hSem = document.getElementById('hint-semana');
+  if (_hSem) {
+    _hSem.textContent = prox7d > 0 ? `${prox7d} programada${prox7d===1?'':'s'} próximos 7 días` : 'sin labores programadas';
+    _hSem.style.color = prox7d > 0 ? '#1c1c1a' : 'var(--gris)';
   }
-  const _pLabsBar = document.getElementById('pipe-labores-bar');
-  if (_pLabsBar && _pLabsBar.children.length >= 2) {
-    const total = Math.max(vencidas + prox7d, 1);
-    const pctAtr = Math.round(vencidas / total * 100);
-    _pLabsBar.children[0].style.width = pctAtr + '%';
-    _pLabsBar.children[1].style.width = (100 - pctAtr) + '%';
+  const _bdgSem = document.getElementById('badge-semana');
+  if (_bdgSem) {
+    if (prox7d === 0) { _bdgSem.textContent = 'sin programadas'; _bdgSem.className = 'status-badge ok'; }
+    else { _bdgSem.textContent = `${prox7d} programadas`; _bdgSem.className = 'status-badge'; _bdgSem.style.background = '#fff7e6'; _bdgSem.style.color = '#854F0B'; }
+  }
+  const _cardSem = document.getElementById('card-semana');
+  if (_cardSem && Array.isArray(stats.prox7List)) {
+    if (stats.prox7List.length === 0) {
+      _cardSem.innerHTML = '<div style="text-align:center;color:var(--gris);padding:16px;font-size:12px;">Sin labores programadas para los próximos 7 días</div>';
+    } else {
+      const fmtDia = d => d ? d.toLocaleDateString('es-CL', { day:'2-digit', month:'2-digit' }) : '—';
+      _cardSem.innerHTML = stats.prox7List.slice(0, 8).map(l => {
+        const colorPunto = l.prioridad === 'Urgente' ? '#A32D2D' : '#3B6D11';
+        const ctxParts = [l.cultivo, l.up].filter(Boolean);
+        const ctxTxt = ctxParts.length > 0 ? ` <span style="color:#888;">· ${ctxParts.join(' · ')}</span>` : '';
+        const tareaCorta = l.tarea.length > 35 ? l.tarea.slice(0,35) + '…' : l.tarea;
+        const respTxt = l.responsables ? ` <span style="color:#888;">· ${l.responsables}</span>` : '';
+        const inicioTxt = fmtDia(l.inicio);
+        return `<div style="padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.04);font-size:12px;line-height:1.4;">
+          <span style="color:${colorPunto};">●</span>
+          <span style="color:var(--gris);font-variant-numeric:tabular-nums;">${inicioTxt}</span>
+          · ${tareaCorta}${ctxTxt}${respTxt}
+        </div>`;
+      }).join('');
+      if (stats.prox7List.length > 8) {
+        _cardSem.innerHTML += `<div style="text-align:center;color:var(--gris);font-size:11px;padding:6px;">y ${stats.prox7List.length - 8} más…</div>`;
+      }
+    }
   }
 
   // ── Card "Productividad mensual" (zona 3) ────────────────────────────────
@@ -2105,34 +2142,9 @@ function sincronizarUIDesdePlanLabores() {
     }
   }
 
-  // ── Card "Atrasadas y urgentes" (zona 3) ─────────────────────────────────
-  if (Array.isArray(stats.atrasadasList)) {
-    const _pEvt = document.getElementById('pipe-eventos-list');
-    if (_pEvt) {
-      if (stats.atrasadasList.length === 0) {
-        _pEvt.innerHTML = '<span style="color:var(--gris);font-size:11px;">Sin labores atrasadas</span>';
-      } else {
-        _pEvt.innerHTML = stats.atrasadasList.map(l => {
-          const colorPunto = l.prioridad === 'Urgente' ? '#A32D2D' : '#d97706';
-          const ctxParts = [l.cultivo, l.up].filter(Boolean);
-          const ctxTxt = ctxParts.length > 0 ? ` <span style="color:#888;">· ${ctxParts.join(' · ')}</span>` : '';
-          const tareaCorta = l.tarea.length > 20 ? l.tarea.slice(0,20) : l.tarea;
-          return `<div><span style="color:${colorPunto};">●</span> ${tareaCorta}${ctxTxt} · <span style="color:var(--gris);">atrasada ${l.dias} días</span></div>`;
-        }).join('');
-      }
-    }
-  }
 
-  // ── Headline zona 3 (Pipeline productivo) ────────────────────────────────
-  // Reemplazar solo "X atrasadas" en el headline (sin tocar los otros números)
-  const _h3 = document.getElementById('headline-zona-3');
-  if (_h3 && _h3.innerHTML) {
-    // Reemplazar el patrón "<b>NN</b> atrasadas" con el conteo correcto
-    _h3.innerHTML = _h3.innerHTML.replace(
-      /<b>\d+<\/b>\s*atrasadas/g,
-      `<b>${vencidas}</b> atrasadas`
-    );
-  }
+
+
 }
 
 // Esperar 1.5s para que main() termine y luego sobreescribir con datos de Plan_Labores
