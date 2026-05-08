@@ -340,12 +340,13 @@
     <select id="filtroMovOrigen">
       <option value="">Todos los orígenes</option>
       <option value="GUIA">Guía</option>
-      <option value="BD_REGISTRO">BD_Registro</option>
       <option value="COSECHA">Cosecha</option>
       <option value="MANUAL">Manual</option>
     </select>
     <button class="btn btn-primary" onclick="abrirModalProcesarGuias()">⚡ Procesar guías</button>
   </div>
+  <div id="tablaMovs"><div class="loader">Cargando movimientos…</div></div>
+</div>
 
 <!-- TAB MAESTRO -->
 <div class="tab-content" id="tab-maestro">
@@ -364,8 +365,7 @@
 <!-- TAB MAPEOS -->
 <div class="tab-content" id="tab-mapeos">
   <div class="info-box">
-    💡 Los mapeos vinculan los nombres de productos que aparecen en <strong>guías de despacho</strong> y <strong>BD_Registro</strong> con los productos del maestro de inventario.
-    Una vez mapeados, los movimientos de stock se generarán automáticamente.
+    💡 Los mapeos vinculan los nombres de productos que aparecen en <strong>guías de despacho</strong> con los productos del maestro de inventario. Una vez mapeados, los movimientos de stock se generarán automáticamente al procesar guías.
   </div>
 
   <div class="tabs" style="margin-bottom: 8px;">
@@ -392,16 +392,11 @@
   <div class="subtab-content" id="subtab-existentes" style="display:none">
     <div class="filters">
       <input type="text" id="filtroMapeo" placeholder="Buscar mapeo…">
-      <select id="filtroMapeoOrigen">
-        <option value="">Todos los orígenes</option>
-        <option value="GUIA">Guías</option>
-        <option value="BD_REGISTRO">BD_Registro</option>
-        <option value="AMBOS">Ambos</option>
-      </select>
       <button class="btn btn-primary" onclick="abrirModalMapeo()">+ Nuevo mapeo</button>
     </div>
     <div id="tablaMapeos"><div class="loader">Cargando…</div></div>
   </div>
+
   <!-- Subtab Ignorados -->
   <div class="subtab-content" id="subtab-ignorados" style="display:none">
     <div class="filters">
@@ -524,26 +519,18 @@
       <input type="hidden" id="mapeo_id">
       <div class="form-grid">
         <div class="full">
-          <label>Nombre del item (tal como aparece en la fuente) *</label>
+          <label>Nombre del item (tal como aparece en la guía) *</label>
           <input type="text" id="mapeo_nombre_item" required placeholder="Ej: UREA GRANULADA 46% SACO 50KG">
-        </div>
-        <div>
-          <label>Origen *</label>
-          <select id="mapeo_origen" required>
-            <option value="AMBOS">Ambos (guías + BD_Registro)</option>
-            <option value="GUIA">Solo guías</option>
-            <option value="BD_REGISTRO">Solo BD_Registro</option>
-          </select>
-        </div>
-        <div>
-          <label>Factor de conversión</label>
-          <input type="number" id="mapeo_factor" step="0.01" value="1" placeholder="Ej: 50 (saco a kg)">
         </div>
         <div class="full">
           <label>Producto del inventario *</label>
           <select id="mapeo_id_producto" required>
             <option value="">— Selecciona un producto —</option>
           </select>
+        </div>
+        <div class="full">
+          <label>Factor de conversión</label>
+          <input type="number" id="mapeo_factor" step="0.01" value="1" placeholder="Ej: 50 (saco a kg)">
         </div>
         <div class="full" style="font-size: 11px; color: var(--txt-soft); padding: 6px 10px; background: var(--bg); border-radius: 4px;">
           💡 <strong>Factor de conversión:</strong> si la guía dice "10 sacos" y tu inventario es en kg, el factor sería 50 (cada saco = 50 kg). Si las unidades coinciden, déjalo en 1.
@@ -586,7 +573,6 @@
   </div>
 </div>
 
-  
 <div class="toast" id="toast"></div>
 
 <script>
@@ -617,12 +603,11 @@ async function cargarTodo() {
     renderMovs();
     renderMaestro();
 
-    // Cargar mapeos en background
     cargarMapeos();
     cargarPendientes();
   } catch (err) {
-    document.getElementById('kpis').innerHTML =
-      `<div class="err">Error cargando datos: ${err.message}</div>`;
+    const cont = document.getElementById('kpis');
+    if (cont) cont.innerHTML = `<div class="err">Error cargando datos: ${err.message}</div>`;
     console.error(err);
   }
 }
@@ -642,41 +627,45 @@ async function cargarMapeos() {
 
 async function cargarPendientes() {
   try {
-    document.getElementById('tablaPendientes').innerHTML = '<div class="loader">Cargando…</div>';
+    const cont = document.getElementById('tablaPendientes');
+    if (cont) cont.innerHTML = '<div class="loader">Cargando…</div>';
     const res = await fetch(`${API_INVENTARIO}&action=get_items_sin_mapear`).then(r => r.json());
     if (!res.ok) throw new Error(res.error);
     window.PENDIENTES = res.items || [];
     renderPendientes();
 
-    // Badge contador en tab principal
     const count = window.PENDIENTES.length;
     const badge = document.getElementById('countPendientes');
     const badgeSub = document.getElementById('countPendientesSubtab');
-    if (count > 0) {
-      badge.textContent = count;
-      badge.style.display = 'inline-block';
-      badgeSub.textContent = count;
-      badgeSub.style.display = 'inline-block';
-    } else {
-      badge.style.display = 'none';
-      badgeSub.style.display = 'none';
+    if (badge && badgeSub) {
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'inline-block';
+        badgeSub.textContent = count;
+        badgeSub.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+        badgeSub.style.display = 'none';
+      }
     }
   } catch (err) {
-    document.getElementById('tablaPendientes').innerHTML =
-      `<div class="err">Error: ${err.message}</div>`;
+    const cont = document.getElementById('tablaPendientes');
+    if (cont) cont.innerHTML = `<div class="err">Error: ${err.message}</div>`;
     console.error(err);
   }
 }
 
 // ====== KPIs ======
 function renderKPIs() {
+  const cont = document.getElementById('kpis');
+  if (!cont) return;
   const productos = window.PRODUCTOS;
   const total = productos.length;
   const valor = productos.reduce((s, p) => s + (p.Valorizacion || 0), 0);
   const bajoMin = productos.filter(p => p.Semaforo === 'amarillo').length;
   const sinStock = productos.filter(p => p.Semaforo === 'rojo').length;
 
-  document.getElementById('kpis').innerHTML = `
+  cont.innerHTML = `
     <div class="kpi">
       <div class="kpi-label">Productos activos</div>
       <div class="kpi-value">${total}</div>
@@ -698,6 +687,9 @@ function renderKPIs() {
 
 // ====== TAB STOCK ======
 function renderStock() {
+  const cont = document.getElementById('tablaStock');
+  if (!cont) return;
+
   const filtroProd = document.getElementById('filtroProducto').value.toLowerCase();
   const filtroCat = document.getElementById('filtroCategoria').value;
   const filtroSem = document.getElementById('filtroSemaforo').value;
@@ -716,8 +708,7 @@ function renderStock() {
   });
 
   if (filtrados.length === 0) {
-    document.getElementById('tablaStock').innerHTML =
-      '<div class="empty">No hay productos con los filtros aplicados</div>';
+    cont.innerHTML = '<div class="empty">No hay productos con los filtros aplicados</div>';
     return;
   }
 
@@ -741,7 +732,7 @@ function renderStock() {
     `;
   }).join('');
 
-  document.getElementById('tablaStock').innerHTML = `
+  cont.innerHTML = `
     <table>
       <thead>
         <tr>
@@ -763,6 +754,9 @@ function renderStock() {
 
 // ====== TAB MOVIMIENTOS ======
 function renderMovs() {
+  const cont = document.getElementById('tablaMovs');
+  if (!cont) return;
+
   const filtroProd = document.getElementById('filtroMovProducto').value.toLowerCase();
   const filtroTipo = document.getElementById('filtroMovTipo').value;
   const filtroOrigen = document.getElementById('filtroMovOrigen').value;
@@ -775,8 +769,7 @@ function renderMovs() {
   });
 
   if (filtrados.length === 0) {
-    document.getElementById('tablaMovs').innerHTML =
-      '<div class="empty">No hay movimientos registrados</div>';
+    cont.innerHTML = '<div class="empty">No hay movimientos registrados</div>';
     return;
   }
 
@@ -800,7 +793,7 @@ function renderMovs() {
     `;
   }).join('');
 
-  document.getElementById('tablaMovs').innerHTML = `
+  cont.innerHTML = `
     <table>
       <thead>
         <tr>
@@ -821,6 +814,9 @@ function renderMovs() {
 
 // ====== TAB MAESTRO ======
 function renderMaestro() {
+  const cont = document.getElementById('tablaMaestro');
+  if (!cont) return;
+
   const filtroProd = document.getElementById('filtroMaestro').value.toLowerCase();
   const filtroCat = document.getElementById('filtroMaestroCat').value;
 
@@ -833,8 +829,7 @@ function renderMaestro() {
   filtrados.sort((a, b) => String(a.Producto).localeCompare(String(b.Producto)));
 
   if (filtrados.length === 0) {
-    document.getElementById('tablaMaestro').innerHTML =
-      '<div class="empty">No hay productos. Crea uno con el botón "+ Nuevo producto".</div>';
+    cont.innerHTML = '<div class="empty">No hay productos. Crea uno con el botón "+ Nuevo producto".</div>';
     return;
   }
 
@@ -859,7 +854,7 @@ function renderMaestro() {
     `;
   }).join('');
 
-  document.getElementById('tablaMaestro').innerHTML = `
+  cont.innerHTML = `
     <table>
       <thead>
         <tr>
@@ -881,7 +876,11 @@ function renderMaestro() {
   `;
 }
 
+// ====== TAB MAPEOS ======
 function renderPendientes() {
+  const cont = document.getElementById('tablaPendientes');
+  if (!cont) return;
+
   const filtro = document.getElementById('filtroPendiente').value.toLowerCase();
   const filtroTipo = document.getElementById('filtroPendienteTipo').value;
 
@@ -892,8 +891,7 @@ function renderPendientes() {
   });
 
   if (filtrados.length === 0) {
-    document.getElementById('tablaPendientes').innerHTML =
-      '<div class="empty">🎉 Sin items pendientes de mapear. Todas las guías están vinculadas a productos del inventario.</div>';
+    cont.innerHTML = '<div class="empty">🎉 Sin items pendientes de mapear. Todas las guías están vinculadas a productos del inventario.</div>';
     return;
   }
 
@@ -910,13 +908,13 @@ function renderPendientes() {
         <td>${p.Ejemplo_RUT || '—'}</td>
         <td style="white-space: nowrap;">
           <button class="btn btn-primary btn-sm" onclick="abrirModalMapeoDesdePendiente('${escapeAttr(p.Nombre_Item)}')">Mapear →</button>
-          <button class="btn-icon" onclick="ignorarItem('${escapeAttr(p.Nombre_Item)}')" title="Marcar como ignorado (no va a inventario)">🚫</button>
+          <button class="btn-icon" onclick="ignorarItem('${escapeAttr(p.Nombre_Item)}')" title="Marcar como ignorado">🚫</button>
         </td>
       </tr>
     `;
   }).join('');
 
-  document.getElementById('tablaPendientes').innerHTML = `
+  cont.innerHTML = `
     <table>
       <thead>
         <tr>
@@ -935,11 +933,12 @@ function renderPendientes() {
 }
 
 function renderMapeos() {
+  const cont = document.getElementById('tablaMapeos');
+  if (!cont) return;
+
   const filtro = document.getElementById('filtroMapeo').value.toLowerCase();
-  const filtroOrigen = document.getElementById('filtroMapeoOrigen').value;
 
   let filtrados = window.MAPEOS.filter(m => {
-    if (filtroOrigen && m.Origen !== filtroOrigen) return false;
     if (filtro && !String(m.Nombre_Item).toLowerCase().includes(filtro) &&
         !String(m.Producto_Actual).toLowerCase().includes(filtro)) return false;
     return true;
@@ -948,16 +947,13 @@ function renderMapeos() {
   filtrados.sort((a, b) => String(a.Nombre_Item).localeCompare(String(b.Nombre_Item)));
 
   if (filtrados.length === 0) {
-    document.getElementById('tablaMapeos').innerHTML =
-      '<div class="empty">No hay mapeos. Crea el primero desde "Pendientes" o con "+ Nuevo mapeo".</div>';
+    cont.innerHTML = '<div class="empty">No hay mapeos. Crea el primero desde "Pendientes" o con "+ Nuevo mapeo".</div>';
     return;
   }
 
   const rows = filtrados.map(m => {
-    const origenClass = 'origen-' + String(m.Origen).toLowerCase();
     return `
       <tr>
-        <td><span class="badge ${origenClass}">${m.Origen}</span></td>
         <td><strong>${m.Nombre_Item}</strong></td>
         <td>→</td>
         <td>${m.Producto_Actual || '(eliminado)'} <small style="color:var(--txt-soft)">(${m.Unidad_Producto || ''})</small></td>
@@ -969,15 +965,74 @@ function renderMapeos() {
     `;
   }).join('');
 
-  document.getElementById('tablaMapeos').innerHTML = `
+  cont.innerHTML = `
     <table>
       <thead>
         <tr>
-          <th>Origen</th>
-          <th>Nombre item</th>
+          <th>Nombre item (guía)</th>
           <th></th>
           <th>Producto del inventario</th>
           <th style="text-align:right">Factor</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function renderIgnorados() {
+  const cont = document.getElementById('tablaIgnorados');
+  if (!cont) return;
+
+  const filtroEl = document.getElementById('filtroIgnorado');
+  const filtro = filtroEl ? filtroEl.value.toLowerCase() : '';
+
+  let filtrados = window.IGNORADOS.filter(i => {
+    if (filtro && !String(i.Nombre_Item).toLowerCase().includes(filtro)) return false;
+    return true;
+  });
+
+  filtrados.sort((a, b) => String(a.Nombre_Item).localeCompare(String(b.Nombre_Item)));
+
+  // Badge contador
+  const count = window.IGNORADOS.length;
+  const badge = document.getElementById('countIgnorados');
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  if (filtrados.length === 0) {
+    cont.innerHTML = '<div class="empty">No hay items ignorados.</div>';
+    return;
+  }
+
+  const rows = filtrados.map(i => {
+    const fecha = i.Fecha_Creacion ? new Date(i.Fecha_Creacion).toLocaleDateString('es-CL') : '—';
+    return `
+      <tr>
+        <td><strong>${i.Nombre_Item}</strong></td>
+        <td>${fecha}</td>
+        <td>${i.Usuario || '—'}</td>
+        <td>
+          <button class="btn-icon" onclick="designorarItem('${i.Id_Mapeo}', '${escapeAttr(i.Nombre_Item)}')" title="Quitar de ignorados">↩️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  cont.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Item ignorado</th>
+          <th>Fecha</th>
+          <th>Usuario</th>
           <th></th>
         </tr>
       </thead>
@@ -1111,6 +1166,7 @@ async function guardarAjuste() {
 // ====== MODAL MAPEO ======
 function poblarSelectProductos() {
   const sel = document.getElementById('mapeo_id_producto');
+  if (!sel) return;
   const productos = [...window.PRODUCTOS].sort((a, b) =>
     String(a.Producto).localeCompare(String(b.Producto)));
   sel.innerHTML = '<option value="">— Selecciona un producto —</option>' +
@@ -1127,12 +1183,10 @@ function abrirModalMapeo(idMapeo) {
     const m = window.MAPEOS.find(x => x.Id_Mapeo === idMapeo);
     if (!m) return;
     document.getElementById('mapeo_nombre_item').value = m.Nombre_Item || '';
-    document.getElementById('mapeo_origen').value = m.Origen || 'AMBOS';
     document.getElementById('mapeo_factor').value = m.Factor_Conversion || 1;
     document.getElementById('mapeo_id_producto').value = m.Id_Producto || '';
   } else {
     document.getElementById('mapeo_nombre_item').value = '';
-    document.getElementById('mapeo_origen').value = 'AMBOS';
     document.getElementById('mapeo_factor').value = 1;
     document.getElementById('mapeo_id_producto').value = '';
   }
@@ -1149,13 +1203,9 @@ function abrirModalMapeoDesdePendiente(nombreItem) {
   document.getElementById('mapeo_factor').value = 1;
   document.getElementById('mapeo_id_producto').value = '';
 
-  // Si todavía existe el select de origen en el modal, lo seteamos a GUIA
-  const selOrigen = document.getElementById('mapeo_origen');
-  if (selOrigen) selOrigen.value = 'GUIA';
-
   document.getElementById('modalMapeo').classList.add('show');
 }
-  
+
 async function guardarMapeo() {
   const idMapeo = document.getElementById('mapeo_id').value;
   const esEdicion = !!idMapeo;
@@ -1165,7 +1215,7 @@ async function guardarMapeo() {
     action: esEdicion ? 'update_mapeo' : 'add_mapeo',
     id_mapeo: idMapeo || undefined,
     nombre_item: document.getElementById('mapeo_nombre_item').value.trim(),
-    origen: document.getElementById('mapeo_origen').value,
+    origen: 'GUIA',
     factor_conversion: Number(document.getElementById('mapeo_factor').value) || 1,
     id_producto: document.getElementById('mapeo_id_producto').value,
     activo: 'TRUE',
@@ -1223,6 +1273,57 @@ async function eliminarMapeoActual() {
   }
 }
 
+// ====== IGNORAR ======
+async function ignorarItem(nombreItem) {
+  if (!confirm(`¿Marcar "${nombreItem}" como ignorado?\n\nEste item no aparecerá más en Pendientes y no descontará stock cuando se procesen las guías.`)) return;
+
+  try {
+    const res = await fetch(API_INVENTARIO_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api: 'inventario',
+        action: 'mark_as_ignored',
+        nombre_item: nombreItem,
+        usuario: 'dashboard'
+      })
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error || 'Error desconocido');
+
+    toast('Item marcado como ignorado');
+    await cargarMapeos();
+    await cargarPendientes();
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+  }
+}
+
+async function designorarItem(idMapeo, nombreItem) {
+  if (!confirm(`¿Quitar "${nombreItem}" de la lista de ignorados?`)) return;
+
+  try {
+    const res = await fetch(API_INVENTARIO_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api: 'inventario',
+        action: 'unmark_ignored',
+        id_mapeo: idMapeo
+      })
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error || 'Error desconocido');
+
+    toast('Item restaurado a Pendientes');
+    await cargarMapeos();
+    await cargarPendientes();
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+  }
+}
+
+// ====== PROCESAR GUÍAS ======
 function abrirModalProcesarGuias() {
   document.getElementById('proc_fecha_desde').value = new Date().toISOString().slice(0, 10);
   document.getElementById('proc_resultado').style.display = 'none';
@@ -1295,7 +1396,6 @@ async function procesarGuias() {
     btn.textContent = 'Procesar de nuevo';
     btn.disabled = false;
 
-    // Recargar datos
     await cargarTodo();
 
   } catch (err) {
@@ -1306,117 +1406,6 @@ async function procesarGuias() {
   }
 }
 
-  
-async function ignorarItem(nombreItem) {
-  if (!confirm(`¿Marcar "${nombreItem}" como ignorado?\n\nEste item no aparecerá más en Pendientes y no descontará stock cuando se procesen las guías. Puedes des-ignorarlo después en la pestaña "Ignorados".`)) return;
-
-  try {
-    const res = await fetch(API_INVENTARIO_POST, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api: 'inventario',
-        action: 'mark_as_ignored',
-        nombre_item: nombreItem,
-        usuario: 'dashboard'
-      })
-    }).then(r => r.json());
-
-    if (!res.ok) throw new Error(res.error || 'Error desconocido');
-
-    toast('Item marcado como ignorado');
-    await cargarMapeos();
-    await cargarPendientes();
-  } catch (err) {
-    toast('Error: ' + err.message, true);
-  }
-}
-
-async function designorarItem(idMapeo, nombreItem) {
-  if (!confirm(`¿Quitar "${nombreItem}" de la lista de ignorados? Volverá a aparecer en Pendientes.`)) return;
-
-  try {
-    const res = await fetch(API_INVENTARIO_POST, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api: 'inventario',
-        action: 'unmark_ignored',
-        id_mapeo: idMapeo
-      })
-    }).then(r => r.json());
-
-    if (!res.ok) throw new Error(res.error || 'Error desconocido');
-
-    toast('Item restaurado a Pendientes');
-    await cargarMapeos();
-    await cargarPendientes();
-  } catch (err) {
-    toast('Error: ' + err.message, true);
-  }
-}
-
-function renderIgnorados() {
-  const filtro = document.getElementById('filtroIgnorado')
-    ? document.getElementById('filtroIgnorado').value.toLowerCase()
-    : '';
-
-  let filtrados = window.IGNORADOS.filter(i => {
-    if (filtro && !String(i.Nombre_Item).toLowerCase().includes(filtro)) return false;
-    return true;
-  });
-
-  filtrados.sort((a, b) => String(a.Nombre_Item).localeCompare(String(b.Nombre_Item)));
-
-  // Badge contador
-  const count = window.IGNORADOS.length;
-  const badge = document.getElementById('countIgnorados');
-  if (badge) {
-    if (count > 0) {
-      badge.textContent = count;
-      badge.style.display = 'inline-block';
-    } else {
-      badge.style.display = 'none';
-    }
-  }
-
-  const cont = document.getElementById('tablaIgnorados');
-  if (!cont) return;
-
-  if (filtrados.length === 0) {
-    cont.innerHTML = '<div class="empty">No hay items ignorados.</div>';
-    return;
-  }
-
-  const rows = filtrados.map(i => {
-    const fecha = i.Fecha_Creacion ? new Date(i.Fecha_Creacion).toLocaleDateString('es-CL') : '—';
-    return `
-      <tr>
-        <td><strong>${i.Nombre_Item}</strong></td>
-        <td>${fecha}</td>
-        <td>${i.Usuario || '—'}</td>
-        <td>
-          <button class="btn-icon" onclick="designorarItem('${i.Id_Mapeo}', '${escapeAttr(i.Nombre_Item)}')" title="Quitar de ignorados">↩️</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-
-  cont.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>Item ignorado</th>
-          <th>Fecha</th>
-          <th>Usuario</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
-}
-  
 // ====== UTILIDADES ======
 function cerrarModal(id) {
   document.getElementById(id).classList.remove('show');
@@ -1474,22 +1463,26 @@ document.querySelectorAll('.tab[data-subtab]').forEach(btn => {
 
 // Filtros
 ['filtroProducto','filtroCategoria','filtroSemaforo'].forEach(id => {
-  document.getElementById(id).addEventListener('input', renderStock);
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderStock);
 });
 ['filtroMovProducto','filtroMovTipo','filtroMovOrigen'].forEach(id => {
-  document.getElementById(id).addEventListener('input', renderMovs);
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderMovs);
 });
 ['filtroMaestro','filtroMaestroCat'].forEach(id => {
-  document.getElementById(id).addEventListener('input', renderMaestro);
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderMaestro);
 });
 ['filtroPendiente','filtroPendienteTipo'].forEach(id => {
-  document.getElementById(id).addEventListener('input', renderPendientes);
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderPendientes);
 });
-['filtroMapeo','filtroMapeoOrigen'].forEach(id => {
-  document.getElementById(id).addEventListener('input', renderMapeos);
-});
+const filtroMap = document.getElementById('filtroMapeo');
+if (filtroMap) filtroMap.addEventListener('input', renderMapeos);
 const filtroIgn = document.getElementById('filtroIgnorado');
 if (filtroIgn) filtroIgn.addEventListener('input', renderIgnorados);
+
 cargarTodo();
 </script>
 </body>
