@@ -389,6 +389,17 @@
           <label>Precio unitario ($)</label>
           <input type="number" id="prod_precio" step="0.01" value="0">
         </div>
+        <div>
+          <label>🔴 Umbral rojo (opcional)</label>
+          <input type="number" id="prod_umbral_rojo" step="0.01" placeholder="Ej: 80">
+        </div>
+        <div>
+          <label>🟡 Umbral amarillo (opcional)</label>
+          <input type="number" id="prod_umbral_amarillo" step="0.01" placeholder="Ej: 200">
+        </div>
+        <div class="full" style="font-size: 11px; color: var(--txt-soft); padding: 6px 10px; background: var(--bg); border-radius: 4px;">
+          💡 Si dejás los umbrales vacíos, se usa la regla global: 🔴 ≤ 50% del mínimo · 🟡 ≤ mínimo
+        </div>
         <div class="full">
           <label>Observación</label>
           <textarea id="prod_obs"></textarea>
@@ -643,6 +654,8 @@ function renderMaestro() {
         <td>${p.Unidad || ''}</td>
         <td class="num">${formatNum(p.Stock_Inicial)}</td>
         <td class="num">${formatNum(p.Stock_Minimo)}</td>
+        <td class="num" style="color:var(--rojo)">${p.Umbral_Rojo ? formatNum(p.Umbral_Rojo) : '—'}</td>
+        <td class="num" style="color:var(--amarillo)">${p.Umbral_Amarillo ? formatNum(p.Umbral_Amarillo) : '—'}</td>
         <td class="num">$${formatNum(p.Precio_Unitario)}</td>
         <td>${p.Bodega || '—'}</td>
         <td>
@@ -662,6 +675,8 @@ function renderMaestro() {
           <th>Unidad</th>
           <th style="text-align:right">Stock inicial</th>
           <th style="text-align:right">Mínimo</th>
+          <th style="text-align:right">🔴</th>
+          <th style="text-align:right">🟡</th>
           <th style="text-align:right">$ Unit.</th>
           <th>Bodega</th>
           <th></th>
@@ -691,6 +706,8 @@ function abrirModalProducto(idProducto) {
       : new Date().toISOString().slice(0, 10);
     document.getElementById('prod_stock_minimo').value = p.Stock_Minimo || 0;
     document.getElementById('prod_precio').value = p.Precio_Unitario || 0;
+    document.getElementById('prod_umbral_rojo').value = p.Umbral_Rojo || '';
+    document.getElementById('prod_umbral_amarillo').value = p.Umbral_Amarillo || '';
     document.getElementById('prod_obs').value = p.Observacion || '';
   } else {
     document.getElementById('formProducto').reset();
@@ -705,6 +722,9 @@ async function guardarProducto() {
   const idProducto = document.getElementById('prod_id').value;
   const esEdicion = !!idProducto;
 
+  const umbralRojoVal = document.getElementById('prod_umbral_rojo').value;
+  const umbralAmarilloVal = document.getElementById('prod_umbral_amarillo').value;
+
   const payload = {
     api: 'inventario',
     action: esEdicion ? 'update_producto' : 'add_producto',
@@ -718,6 +738,8 @@ async function guardarProducto() {
     fecha_stock_inicial: document.getElementById('prod_fecha_inicial').value,
     stock_minimo: Number(document.getElementById('prod_stock_minimo').value),
     precio_unitario: Number(document.getElementById('prod_precio').value),
+    umbral_rojo: umbralRojoVal === '' ? '' : Number(umbralRojoVal),
+    umbral_amarillo: umbralAmarilloVal === '' ? '' : Number(umbralAmarilloVal),
     observacion: document.getElementById('prod_obs').value,
     activo: 'TRUE',
     usuario: 'dashboard'
