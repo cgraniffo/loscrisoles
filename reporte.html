@@ -2942,9 +2942,11 @@ function initMap() {
 
   const puntos = Object.entries(COORD_MAP)
     .filter(([id]) => {
-      // Mostrar TODAS las UPs con coordenadas (productivas y no productivas).
-      // El estado del marker (color) refleja qué pasa con las labores en cada una.
-      return true;
+      // Filtrar por temporada activa: solo UPs cuya BD_CC.Temporada coincide.
+      // Incluye todas las UPs con coordenadas de esa temporada (productivas y no productivas).
+      if (!tempActiva) return true;
+      const tmp = TEMP_MAP[id];
+      return tmp && tmp.temporada === tempActiva;
     })
     .map(([id, coord]) => {
       const nombre = CC_MAP[id] || id;
