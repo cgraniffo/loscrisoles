@@ -1114,6 +1114,7 @@ async function main() {
     const _pLabsBar = document.getElementById('pipe-labores-bar');
     if (_pLabs) {
       const atr = vencidas.length, prog = laboresSemana.length;
+      window._labProg7d = prog; // Guardar para que sincronizarUIDesdePlanLabores lo reuse
       _pLabs.innerHTML = (atr > 0
           ? `<span style="font-size:22px;font-weight:700;color:#A32D2D;font-variant-numeric:tabular-nums;">${atr}</span><span style="font-size:12px;color:var(--gris);">atrasadas</span>`
           : `<span style="font-size:22px;font-weight:700;color:#3B6D11;font-variant-numeric:tabular-nums;">0</span><span style="font-size:12px;color:var(--gris);">atrasadas</span>`)
@@ -1891,10 +1892,27 @@ function sincronizarUIDesdePlanLabores() {
     }
   }
 
-  // ── Card "Labores esta semana" en zona 3 (números grandes) ───────────────
-  // El card muestra: "X atrasadas · Y próximos 7 días" con barra
-  const _cardLab = document.getElementById('card-labores-stat-atrasadas');
-  if (_cardLab) _cardLab.textContent = vencidas;
+  // ── Card "Labores esta semana" en zona 3 (números grandes + barra) ──────
+  // IDs reales del card: pipe-labores-nums (texto) y pipe-labores-bar (barra)
+  // Para "próximos 7 días" reusamos el valor de window._labProg7d que dejó renderHome,
+  // sino caemos a 0 (lo importante es que el conteo de atrasadas quede correcto).
+  const _pLabs = document.getElementById('pipe-labores-nums');
+  if (_pLabs) {
+    const prog = window._labProg7d || 0;
+    const colorAtr = vencidas > 0 ? '#A32D2D' : '#3B6D11';
+    _pLabs.innerHTML =
+        `<span style="font-size:22px;font-weight:700;color:${colorAtr};font-variant-numeric:tabular-nums;">${vencidas}</span><span style="font-size:12px;color:var(--gris);">atrasadas</span>`
+      + ` <span style="color:rgba(0,0,0,0.2);">·</span> `
+      + `<span style="font-size:16px;font-weight:600;color:#1c1c1a;font-variant-numeric:tabular-nums;">${prog}</span><span style="font-size:12px;color:var(--gris);">próximos 7 días</span>`;
+  }
+  const _pLabsBar = document.getElementById('pipe-labores-bar');
+  if (_pLabsBar && _pLabsBar.children.length >= 2) {
+    const prog = window._labProg7d || 0;
+    const total = Math.max(vencidas + prog, 1);
+    const pctAtr = Math.round(vencidas / total * 100);
+    _pLabsBar.children[0].style.width = pctAtr + '%';
+    _pLabsBar.children[1].style.width = (100 - pctAtr) + '%';
+  }
 
   // ── Headline zona 3 (Pipeline productivo) ────────────────────────────────
   // Reemplazar solo "X atrasadas" en el headline (sin tocar los otros números)
