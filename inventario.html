@@ -378,10 +378,10 @@
   <div class="subtab-content active" id="subtab-pendientes">
     <div class="filters">
       <input type="text" id="filtroPendiente" placeholder="Buscar item…">
-      <select id="filtroPendienteOrigen">
-        <option value="">Todos los orígenes</option>
-        <option value="GUIA">Guías</option>
-        <option value="BD_REGISTRO">BD_Registro</option>
+      <select id="filtroPendienteTipo">
+        <option value="">Todos los tipos</option>
+        <option value="ENTRADA">Entradas (compras)</option>
+        <option value="SALIDA">Salidas (ventas)</option>
       </select>
       <button class="btn btn-secondary btn-sm" onclick="cargarPendientes()">🔄 Refrescar</button>
     </div>
@@ -842,38 +842,35 @@ function renderMaestro() {
   `;
 }
 
-// ====== TAB MAPEOS ======
 function renderPendientes() {
   const filtro = document.getElementById('filtroPendiente').value.toLowerCase();
-  const filtroOrigen = document.getElementById('filtroPendienteOrigen').value;
+  const filtroTipo = document.getElementById('filtroPendienteTipo').value;
 
   let filtrados = window.PENDIENTES.filter(p => {
-    if (filtroOrigen && p.Origen !== filtroOrigen) return false;
+    if (filtroTipo && p.Tipo_Movimiento !== filtroTipo) return false;
     if (filtro && !String(p.Nombre_Item).toLowerCase().includes(filtro)) return false;
     return true;
   });
 
   if (filtrados.length === 0) {
     document.getElementById('tablaPendientes').innerHTML =
-      '<div class="empty">🎉 Sin items pendientes de mapear. Todos los items de guías y BD_Registro están vinculados.</div>';
+      '<div class="empty">🎉 Sin items pendientes de mapear. Todas las guías están vinculadas a productos del inventario.</div>';
     return;
   }
 
   const rows = filtrados.map(p => {
-    const origenClass = 'origen-' + String(p.Origen).toLowerCase();
-    const codigoTag = p.Codigo_Original
-      ? `<br><small style="color:var(--txt-soft); font-family: monospace;">cód: ${p.Codigo_Original}</small>`
-      : '';
-    const valorMapear = p.Nombre_Item_Mapear || p.Nombre_Item;
+    const tipoClass = p.Tipo_Movimiento === 'ENTRADA' ? 'badge-mov entrada' : 'badge-mov salida';
+    const tipoLabel = p.Tipo_Movimiento === 'ENTRADA' ? '⬇ Entrada' : '⬆ Salida';
     return `
       <tr>
-        <td><span class="badge ${origenClass}">${p.Origen}</span></td>
-        <td><strong>${p.Nombre_Item}</strong>${codigoTag}</td>
+        <td><span class="${tipoClass}">${tipoLabel}</span></td>
+        <td><strong>${p.Nombre_Item}</strong></td>
         <td class="num">${p.Apariciones}</td>
         <td class="num">${formatNum(p.Cantidad_Total)}</td>
         <td>${p.Ejemplo_Folio || '—'}</td>
+        <td>${p.Ejemplo_RUT || '—'}</td>
         <td>
-          <button class="btn btn-primary btn-sm" onclick="abrirModalMapeoDesdePendiente('${escapeAttr(valorMapear)}', '${p.Origen}', '${escapeAttr(p.Nombre_Item)}')">Mapear →</button>
+          <button class="btn btn-primary btn-sm" onclick="abrirModalMapeoDesdePendiente('${escapeAttr(p.Nombre_Item)}')">Mapear →</button>
         </td>
       </tr>
     `;
@@ -883,11 +880,12 @@ function renderPendientes() {
     <table>
       <thead>
         <tr>
-          <th>Origen</th>
-          <th>Nombre del item</th>
+          <th>Tipo</th>
+          <th>Nombre del item (en la guía)</th>
           <th style="text-align:right">Apariciones</th>
           <th style="text-align:right">Cantidad total</th>
           <th>Ejemplo (folio)</th>
+          <th>RUT Emisor</th>
           <th></th>
         </tr>
       </thead>
@@ -1102,21 +1100,18 @@ function abrirModalMapeo(idMapeo) {
   document.getElementById('modalMapeo').classList.add('show');
 }
 
-function abrirModalMapeoDesdePendiente(valorMapear, origen, displayNombre) {
+function abrirModalMapeoDesdePendiente(nombreItem) {
   poblarSelectProductos();
-  document.getElementById('modalMapeoTitulo').textContent = 'Mapear item pendiente';
+  document.getElementById('modalMapeoTitulo').textContent = 'Mapear item de guía';
   document.getElementById('mapeo_id').value = '';
   document.getElementById('btnEliminarMapeo').style.display = 'none';
-  document.getElementById('mapeo_nombre_item').value = valorMapear;
-  document.getElementById('mapeo_origen').value = origen;
+  document.getElementById('mapeo_nombre_item').value = nombreItem;
   document.getElementById('mapeo_factor').value = 1;
   document.getElementById('mapeo_id_producto').value = '';
 
-  // Si el valor a guardar es un código (distinto al nombre display), mostrar info extra
-  if (displayNombre && displayNombre !== valorMapear) {
-    document.getElementById('modalMapeoTitulo').innerHTML =
-      `Mapear item pendiente<br><small style="font-size:13px; color:var(--txt-soft); font-weight:400;">${displayNombre}</small>`;
-  }
+  // Si todavía existe el select de origen en el modal, lo seteamos a GUIA
+  const selOrigen = document.getElementById('mapeo_origen');
+  if (selOrigen) selOrigen.value = 'GUIA';
 
   document.getElementById('modalMapeo').classList.add('show');
 }
@@ -1253,7 +1248,7 @@ document.querySelectorAll('.tab[data-subtab]').forEach(btn => {
 ['filtroMaestro','filtroMaestroCat'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderMaestro);
 });
-['filtroPendiente','filtroPendienteOrigen'].forEach(id => {
+['filtroPendiente','filtroPendienteTipo'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderPendientes);
 });
 ['filtroMapeo','filtroMapeoOrigen'].forEach(id => {
