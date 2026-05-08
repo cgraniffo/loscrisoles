@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Los Crisoles · Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #1a3a0a; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -82,27 +83,104 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
-    /* ── TABS ── */
-    .tabbar {
-      display: flex; align-items: stretch; overflow-x: auto; white-space: nowrap;
-      background: #1a3a0a; border-bottom: 1px solid rgba(134,239,172,0.15);
-      flex-shrink: 0; -webkit-overflow-scrolling: touch; margin-top: 10px;
+    /* ── NAV DROPDOWNS ── */
+    .navbar {
+      display: flex; align-items: center; gap: 4px;
+      background: #1a3a0a; padding: 10px 12px;
+      border-bottom: 1px solid rgba(134,239,172,0.15);
+      flex-shrink: 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 10px;
     }
-    .tab-sep { width: 1px; background: rgba(134,239,172,0.2); margin: 8px 4px; flex-shrink: 0; }
-    .tab-group-label {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-      color: rgba(134,239,172,0.45); padding: 8px 8px 0 10px; flex-shrink: 0;
-      display: flex; align-items: flex-start; pointer-events: none; user-select: none;
+
+    .nav-item {
+      position: relative;
+      flex-shrink: 0;
     }
-    .tab {
-      font-size: 12px; font-weight: 600; padding: 12px 15px 9px;
-      cursor: pointer; color: rgba(255,255,255,0.5);
-      border-bottom: 3px solid transparent; flex-shrink: 0; transition: color 0.15s; user-select: none;
+
+    .nav-btn {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      white-space: nowrap;
+      font-family: inherit;
     }
-    .tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
-    .tab.g-resumen.active  { color: #fff; border-bottom-color: #86efac; }
-    .tab.g-campo.active    { color: #fff; border-bottom-color: #6ee7b7; }
-    .tab.g-finanzas.active { color: #fff; border-bottom-color: #fcd34d; }
+    .nav-btn:hover {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+    }
+    .nav-btn.active {
+      background: rgba(134,239,172,0.15);
+      border-color: rgba(134,239,172,0.4);
+      color: #fff;
+    }
+    .nav-btn .ti {
+      font-size: 16px;
+      line-height: 1;
+    }
+    .nav-btn .chevron {
+      font-size: 12px;
+      opacity: 0.6;
+      transition: transform 0.15s;
+    }
+    .nav-item.open .nav-btn .chevron {
+      transform: rotate(180deg);
+    }
+    .nav-item.open .nav-btn {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    .nav-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 220px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      padding: 6px;
+      z-index: 100;
+      animation: dropdownIn 0.12s ease-out;
+    }
+    .nav-item.open .nav-dropdown { display: block; }
+
+    @keyframes dropdownIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .nav-dropdown-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px;
+      font-size: 13px; font-weight: 500;
+      color: #1a3a0a;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.1s;
+      user-select: none;
+    }
+    .nav-dropdown-item:hover {
+      background: #f0f4ed;
+    }
+    .nav-dropdown-item.active {
+      background: #1a4d2e;
+      color: #fff;
+    }
+    .nav-dropdown-item .ti {
+      font-size: 18px;
+      flex-shrink: 0;
+    }
 
     /* ── FRAME AREA ── */
     .frame-wrap { flex: 1; position: relative; overflow: hidden; background: #f5f0e8; }
@@ -110,18 +188,14 @@
     iframe {
       position: absolute; inset: 0; width: 100%; height: 100%;
       border: none; background: #f5f0e8;
-      /* Hidden until ready */
       opacity: 0; pointer-events: none;
       transition: opacity 0.2s ease;
     }
     iframe.ready { opacity: 1; pointer-events: auto; }
     iframe.hidden { display: none; }
 
-    /* Cuando la pestaña está marcada como WIP, empujar el iframe hacia abajo
-       para que el banner superior no tape el arranque del contenido */
     .frame-wrap.wip-active iframe { top: 56px; height: calc(100% - 56px); }
 
-    /* Loading overlay per iframe */
     .frame-loader {
       position: absolute; inset: 0; background: #f5f0e8;
       display: flex; align-items: center; justify-content: center;
@@ -158,12 +232,13 @@
     @media (max-width: 768px) {
       .dash-kpis { grid-template-columns: 1fr; }
       .kpi-eq { grid-template-columns: 1fr; gap: 6px; }
-      .kpi-eq-op { display: none; }  /* en mobile ocultamos los signos −/= */
+      .kpi-eq-op { display: none; }
       .kpi-val { font-size: 17px; }
       .kpi-eq-val { font-size: 17px; }
-      .tab { font-size: 10px; padding: 10px 10px 7px; }
-      .tab-group-label { display: none; }
-      .tab-sep { margin: 6px 2px; }
+      .nav-btn { font-size: 11px; padding: 7px 10px; }
+      .nav-btn span { display: none; }
+      .nav-btn .ti { font-size: 18px; }
+      .nav-btn .chevron { display: none; }
       .dash-right { flex-direction: column; align-items: flex-end; gap: 4px; }
     }
   </style>
@@ -181,77 +256,116 @@
     </div>
     <div class="dash-right">
       <div class="iva-wrap">
-        <span class="iva-label">IVA</span>
+        <div class="iva-label">IVA</div>
         <div class="iva-pills">
-          <button class="iva-pill on"  id="iva-pill-neto"  onclick="onVistaIvaChange('neto')">Sin IVA</button>
-          <button class="iva-pill"     id="iva-pill-bruto" onclick="onVistaIvaChange('bruto')">Con IVA</button>
+          <button class="iva-pill" id="iva-neto" onclick="setVistaIva('neto')">Sin IVA</button>
+          <button class="iva-pill" id="iva-bruto" onclick="setVistaIva('bruto')">Con IVA</button>
         </div>
       </div>
       <div class="temp-wrap">
-        <span class="temp-label">Temporada</span>
-        <select id="dash-temporada" onchange="onTemporadaChange()">
-          <option value="">Cargando...</option>
-        </select>
+        <div class="temp-label">Temporada</div>
+        <select id="dash-temporada" onchange="onTemporadaChange()"></select>
       </div>
-      <div class="dash-date" id="dash-date">—</div>
+      <div class="dash-date" id="dash-date"></div>
     </div>
   </div>
 
   <div class="dash-kpis">
-    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('caja',null)">
-      <div class="kpi-val green" id="k-caja">—</div>
-      <div class="kpi-label">🏦 Caja actual</div>
+    <div class="kpi" onclick="show('caja', null)" style="cursor: pointer;">
+      <div class="kpi-val amber" id="kpi-caja">—</div>
+      <div class="kpi-label">🏛️ Caja actual</div>
     </div>
 
     <div class="kpi-eq">
-      <div class="kpi-eq-cell" onclick="window.show&&window.show('ingresos',null)">
-        <div class="kpi-eq-val amber" id="k-ppto">—</div>
-        <div class="kpi-eq-label" id="k-ppto-label">🌾 Ingresos proyectados · Temp —</div>
+      <div class="kpi-eq-cell" onclick="show('ingresos', null)">
+        <div class="kpi-eq-val" id="kpi-ingresos">—</div>
+        <div class="kpi-eq-label">💰 Ingresos proyectados · <span id="lbl-temp-ing">—</span></div>
       </div>
       <div class="kpi-eq-op">−</div>
-      <div class="kpi-eq-cell" onclick="window.show&&window.show('costos',null)">
-        <div class="kpi-eq-val" id="k-costos">—</div>
-        <div class="kpi-eq-label" id="k-costos-label">💰 Costos totales · Temp —</div>
+      <div class="kpi-eq-cell" onclick="show('costos', null)">
+        <div class="kpi-eq-val" id="kpi-costos">—</div>
+        <div class="kpi-eq-label">💵 Costos totales · <span id="lbl-temp-cos">—</span></div>
       </div>
       <div class="kpi-eq-op">=</div>
-      <div class="kpi-eq-cell" onclick="window.show&&window.show('resultados',null)">
-        <div class="kpi-eq-val" id="k-margen">—</div>
-        <div class="kpi-eq-label" id="k-margen-label">📊 Margen proyectado · Temp —</div>
+      <div class="kpi-eq-cell" onclick="show('resultados', null)">
+        <div class="kpi-eq-val" id="kpi-margen">—</div>
+        <div class="kpi-eq-label">📊 Margen proyectado · <span id="lbl-temp-mar">—</span></div>
       </div>
     </div>
 
-    <div class="kpi" style="cursor:pointer;" onclick="window.show&&window.show('labores',null)">
-      <div class="kpi-val amber" id="k-vencidas">—</div>
+    <div class="kpi" onclick="show('labores', null)" style="cursor: pointer;">
+      <div class="kpi-val red" id="kpi-vencidas">—</div>
       <div class="kpi-label">⚠️ Labores vencidas</div>
     </div>
   </div>
 </div>
 
-<div class="tabbar">
-  <div class="tab g-resumen active" onclick="show('home', this)">🏠 Resumen</div>
-  <div class="tab-sep"></div>
-  <div class="tab-group-label">Campo</div>
-  <div class="tab g-campo" onclick="show('labores', this)">📋 Labores</div>
-  <div class="tab g-campo" onclick="show('produccion', this)">🌱 Producción</div>
-  <div class="tab g-campo" onclick="show('insumos', this)">📦 Insumos</div>
-  <div class="tab g-campo" onclick="show('optimizador', this)">🧪 Optimizador</div>
-  <div class="tab-sep"></div>
-  <div class="tab-group-label">Finanzas</div>
-  <div class="tab g-finanzas" onclick="show('caja', this)">🏦 Caja</div>
-  <div class="tab g-finanzas" onclick="show('ingresos', this)">🌾 Ingresos</div>
-  <div class="tab g-finanzas" onclick="show('costos', this)">💰 Costos</div>
-  <div class="tab g-finanzas" onclick="show('resultados', this)">📊 Resultados</div>
-  <div class="tab g-finanzas" onclick="show('oc', this)">📋 OC</div>
-  <div class="tab g-finanzas" onclick="show('asignar', this)">📎 Asignar</div>
-  <div class="tab g-finanzas" onclick="show('documentos', this)">📄 Documentos</div>
-  <div class="tab g-finanzas" onclick="show('inventario', this)">📦 Inventario</div>
+<div class="navbar" id="navbar">
+
+  <div class="nav-item">
+    <button class="nav-btn active" onclick="navHome(this)" data-tab="home">
+      <i class="ti ti-home"></i>
+      <span>Resumen</span>
+    </button>
+  </div>
+
+  <div class="nav-item" data-group="campo">
+    <button class="nav-btn" onclick="toggleDropdown(this)">
+      <i class="ti ti-plant-2"></i>
+      <span>Campo</span>
+      <i class="ti ti-chevron-down chevron"></i>
+    </button>
+    <div class="nav-dropdown">
+      <div class="nav-dropdown-item" onclick="navTo('labores', 'campo')"><i class="ti ti-clipboard-list"></i><span>Labores</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('produccion', 'campo')"><i class="ti ti-seeding"></i><span>Producción</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('insumos', 'campo')"><i class="ti ti-package"></i><span>Insumos</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('optimizador', 'campo')"><i class="ti ti-flask"></i><span>Optimizador</span></div>
+    </div>
+  </div>
+
+  <div class="nav-item" data-group="finanzas">
+    <button class="nav-btn" onclick="toggleDropdown(this)">
+      <i class="ti ti-coin"></i>
+      <span>Finanzas</span>
+      <i class="ti ti-chevron-down chevron"></i>
+    </button>
+    <div class="nav-dropdown">
+      <div class="nav-dropdown-item" onclick="navTo('caja', 'finanzas')"><i class="ti ti-building-bank"></i><span>Caja</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('ingresos', 'finanzas')"><i class="ti ti-wheat"></i><span>Ingresos</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('costos', 'finanzas')"><i class="ti ti-currency-dollar"></i><span>Costos</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('resultados', 'finanzas')"><i class="ti ti-chart-bar"></i><span>Resultados</span></div>
+    </div>
+  </div>
+
+  <div class="nav-item" data-group="bodega">
+    <button class="nav-btn" onclick="toggleDropdown(this)">
+      <i class="ti ti-package"></i>
+      <span>Bodega</span>
+      <i class="ti ti-chevron-down chevron"></i>
+    </button>
+    <div class="nav-dropdown">
+      <div class="nav-dropdown-item" onclick="navTo('inventario', 'bodega')"><i class="ti ti-box"></i><span>Inventario</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('oc', 'bodega')"><i class="ti ti-file-invoice"></i><span>Órdenes de compra</span></div>
+    </div>
+  </div>
+
+  <div class="nav-item" data-group="documentos">
+    <button class="nav-btn" onclick="toggleDropdown(this)">
+      <i class="ti ti-file-text"></i>
+      <span>Documentos</span>
+      <i class="ti ti-chevron-down chevron"></i>
+    </button>
+    <div class="nav-dropdown">
+      <div class="nav-dropdown-item" onclick="navTo('asignar', 'documentos')"><i class="ti ti-paperclip"></i><span>Asignar</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('documentos', 'documentos')"><i class="ti ti-files"></i><span>Documentos</span></div>
+    </div>
+  </div>
+
 </div>
 
 <div class="frame-wrap">
-  <!-- Loading overlay (shared) -->
   <div class="frame-loader" id="loader"><div class="spinner"></div></div>
 
-  <!-- En Construcción overlay -->
   <div class="wip-overlay" id="wip-overlay">
     <div class="wip-box">
       <div class="wip-icon">🚧</div>
@@ -262,19 +376,19 @@
     </div>
   </div>
 
-  <iframe id="f-home"       src="/home"       data-tab=""></iframe>
-  <iframe id="f-labores"    src=""  data-src="/reporte"    data-tab="labores"    class="hidden"></iframe>
-  <iframe id="f-produccion" src=""  data-src="/produccion" data-tab="produccion" class="hidden"></iframe>
-  <iframe id="f-insumos"    src=""  data-src="/produccion" data-tab="insumos"    class="hidden"></iframe>
-  <iframe id="f-optimizador" src=""  data-src="/optimizador" data-tab=""         class="hidden"></iframe>
-  <iframe id="f-caja"       src=""  data-src="/reporte"    data-tab="caja"       class="hidden"></iframe>
-  <iframe id="f-costos"     src=""  data-src="/reporte"    data-tab="costos"     class="hidden"></iframe>
-  <iframe id="f-ingresos"   src=""  data-src="/reporte"    data-tab="ingresos"   class="hidden"></iframe>
-  <iframe id="f-resultados" src=""  data-src="/reporte"    data-tab="resultados" class="hidden"></iframe>
-  <iframe id="f-oc"         src=""  data-src="/oc"         data-tab=""           class="hidden"></iframe>
-  <iframe id="f-asignar"    src=""  data-src="/asignar"    data-tab=""           class="hidden"></iframe>
-  <iframe id="f-documentos" src=""  data-src="/documentos" data-tab=""           class="hidden"></iframe>
-  <iframe id="f-inventario" src=""  data-src="/inventario" data-tab=""           class="hidden"></iframe>
+  <iframe id="f-home"        src="/home"       data-tab=""></iframe>
+  <iframe id="f-labores"     src=""  data-src="/reporte"    data-tab="labores"    class="hidden"></iframe>
+  <iframe id="f-produccion"  src=""  data-src="/produccion" data-tab="produccion" class="hidden"></iframe>
+  <iframe id="f-insumos"     src=""  data-src="/produccion" data-tab="insumos"    class="hidden"></iframe>
+  <iframe id="f-optimizador" src=""  data-src="/optimizador" data-tab=""          class="hidden"></iframe>
+  <iframe id="f-caja"        src=""  data-src="/reporte"    data-tab="caja"       class="hidden"></iframe>
+  <iframe id="f-costos"      src=""  data-src="/reporte"    data-tab="costos"     class="hidden"></iframe>
+  <iframe id="f-ingresos"    src=""  data-src="/reporte"    data-tab="ingresos"   class="hidden"></iframe>
+  <iframe id="f-resultados"  src=""  data-src="/reporte"    data-tab="resultados" class="hidden"></iframe>
+  <iframe id="f-oc"          src=""  data-src="/oc"         data-tab=""           class="hidden"></iframe>
+  <iframe id="f-asignar"     src=""  data-src="/asignar"    data-tab=""           class="hidden"></iframe>
+  <iframe id="f-documentos"  src=""  data-src="/documentos" data-tab=""           class="hidden"></iframe>
+  <iframe id="f-inventario"  src=""  data-src="/inventario" data-tab=""           class="hidden"></iframe>
 </div>
 
 <script>
@@ -320,14 +434,14 @@
 
   var WORKER = "https://round-night-574d.christian-19c.workers.dev";
 
-  async function fetchSheet(api, sheet) {
-    var url = api + "?sheet=" + encodeURIComponent(sheet);
-    // Todas las APIs pasan por el Worker proxy para evitar CORS
-    var fetchUrl = WORKER + "?url=" + encodeURIComponent(url);
-    var res = await fetch(fetchUrl, { redirect:"follow" });
-    var txt = await res.text();
-    try { return JSON.parse(txt); } catch(e) { return []; }
-  }
+  // Fecha de hoy
+  (function setDate(){
+    var dias  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var meses = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    var d = new Date();
+    document.getElementById('dash-date').textContent =
+      dias[d.getDay()] + ', ' + d.getDate() + ' de ' + meses[d.getMonth()] + ' de ' + d.getFullYear();
+  })();
 
   function injectCSS(iframe) {
     try {
@@ -353,35 +467,35 @@
       var win = iframe.contentWindow;
       if (typeof win.cambiarTemporada === 'function') win.cambiarTemporada(temporada);
       // Also update the select inside the iframe if it exists
-      var sel = win.document.getElementById('sel-temporada');
-      if (sel) sel.value = temporada;
+      var sel = (iframe.contentDocument || win.document).querySelector('select');
+      if (sel && sel.value !== temporada) { sel.value = temporada; }
     } catch(e) {}
   }
 
   function pushVistaIva(iframe) {
     try {
       var win = iframe.contentWindow;
-      if (typeof win.cambiarVistaIva === 'function') win.cambiarVistaIva(vistaIva);
+      if (typeof win.setVistaIva === 'function') win.setVistaIva(vistaIva);
     } catch(e) {}
   }
 
-  // ── LOADER ───────────────────────────────────────────────────
   function showLoader() {
     var l = document.getElementById('loader');
-    l.classList.remove('gone');
-  }
-  function hideLoader() {
-    var l = document.getElementById('loader');
-    l.classList.add('gone');
+    if (l) l.classList.remove('gone');
   }
 
-  // ── IFRAME READY ─────────────────────────────────────────────
+  function hideLoader() {
+    var l = document.getElementById('loader');
+    if (l) l.classList.add('gone');
+  }
+
   // Called when an iframe finishes loading
   function onFrameLoad(name) {
     var frame = document.getElementById('f-' + name);
-    var tab   = frame.getAttribute('data-tab');
+    if (!frame) return;
+    var tab = frame.getAttribute('data-tab');
 
-    // 1. Inject hide CSS immediately
+    // 1. Inject CSS to hide internal tabs/header
     injectCSS(frame);
 
     // 2. Switch to correct sub-tab
@@ -390,35 +504,26 @@
     // 3. Push current temporada
     pushTemporada(frame);
 
-    // 3b. Push current vista IVA
+    // 4. Push vista IVA
     pushVistaIva(frame);
 
-    // 4. Small delay then reveal (gives CSS time to apply)
-    setTimeout(function() {
-      frame.classList.add('ready');
-      if (name === currentTab) hideLoader();
-    }, 80);
+    // 5. Mark as ready
+    frame.classList.add('ready');
+
+    // 6. Hide loader
+    hideLoader();
   }
 
   // Attach load listeners to all iframes
   document.querySelectorAll('iframe').forEach(function(f) {
-    var name = f.id.replace('f-', '');
-    f.addEventListener('load', function() { onFrameLoad(name); });
+    var id = f.id.replace('f-', '');
+    f.addEventListener('load', function() { onFrameLoad(id); });
   });
 
-  // ── TAB SWITCHER ─────────────────────────────────────────────
+  // ── NAV ──────────────────────────────────────────────────────
   function show(name, el) {
     if (name === currentTab) return;
     currentTab = name;
-
-    // Update tab styles
-    document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
-    if (el && el.classList) el.classList.add('active');
-
-    // Activar visualmente el tab correcto si no se pasó el elemento
-    var tabEl = document.querySelector('.tab[onclick*=\'"' + name + '"\']') ||
-                document.querySelector('.tab[onclick*="' + "'" + name + "'" + '"]');
-    if (tabEl) tabEl.classList.add('active');
 
     // Hide all iframes
     document.querySelectorAll('iframe').forEach(function(f) {
@@ -448,7 +553,7 @@
       frame.src = frame.getAttribute('data-src');
       // onFrameLoad will hide loader when ready
     } else {
-      // Already loaded — show immediately (already has ready class from before, re-add)
+      // Already loaded — show immediately
       frame.classList.add('ready');
       hideLoader();
     }
@@ -456,319 +561,169 @@
   // Exponer globalmente para que los iframes puedan navegar
   window.show = show;
 
+  // ── DROPDOWNS ────────────────────────────────────────────────
+  function toggleDropdown(btn) {
+    var item = btn.parentElement;
+    var wasOpen = item.classList.contains('open');
+    // Close all dropdowns
+    document.querySelectorAll('.nav-item.open').forEach(function(i) {
+      i.classList.remove('open');
+    });
+    // Open this one if wasn't open
+    if (!wasOpen) item.classList.add('open');
+  }
+  window.toggleDropdown = toggleDropdown;
+
+  function navHome(btn) {
+    // Close any open dropdown
+    document.querySelectorAll('.nav-item.open').forEach(function(i) {
+      i.classList.remove('open');
+    });
+    // Reset all nav buttons and dropdown items
+    document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.nav-dropdown-item').forEach(function(d) { d.classList.remove('active'); });
+    // Mark home active
+    btn.classList.add('active');
+    // Navigate
+    show('home', null);
+  }
+  window.navHome = navHome;
+
+  function navTo(name, group) {
+    // Close dropdowns
+    document.querySelectorAll('.nav-item.open').forEach(function(i) {
+      i.classList.remove('open');
+    });
+    // Reset states
+    document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.nav-dropdown-item').forEach(function(d) { d.classList.remove('active'); });
+    // Mark group button active
+    if (group) {
+      var groupItem = document.querySelector('.nav-item[data-group="' + group + '"]');
+      if (groupItem) {
+        var btn = groupItem.querySelector('.nav-btn');
+        if (btn) btn.classList.add('active');
+      }
+    }
+    // Mark dropdown item active
+    document.querySelectorAll('.nav-dropdown-item').forEach(function(it) {
+      var oc = it.getAttribute('onclick') || '';
+      if (oc.indexOf("'" + name + "'") >= 0) {
+        it.classList.add('active');
+      }
+    });
+    // Navigate
+    show(name, null);
+  }
+  window.navTo = navTo;
+
+  // Close dropdowns when clicking outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.nav-item')) {
+      document.querySelectorAll('.nav-item.open').forEach(function(i) {
+        i.classList.remove('open');
+      });
+    }
+  });
+
+  // Close dropdowns on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.nav-item.open').forEach(function(i) {
+        i.classList.remove('open');
+      });
+    }
+  });
+
   // Mark home as loaded on its first load
   loaded['home'] = true;
   document.getElementById('f-home').addEventListener('load', function() {
     onFrameLoad('home');
-  }, { once: true });
+  });
 
-  // ── TEMPORADA ────────────────────────────────────────────────
-  function onTemporadaChange() {
-    temporada = document.getElementById('dash-temporada').value;
+  // ── TEMPORADAS ───────────────────────────────────────────────
+  function getTemporadaActual() {
+    var d = new Date();
+    var y = d.getFullYear();
+    var m = d.getMonth() + 1;
+    if (m >= 4) return y + '-' + (y+1);
+    return (y-1) + '-' + y;
+  }
 
-    // Recalculate KPIs for selected temporada
-    if (window._kpiData) {
-      var costoTemp = costosDeLaTemporada(window._kpiData.registros, window._kpiData.asignaciones, temporada);
-      document.getElementById('k-costos').textContent = fmtPeso(costoTemp);
-      document.getElementById('k-costos-label').textContent = '💰 Costos totales · Temp ' + (temporada || '');
-
-      // Ppto ingresos
-      var pptoIng = (Array.isArray(window._kpiData.proyecciones) ? window._kpiData.proyecciones : []).filter(function(r) {
-        var id  = String(r['Unidad_Productiva']||'').trim();
-        var tmp = TEMP_MAP[id];
-        if (!tmp) return false;
-        return tmp.temporada === temporada;
-      }).reduce(function(s,r){
-        var m = Number(r['Monto_Total']||0);
-        return s + (vistaIva === 'bruto' ? m * 1.19 : m);
-      }, 0);
-      document.getElementById('k-ppto').textContent = fmtPeso(pptoIng);
-      document.getElementById('k-ppto-label').textContent = '🌾 Ingresos proyectados · Temp ' + (temporada || '');
-
-      // Margen ppto
-      var margenPpto = pptoIng - costoTemp;
-      document.getElementById('k-margen').textContent = fmtPeso(margenPpto);
-      document.getElementById('k-margen').className = 'kpi-val ' + (margenPpto >= 0 ? 'green' : 'red');
-      document.getElementById('k-margen-label').textContent = '📊 Margen proyectado · Temp ' + (temporada || '');
+  function poblarTemporadas() {
+    var sel = document.getElementById('dash-temporada');
+    var actual = getTemporadaActual();
+    var anios = [];
+    var aBase = parseInt(actual.split('-')[0], 10);
+    for (var i = -2; i <= 2; i++) {
+      var y = aBase + i;
+      anios.push(y + '-' + (y+1));
     }
+    sel.innerHTML = anios.map(function(a) {
+      return '<option value="' + a + '"' + (a === actual ? ' selected' : '') + '>' + a + '</option>';
+    }).join('');
+    temporada = actual;
+    updateTempLabels();
+  }
 
+  function updateTempLabels() {
+    document.getElementById('lbl-temp-ing').textContent = 'Temp ' + temporada;
+    document.getElementById('lbl-temp-cos').textContent = 'Temp ' + temporada;
+    document.getElementById('lbl-temp-mar').textContent = 'Temp ' + temporada;
+  }
+
+  function onTemporadaChange() {
+    var sel = document.getElementById('dash-temporada');
+    temporada = sel.value;
+    updateTempLabels();
+    cargarKPIs();
     // Push to all loaded iframes
-    ['f-home','f-costos','f-ingresos','f-resultados','f-labores','f-caja','f-produccion','f-insumos'].forEach(function(id) {
-      var f = document.getElementById(id);
-      if (loaded[id.replace('f-','')] && f.contentWindow) pushTemporada(f);
+    document.querySelectorAll('iframe').forEach(function(f) {
+      var id = f.id.replace('f-', '');
+      if (loaded[id]) pushTemporada(f);
     });
   }
 
   // ── VISTA IVA ────────────────────────────────────────────────
-  function onVistaIvaChange(modo) {
-    if (modo !== 'neto' && modo !== 'bruto') return;
-    vistaIva = modo;
-    try { localStorage.setItem('lc_vista_iva', modo); } catch(e) {}
-
-    // Toggle pill UI
-    document.getElementById('iva-pill-neto').classList.toggle('on',  modo === 'neto');
-    document.getElementById('iva-pill-bruto').classList.toggle('on', modo === 'bruto');
-
-    // Recalcular KPIs del header
-    if (window._kpiData) onTemporadaChange();
-
+  function setVistaIva(v) {
+    vistaIva = v;
+    try { localStorage.setItem('lc_vista_iva', v); } catch(e) {}
+    document.getElementById('iva-neto').classList.toggle('on', v === 'neto');
+    document.getElementById('iva-bruto').classList.toggle('on', v === 'bruto');
+    cargarKPIs();
     // Push to all loaded iframes
-    ['f-home','f-costos','f-ingresos','f-resultados','f-labores','f-caja','f-produccion','f-insumos'].forEach(function(id) {
-      var f = document.getElementById(id);
-      if (loaded[id.replace('f-','')] && f.contentWindow) pushVistaIva(f);
+    document.querySelectorAll('iframe').forEach(function(f) {
+      var id = f.id.replace('f-', '');
+      if (loaded[id]) pushVistaIva(f);
     });
   }
+  window.setVistaIva = setVistaIva;
 
-  // Aplicar IVA según vista actual a un monto bruto (con IVA)
-  // Para BD_Registro y Asignaciones (Tipo_Doc factura) → /1.19 si vista=neto
-  function aplicarIva(monto, esFactura) {
-    if (vistaIva === 'bruto') return monto;
-    if (!esFactura) return monto;  // guías / contratos / honorarios → sin IVA igual
-    return monto / 1.19;
-  }
+  // Init vista IVA UI state
+  document.getElementById('iva-neto').classList.toggle('on', vistaIva === 'neto');
+  document.getElementById('iva-bruto').classList.toggle('on', vistaIva === 'bruto');
 
-  // Mapa KEY_Documento → {neto, tipoDte} desde CargaHTML_Demo
-  // Permite calcular el neto exacto en lugar de /1.19 aproximado
-  var KEY_TO_NETO_DASH = {};
-
-  // Aplicar IVA a una asignación de factura usando MntNeto exacto si está disponible
-  function aplicarIvaFactura(montoAsignado, keyDoc, montoTotalDoc) {
-    if (vistaIva === 'bruto') return montoAsignado;
-    if (!montoAsignado) return montoAsignado;
-    var info = KEY_TO_NETO_DASH[keyDoc];
-    if (info && montoTotalDoc) {
-      if (info.tipoDte === '34') return montoAsignado;  // exenta
-      return (montoAsignado / Number(montoTotalDoc)) * info.neto;
-    }
-    return montoAsignado / 1.19;  // fallback
-  }
-
-  // ── KPIs ─────────────────────────────────────────────────────
-  // ── GLOBALS ──────────────────────────────────────────────────
-  var TEMP_MAP = {};
-
-  function getTemporada(fechaStr, mesInicio) {
-    var raw = String(fechaStr||"").trim();
-    if (!raw) return null;
-    var d = null;
-    var mISO = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (mISO) d = new Date(+mISO[1], +mISO[2]-1, +mISO[3]);
-    if (!d) {
-      var mCL = raw.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-      if (mCL) d = new Date(+mCL[3], +mCL[2]-1, +mCL[1]);
-    }
-    if (!d || isNaN(d)) return null;
-    var y = d.getFullYear(); var m = d.getMonth()+1;
-    return m >= mesInicio ? y+"-"+(y+1) : (y-1)+"-"+y;
-  }
-
-  // Opción A: si UP es productiva (Es_Base_Prorrateo=true), la temporada es la del CC.
-  // Si no es productiva, se calcula por fecha del movimiento + mesInicio del CC.
-  // Para usar esto necesitamos saber qué CCs son productivos → BASE_PRORRATEO_MAP.
-  var BASE_PRORRATEO_MAP = {};
-
-  function tempDeMovimientoDash(fechaVal, ccId) {
-    var tmp = TEMP_MAP[ccId];
-    if (!tmp) return null;
-    if (BASE_PRORRATEO_MAP[ccId] === true) return tmp.temporada;  // productiva: temp fija
-    return getTemporada(fechaVal, tmp.mesInicio || 4);  // no productiva: por fecha
-  }
-
-  function costosDeLaTemporada(regs, asigs, temp) {
-    var FECHA_CORTE = "2026-03-30";  // mismo corte que reporte.html FECHA_CORTE_COSTOS
-    // BD_Registro: pre-corte, asumir TipoDTE=33 (todo /1.19 si vista=neto)
-    var costoReg = (Array.isArray(regs) ? regs : []).filter(function(r) {
-      var ccId = String(r["Centro_Costo"]||"").trim();
-      var tmp  = TEMP_MAP[ccId];
-      if (!tmp) return false;
-      // Excluir post-corte (esos van por Asignaciones_U)
-      var raw = String(r["Fecha"]||"");
-      // Si Fecha trae texto (ej: "Cosecha") en vez de fecha, asumir último día de la temporada del CC
-      if (raw && !/^\d{4}/.test(raw)) {
-        var añoFin = parseInt(tmp.temporada.split("-")[1], 10);
-        var mesIni = Number(tmp.mesInicio) || 4;
-        var lastDay = new Date(añoFin, mesIni - 1, 0);
-        raw = lastDay.getFullYear() + "-" + String(lastDay.getMonth()+1).padStart(2,"0") + "-" + String(lastDay.getDate()).padStart(2,"0");
-        r["Fecha"] = raw;  // persistir para que tempDeMovimientoDash lo lea bien
-      }
-      var f   = raw.indexOf("T") !== -1 ? raw.split("T")[0] : raw.slice(0,10);
-      if (f !== "" && f >= FECHA_CORTE) return false;
-      return tempDeMovimientoDash(r["Fecha"], ccId) === temp;
-    }).reduce(function(s,r){ return s + aplicarIva(Number(r["Costo Total"]||0), true); }, 0);
-    // Asignaciones_U: factura (incl. recibida) → /1.19; guia/contrato → tal cual
-    var costoAsig = (Array.isArray(asigs) ? asigs : []).filter(function(a) {
-      var ccId  = String(a["UP_ID"]||a["UP_Nombre"]||"").trim();
-      var tmp   = TEMP_MAP[ccId];
-      var fecha = a["fecha_documento"] || a["Fecha_Documento"] || a["Fecha_Asignacion"];
-      var tipo  = String(a["Tipo_Doc"]||"").toLowerCase();
-      // Excluir ingresos: facturas/guías emitidas + facturas con RUT_LC
-      var partes = String(a["KEY_Documento"]||"").split("-");
-      var rutEmis = partes.length < 4 ? "" : partes[1] + "-" + partes[2];
-      var esIngreso = tipo.indexOf("emit") !== -1 || (tipo.indexOf("factura") !== -1 && rutEmis === "76099766-8");
-      if (!tmp) return false;
-      if (esIngreso) return false;
-      return tempDeMovimientoDash(fecha, ccId) === temp;
-    }).reduce(function(s,a){
-      var tipo = String(a["Tipo_Doc"]||"").toLowerCase();
-      var monto = Number(a["Monto_Asignado"]||0);
-      if (tipo === "factura") {
-        var keyDoc = String(a["KEY_Documento"]||"").trim();
-        var totalDoc = Number(String(a["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
-        return s + aplicarIvaFactura(monto, keyDoc, totalDoc);
-      }
-      // guía y otros → tal cual
-      return s + monto;
-    }, 0);
-    return costoReg + costoAsig;
-  }
-
-  async function loadKPIs() {
-    document.getElementById("dash-date").textContent =
-      new Date().toLocaleDateString("es-CL", { weekday:"long", day:"numeric", month:"long", year:"numeric" });
-
+  // ── CARGA KPIs ───────────────────────────────────────────────
+  async function cargarKPIs() {
     try {
-      var [banco, registros, docs, asignaciones, ccs, proyecciones] = await Promise.all([
-        fetchSheet(API_FIN, "BD_Banco"),
-        fetchSheet(API_REG, "BD_Registro"),
-        fetchSheet(API_FIN, "CargaHTML_Demo"),
-        fetchSheet(API_FIN, "Asignaciones_U"),
-        fetchSheet(API_CC,  "BD_CC"),
-        fetchSheet(API_REG, "Proyecciones_Manuales"),
-      ]);
-
-      // Caja
-      var caja = (Array.isArray(banco) ? banco : [])
-        .reduce(function(s,r){ return s + Number(r["Monto_Abono"]||0) - Number(r["Monto_Cargo"]||0); }, 0);
-      document.getElementById("k-caja").textContent = fmtPeso(caja);
-      document.getElementById("k-caja").className = "kpi-val " + (caja >= 0 ? "green" : "red");
-
-      // Poblar KEY_TO_NETO_DASH desde CargaHTML_Demo (para vista sin IVA exacta)
-      Object.keys(KEY_TO_NETO_DASH).forEach(function(k){ delete KEY_TO_NETO_DASH[k]; });
-      (Array.isArray(docs) ? docs : []).forEach(function(d) {
-        var key = String(d["KEY"]||"").trim();
-        if (!key) return;
-        var neto = Number(String(d["MntNeto"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
-        var tipoDte = String(d["TipoDTE"]||"").trim();
-        if (neto > 0) KEY_TO_NETO_DASH[key] = { neto: neto, tipoDte: tipoDte };
-      });
-
-      // Costos (BD_Registro + Asignaciones_U)
-      // Populate global TEMP_MAP from BD_CC
-      Object.keys(TEMP_MAP).forEach(function(k){ delete TEMP_MAP[k]; });
-      Object.keys(BASE_PRORRATEO_MAP).forEach(function(k){ delete BASE_PRORRATEO_MAP[k]; });
-      (Array.isArray(ccs) ? ccs : []).forEach(function(row) {
-        var id   = String(row["Id_CC"]||"").trim();
-        var temp = String(row["Temporada"]||"").trim();
-        var mes  = parseInt(row["MES_INICIO_TEMPORADA"]||3)||3;
-        if (id && temp) TEMP_MAP[id] = { temporada: temp, mesInicio: mes };
-        // Es_Base_Prorrateo acepta TRUE/FALSE/VERDADERO/FALSO booleano o texto
-        var rawBase = row["Es_Base_Prorrateo"];
-        if (id) {
-          BASE_PRORRATEO_MAP[id] = (rawBase === true)
-            || ["true","verdadero","si","sí","1"].indexOf(String(rawBase||"").trim().toLowerCase()) !== -1;
-        }
-      });
-
-      // Count records per temporada
-      var tempSet = {};
-      // Solo temporadas válidas — evita que aparezcan 2024-2025 u otras
-      var TEMPORADAS_VALIDAS = ["2025-2026", "2026-2027"];
-      (Array.isArray(registros) ? registros : []).forEach(function(r) {
-        var ccId = String(r["Centro_Costo"]||"").trim();
-        var tmp  = TEMP_MAP[ccId];
-        if (!tmp) return;
-        var t = getTemporada(r["Fecha"], tmp.mesInicio);
-        if (t && TEMPORADAS_VALIDAS.indexOf(t) !== -1) tempSet[t] = (tempSet[t]||0) + 1;
-      });
-
-      var temps = Object.entries(tempSet).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){ return e[0]; });
-      var sel = document.getElementById('dash-temporada');
-      if (temps.length) {
-        sel.innerHTML = temps.map(function(t) {
-          return '<option value="'+t+'">'+t+'</option>';
-        }).join('');
-        // Default: prefer 2026-2027, else most-records
-        temporada = temps.indexOf('2026-2027') !== -1 ? '2026-2027' : temps[0];
-        // Reflect default in selector
-        sel.value = temporada;
-      } else {
-        sel.innerHTML = '<option value="">Sin datos</option>';
-      }
-
-      // Store for recalculation on temporada change
-      window._kpiData = { registros: registros, asignaciones: asignaciones, proyecciones: proyecciones };
-
-      var costoTemp = costosDeLaTemporada(registros, asignaciones, temporada);
-      document.getElementById("k-costos").textContent = fmtPeso(costoTemp);
-      document.getElementById("k-costos-label").textContent = "💰 Costos totales · Temp " + (temporada || "");
-
-      // Ppto ingresos (Proyecciones_Manuales filtrado por temporada)
-      var pptoIng = (Array.isArray(proyecciones) ? proyecciones : []).filter(function(r) {
-        var id  = String(r["Unidad_Productiva"]||"").trim();
-        var tmp = TEMP_MAP[id];
-        if (!tmp) return false;  // excluir UPs sin temporada definida
-        return tmp.temporada === temporada;
-      }).reduce(function(s,r){
-        var m = Number(r["Monto_Total"]||0);
-        return s + (vistaIva === 'bruto' ? m * 1.19 : m);
-      }, 0);
-      document.getElementById("k-ppto").textContent = fmtPeso(pptoIng);
-      document.getElementById("k-ppto").className = "kpi-eq-val amber";
-      document.getElementById("k-ppto-label").textContent = "🌾 Ingresos proyectados · Temp " + (temporada || "");
-
-      // Margen ppto = Ppto ingresos - Costos
-      var margenPpto = pptoIng - costoTemp;
-      document.getElementById("k-margen").textContent = fmtPeso(margenPpto);
-      document.getElementById("k-margen").className = "kpi-eq-val " + (margenPpto >= 0 ? "green" : "red");
-      document.getElementById("k-margen-label").textContent = "📊 Margen proyectado · Temp " + (temporada || "");
-
-      // Labores vencidas — fuente: Plan_Labores (Carta Gantt).
-      // Recalcula: cualquier labor con Fecha_Fin < hoy y estado != Completada cuenta como vencida.
-      // No depende del campo "estado" del sheet (que solo se actualiza al crear/editar).
-      try {
-        var planResp = await fetch(API_PLAN + "?action=list_plan");
-        var planJson = await planResp.json();
-        var planLabores = (planJson && planJson.data) ? planJson.data : [];
-        var hoyV = new Date(); hoyV.setHours(0,0,0,0);
-        var vencidas = planLabores.filter(function(l){
-          var est = String(l.estado||"").trim();
-          if (est === "Completada") return false;
-          var ffin = String(l.fin||"").trim();
-          if (!ffin) return false;
-          var partes = ffin.slice(0,10).split("-");
-          if (partes.length !== 3) return false;
-          var d = new Date(+partes[0], +partes[1]-1, +partes[2]);
-          d.setHours(0,0,0,0);
-          return d < hoyV;
-        }).length;
-        document.getElementById("k-vencidas").textContent = vencidas;
-        document.getElementById("k-vencidas").className = "kpi-val " + (vencidas > 0 ? "amber" : "green");
-      } catch(ePlan) {
-        console.error("Error cargando Plan_Labores:", ePlan);
-        document.getElementById("k-vencidas").textContent = "—";
-      }
-
-      // Sin asignar desde corte (KPI eliminado del header pero cálculo conservado)
-      var sinAsignar = (Array.isArray(docs) ? docs : []).filter(function(d) {
-        var fundo = String(d["Fundo"]||"").trim();
-        var fecha = String(d["Fecha Emisión"]||"").split("T")[0];
-        return (fundo===""||fundo==="FUNDO_NO_ENCONTRADO") && fecha>=CORTE;
-      }).length;
-      var _kSin = document.getElementById("k-sinasignar");
-      if (_kSin) {
-        _kSin.textContent = sinAsignar;
-        _kSin.className = "kpi-val " + (sinAsignar > 0 ? "red" : "green");
+      var url = WORKER + "/?url=" + encodeURIComponent(API_CC + "?action=kpis_dash&temporada=" + encodeURIComponent(temporada) + "&iva=" + encodeURIComponent(vistaIva));
+      var resp = await fetch(url);
+      var data = await resp.json();
+      if (data && typeof data === 'object') {
+        if (typeof data.caja === 'number') document.getElementById('kpi-caja').textContent = fmtPeso(data.caja);
+        if (typeof data.ingresos === 'number') document.getElementById('kpi-ingresos').textContent = fmtPeso(data.ingresos);
+        if (typeof data.costos === 'number') document.getElementById('kpi-costos').textContent = fmtPeso(data.costos);
+        if (typeof data.margen === 'number') document.getElementById('kpi-margen').textContent = fmtPeso(data.margen);
+        if (typeof data.vencidas === 'number') document.getElementById('kpi-vencidas').textContent = data.vencidas;
       }
     } catch(e) {
-      console.error("KPI error:", e);
+      console.warn('Error cargando KPIs', e);
     }
   }
 
-  // Reflejar vista IVA guardada en localStorage al cargar
-  document.getElementById('iva-pill-neto').classList.toggle('on',  vistaIva === 'neto');
-  document.getElementById('iva-pill-bruto').classList.toggle('on', vistaIva === 'bruto');
-
-  loadKPIs();
+  // ── INIT ─────────────────────────────────────────────────────
+  poblarTemporadas();
+  cargarKPIs();
 </script>
 
 </body>
