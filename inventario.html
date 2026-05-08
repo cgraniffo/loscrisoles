@@ -344,9 +344,8 @@
       <option value="COSECHA">Cosecha</option>
       <option value="MANUAL">Manual</option>
     </select>
+    <button class="btn btn-primary" onclick="abrirModalProcesarGuias()">⚡ Procesar guías</button>
   </div>
-  <div id="tablaMovs"><div class="loader">Cargando movimientos…</div></div>
-</div>
 
 <!-- TAB MAESTRO -->
 <div class="tab-content" id="tab-maestro">
@@ -559,6 +558,35 @@
   </div>
 </div>
 
+<!-- MODAL PROCESAR GUÍAS -->
+<div class="modal-bg" id="modalProcesar">
+  <div class="modal">
+    <h2>⚡ Procesar guías → Movimientos de inventario</h2>
+    <p style="color: var(--txt-soft); margin-bottom: 12px; font-size: 13px;">
+      Genera movimientos automáticos de stock leyendo <strong>DetallesGuias</strong>.
+      Items mapeados → movimiento. Items sin mapeo → ignorados.
+      Items ya procesados anteriormente → no se duplican.
+    </p>
+    <form onsubmit="event.preventDefault(); procesarGuias();">
+      <div class="form-grid">
+        <div class="full">
+          <label>Procesar guías desde la fecha *</label>
+          <input type="date" id="proc_fecha_desde" required>
+        </div>
+        <div class="full" style="font-size: 11px; color: var(--txt-soft); padding: 6px 10px; background: var(--bg); border-radius: 4px;">
+          💡 Solo se procesarán guías con fecha ≥ a esta. Si dejas hoy, solo se procesa lo nuevo de aquí en adelante.
+        </div>
+      </div>
+      <div id="proc_resultado" style="display: none; margin-top: 12px;"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modalProcesar')">Cerrar</button>
+        <button type="submit" class="btn btn-primary" id="btnProcesar">Procesar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+  
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1195,7 +1223,90 @@ async function eliminarMapeoActual() {
   }
 }
 
+function abrirModalProcesarGuias() {
+  document.getElementById('proc_fecha_desde').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('proc_resultado').style.display = 'none';
+  document.getElementById('proc_resultado').innerHTML = '';
+  document.getElementById('btnProcesar').disabled = false;
+  document.getElementById('btnProcesar').textContent = 'Procesar';
+  document.getElementById('modalProcesar').classList.add('show');
+}
 
+async function procesarGuias() {
+  const fechaDesde = document.getElementById('proc_fecha_desde').value;
+  if (!fechaDesde) {
+    toast('Selecciona una fecha', true);
+    return;
+  }
+
+  const btn = document.getElementById('btnProcesar');
+  btn.disabled = true;
+  btn.textContent = 'Procesando…';
+
+  const resultadoDiv = document.getElementById('proc_resultado');
+  resultadoDiv.style.display = 'block';
+  resultadoDiv.innerHTML = '<div class="loader">Procesando guías… esto puede tomar varios segundos</div>';
+
+  try {
+    const res = await fetch(API_INVENTARIO_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api: 'inventario',
+        action: 'procesar_guias',
+        fecha_desde: fechaDesde,
+        usuario: 'dashboard'
+      })
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error || 'Error desconocido');
+
+    const s = res.stats;
+    let html = `
+      <div style="background: #d6f0db; border-left: 3px solid var(--verde-ok); padding: 12px; border-radius: 6px; margin-bottom: 8px;">
+        <strong style="color: var(--verde-ok); font-size: 15px;">✅ Procesamiento completado</strong>
+      </div>
+      <table style="width: 100%; font-size: 13px;">
+        <tr><td style="padding: 4px 0;">📊 Total líneas leídas:</td><td class="num"><strong>${formatNum(s.total_lineas)}</strong></td></tr>
+        <tr style="color: var(--verde-ok);"><td style="padding: 4px 0;">✅ Movimientos creados:</td><td class="num"><strong>${formatNum(s.procesadas)}</strong></td></tr>
+        <tr style="color: var(--txt-soft);"><td style="padding: 4px 0;">⏭️ Sin mapeo (skip):</td><td class="num">${formatNum(s.sin_mapeo)}</td></tr>
+        <tr style="color: var(--txt-soft);"><td style="padding: 4px 0;">🚫 Ignoradas:</td><td class="num">${formatNum(s.ignoradas)}</td></tr>
+        <tr style="color: var(--txt-soft);"><td style="padding: 4px 0;">🔁 Duplicadas (ya procesadas):</td><td class="num">${formatNum(s.duplicadas)}</td></tr>
+        <tr style="color: var(--txt-soft);"><td style="padding: 4px 0;">📅 Fuera de fecha:</td><td class="num">${formatNum(s.fuera_fecha)}</td></tr>
+        <tr style="color: var(--txt-soft);"><td style="padding: 4px 0;">⚠️ Sin cantidad / nombre:</td><td class="num">${formatNum((s.sin_cantidad||0) + (s.sin_nombre||0))}</td></tr>
+    `;
+
+    if (s.errores > 0) {
+      html += `<tr style="color: var(--rojo);"><td style="padding: 4px 0;">❌ Errores:</td><td class="num"><strong>${s.errores}</strong></td></tr>`;
+    }
+
+    html += `</table>`;
+
+    if (s.detalles_errores && s.detalles_errores.length > 0) {
+      html += `
+        <details style="margin-top: 8px; font-size: 12px;">
+          <summary style="cursor: pointer; color: var(--rojo);">Ver detalles de errores</summary>
+          <pre style="background: #fadbd8; padding: 8px; border-radius: 4px; overflow-x: auto; margin-top: 4px;">${s.detalles_errores.join('\n')}</pre>
+        </details>
+      `;
+    }
+
+    resultadoDiv.innerHTML = html;
+    btn.textContent = 'Procesar de nuevo';
+    btn.disabled = false;
+
+    // Recargar datos
+    await cargarTodo();
+
+  } catch (err) {
+    resultadoDiv.innerHTML = `<div class="err">Error: ${err.message}</div>`;
+    btn.textContent = 'Reintentar';
+    btn.disabled = false;
+    console.error(err);
+  }
+}
+
+  
 async function ignorarItem(nombreItem) {
   if (!confirm(`¿Marcar "${nombreItem}" como ignorado?\n\nEste item no aparecerá más en Pendientes y no descontará stock cuando se procesen las guías. Puedes des-ignorarlo después en la pestaña "Ignorados".`)) return;
 
