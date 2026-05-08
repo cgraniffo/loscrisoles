@@ -1813,27 +1813,77 @@ async function actualizarVencidasDesdePlanLabores() {
     const resp = await fetch(API_PLAN + "?action=list_plan");
     const json = await resp.json();
     const planLabores = (json && json.data) ? json.data : [];
-    // Recalcular: cualquier labor con Fecha_Fin < hoy y no Completada cuenta como vencida.
-    // No depende del campo "estado" del sheet (que solo cambia al crear/editar).
+
     const hoyV = new Date(); hoyV.setHours(0,0,0,0);
+    const en7  = new Date(hoyV); en7.setDate(en7.getDate() + 7);
+    const inicioMesAct = new Date(hoyV.getFullYear(), hoyV.getMonth(), 1);
+    const inicioMesPas = new Date(hoyV.getFullYear(), hoyV.getMonth() - 1, 1);
+
+    // Helper: parsear "yyyy-MM-dd" a Date local
+    const parseFecha = (s) => {
+      if (!s) return null;
+      const p = String(s).slice(0,10).split("-");
+      if (p.length !== 3) return null;
+      const d = new Date(+p[0], +p[1]-1, +p[2]);
+      d.setHours(0,0,0,0);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    // Extraer fecha de cierre desde notas: "[Cerrada YYYY-MM-DD → ID_Registro: ...]"
+    const fechaCierre = (l) => {
+      const notas = String(l.notas||"");
+      const m = notas.match(/\[Cerrada\s+(\d{4}-\d{2}-\d{2})/);
+      return m ? parseFecha(m[1]) : null;
+    };
+
     const esVencida = (l) => {
       const est = String(l.estado||"").trim();
       if (est === "Completada") return false;
-      const ffin = String(l.fin||"").trim();
-      if (!ffin) return false;
-      const p = ffin.slice(0,10).split("-");
-      if (p.length !== 3) return false;
-      const d = new Date(+p[0], +p[1]-1, +p[2]);
-      d.setHours(0,0,0,0);
-      return d < hoyV;
+      const d = parseFecha(l.fin);
+      return d && d < hoyV;
     };
+
     const vencidas = planLabores.filter(esVencida).length;
-    const activas = planLabores.filter(l => {
-      const e = String(l.estado||"").trim();
-      return e !== "Completada"; // todo lo no completado es activa
+    const activas  = planLabores.filter(l => String(l.estado||"").trim() !== "Completada").length;
+
+    // Próximos 7 días: labores no completadas con Fecha_Inicio entre hoy y hoy+7
+    const prox7d = planLabores.filter(l => {
+      const est = String(l.estado||"").trim();
+      if (est === "Completada") return false;
+      const di = parseFecha(l.inicio);
+      return di && di >= hoyV && di <= en7;
     }).length;
-    // Guardar en cache para que sincronizarUIDesdePlanLabores pueda reutilizar
-    window._planLaboresStats = { vencidas, activas };
+
+    // Productividad: completadas este mes vs mes pasado
+    let compMesAct = 0, compMesPas = 0;
+    planLabores.forEach(l => {
+      if (String(l.estado||"").trim() !== "Completada") return;
+      // Preferir fecha de cierre real desde notas; si no, usar Fecha_Fin
+      const fc = fechaCierre(l) || parseFecha(l.fin);
+      if (!fc) return;
+      if (fc >= inicioMesAct) compMesAct++;
+      else if (fc >= inicioMesPas && fc < inicioMesAct) compMesPas++;
+    });
+    const varPct = compMesPas > 0 ? Math.round((compMesAct - compMesPas) / compMesPas * 100) : null;
+
+    // Top 4 labores atrasadas (por más días de retraso)
+    const atrasadasList = planLabores.filter(esVencida).map(l => {
+      const d = parseFecha(l.fin);
+      const dias = Math.round((hoyV - d) / 86400000);
+      return {
+        tarea: String(l.tarea||"").trim(),
+        cultivo: String(l.cultivo||"").trim(),
+        up: String(l.up||"").trim(),
+        prioridad: String(l.prioridad||"").trim(),
+        dias
+      };
+    }).sort((a,b) => b.dias - a.dias).slice(0, 4);
+
+    window._planLaboresStats = {
+      vencidas, activas, prox7d,
+      compMesAct, compMesPas, varPct,
+      atrasadasList
+    };
     sincronizarUIDesdePlanLabores();
   } catch(e) { console.error("Error sincronizando vencidas con Plan_Labores:", e); }
 }
@@ -1893,25 +1943,59 @@ function sincronizarUIDesdePlanLabores() {
   }
 
   // ── Card "Labores esta semana" en zona 3 (números grandes + barra) ──────
-  // IDs reales del card: pipe-labores-nums (texto) y pipe-labores-bar (barra)
-  // Para "próximos 7 días" reusamos el valor de window._labProg7d que dejó renderHome,
-  // sino caemos a 0 (lo importante es que el conteo de atrasadas quede correcto).
+  // Usa stats.prox7d que viene de Plan_Labores (no de BD_Registro)
+  const prox7d = stats.prox7d != null ? stats.prox7d : (window._labProg7d || 0);
   const _pLabs = document.getElementById('pipe-labores-nums');
   if (_pLabs) {
-    const prog = window._labProg7d || 0;
     const colorAtr = vencidas > 0 ? '#A32D2D' : '#3B6D11';
     _pLabs.innerHTML =
         `<span style="font-size:22px;font-weight:700;color:${colorAtr};font-variant-numeric:tabular-nums;">${vencidas}</span><span style="font-size:12px;color:var(--gris);">atrasadas</span>`
       + ` <span style="color:rgba(0,0,0,0.2);">·</span> `
-      + `<span style="font-size:16px;font-weight:600;color:#1c1c1a;font-variant-numeric:tabular-nums;">${prog}</span><span style="font-size:12px;color:var(--gris);">próximos 7 días</span>`;
+      + `<span style="font-size:16px;font-weight:600;color:#1c1c1a;font-variant-numeric:tabular-nums;">${prox7d}</span><span style="font-size:12px;color:var(--gris);">próximos 7 días</span>`;
   }
   const _pLabsBar = document.getElementById('pipe-labores-bar');
   if (_pLabsBar && _pLabsBar.children.length >= 2) {
-    const prog = window._labProg7d || 0;
-    const total = Math.max(vencidas + prog, 1);
+    const total = Math.max(vencidas + prox7d, 1);
     const pctAtr = Math.round(vencidas / total * 100);
     _pLabsBar.children[0].style.width = pctAtr + '%';
     _pLabsBar.children[1].style.width = (100 - pctAtr) + '%';
+  }
+
+  // ── Card "Productividad mensual" (zona 3) ────────────────────────────────
+  if (stats.compMesAct != null) {
+    const _pAv = document.getElementById('pipe-avance-nums');
+    const _pAvSub = document.getElementById('pipe-avance-sub');
+    if (_pAv) {
+      const colorVar = stats.varPct == null ? 'var(--gris)' : (stats.varPct >= 0 ? '#3B6D11' : '#A32D2D');
+      const varTxt = stats.varPct == null ? '' : (stats.varPct >= 0 ? `+${stats.varPct}%` : `${stats.varPct}%`);
+      _pAv.innerHTML =
+          `<span style="font-size:22px;font-weight:700;color:#1c1c1a;font-variant-numeric:tabular-nums;">${stats.compMesAct}</span><span style="font-size:12px;color:var(--gris);">labores este mes</span>`;
+      if (_pAvSub) {
+        if (varTxt) {
+          _pAvSub.innerHTML = `<span style="color:${colorVar};font-weight:600;">${varTxt} vs mes pasado</span> · ${stats.compMesPas} en mes anterior`;
+        } else {
+          _pAvSub.innerHTML = `${stats.compMesPas} en mes anterior`;
+        }
+      }
+    }
+  }
+
+  // ── Card "Atrasadas y urgentes" (zona 3) ─────────────────────────────────
+  if (Array.isArray(stats.atrasadasList)) {
+    const _pEvt = document.getElementById('pipe-eventos-list');
+    if (_pEvt) {
+      if (stats.atrasadasList.length === 0) {
+        _pEvt.innerHTML = '<span style="color:var(--gris);font-size:11px;">Sin labores atrasadas</span>';
+      } else {
+        _pEvt.innerHTML = stats.atrasadasList.map(l => {
+          const colorPunto = l.prioridad === 'Urgente' ? '#A32D2D' : '#d97706';
+          const ctxParts = [l.cultivo, l.up].filter(Boolean);
+          const ctxTxt = ctxParts.length > 0 ? ` <span style="color:#888;">· ${ctxParts.join(' · ')}</span>` : '';
+          const tareaCorta = l.tarea.length > 20 ? l.tarea.slice(0,20) : l.tarea;
+          return `<div><span style="color:${colorPunto};">●</span> ${tareaCorta}${ctxTxt} · <span style="color:var(--gris);">atrasada ${l.dias} días</span></div>`;
+        }).join('');
+      }
+    }
   }
 
   // ── Headline zona 3 (Pipeline productivo) ────────────────────────────────
