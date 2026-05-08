@@ -1804,6 +1804,9 @@ main();
 // Sincronizar KPI "Labores vencidas" con la Carta Gantt (Plan_Labores).
 // Sobreescribe el valor calculado desde BD_Registro con el conteo de labores
 // en estado "Atrasada" desde Plan_Labores, manteniéndolo alineado con el Gantt.
+// Cache global del conteo de Plan_Labores. Se actualiza al cargar y se reusa en cada render.
+window._planLaboresStats = null;
+
 async function actualizarVencidasDesdePlanLabores() {
   try {
     const resp = await fetch(API_PLAN + "?action=list_plan");
@@ -1828,28 +1831,92 @@ async function actualizarVencidasDesdePlanLabores() {
       const e = String(l.estado||"").trim();
       return e !== "Completada"; // todo lo no completado es activa
     }).length;
-    const elV = document.getElementById('h-vencidas');
-    if (elV) elV.textContent = vencidas;
-    const _hL = document.getElementById('hint-labores');
-    if (_hL) {
-      _hL.textContent = vencidas > 0 ? `${vencidas} vencidas · ${activas} activas` : `${activas} activas`;
-      _hL.style.color = vencidas > 0 ? '#A32D2D' : 'var(--gris)';
-    }
-    const _bdgL = document.getElementById('badge-labores');
-    if (_bdgL) {
-      if (vencidas === 0) { _bdgL.textContent = 'Al día'; _bdgL.className = 'status-badge ok'; }
-      else if (vencidas <= 5) { _bdgL.textContent = `${vencidas} atrasadas`; _bdgL.className = 'status-badge warn'; }
-      else { _bdgL.textContent = `${vencidas} atrasadas`; _bdgL.className = 'status-badge danger'; }
-    }
-    const _nb1 = document.getElementById('nav-labores-badge');
-    if (_nb1) {
-      _nb1.textContent = vencidas + " vencidas · " + activas + " activas";
-      _nb1.className = "nav-badge " + (vencidas > 0 ? "badge-rojo" : "badge-verde");
-    }
+    // Guardar en cache para que sincronizarUIDesdePlanLabores pueda reutilizar
+    window._planLaboresStats = { vencidas, activas };
+    sincronizarUIDesdePlanLabores();
   } catch(e) { console.error("Error sincronizando vencidas con Plan_Labores:", e); }
 }
+
+// Esta función sobrescribe TODOS los textos visibles que dependen del conteo de labores.
+// Se puede llamar múltiples veces (después de renderHome, después del fetch inicial, etc).
+function sincronizarUIDesdePlanLabores() {
+  const stats = window._planLaboresStats;
+  if (!stats) return;
+  const vencidas = stats.vencidas;
+  const activas = stats.activas;
+
+  // KPI superior del header (oculto desde que comentamos el headline)
+  const elV = document.getElementById('h-vencidas');
+  if (elV) elV.textContent = vencidas;
+
+  // Card "Labores atrasadas" - hint
+  const _hL = document.getElementById('hint-labores');
+  if (_hL) {
+    _hL.textContent = vencidas > 0 ? `${vencidas} vencidas · ${activas} activas` : `${activas} activas`;
+    _hL.style.color = vencidas > 0 ? '#A32D2D' : 'var(--gris)';
+  }
+  // Card "Labores atrasadas" - badge
+  const _bdgL = document.getElementById('badge-labores');
+  if (_bdgL) {
+    if (vencidas === 0) { _bdgL.textContent = 'Al día'; _bdgL.className = 'status-badge ok'; }
+    else if (vencidas <= 5) { _bdgL.textContent = `${vencidas} atrasadas`; _bdgL.className = 'status-badge warn'; }
+    else { _bdgL.textContent = `${vencidas} atrasadas`; _bdgL.className = 'status-badge danger'; }
+  }
+  // Nav badge
+  const _nb1 = document.getElementById('nav-labores-badge');
+  if (_nb1) {
+    _nb1.textContent = vencidas + " vencidas · " + activas + " activas";
+    _nb1.className = "nav-badge " + (vencidas > 0 ? "badge-rojo" : "badge-verde");
+  }
+
+  // ── Headline zona 1 (Acción inmediata) ──────────────────────────────────
+  const _h1 = document.getElementById('headline-zona-1');
+  if (_h1) {
+    const docs = window.DOCUMENTOS || [];
+    const CORTE = "2026-04-01";
+    const sinAsig = docs.filter(d => {
+      const f = String(d["Fundo"]||"").trim();
+      const fe = String(d["Fecha Emisión"]||"").split("T")[0];
+      return (f===""||f==="FUNDO_NO_ENCONTRADO") && fe>=CORTE;
+    }).length;
+    if (vencidas === 0 && sinAsig === 0) {
+      _h1.innerHTML = 'Sin pendientes urgentes hoy. Todo al día.';
+      _h1.className = 'zona-headline';
+    } else {
+      const partes = [];
+      if (vencidas > 0) partes.push(`<b>${vencidas}</b> labor${vencidas===1?'':'es'} atrasada${vencidas===1?'':'s'}`);
+      if (sinAsig > 0) partes.push(`<b>${sinAsig}</b> documento${sinAsig===1?'':'s'} sin asignar`);
+      _h1.innerHTML = `Atención: hay ${partes.join(' y ')} esperando resolución.`;
+      _h1.className = 'zona-headline alerta';
+    }
+  }
+
+  // ── Card "Labores esta semana" en zona 3 (números grandes) ───────────────
+  // El card muestra: "X atrasadas · Y próximos 7 días" con barra
+  const _cardLab = document.getElementById('card-labores-stat-atrasadas');
+  if (_cardLab) _cardLab.textContent = vencidas;
+
+  // ── Headline zona 3 (Pipeline productivo) ────────────────────────────────
+  // Reemplazar solo "X atrasadas" en el headline (sin tocar los otros números)
+  const _h3 = document.getElementById('headline-zona-3');
+  if (_h3 && _h3.innerHTML) {
+    // Reemplazar el patrón "<b>NN</b> atrasadas" con el conteo correcto
+    _h3.innerHTML = _h3.innerHTML.replace(
+      /<b>\d+<\/b>\s*atrasadas/g,
+      `<b>${vencidas}</b> atrasadas`
+    );
+  }
+}
+
 // Esperar 1.5s para que main() termine y luego sobreescribir con datos de Plan_Labores
 setTimeout(actualizarVencidasDesdePlanLabores, 1500);
+
+// También resincronizar cada 5s mientras la UI está activa, por si renderHome corre
+// después del fetch inicial (red lenta en mobile, switch de tab, etc).
+// Esto es defensivo: solo lee del cache local (no hace fetch nuevos).
+setInterval(() => {
+  if (window._planLaboresStats) sincronizarUIDesdePlanLabores();
+}, 5000);
 
 document.querySelectorAll('details.card').forEach(d => {
   const summary = d.querySelector('summary');
