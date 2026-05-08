@@ -2850,11 +2850,11 @@ function buildMapaPanel() {
   }
   const atrasadasFiltro = laboresFiltradas.filter(_esAtrasada).length;
 
-  // KPI 4: UPs con labores Atrasadas o En curso (sin filtros)
+  // KPI 4: UPs con labores Atrasadas (alineado con markers rojos del mapa)
+  // Mismo criterio que _esAtrasada(): Fecha_Fin < hoy y no Completada
   const upsConAtencion = new Set();
   todasLasLabores.forEach(l => {
-    const enCurso = String(l.estado||"").trim() === "En curso";
-    if (_esAtrasada(l) || enCurso) {
+    if (_esAtrasada(l)) {
       const ccId = matchUpToCC(l.up);
       if (ccId) upsConAtencion.add(ccId);
     }
@@ -2883,8 +2883,8 @@ function buildMapaPanel() {
       <div class="mapa-stat">
         <div class="mapa-stat-icon">🔥</div>
         <div class="mapa-stat-val" style="color:${upsConAtencion.size>0?"#f4a261":"#4ade80"}">${upsConAtencion.size}</div>
-        <div class="mapa-stat-label">UPs con atención</div>
-        <div class="mapa-stat-tooltip">Unidades productivas con al menos una labor <b>Atrasada o En curso</b>. Indica dónde hay trabajo que requiere foco.</div>
+        <div class="mapa-stat-label">UPs con atrasadas</div>
+        <div class="mapa-stat-tooltip">Unidades productivas con al menos una labor <b>atrasada</b> (mismos puntos rojos del mapa).</div>
       </div>
     </div>
   `;
@@ -2942,11 +2942,9 @@ function initMap() {
 
   const puntos = Object.entries(COORD_MAP)
     .filter(([id]) => {
-      // Filtro estricto: solo UPs cuya BD_CC.Temporada coincide con la temporada activa.
-      // Si no hay temporada activa, mostrar todo (fallback).
-      if (!tempActiva) return true;
-      const tmp = TEMP_MAP[id];
-      return tmp && tmp.temporada === tempActiva;
+      // Mostrar TODAS las UPs con coordenadas (productivas y no productivas).
+      // El estado del marker (color) refleja qué pasa con las labores en cada una.
+      return true;
     })
     .map(([id, coord]) => {
       const nombre = CC_MAP[id] || id;
@@ -2969,12 +2967,12 @@ function initMap() {
       const enCurso   = labCC.filter(l => l.estado === "En curso").length;
       const planif    = labCC.filter(l => l.estado === "Planificada").length;
 
-      // Color por estado de labores
-      let color = "#888"; // gris: sin labores
-      if (total > 0) {
-        if (atrasadas > 0) color = "#dc2626"; // rojo: hay atrasadas
-        else color = "#10b981"; // verde: tiene labores pero ninguna atrasada
-      }
+      // Color por estado de labores (4 estados alineados con la Carta Gantt)
+      // Prioridad: atrasadas > en curso > planificada > sin labores
+      let color = "#888"; // gris: sin labores activas
+      if (atrasadas > 0)        color = "#dc2626"; // rojo: tiene atrasadas
+      else if (enCurso > 0)     color = "#f59e0b"; // amarillo: en curso (sin atrasadas)
+      else if (planif > 0)      color = "#3b82f6"; // azul: solo planificadas
 
       return {
         id, nombre, fundo, ha, total, atrasadas, enCurso, planif, color,
