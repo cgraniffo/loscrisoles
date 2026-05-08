@@ -632,29 +632,84 @@ if (location.search.includes('embed=1')) {
       </div>
     </div>
 
-    <!-- Tarjeta unificada de caja con 3 columnas -->
+    <!-- Tarjeta unificada de caja: punto de partida + 5 buckets horizontales -->
     <div class="card" style="padding:16px 20px;margin-bottom:10px;">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:20px;" id="caja-unified">
+
+      <!-- Punto de partida: Caja hoy -->
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#f6f4ec;border-radius:8px;margin-bottom:12px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,0.08);color:#0F6E56;display:flex;align-items:center;justify-content:center;font-size:16px;">💰</div>
         <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">💰 Caja hoy <span style="color:#aaa;font-weight:400;">(saldo actual)</span></div>
-          <div style="font-size:26px;font-weight:700;color:#0F6E56;line-height:1;font-variant-numeric:tabular-nums;" id="caja-hoy">—</div>
-          <div style="font-size:11px;color:var(--gris);margin-top:6px;" id="caja-hoy-sub">saldo bancario al día de hoy</div>
+          <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.04em;">Punto de partida — Caja hoy</div>
+          <div style="font-size:12px;color:#5a5a55;margin-top:1px;">saldo bancario al día de hoy</div>
         </div>
-        <div style="width:1px;background:rgba(0,0,0,0.06);align-self:stretch;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">📆 Caja proyectada en 30 días</div>
-          <div style="font-size:22px;font-weight:700;color:#1c1c1a;line-height:1;font-variant-numeric:tabular-nums;" id="caja-proy30">—</div>
-          <div style="font-size:11px;color:var(--gris);margin-top:6px;">caja hoy + flujo neto del período</div>
-        </div>
-        <div style="width:1px;background:rgba(0,0,0,0.06);align-self:stretch;"></div>
-        <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gris);margin-bottom:4px;">⚖️ Flujo neto próximos 30 días <span style="color:#aaa;font-weight:400;">(cobros − pagos)</span></div>
-          <div style="font-size:22px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;" id="caja-neto30">—</div>
-          <div style="font-size:11px;color:var(--gris);margin-top:6px;" id="caja-neto30-sub">cobros vs pagos</div>
-        </div>
-        <div style="display:flex;align-items:center;">
+        <div style="font-size:22px;font-weight:700;color:#0F6E56;line-height:1;font-variant-numeric:tabular-nums;" id="caja-hoy">—</div>
+        <div style="margin-left:8px;">
           <a href="#" onclick="navTo('caja','/reporte');return false;" class="ver-btn">Ver detalle →</a>
         </div>
+      </div>
+
+      <!-- 5 buckets horizontales: 0-15d, 15-30d, 30-60d, +60d hasta dic 2026, +60d desde ene 2027 -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;" id="caja-buckets">
+        <!-- Bucket 0-15d -->
+        <div style="background:#f6f4ec;border-radius:8px;padding:10px 11px;">
+          <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">0 — 15d</div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Neto del período</div>
+          <div style="display:flex;align-items:center;gap:3px;font-size:10px;margin-bottom:3px;" id="b1-detalle">—</div>
+          <div style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;" id="b1-neto">—</div>
+          <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 0;"></div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Caja acumulada</div>
+          <div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;" id="b1-acum">—</div>
+        </div>
+        <!-- Bucket 15-30d -->
+        <div style="background:#f6f4ec;border-radius:8px;padding:10px 11px;">
+          <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">15 — 30d</div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Neto del período</div>
+          <div style="display:flex;align-items:center;gap:3px;font-size:10px;margin-bottom:3px;" id="b2-detalle">—</div>
+          <div style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;" id="b2-neto">—</div>
+          <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 0;"></div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Caja acumulada</div>
+          <div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;" id="b2-acum">—</div>
+        </div>
+        <!-- Bucket 30-60d -->
+        <div style="background:#f6f4ec;border-radius:8px;padding:10px 11px;">
+          <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">30 — 60d</div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Neto del período</div>
+          <div style="display:flex;align-items:center;gap:3px;font-size:10px;margin-bottom:3px;" id="b3-detalle">—</div>
+          <div style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;" id="b3-neto">—</div>
+          <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 0;"></div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Caja acumulada</div>
+          <div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;" id="b3-acum">—</div>
+        </div>
+        <!-- Bucket +60d hasta dic 2026 -->
+        <div style="background:#f6f4ec;border-radius:8px;padding:10px 11px;">
+          <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">+60d <span style="text-transform:none;letter-spacing:0;color:var(--gris);font-size:9px;">hasta dic 2026</span></div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Neto del período</div>
+          <div style="display:flex;align-items:center;gap:3px;font-size:10px;margin-bottom:3px;" id="b4-detalle">—</div>
+          <div style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;" id="b4-neto">—</div>
+          <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 0;"></div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Caja acumulada</div>
+          <div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;" id="b4-acum">—</div>
+        </div>
+        <!-- Bucket +60d desde ene 2027 -->
+        <div style="background:#f6f4ec;border-radius:8px;padding:10px 11px;">
+          <div style="font-size:10px;color:var(--gris);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;">+60d <span style="text-transform:none;letter-spacing:0;color:var(--gris);font-size:9px;">desde ene 2027</span></div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Neto del período</div>
+          <div style="display:flex;align-items:center;gap:3px;font-size:10px;margin-bottom:3px;" id="b5-detalle">—</div>
+          <div style="font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;" id="b5-neto">—</div>
+          <div style="height:1px;background:rgba(0,0,0,0.08);margin:8px 0;"></div>
+          <div style="font-size:9px;color:var(--gris);margin-bottom:1px;">Caja acumulada</div>
+          <div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;" id="b5-acum">—</div>
+        </div>
+      </div>
+
+      <!-- Leyenda -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:12px;font-size:11px;color:#5a5a55;flex-wrap:wrap;">
+        <span style="display:inline-flex;align-items:center;gap:4px;">⬇️ cobros</span>
+        <span style="display:inline-flex;align-items:center;gap:4px;">⬆️ pagos</span>
+        <span style="color:var(--gris);">·</span>
+        <span><b>Neto</b> = cobros − pagos del bucket</span>
+        <span style="color:var(--gris);">·</span>
+        <span><b>Acumulada</b> = caja al final del período</span>
       </div>
     </div>
 
@@ -1562,29 +1617,113 @@ function renderHome({ registros, asignaciones, proyecciones }) {
       else { _bdgP.textContent = `${pagar30Docs.length} docs`; _bdgP.className = 'status-badge danger'; }
     }
 
-    /* ── CAJA UNIFICADA (zona 2) ─────────────────────────────── */
+    /* ── CAJA UNIFICADA (zona 2) - 5 buckets horizontales ────── */
+    // Replica la lógica de renderCaja() en reporte.html para mantener consistencia
+    // entre la pestaña Resumen y la pestaña Caja del reporte.
     const _cajaHoy = document.getElementById('caja-hoy');
     if (_cajaHoy) {
       _cajaHoy.textContent = fmtPeso(CAJA_ACTUAL);
       _cajaHoy.style.color = CAJA_ACTUAL >= 0 ? '#0F6E56' : '#D85A30';
     }
-    const flujoNeto30 = mCobrar30 - mPagar30;
-    const proyectado30 = CAJA_ACTUAL + flujoNeto30;
-    const _cajaProy = document.getElementById('caja-proy30');
-    if (_cajaProy) {
-      _cajaProy.textContent = fmtPeso(proyectado30);
-      _cajaProy.style.color = proyectado30 >= 0 ? '#1c1c1a' : '#D85A30';
-    }
-    const _cajaNeto = document.getElementById('caja-neto30');
-    const _cajaNetoSub = document.getElementById('caja-neto30-sub');
-    if (_cajaNeto) {
-      const signo = flujoNeto30 > 0 ? '+' : '';
-      _cajaNeto.textContent = signo + fmtPeso(flujoNeto30);
-      _cajaNeto.style.color = flujoNeto30 >= 0 ? '#1D9E75' : '#D85A30';
-    }
-    if (_cajaNetoSub) {
-      _cajaNetoSub.textContent = flujoNeto30 >= 0 ? 'cobros superan pagos' : 'pagos superan cobros';
-    }
+
+    // Definir ventanas de tiempo
+    const _en15 = new Date(hoy); _en15.setDate(_en15.getDate() + 15);
+    const _en60 = new Date(hoy); _en60.setDate(_en60.getDate() + 60);
+    const _corte2027 = new Date(2027, 0, 1); _corte2027.setHours(0,0,0,0);
+    const _corte2027Ts = _corte2027.getTime();
+
+    // Helpers para sumar montos
+    const _sumDoc = arr => arr.reduce((s,r) => s + Number(r["Monto Total"]||r["Monto_Total"]||0), 0);
+    const _sumIng = arr => arr.reduce((s,r) => s + Number(r["Monto_Total"]||0), 0);
+
+    // Filtrar documentos por bucket de Fecha_Real
+    const _bucketDoc = (lista, desde, hasta) => lista.filter(r => {
+      const d = parseDate(r["Fecha_Real"]);
+      if (!d) return false; d.setHours(0,0,0,0);
+      return d >= desde && d <= hasta;
+    });
+
+    const _b1cobrar = _bucketDoc(cobrar, hoy, _en15);
+    const _b1pagar  = _bucketDoc(pagar,  hoy, _en15);
+    const _b2desde  = new Date(_en15.getTime() + 86400000);
+    const _b2cobrar = _bucketDoc(cobrar, _b2desde, en30);
+    const _b2pagar  = _bucketDoc(pagar,  _b2desde, en30);
+    const _b3desde  = new Date(en30.getTime() + 86400000);
+    const _b3cobrar = _bucketDoc(cobrar, _b3desde, _en60);
+    const _b3pagar  = _bucketDoc(pagar,  _b3desde, _en60);
+    // +60d: split por corte 2027
+    const _mas60cobrar = cobrar.filter(r => {
+      const d = parseDate(r["Fecha_Real"]); if (!d) return false; d.setHours(0,0,0,0);
+      return d > _en60;
+    });
+    const _mas60pagar = pagar.filter(r => {
+      const d = parseDate(r["Fecha_Real"]); if (!d) return false; d.setHours(0,0,0,0);
+      return d > _en60;
+    });
+    const _b4cobrar = _mas60cobrar.filter(r => { const d=parseDate(r["Fecha_Real"]); return d && d.setHours(0,0,0,0)<_corte2027Ts; });
+    const _b5cobrar = _mas60cobrar.filter(r => { const d=parseDate(r["Fecha_Real"]); return d && d.setHours(0,0,0,0)>=_corte2027Ts; });
+    const _b4pagar  = _mas60pagar.filter(r =>  { const d=parseDate(r["Fecha_Real"]); return d && d.setHours(0,0,0,0)<_corte2027Ts; });
+    const _b5pagar  = _mas60pagar.filter(r =>  { const d=parseDate(r["Fecha_Real"]); return d && d.setHours(0,0,0,0)>=_corte2027Ts; });
+
+    // Proyecciones_Manuales por bucket (Fecha_Estimada)
+    const _proyecciones = Array.isArray(proyecciones) ? proyecciones : [];
+    const _bucketProy = (desde, hasta) => _proyecciones.filter(r => {
+      const d = parseDate(r["Fecha_Estimada"]);
+      if (!d) return false; d.setHours(0,0,0,0);
+      if (hasta === null) return d >= desde;
+      return d >= desde && d <= hasta;
+    });
+    const _b1ing = _bucketProy(hoy, _en15);
+    const _b2ing = _bucketProy(_b2desde, en30);
+    const _b3ing = _bucketProy(_b3desde, _en60);
+    const _mas60ing = _bucketProy(new Date(_en60.getTime() + 86400000), null);
+    const _b4ing = _mas60ing.filter(r => { const d=parseDate(r["Fecha_Estimada"]); return d && d.setHours(0,0,0,0)<_corte2027Ts; });
+    const _b5ing = _mas60ing.filter(r => { const d=parseDate(r["Fecha_Estimada"]); return d && d.setHours(0,0,0,0)>=_corte2027Ts; });
+
+    // Sumas por bucket
+    const buckets = [
+      { id:'b1', cobr:_sumDoc(_b1cobrar)+_sumIng(_b1ing), pago:_sumDoc(_b1pagar) },
+      { id:'b2', cobr:_sumDoc(_b2cobrar)+_sumIng(_b2ing), pago:_sumDoc(_b2pagar) },
+      { id:'b3', cobr:_sumDoc(_b3cobrar)+_sumIng(_b3ing), pago:_sumDoc(_b3pagar) },
+      { id:'b4', cobr:_sumDoc(_b4cobrar)+_sumIng(_b4ing), pago:_sumDoc(_b4pagar) },
+      { id:'b5', cobr:_sumDoc(_b5cobrar)+_sumIng(_b5ing), pago:_sumDoc(_b5pagar) }
+    ];
+
+    // Calcular neto y acumulada (cascada desde caja hoy)
+    let _acum = CAJA_ACTUAL;
+    buckets.forEach(b => {
+      b.neto = b.cobr - b.pago;
+      _acum += b.neto;
+      b.acum = _acum;
+    });
+
+    // Renderizar cada bucket
+    buckets.forEach(b => {
+      const _det = document.getElementById(b.id + '-detalle');
+      const _net = document.getElementById(b.id + '-neto');
+      const _acm = document.getElementById(b.id + '-acum');
+      if (_det) {
+        const colorCobr = b.cobr > 0 ? '#1D9E75' : 'var(--gris)';
+        const colorPago = b.pago > 0 ? '#A32D2D' : 'var(--gris)';
+        _det.innerHTML =
+          '<span style="color:'+colorCobr+';">+'+fmtPeso(b.cobr)+'</span>' +
+          '<span style="color:var(--gris);">−</span>' +
+          '<span style="color:'+colorPago+';">'+fmtPeso(b.pago)+'</span>';
+      }
+      if (_net) {
+        const signo = b.neto > 0 ? '+' : (b.neto < 0 ? '' : '');
+        _net.textContent = signo + fmtPeso(b.neto);
+        _net.style.color = b.neto > 0 ? '#1D9E75' : (b.neto < 0 ? '#A32D2D' : '#5a5a55');
+      }
+      if (_acm) {
+        _acm.textContent = fmtPeso(b.acum);
+        _acm.style.color = b.acum >= 0 ? '#0F6E56' : '#A32D2D';
+      }
+    });
+
+    // Exportar para headline zona 2 (mantener compatibilidad con código anterior)
+    window._mCobrar30 = buckets[0].cobr + buckets[1].cobr;
+    window._mPagar30  = buckets[0].pago + buckets[1].pago;
 
     const pagar30HTML = pagar.filter(r=>{const d=parseDate(r["Fecha_Real"]);if(!d)return false;d.setHours(0,0,0,0);return d>=hoy&&d<=en30;})
       .sort((a,b)=>(parseDate(a["Fecha_Real"])||0)-(parseDate(b["Fecha_Real"])||0)).slice(0,8)
