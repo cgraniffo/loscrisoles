@@ -2942,10 +2942,8 @@ function initMap() {
 
   const puntos = Object.entries(COORD_MAP)
     .filter(([id]) => {
-      // Mostrar UPs si:
-      //  - tienen labores planificadas (cualquier temporada), O
-      //  - son de la temporada activa (aunque no tengan labores)
-      if (laboresPorCC[id] && laboresPorCC[id].length > 0) return true;
+      // Filtro estricto: solo UPs cuya BD_CC.Temporada coincide con la temporada activa.
+      // Si no hay temporada activa, mostrar todo (fallback).
       if (!tempActiva) return true;
       const tmp = TEMP_MAP[id];
       return tmp && tmp.temporada === tempActiva;
