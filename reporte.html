@@ -2879,31 +2879,34 @@ function buildMapaPanel() {
     }
   });
 
+  // Etiqueta corta de la temporada activa para los labels
+  var _tempLabel = _tempActivaM ? " · " + _tempActivaM.replace("20","").replace("-20","-") : "";
+
   panel.innerHTML = `
     <div class="mapa-stats-row">
       <div class="mapa-stat">
         <div class="mapa-stat-icon">📍</div>
         <div class="mapa-stat-val">${upsProductivas.length}</div>
-        <div class="mapa-stat-label">UPs productivas</div>
-        <div class="mapa-stat-tooltip">Unidades productivas con coordenadas en el mapa: Pivotes, Potreros, Nogales, Vegas y Parcelas. Excluye Maquinarias, Casa, etc.</div>
+        <div class="mapa-stat-label">UPs en mapa${_tempLabel}</div>
+        <div class="mapa-stat-tooltip">Unidades productivas con coordenadas en la temporada <b>${_tempActivaM || "activa"}</b>. Pivotes, Potreros, Nogales, Vegas y Parcelas.</div>
       </div>
       <div class="mapa-stat">
         <div class="mapa-stat-icon">📋</div>
         <div class="mapa-stat-val">${laboresActivas.length}</div>
-        <div class="mapa-stat-label">Labores activas</div>
-        <div class="mapa-stat-tooltip">Total de labores planificadas, en curso y atrasadas. No incluye las completadas. <b>No reacciona a filtros del Gantt.</b></div>
+        <div class="mapa-stat-label">Labores activas${_tempLabel}</div>
+        <div class="mapa-stat-tooltip">Labores planificadas, en curso y atrasadas de la temporada <b>${_tempActivaM || "activa"}</b>. No incluye completadas. No reacciona a los filtros del Gantt.</div>
       </div>
       <div class="mapa-stat">
         <div class="mapa-stat-icon">⚠️</div>
         <div class="mapa-stat-val" style="color:${atrasadasFiltro>0?"#e76f51":"#4ade80"}">${atrasadasFiltro}</div>
-        <div class="mapa-stat-label">Atrasadas (filtro)</div>
-        <div class="mapa-stat-tooltip">Labores en estado <b>Atrasada</b>. <b>Reacciona a los filtros del Gantt</b> (cultivo, estado).</div>
+        <div class="mapa-stat-label">Atrasadas${_tempLabel}</div>
+        <div class="mapa-stat-tooltip">Labores atrasadas (Fecha_Fin &lt; hoy y no Completada) de la temporada <b>${_tempActivaM || "activa"}</b>. <b>Reacciona a los filtros del Gantt</b> (cultivo, estado).<br><br>El KPI superior del header cuenta atrasadas de <b>todas las temporadas</b>; este solo cuenta la activa.</div>
       </div>
       <div class="mapa-stat">
         <div class="mapa-stat-icon">🔥</div>
         <div class="mapa-stat-val" style="color:${upsConAtencion.size>0?"#f4a261":"#4ade80"}">${upsConAtencion.size}</div>
-        <div class="mapa-stat-label">UPs con atrasadas</div>
-        <div class="mapa-stat-tooltip">Unidades productivas con al menos una labor <b>atrasada</b> (mismos puntos rojos del mapa).</div>
+        <div class="mapa-stat-label">UPs con atrasadas${_tempLabel}</div>
+        <div class="mapa-stat-tooltip">Unidades productivas de la temporada <b>${_tempActivaM || "activa"}</b> con al menos una labor atrasada (mismos puntos rojos del mapa).</div>
       </div>
     </div>
   `;
@@ -4306,28 +4309,7 @@ function ganttFilterData(data) {
     d.setHours(0,0,0,0);
     return d < _hoyFD;
   };
-  // Filtro por temporada activa: usar campo .temporada de la labor (viene del sheet)
-  // Si la labor no trae temporada, derivar del CC mediante TEMP_MAP (defensivo)
-  const _tempActivaG = (typeof TEMPORADA_ACTIVA !== "undefined" && TEMPORADA_ACTIVA) ||
-                       (typeof getTemporadaActiva === "function" ? getTemporadaActiva() : "");
-  // Helper local para mapear UP de labor a CC y obtener temporada
-  function _tempDeLabor(r) {
-    let t = String(r.temporada || r.Temporada || "").trim();
-    if (t) return t;
-    // Fallback: derivar via CC
-    const cc = String(r.centro_costo || r.Centro_Costo || r.cc || "").trim();
-    if (cc && typeof TEMP_MAP !== "undefined" && TEMP_MAP[cc]) {
-      return TEMP_MAP[cc].temporada || "";
-    }
-    return "";
-  }
   return data.filter(r => {
-    // Filtro estricto por temporada activa (alineado con el header)
-    if (_tempActivaG) {
-      const tempLab = _tempDeLabor(r);
-      // Si no se pudo determinar temporada, dejar pasar (no romper labores legacy)
-      if (tempLab && tempLab !== _tempActivaG) return false;
-    }
     // Ocultar completadas por defecto, salvo que verCompletadas=true
     if (!verCompletadas && r.estado === "Completada") return false;
     // Cultivo: si hay filtros activos, la labor debe coincidir con AL MENOS uno
