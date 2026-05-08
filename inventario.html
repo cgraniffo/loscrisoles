@@ -79,6 +79,7 @@
     gap: 8px;
     margin-bottom: 12px;
     flex-wrap: wrap;
+    align-items: center;
   }
   .filters input, .filters select {
     padding: 8px 10px;
@@ -158,6 +159,112 @@
     border-radius: 6px;
     margin-bottom: 12px;
   }
+
+  /* Botones */
+  .btn {
+    padding: 8px 14px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--verde); color: white; }
+  .btn-primary:hover { background: var(--verde-claro); }
+  .btn-secondary { background: var(--border); color: var(--txt); }
+  .btn-secondary:hover { background: #c5cdc6; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-icon {
+    background: transparent;
+    border: 1px solid var(--border);
+    padding: 4px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .btn-icon:hover { background: var(--bg); }
+
+  /* Modal */
+  .modal-bg {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 20px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  .modal h2 {
+    color: var(--verde);
+    font-size: 18px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--border);
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .form-grid .full { grid-column: 1 / -1; }
+  .form-grid label {
+    display: block;
+    font-size: 12px;
+    color: var(--txt-soft);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .form-grid input, .form-grid select, .form-grid textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    background: var(--card);
+    font-family: inherit;
+  }
+  .form-grid textarea { resize: vertical; min-height: 60px; }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--verde);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 2000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s;
+    font-size: 13px;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.error { background: var(--rojo); }
 </style>
 </head>
 <body>
@@ -172,6 +279,7 @@
 <div class="tabs">
   <button class="tab active" data-tab="stock">Stock actual</button>
   <button class="tab" data-tab="movs">Movimientos</button>
+  <button class="tab" data-tab="maestro">Maestro</button>
 </div>
 
 <!-- TAB STOCK -->
@@ -214,22 +322,130 @@
   <div id="tablaMovs"><div class="loader">Cargando movimientos…</div></div>
 </div>
 
+<!-- TAB MAESTRO -->
+<div class="tab-content" id="tab-maestro">
+  <div class="filters">
+    <input type="text" id="filtroMaestro" placeholder="Buscar producto…">
+    <select id="filtroMaestroCat">
+      <option value="">Todas las categorías</option>
+      <option value="INSUMO">Insumos</option>
+      <option value="PRODUCCION">Producción</option>
+    </select>
+    <button class="btn btn-primary" onclick="abrirModalProducto()">+ Nuevo producto</button>
+  </div>
+  <div id="tablaMaestro"><div class="loader">Cargando productos…</div></div>
+</div>
+
+<!-- MODAL PRODUCTO (alta/edición) -->
+<div class="modal-bg" id="modalProducto">
+  <div class="modal">
+    <h2 id="modalProductoTitulo">Nuevo producto</h2>
+    <form id="formProducto" onsubmit="event.preventDefault(); guardarProducto();">
+      <input type="hidden" id="prod_id">
+      <div class="form-grid">
+        <div class="full">
+          <label>Producto *</label>
+          <input type="text" id="prod_nombre" required>
+        </div>
+        <div>
+          <label>Categoría *</label>
+          <select id="prod_categoria" required>
+            <option value="INSUMO">Insumo</option>
+            <option value="PRODUCCION">Producción</option>
+          </select>
+        </div>
+        <div>
+          <label>Tipo</label>
+          <input type="text" id="prod_tipo" placeholder="Ej: Fertilizante, Cosecha…">
+        </div>
+        <div>
+          <label>Unidad *</label>
+          <select id="prod_unidad" required>
+            <option value="kg">kg</option>
+            <option value="lt">lt</option>
+            <option value="ton">ton</option>
+            <option value="bins">bins</option>
+            <option value="sacos">sacos</option>
+            <option value="un">un</option>
+          </select>
+        </div>
+        <div>
+          <label>Bodega</label>
+          <input type="text" id="prod_bodega" placeholder="Ubicación física">
+        </div>
+        <div>
+          <label>Stock inicial</label>
+          <input type="number" id="prod_stock_inicial" step="0.01" value="0">
+        </div>
+        <div>
+          <label>Fecha del conteo inicial</label>
+          <input type="date" id="prod_fecha_inicial">
+        </div>
+        <div>
+          <label>Stock mínimo</label>
+          <input type="number" id="prod_stock_minimo" step="0.01" value="0">
+        </div>
+        <div>
+          <label>Precio unitario ($)</label>
+          <input type="number" id="prod_precio" step="0.01" value="0">
+        </div>
+        <div class="full">
+          <label>Observación</label>
+          <textarea id="prod_obs"></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modalProducto')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL AJUSTAR STOCK -->
+<div class="modal-bg" id="modalAjuste">
+  <div class="modal">
+    <h2>Ajustar stock</h2>
+    <form onsubmit="event.preventDefault(); guardarAjuste();">
+      <input type="hidden" id="ajuste_id">
+      <p style="margin-bottom: 12px; color: var(--txt-soft);">
+        <strong id="ajuste_producto"></strong><br>
+        Stock actual: <strong id="ajuste_stock_actual"></strong>
+      </p>
+      <div class="form-grid">
+        <div class="full">
+          <label>Stock real (resultado del conteo) *</label>
+          <input type="number" id="ajuste_cantidad" step="0.01" required>
+        </div>
+        <div class="full">
+          <label>Motivo / observación</label>
+          <textarea id="ajuste_obs" placeholder="Ej: conteo físico mensual, merma, etc."></textarea>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modalAjuste')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Registrar ajuste</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
-// ⚠️ REEMPLAZAR con la URL real de API_INVENTARIO una vez deployado el Apps Script
 const API_INVENTARIO = 'https://round-night-574d.christian-19c.workers.dev/?api=inventario';
-// Fallback directo (si el worker aún no está configurado): pegar la URL del Apps Script
-// const API_INVENTARIO = 'https://script.google.com/macros/s/AKfycbzRiD5DlPt0ApBFETgNanVDYyyIUN7qijvJW5Qy2m3WlhHrCRNWaCZwMAACPFr7Awgf/exec';
+const API_INVENTARIO_POST = 'https://round-night-574d.christian-19c.workers.dev/';
 
 window.PRODUCTOS = [];
 window.MOVIMIENTOS = [];
 
+// ====== CARGA INICIAL ======
 async function cargarTodo() {
   try {
     const [invRes, movRes] = await Promise.all([
       fetch(`${API_INVENTARIO}&action=get_inventario`).then(r => r.json()),
       fetch(`${API_INVENTARIO}&action=get_movimientos`).then(r => r.json())
     ]);
-
     if (!invRes.ok) throw new Error(invRes.error || 'Error inventario');
     if (!movRes.ok) throw new Error(movRes.error || 'Error movimientos');
 
@@ -239,6 +455,7 @@ async function cargarTodo() {
     renderKPIs();
     renderStock();
     renderMovs();
+    renderMaestro();
   } catch (err) {
     document.getElementById('kpis').innerHTML =
       `<div class="err">Error cargando datos: ${err.message}</div>`;
@@ -246,6 +463,7 @@ async function cargarTodo() {
   }
 }
 
+// ====== KPIs ======
 function renderKPIs() {
   const productos = window.PRODUCTOS;
   const total = productos.length;
@@ -273,6 +491,7 @@ function renderKPIs() {
   `;
 }
 
+// ====== TAB STOCK ======
 function renderStock() {
   const filtroProd = document.getElementById('filtroProducto').value.toLowerCase();
   const filtroCat = document.getElementById('filtroCategoria').value;
@@ -310,6 +529,9 @@ function renderStock() {
         <td class="num">$${formatNum(p.Precio_Unitario)}</td>
         <td class="num"><strong>$${formatM(p.Valorizacion)}</strong></td>
         <td>${p.Bodega || '—'}</td>
+        <td>
+          <button class="btn-icon" onclick="abrirModalAjuste('${p.Id_Producto}')" title="Ajustar stock">⚖️</button>
+        </td>
       </tr>
     `;
   }).join('');
@@ -326,6 +548,7 @@ function renderStock() {
           <th style="text-align:right">$ Unit.</th>
           <th style="text-align:right">Valorización</th>
           <th>Bodega</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -333,6 +556,7 @@ function renderStock() {
   `;
 }
 
+// ====== TAB MOVIMIENTOS ======
 function renderMovs() {
   const filtroProd = document.getElementById('filtroMovProducto').value.toLowerCase();
   const filtroTipo = document.getElementById('filtroMovTipo').value;
@@ -390,6 +614,192 @@ function renderMovs() {
   `;
 }
 
+// ====== TAB MAESTRO ======
+function renderMaestro() {
+  const filtroProd = document.getElementById('filtroMaestro').value.toLowerCase();
+  const filtroCat = document.getElementById('filtroMaestroCat').value;
+
+  let filtrados = window.PRODUCTOS.filter(p => {
+    if (filtroCat && p.Categoria !== filtroCat) return false;
+    if (filtroProd && !String(p.Producto).toLowerCase().includes(filtroProd)) return false;
+    return true;
+  });
+
+  filtrados.sort((a, b) => String(a.Producto).localeCompare(String(b.Producto)));
+
+  if (filtrados.length === 0) {
+    document.getElementById('tablaMaestro').innerHTML =
+      '<div class="empty">No hay productos. Crea uno con el botón "+ Nuevo producto".</div>';
+    return;
+  }
+
+  const rows = filtrados.map(p => {
+    const catBadge = p.Categoria === 'INSUMO' ? 'cat-insumo' : 'cat-produccion';
+    return `
+      <tr>
+        <td><strong>${p.Producto || ''}</strong></td>
+        <td>${p.Tipo || '—'}</td>
+        <td><span class="badge ${catBadge}">${p.Categoria || ''}</span></td>
+        <td>${p.Unidad || ''}</td>
+        <td class="num">${formatNum(p.Stock_Inicial)}</td>
+        <td class="num">${formatNum(p.Stock_Minimo)}</td>
+        <td class="num">$${formatNum(p.Precio_Unitario)}</td>
+        <td>${p.Bodega || '—'}</td>
+        <td>
+          <button class="btn-icon" onclick="abrirModalProducto('${p.Id_Producto}')" title="Editar">✏️</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('tablaMaestro').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>Producto</th>
+          <th>Tipo</th>
+          <th>Categoría</th>
+          <th>Unidad</th>
+          <th style="text-align:right">Stock inicial</th>
+          <th style="text-align:right">Mínimo</th>
+          <th style="text-align:right">$ Unit.</th>
+          <th>Bodega</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+// ====== MODAL PRODUCTO ======
+function abrirModalProducto(idProducto) {
+  document.getElementById('modalProductoTitulo').textContent = idProducto ? 'Editar producto' : 'Nuevo producto';
+  document.getElementById('prod_id').value = idProducto || '';
+
+  if (idProducto) {
+    const p = window.PRODUCTOS.find(x => x.Id_Producto === idProducto);
+    if (!p) return;
+    document.getElementById('prod_nombre').value = p.Producto || '';
+    document.getElementById('prod_categoria').value = p.Categoria || 'INSUMO';
+    document.getElementById('prod_tipo').value = p.Tipo || '';
+    document.getElementById('prod_unidad').value = p.Unidad || 'kg';
+    document.getElementById('prod_bodega').value = p.Bodega || '';
+    document.getElementById('prod_stock_inicial').value = p.Stock_Inicial || 0;
+    document.getElementById('prod_fecha_inicial').value = p.Fecha_Stock_Inicial
+      ? new Date(p.Fecha_Stock_Inicial).toISOString().slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    document.getElementById('prod_stock_minimo').value = p.Stock_Minimo || 0;
+    document.getElementById('prod_precio').value = p.Precio_Unitario || 0;
+    document.getElementById('prod_obs').value = p.Observacion || '';
+  } else {
+    document.getElementById('formProducto').reset();
+    document.getElementById('prod_id').value = '';
+    document.getElementById('prod_fecha_inicial').value = new Date().toISOString().slice(0, 10);
+  }
+
+  document.getElementById('modalProducto').classList.add('show');
+}
+
+async function guardarProducto() {
+  const idProducto = document.getElementById('prod_id').value;
+  const esEdicion = !!idProducto;
+
+  const payload = {
+    api: 'inventario',
+    action: esEdicion ? 'update_producto' : 'add_producto',
+    id_producto: idProducto || undefined,
+    producto: document.getElementById('prod_nombre').value,
+    categoria: document.getElementById('prod_categoria').value,
+    tipo: document.getElementById('prod_tipo').value,
+    unidad: document.getElementById('prod_unidad').value,
+    bodega: document.getElementById('prod_bodega').value,
+    stock_inicial: Number(document.getElementById('prod_stock_inicial').value),
+    fecha_stock_inicial: document.getElementById('prod_fecha_inicial').value,
+    stock_minimo: Number(document.getElementById('prod_stock_minimo').value),
+    precio_unitario: Number(document.getElementById('prod_precio').value),
+    observacion: document.getElementById('prod_obs').value,
+    activo: 'TRUE',
+    usuario: 'dashboard'
+  };
+
+  try {
+    const res = await fetch(API_INVENTARIO_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error || 'Error desconocido');
+
+    cerrarModal('modalProducto');
+    toast(esEdicion ? 'Producto actualizado' : 'Producto creado');
+    await cargarTodo();
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+    console.error(err);
+  }
+}
+
+// ====== MODAL AJUSTE ======
+function abrirModalAjuste(idProducto) {
+  const p = window.PRODUCTOS.find(x => x.Id_Producto === idProducto);
+  if (!p) return;
+
+  document.getElementById('ajuste_id').value = idProducto;
+  document.getElementById('ajuste_producto').textContent = p.Producto;
+  document.getElementById('ajuste_stock_actual').textContent = `${formatNum(p.Stock_Actual)} ${p.Unidad}`;
+  document.getElementById('ajuste_cantidad').value = p.Stock_Actual;
+  document.getElementById('ajuste_obs').value = '';
+
+  document.getElementById('modalAjuste').classList.add('show');
+}
+
+async function guardarAjuste() {
+  const idProducto = document.getElementById('ajuste_id').value;
+  const cantidadNueva = Number(document.getElementById('ajuste_cantidad').value);
+  const obs = document.getElementById('ajuste_obs').value;
+
+  const payload = {
+    api: 'inventario',
+    action: 'ajustar_stock',
+    id_producto: idProducto,
+    cantidad_nueva: cantidadNueva,
+    observacion: obs,
+    usuario: 'dashboard'
+  };
+
+  try {
+    const res = await fetch(API_INVENTARIO_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(r => r.json());
+
+    if (!res.ok) throw new Error(res.error || 'Error desconocido');
+
+    cerrarModal('modalAjuste');
+    toast('Ajuste registrado');
+    await cargarTodo();
+  } catch (err) {
+    toast('Error: ' + err.message, true);
+    console.error(err);
+  }
+}
+
+// ====== UTILIDADES ======
+function cerrarModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+function toast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
 function formatNum(n) {
   const num = Number(n) || 0;
   return num.toLocaleString('es-CL', { maximumFractionDigits: 2 });
@@ -400,6 +810,13 @@ function formatM(n) {
   if (Math.abs(num) >= 1e3) return (num / 1e3).toFixed(0) + 'k';
   return num.toFixed(0);
 }
+
+// Cerrar modal al click en fondo
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => {
+    if (e.target === bg) bg.classList.remove('show');
+  });
+});
 
 // Tabs
 document.querySelectorAll('.tab').forEach(btn => {
@@ -417,6 +834,9 @@ document.querySelectorAll('.tab').forEach(btn => {
 });
 ['filtroMovProducto','filtroMovTipo','filtroMovOrigen'].forEach(id => {
   document.getElementById(id).addEventListener('input', renderMovs);
+});
+['filtroMaestro','filtroMaestroCat'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderMaestro);
 });
 
 cargarTodo();
