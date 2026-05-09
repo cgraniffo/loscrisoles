@@ -502,11 +502,12 @@ function renderMarkers(pasadas, planSinRegistro) {
   }
 }
 
-function renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsConPlan) {
+function renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsConPlan, laboresCargadas) {
   planSinRegistro = planSinRegistro || [];
   planCargado = planCargado || [];
   ccsAtendidos = ccsAtendidos || 0;
   ccsConPlan = ccsConPlan || 0;
+  laboresCargadas = laboresCargadas || 0;
   const body = document.getElementById("tabla-body");
   const empty = document.getElementById("tabla-empty");
   body.innerHTML = "";
@@ -556,9 +557,9 @@ function renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsCon
       ? '<span class="pill gantt gantt-link" onclick="abrirModalGantt(' + idx + ')" title="Click para ver detalle">🔗 En Gantt</span>'
       : '<span class="pill extra">Labor extra</span>';
 
-    // Badge "✅ Cargada del plan" si esta pasada cumple un plan
+    // Badge "✅ Cargada del plan" si esta labor cumple un plan
     const cargadaBadge = (state.modoVista === "plan" && p._del_plan)
-      ? ' <span class="pill cargada" title="Esta pasada cumple una labor del Plan_Labores">✅ Cargada</span>'
+      ? ' <span class="pill cargada" title="Esta labor cumple un plan del Plan_Labores">✅ Cargada</span>'
       : '';
     const transpPill = p.transporte
       ? '<span class="pill transp">🚐 ' + fmtPeso(p.valor_transporte) + '</span>'
@@ -589,13 +590,11 @@ function renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsCon
   });
 
   document.getElementById("tabla-count").textContent =
-    pasadas.length + " pasada" + (pasadas.length !== 1 ? "s" : "");
+    pasadas.length + " labor" + (pasadas.length !== 1 ? "es" : "") + " registrada" + (pasadas.length !== 1 ? "s" : "");
 
   // Filas fantasma del Plan_Labores (sin registro de asistencia hoy)
   if (state.modoVista === "plan" && ccsConPlan > 0) {
     const pendientes = planSinRegistro.length;
-    const cargadas   = planCargado.length;
-    const totalLabores = pendientes + cargadas;
     const pct = ccsConPlan > 0 ? Math.round((ccsAtendidos / ccsConPlan) * 100) : 0;
 
     // Barra de progreso (a nivel CC)
@@ -606,7 +605,7 @@ function renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsCon
         '<div class="progress-bar-hd">' +
           '<span class="progress-bar-label">📋 Avance del Plan_Labores · ' +
             ccsAtendidos + ' de ' + ccsConPlan + ' UPs atendidas' +
-            ' <span style="color:#888;font-weight:400;">(' + cargadas + ' labores cargadas · ' + pendientes + ' pendientes)</span>' +
+            ' <span style="color:#888;font-weight:400;">(' + laboresCargadas + ' labor' + (laboresCargadas !== 1 ? 'es' : '') + ' registrada' + (laboresCargadas !== 1 ? 's' : '') + ' · ' + pendientes + ' pendiente' + (pendientes !== 1 ? 's' : '') + ')</span>' +
           '</span>' +
           '<span class="progress-bar-pct">' + pct + '%</span>' +
         '</div>' +
@@ -654,7 +653,7 @@ function renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsCon
       " · " + ccsAtendidos + "/" + ccsConPlan + " UPs atendidas";
   } else {
     document.getElementById("tabla-count").textContent =
-      pasadas.length + " pasada" + (pasadas.length !== 1 ? "s" : "");
+      pasadas.length + " labor" + (pasadas.length !== 1 ? "es" : "") + " registrada" + (pasadas.length !== 1 ? "s" : "");
   }
 }
 
@@ -715,7 +714,7 @@ function calcularKPIs(pasadas, totalActivos) {
     ? valOrAvg(pasadas.length, diasActividad)
     : pasadas.length;
   document.getElementById("k-labores-sub").textContent = esAvg
-    ? "promedio pasadas/día"
+    ? "promedio labores/día"
     : conMatch + " con match Gantt";
 
   // KPI Costo
@@ -770,12 +769,15 @@ function aplicarFiltros() {
   state.pasadasVisibles = pasadas;
 
   // Plan + registradas: matching CC para decidir cargado vs pendiente.
-  // El conteo es a nivel CC: cada UP/CC con plan se considera "atendido" si tiene
-  // al menos una pasada en el rango, sin importar cuántas labores haya en ese CC.
-  let planCargado = [];        // labores del plan en CCs ya atendidos (info para UI)
-  let planSinRegistro = [];    // labores del plan en CCs no atendidos
+  // Conteos:
+  //   - ccsAtendidos / ccsConPlan: % real de avance (a nivel UP)
+  //   - laboresCargadas: pasadas que cumplen un plan (= cuántas cargas reales hay)
+  //   - laboresPendientes: labores del plan en CCs sin pasada
+  let planCargado = [];
+  let planSinRegistro = [];
   let ccsAtendidos = 0;
   let ccsConPlan = 0;
+  let laboresCargadas = 0;
 
   if (state.modoVista === "plan" && state.resumen.plan_activos_fecha) {
     // 1. Deduplicar plan por id_plan (defensivo)
@@ -798,16 +800,16 @@ function aplicarFiltros() {
     ccsConPlanSet.forEach(cc => {
       if (ccsConPasada.has(cc)) ccsAtendidosSet.add(cc);
     });
-
     ccsAtendidos = ccsAtendidosSet.size;
     ccsConPlan = ccsConPlanSet.size;
 
-    // 4. Marcar pasadas que cumplen un plan (su CC tiene plan)
+    // 4. Marcar pasadas que cumplen un plan + contar
     pasadas.forEach(p => {
       p._del_plan = ccsConPlanSet.has(p.id_cc);
+      if (p._del_plan) laboresCargadas++;
     });
 
-    // 5. Separar labores del plan en cargadas vs pendientes (para mostrar en tabla)
+    // 5. Separar labores del plan: cargadas (CC con pasada) vs pendientes (CC sin pasada)
     planesArr.forEach(pl => {
       if (ccsConPasada.has(pl.cc)) {
         planCargado.push(pl);
@@ -817,7 +819,7 @@ function aplicarFiltros() {
     });
   }
 
-  renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsConPlan);
+  renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsConPlan, laboresCargadas);
   renderMarkers(pasadas, planSinRegistro);
   calcularKPIs(pasadas, state.resumen.kpis.total_personas_activas);
 }
