@@ -269,7 +269,7 @@
 
   <div class="block">
     <div class="block-hd">
-      <div class="block-title">📋 Detalle del día</div>
+      <div class="block-title" id="detalle-title">📋 Detalle del día</div>
       <div style="display:flex;gap:10px;align-items:center;">
         <div class="filter-group">
           <button class="fbtn on" id="vista-mode-real" onclick="setModoVista('real')">Solo registradas</button>
@@ -285,11 +285,11 @@
       <thead>
         <tr>
           <th style="width:90px;">Cuadrilla</th>
-          <th>Personas</th>
-          <th style="width:90px;">Labor</th>
+          <th style="width:200px;">Personas</th>
+          <th style="min-width:280px;">Labor</th>
           <th style="width:130px;">UP / CC</th>
-          <th style="width:80px;">Pago</th>
-          <th style="width:90px;">Vínculo Gantt</th>
+          <th style="width:70px;">Pago</th>
+          <th style="width:120px;">Vínculo Gantt</th>
           <th style="width:80px;">Transporte</th>
           <th style="width:90px;">Costo</th>
         </tr>
@@ -502,10 +502,11 @@ function renderMarkers(pasadas, planSinRegistro) {
   }
 }
 
-function renderTabla(pasadas, planSinRegistro, planCargado, totalPlan) {
+function renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsConPlan) {
   planSinRegistro = planSinRegistro || [];
   planCargado = planCargado || [];
-  totalPlan = totalPlan || 0;
+  ccsAtendidos = ccsAtendidos || 0;
+  ccsConPlan = ccsConPlan || 0;
   const body = document.getElementById("tabla-body");
   const empty = document.getElementById("tabla-empty");
   body.innerHTML = "";
@@ -536,12 +537,12 @@ function renderTabla(pasadas, planSinRegistro, planCargado, totalPlan) {
     if (tareaPlan) {
       // Hay match Gantt: mostrar la tarea específica
       laborDisplay =
-        '<div style="font-size:12px;line-height:1.3;">' + escapeHtml(truncar(tareaPlan, 60)) + '</div>' +
+        '<div style="font-size:12px;line-height:1.35;">' + escapeHtml(truncar(tareaPlan, 120)) + '</div>' +
         '<code style="font-size:9px;color:#aaa;">' + (nombreLabor || p.id_labor) + '</code>';
     } else if (nombreLabor) {
       // Sin match pero con nombre en catálogo
       laborDisplay =
-        '<div style="font-size:12px;line-height:1.3;color:#666;">' + escapeHtml(nombreLabor) + '</div>' +
+        '<div style="font-size:12px;line-height:1.35;color:#666;">' + escapeHtml(nombreLabor) + '</div>' +
         '<code style="font-size:9px;color:#bbb;">Labor no registrada</code>';
     } else {
       // Ni match ni catálogo: solo código
@@ -591,19 +592,21 @@ function renderTabla(pasadas, planSinRegistro, planCargado, totalPlan) {
     pasadas.length + " pasada" + (pasadas.length !== 1 ? "s" : "");
 
   // Filas fantasma del Plan_Labores (sin registro de asistencia hoy)
-  if (state.modoVista === "plan" && totalPlan > 0) {
-    const cargadas = planCargado.length;
+  if (state.modoVista === "plan" && ccsConPlan > 0) {
     const pendientes = planSinRegistro.length;
-    const pct = totalPlan > 0 ? Math.round((cargadas / totalPlan) * 100) : 0;
+    const cargadas   = planCargado.length;
+    const totalLabores = pendientes + cargadas;
+    const pct = ccsConPlan > 0 ? Math.round((ccsAtendidos / ccsConPlan) * 100) : 0;
 
-    // Barra de progreso
+    // Barra de progreso (a nivel CC)
     const progressTr = document.createElement("tr");
     progressTr.innerHTML =
       '<td colspan="8" style="padding:0;border-bottom:none;">' +
       '<div class="progress-bar-wrap">' +
         '<div class="progress-bar-hd">' +
-          '<span class="progress-bar-label">📋 Avance del Plan_Labores · ' + cargadas + ' de ' + totalPlan + ' cargadas' +
-            (pendientes > 0 ? ' · ' + pendientes + ' pendiente' + (pendientes !== 1 ? 's' : '') : '') +
+          '<span class="progress-bar-label">📋 Avance del Plan_Labores · ' +
+            ccsAtendidos + ' de ' + ccsConPlan + ' UPs atendidas' +
+            ' <span style="color:#888;font-weight:400;">(' + cargadas + ' labores cargadas · ' + pendientes + ' pendientes)</span>' +
           '</span>' +
           '<span class="progress-bar-pct">' + pct + '%</span>' +
         '</div>' +
@@ -634,7 +637,7 @@ function renderTabla(pasadas, planSinRegistro, planCargado, totalPlan) {
           '<td><span class="ghost-icon">⚪</span><span style="color:#888;">Sin registro</span></td>' +
           '<td><div style="color:#999;font-size:11px;">— sin personal cargado —</div>' +
           '<div style="font-size:10px;color:#bbb;margin-top:2px;">Esperando carga AppSheet</div></td>' +
-          '<td><div style="font-size:12px;line-height:1.3;color:#666;">' + escapeHtml(truncar(pl.tarea || "—", 60)) + '</div>' +
+          '<td><div style="font-size:12px;line-height:1.35;color:#666;">' + escapeHtml(truncar(pl.tarea || "—", 120)) + '</div>' +
           (pl.responsables ? '<code style="font-size:9px;color:#aaa;">' + escapeHtml(pl.responsables) + '</code>' : '') + '</td>' +
           '<td>' + escapeHtml(ccLabel) + (ccSubtitle ? '<div style="font-size:10px;color:#bbb;">' + escapeHtml(ccSubtitle) + '</div>' : '') + '</td>' +
           '<td><span style="color:#bbb;font-size:11px;">—</span></td>' +
@@ -648,7 +651,7 @@ function renderTabla(pasadas, planSinRegistro, planCargado, totalPlan) {
     // Actualizar contador
     document.getElementById("tabla-count").textContent =
       pasadas.length + " registrada" + (pasadas.length !== 1 ? "s" : "") +
-      " · " + cargadas + "/" + totalPlan + " del plan";
+      " · " + ccsAtendidos + "/" + ccsConPlan + " UPs atendidas";
   } else {
     document.getElementById("tabla-count").textContent =
       pasadas.length + " pasada" + (pasadas.length !== 1 ? "s" : "");
@@ -766,48 +769,55 @@ function aplicarFiltros() {
     : state.resumen.pasadas.filter(p => p.id_prestador === state.cuadrillaFiltro);
   state.pasadasVisibles = pasadas;
 
-  // Matching Plan ↔ Pasadas: usamos clave compuesta CC + id_labor
-  // - planCargado: planes que ya tienen al menos una pasada con mismo CC + mismo c3ce
-  // - planSinRegistro: el resto
-  let planCargado = [];
-  let planSinRegistro = [];
-  let totalPlan = 0;
+  // Plan + registradas: matching CC para decidir cargado vs pendiente.
+  // El conteo es a nivel CC: cada UP/CC con plan se considera "atendido" si tiene
+  // al menos una pasada en el rango, sin importar cuántas labores haya en ese CC.
+  let planCargado = [];        // labores del plan en CCs ya atendidos (info para UI)
+  let planSinRegistro = [];    // labores del plan en CCs no atendidos
+  let ccsAtendidos = 0;
+  let ccsConPlan = 0;
 
   if (state.modoVista === "plan" && state.resumen.plan_activos_fecha) {
-    // Construir set de claves "cargadas" desde las pasadas reales
-    const clavesCargadas = new Set();
-    pasadas.forEach(p => clavesCargadas.add(p.id_cc + "::" + p.id_labor));
-
-    // Marcar cada pasada con flag "viene_del_plan" cuando coincide con un plan
-    const planesIndexCC = {};
+    // 1. Deduplicar plan por id_plan (defensivo)
+    const planUnicos = {};
     state.resumen.plan_activos_fecha.forEach(pl => {
-      if (!planesIndexCC[pl.cc]) planesIndexCC[pl.cc] = [];
-      planesIndexCC[pl.cc].push(pl);
+      if (pl.id_plan && !planUnicos[pl.id_plan]) {
+        planUnicos[pl.id_plan] = pl;
+      }
+    });
+    const planesArr = Object.values(planUnicos);
+
+    // 2. Set de CCs únicos con plan + Set de CCs únicos con pasada
+    const ccsConPlanSet = new Set();
+    planesArr.forEach(pl => { if (pl.cc) ccsConPlanSet.add(pl.cc); });
+    const ccsConPasada = new Set();
+    pasadas.forEach(p => { if (p.id_cc) ccsConPasada.add(p.id_cc); });
+
+    // 3. Intersección: CCs que están en plan Y tienen pasada
+    const ccsAtendidosSet = new Set();
+    ccsConPlanSet.forEach(cc => {
+      if (ccsConPasada.has(cc)) ccsAtendidosSet.add(cc);
     });
 
-    // Adjuntar info "es_del_plan" a cada pasada visible
+    ccsAtendidos = ccsAtendidosSet.size;
+    ccsConPlan = ccsConPlanSet.size;
+
+    // 4. Marcar pasadas que cumplen un plan (su CC tiene plan)
     pasadas.forEach(p => {
-      // Hay match plan si existe algún plan con mismo CC (no podemos matchear id_labor 
-      // contra plan porque la Gantt no tiene c3ce, pero el match Gantt ya da la pista)
-      p._del_plan = p.tiene_match_gantt;
+      p._del_plan = ccsConPlanSet.has(p.id_cc);
     });
 
-    // Separar planes en "cargados" vs "pendientes"
-    state.resumen.plan_activos_fecha.forEach(pl => {
-      // Un plan está "cargado" si existe pasada con mismo CC (criterio principal)
-      // Como Plan_Labores no tiene id_labor c3ce, usamos solo CC para matching
-      // (si en el futuro agregas el campo, esto se afina)
-      const yaCargado = pasadas.some(p => p.id_cc === pl.cc);
-      if (yaCargado) {
+    // 5. Separar labores del plan en cargadas vs pendientes (para mostrar en tabla)
+    planesArr.forEach(pl => {
+      if (ccsConPasada.has(pl.cc)) {
         planCargado.push(pl);
       } else {
         planSinRegistro.push(pl);
       }
     });
-    totalPlan = state.resumen.plan_activos_fecha.length;
   }
 
-  renderTabla(pasadas, planSinRegistro, planCargado, totalPlan);
+  renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsConPlan);
   renderMarkers(pasadas, planSinRegistro);
   calcularKPIs(pasadas, state.resumen.kpis.total_personas_activas);
 }
@@ -919,12 +929,22 @@ async function cargarRango(desde, hasta) {
   state.hasta = hasta;
   state.cuadrillaFiltro = "all";
 
-  // Header date
+  // Header date + título dinámico del detalle
+  const tituloDetalle = document.getElementById("detalle-title");
   if (desde === hasta) {
     document.getElementById("hdr-date").textContent = fmtFechaLarga(desde);
+    if (tituloDetalle) tituloDetalle.textContent = "📋 Detalle del día";
   } else {
     document.getElementById("hdr-date").textContent =
       fmtFechaCorta(desde) + " a " + fmtFechaCorta(hasta);
+    if (tituloDetalle) {
+      const labelRango = {
+        "semana": "📋 Detalle de la semana",
+        "mes":    "📋 Detalle del mes",
+        "custom": "📋 Detalle del rango"
+      }[state.rangoActivo] || "📋 Detalle del rango";
+      tituloDetalle.textContent = labelRango;
+    }
   }
 
   // Mostrar/ocultar toggle Total/Promedio según si es rango
