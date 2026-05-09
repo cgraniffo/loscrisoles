@@ -2846,6 +2846,15 @@ function buildMapaPanel() {
     return false;
   }
 
+  // Construir laboresPorCC local (mismo criterio que initMap, scope independiente)
+  const _laboresPorCCKpi = {};
+  todasLasLabores.forEach(l => {
+    const ccId = matchUpToCC(l.up);
+    if (!ccId) return;
+    if (!_laboresPorCCKpi[ccId]) _laboresPorCCKpi[ccId] = [];
+    _laboresPorCCKpi[ccId].push(l);
+  });
+
   // KPI 1: UPs en el mapa (mismo criterio que el filtro de puntos):
   // - Productivas (PIV/POT/NOG/VEGA/PAR) de la temporada activa, todas
   // - No productivas de la temporada activa, solo si tienen labores
@@ -2855,7 +2864,7 @@ function buildMapaPanel() {
       if (!tmp || tmp.temporada !== _tempActivaM) return false;
     }
     if (esUpProductivaMapa(id)) return true;
-    const labCC = laboresPorCC[id] || [];
+    const labCC = _laboresPorCCKpi[id] || [];
     return labCC.length > 0;
   });
 
