@@ -109,11 +109,19 @@
 
   <div class="block">
     <div class="filters">
-      <div class="filter-group">
-        <span class="filter-label">📅 Fecha:</span>
-        <input type="date" class="date-input" id="filter-date">
-        <button class="fbtn" onclick="setFechaHoy()">Hoy</button>
-        <button class="fbtn" onclick="setFechaAyer()">Ayer</button>
+      <div class="filter-group" style="flex-wrap:wrap;">
+        <span class="filter-label">📅 Rango:</span>
+        <button class="fbtn on" data-rango="hoy" onclick="setRango('hoy')">Hoy</button>
+        <button class="fbtn" data-rango="ayer" onclick="setRango('ayer')">Ayer</button>
+        <button class="fbtn" data-rango="semana" onclick="setRango('semana')">Esta semana</button>
+        <button class="fbtn" data-rango="mes" onclick="setRango('mes')">Este mes</button>
+        <button class="fbtn" data-rango="custom" onclick="toggleCustomRango()">Custom</button>
+        <div id="custom-rango-inputs" style="display:none;gap:6px;align-items:center;margin-left:6px;">
+          <input type="date" class="date-input" id="filter-desde">
+          <span style="font-size:11px;color:#888;">a</span>
+          <input type="date" class="date-input" id="filter-hasta">
+          <button class="fbtn" onclick="aplicarCustomRango()" style="background:#1a3a0a;color:#fff;border-color:#1a3a0a;">Aplicar</button>
+        </div>
       </div>
       <div class="filter-group" style="margin-left:auto;">
         <span class="filter-label">🏢 Cuadrilla:</span>
@@ -121,6 +129,15 @@
           <button class="fbtn on" data-cuad="all">Todas</button>
         </div>
       </div>
+    </div>
+    <div id="rango-summary" style="margin-top:8px;font-size:11px;color:#888;display:none;"></div>
+  </div>
+
+  <div id="kpi-toggle-wrap" style="display:none;justify-content:flex-end;margin-bottom:8px;">
+    <div class="filter-group">
+      <span class="filter-label" style="margin-right:6px;">Mostrar:</span>
+      <button class="fbtn on" id="kpi-mode-total" onclick="setModoKpi('total')">Total del rango</button>
+      <button class="fbtn" id="kpi-mode-avg" onclick="setModoKpi('avg')">Promedio diario</button>
     </div>
   </div>
 
@@ -215,13 +232,19 @@ const API_CC = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt94
 const CAMPO_CENTRO = [-34.278, -71.048];
 
 const state = {
-  fecha: null,
+  desde: null,
+  hasta: null,
+  rangoActivo: "hoy",  // hoy | ayer | semana | mes | custom
   resumen: null,
   cuadrillaFiltro: "all",
   coordMap: {},
   laboresMap: {},
-  pasadasVisibles: []
+  pasadasVisibles: [],
+  modoKpi: "total"  // total | avg
 };
+
+// IDs de prestadores que NO computan en costos (van por planilla interna)
+const PRESTADORES_INTERNOS = ["03b9e951"]; // Los Crisoles
 
 let map = null;
 let markersLayer = null;
@@ -251,8 +274,10 @@ function fmtFechaLarga(iso) {
   return DIAS[date.getDay()] + ", " + d + " de " + MESES[m-1] + " de " + y;
 }
 
-async function fetchResumen(fecha) {
-  const url = API_ASISTENCIA + "?action=resumen_dia&fecha=" + encodeURIComponent(fecha);
+async function fetchResumenRango(desde, hasta) {
+  const url = API_ASISTENCIA + "?action=resumen_rango"
+    + "&desde=" + encodeURIComponent(desde)
+    + "&hasta=" + encodeURIComponent(hasta);
   const r = await fetch(url);
   const json = await r.json();
   if (!json.ok) throw new Error(json.error || "Error desconocido del backend");
@@ -407,6 +432,12 @@ function renderTabla(pasadas) {
     const ccLabel = ccCoord && ccCoord.nombre ? ccCoord.nombre : p.id_cc;
     const ccSubtitle = ccCoord && ccCoord.fundo ? ccCoord.fundo : "";
 
+    // Costo: si es prestador interno, no se cuenta (van por planilla)
+    const esInterno = PRESTADORES_INTERNOS.indexOf(p.id_prestador) >= 0;
+    const costoCell = esInterno
+      ? '<span style="font-size:10px;color:#888;font-style:italic;">Planilla interna</span>'
+      : '<span style="font-weight:600;color:#1a3a0a;">' + fmtPeso(p.costo_total) + '</span>';
+
     const tr = document.createElement("tr");
     tr.innerHTML =
       '<td class="cuadrilla-cell">' + (p.prestador_nombre || p.id_prestador) + '</td>' +
@@ -417,7 +448,7 @@ function renderTabla(pasadas) {
       '<td><span class="pill ' + tipoPagoClass + '">' + p.tipo_pago + '</span></td>' +
       '<td>' + ganttPill + '</td>' +
       '<td>' + transpPill + '</td>' +
-      '<td style="font-weight:600;color:#1a3a0a;">' + fmtPeso(p.costo_total) + '</td>';
+      '<td>' + costoCell + '</td>';
     body.appendChild(tr);
   });
 
@@ -429,6 +460,7 @@ function calcularKPIs(pasadas, totalActivos) {
   const personasUnicas = new Set();
   const cuadrillasUnicas = new Set();
   const cuadrillasNombres = {};
+  const fechasConActividad = new Set();
   let costoTotal = 0;
   let transporteTotal = 0;
   let conTransporte = 0;
@@ -438,7 +470,11 @@ function calcularKPIs(pasadas, totalActivos) {
     p.lista_personal.forEach(id => personasUnicas.add(id));
     cuadrillasUnicas.add(p.id_prestador);
     cuadrillasNombres[p.id_prestador] = p.prestador_nombre || p.id_prestador;
-    costoTotal += p.costo_total;
+    fechasConActividad.add(p.fecha);
+    // Costo efectivo: 0 si es interno (Los Crisoles), valor real si es externo
+    const esInterno = PRESTADORES_INTERNOS.indexOf(p.id_prestador) >= 0;
+    const costoEfectivo = esInterno ? 0 : (p.costo_efectivo !== undefined ? p.costo_efectivo : p.costo_total);
+    costoTotal += costoEfectivo;
     if (p.transporte) {
       transporteTotal += (p.valor_transporte * p.lista_personal.length);
       conTransporte += p.lista_personal.length;
@@ -447,18 +483,49 @@ function calcularKPIs(pasadas, totalActivos) {
   });
 
   const totalPersonas = personasUnicas.size;
+  const diasActividad = fechasConActividad.size;
+  const esAvg = state.modoKpi === "avg" && diasActividad > 0;
 
-  document.getElementById("k-personas").textContent = totalPersonas;
-  document.getElementById("k-personas-sub").textContent = totalActivos
-    ? "de " + totalActivos + " activos" : "";
+  // Helpers para mostrar en modo correcto
+  function valOrAvg(total, divisor) {
+    if (!esAvg) return total;
+    return divisor > 0 ? Math.round((total / divisor) * 10) / 10 : 0;
+  }
+  function pesoOrAvg(total, divisor) {
+    if (!esAvg) return fmtPeso(total);
+    return divisor > 0 ? fmtPeso(Math.round(total / divisor)) : "—";
+  }
+
+  // KPI Personas
+  const valPersonas = esAvg ? valOrAvg(totalPersonas, diasActividad) : totalPersonas;
+  document.getElementById("k-personas").textContent = valPersonas;
+  document.getElementById("k-personas-sub").textContent = esAvg
+    ? "promedio diario · " + diasActividad + " días"
+    : (totalActivos ? "de " + totalActivos + " activos" : "");
+
+  // KPI Cuadrillas
   document.getElementById("k-cuadrillas").textContent = cuadrillasUnicas.size;
   document.getElementById("k-cuadrillas-sub").textContent =
     Object.values(cuadrillasNombres).join(" · ") || "—";
-  document.getElementById("k-labores").textContent = pasadas.length;
-  document.getElementById("k-labores-sub").textContent = conMatch + " con match Gantt";
-  document.getElementById("k-costo").textContent = fmtPeso(costoTotal);
-  document.getElementById("k-costo-sub").textContent = "+ " + fmtPeso(transporteTotal) + " transporte";
-  document.getElementById("k-transp").textContent = conTransporte;
+
+  // KPI Labores
+  document.getElementById("k-labores").textContent = esAvg
+    ? valOrAvg(pasadas.length, diasActividad)
+    : pasadas.length;
+  document.getElementById("k-labores-sub").textContent = esAvg
+    ? "promedio pasadas/día"
+    : conMatch + " con match Gantt";
+
+  // KPI Costo
+  document.getElementById("k-costo").textContent = pesoOrAvg(costoTotal, diasActividad);
+  document.getElementById("k-costo-sub").textContent = esAvg
+    ? "promedio diario · " + (transporteTotal > 0 ? "+ " + fmtPeso(Math.round(transporteTotal/diasActividad)) + " transporte" : "")
+    : "+ " + fmtPeso(transporteTotal) + " transporte";
+
+  // KPI Transporte
+  document.getElementById("k-transp").textContent = esAvg
+    ? valOrAvg(conTransporte, diasActividad)
+    : conTransporte;
   document.getElementById("k-transp-sub").textContent = totalPersonas > 0
     ? Math.round(conTransporte/totalPersonas*100) + "% del total" : "—";
 
@@ -502,11 +569,99 @@ function renderFiltroCuadrillas() {
   });
 }
 
-async function cargarFecha(fechaIso) {
-  state.fecha = fechaIso;
-  document.getElementById("filter-date").value = fechaIso;
-  document.getElementById("hdr-date").textContent = fmtFechaLarga(fechaIso);
+// Helpers de rango
+function isoFromDate(d) {
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
+function calcularRango(tipo) {
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+  let desde, hasta;
+  switch (tipo) {
+    case "hoy":
+      desde = hasta = isoFromDate(hoy);
+      break;
+    case "ayer":
+      const ayer = new Date(hoy); ayer.setDate(ayer.getDate() - 1);
+      desde = hasta = isoFromDate(ayer);
+      break;
+    case "semana": {
+      // Lunes a domingo de la semana actual
+      const diaSem = hoy.getDay(); // 0=dom, 1=lun, ..., 6=sab
+      const offsetLun = diaSem === 0 ? -6 : 1 - diaSem;
+      const lun = new Date(hoy); lun.setDate(lun.getDate() + offsetLun);
+      desde = isoFromDate(lun);
+      hasta = isoFromDate(hoy);
+      break;
+    }
+    case "mes": {
+      const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      desde = isoFromDate(primerDia);
+      hasta = isoFromDate(hoy);
+      break;
+    }
+    default:
+      desde = hasta = isoFromDate(hoy);
+  }
+  return { desde, hasta };
+}
+
+async function setRango(tipo) {
+  state.rangoActivo = tipo;
+  const r = calcularRango(tipo);
+  // Actualizar botones
+  document.querySelectorAll('[data-rango]').forEach(b => b.classList.remove("on"));
+  const btn = document.querySelector('[data-rango="' + tipo + '"]');
+  if (btn) btn.classList.add("on");
+  // Ocultar inputs custom
+  document.getElementById("custom-rango-inputs").style.display = "none";
+  await cargarRango(r.desde, r.hasta);
+}
+
+function toggleCustomRango() {
+  document.querySelectorAll('[data-rango]').forEach(b => b.classList.remove("on"));
+  document.querySelector('[data-rango="custom"]').classList.add("on");
+  const wrap = document.getElementById("custom-rango-inputs");
+  wrap.style.display = "flex";
+  // Sembrar inputs con el rango actual o hoy
+  const hoy = isoFromDate(new Date());
+  document.getElementById("filter-desde").value = state.desde || hoy;
+  document.getElementById("filter-hasta").value = state.hasta || hoy;
+  state.rangoActivo = "custom";
+}
+
+async function aplicarCustomRango() {
+  const desde = document.getElementById("filter-desde").value;
+  const hasta = document.getElementById("filter-hasta").value;
+  if (!desde || !hasta) {
+    showError("Selecciona ambas fechas para el rango custom");
+    return;
+  }
+  if (desde > hasta) {
+    showError("La fecha 'desde' debe ser anterior o igual a 'hasta'");
+    return;
+  }
+  await cargarRango(desde, hasta);
+}
+
+async function cargarRango(desde, hasta) {
+  state.desde = desde;
+  state.hasta = hasta;
   state.cuadrillaFiltro = "all";
+
+  // Header date
+  if (desde === hasta) {
+    document.getElementById("hdr-date").textContent = fmtFechaLarga(desde);
+  } else {
+    document.getElementById("hdr-date").textContent =
+      fmtFechaCorta(desde) + " a " + fmtFechaCorta(hasta);
+  }
+
+  // Mostrar/ocultar toggle Total/Promedio según si es rango
+  const esRango = desde !== hasta;
+  document.getElementById("kpi-toggle-wrap").style.display = esRango ? "flex" : "none";
+  if (!esRango) state.modoKpi = "total"; // Reset cuando es 1 día
 
   document.getElementById("tabla-body").innerHTML =
     '<tr><td colspan="8" class="loading">Cargando datos...</td></tr>';
@@ -514,8 +669,9 @@ async function cargarFecha(fechaIso) {
 
   try {
     hideError();
-    const resumen = await fetchResumen(fechaIso);
+    const resumen = await fetchResumenRango(desde, hasta);
     state.resumen = resumen;
+    actualizarRangoSummary();
     renderFiltroCuadrillas();
     aplicarFiltros();
   } catch (err) {
@@ -526,17 +682,24 @@ async function cargarFecha(fechaIso) {
   }
 }
 
-function setFechaHoy() { cargarFecha(fechaIsoHoy()); }
-function setFechaAyer() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  const iso = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
-  cargarFecha(iso);
+function actualizarRangoSummary() {
+  const r = state.resumen;
+  if (!r || !r.es_rango) {
+    document.getElementById("rango-summary").style.display = "none";
+    return;
+  }
+  const el = document.getElementById("rango-summary");
+  el.style.display = "block";
+  el.innerHTML = "📊 Rango de " + r.dias_rango + " día" + (r.dias_rango > 1 ? "s" : "")
+    + " (" + r.dias_con_actividad + " con actividad registrada)";
 }
 
-document.getElementById("filter-date").addEventListener("change", function() {
-  cargarFecha(this.value);
-});
+function setModoKpi(modo) {
+  state.modoKpi = modo;
+  document.getElementById("kpi-mode-total").classList.toggle("on", modo === "total");
+  document.getElementById("kpi-mode-avg").classList.toggle("on", modo === "avg");
+  aplicarFiltros();
+}
 
 function escapeHtml(s) {
   if (s === null || s === undefined) return "";
@@ -596,7 +759,9 @@ function abrirModalGantt(idx) {
   });
   html += '</ul>';
   html += '<div style="text-align:right;margin-top:10px;font-size:11px;color:#666;">';
-  html += (pasada.prestador_nombre || pasada.id_prestador) + ' · ' + pasada.tipo_pago + ' · ' + fmtPeso(pasada.costo_total);
+  const esInternoModal = PRESTADORES_INTERNOS.indexOf(pasada.id_prestador) >= 0;
+  const costoLabel = esInternoModal ? "Planilla interna" : fmtPeso(pasada.costo_total);
+  html += (pasada.prestador_nombre || pasada.id_prestador) + ' · ' + pasada.tipo_pago + ' · ' + costoLabel;
   html += '</div>';
 
   body.innerHTML = html;
@@ -614,7 +779,6 @@ document.addEventListener("keydown", function(e) {
 
 async function init() {
   initMap();
-  // Cargar coords y labores en paralelo (no bloquean)
   Promise.all([fetchCoordMap(), fetchLaboresMap()]).then(([coordMap, laboresMap]) => {
     state.coordMap = coordMap;
     state.laboresMap = laboresMap;
@@ -622,11 +786,11 @@ async function init() {
       const pasadas = state.cuadrillaFiltro === "all"
         ? state.resumen.pasadas
         : state.resumen.pasadas.filter(p => p.id_prestador === state.cuadrillaFiltro);
-      renderTabla(pasadas);     // re-render para incorporar nombres del catálogo
+      renderTabla(pasadas);
       renderMarkers(pasadas);
     }
   });
-  await cargarFecha(fechaIsoHoy());
+  await setRango("hoy");
 }
 
 init();
