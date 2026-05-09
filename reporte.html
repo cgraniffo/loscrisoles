@@ -2846,8 +2846,18 @@ function buildMapaPanel() {
     return false;
   }
 
-  // KPI 1: UPs productivas con coordenadas
-  const upsProductivas = Object.keys(COORD_MAP || {}).filter(id => esUpProductivaMapa(id));
+  // KPI 1: UPs en el mapa (mismo criterio que el filtro de puntos):
+  // - Productivas (PIV/POT/NOG/VEGA/PAR) de la temporada activa, todas
+  // - No productivas de la temporada activa, solo si tienen labores
+  const upsProductivas = Object.keys(COORD_MAP || {}).filter(id => {
+    if (_tempActivaM) {
+      const tmp = TEMP_MAP[id];
+      if (!tmp || tmp.temporada !== _tempActivaM) return false;
+    }
+    if (esUpProductivaMapa(id)) return true;
+    const labCC = laboresPorCC[id] || [];
+    return labCC.length > 0;
+  });
 
   // KPI 2: Total labores activas (SIN filtro, excluye completadas)
   const laboresActivas = todasLasLabores.filter(l => l.estado !== "Completada");
@@ -2968,11 +2978,16 @@ function initMap() {
 
   const puntos = Object.entries(COORD_MAP)
     .filter(([id]) => {
-      // Filtrar por temporada activa: solo UPs cuya BD_CC.Temporada coincide.
-      // Incluye todas las UPs con coordenadas de esa temporada (productivas y no productivas).
-      if (!tempActiva) return true;
-      const tmp = TEMP_MAP[id];
-      return tmp && tmp.temporada === tempActiva;
+      // Filtrar por temporada activa
+      if (tempActiva) {
+        const tmp = TEMP_MAP[id];
+        if (!tmp || tmp.temporada !== tempActiva) return false;
+      }
+      // Productivas: siempre incluir (aunque no tengan labores)
+      if (esUpProductivaMapa(id)) return true;
+      // No productivas (Gastos Generales, Casa, Bodegas, etc): solo si tienen labores
+      const labCC = laboresPorCC[id] || [];
+      return labCC.length > 0;
     })
     .map(([id, coord]) => {
       const nombre = CC_MAP[id] || id;
