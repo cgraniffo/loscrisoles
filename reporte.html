@@ -2867,17 +2867,21 @@ function buildMapaPanel() {
     d.setHours(0,0,0,0);
     return d < _hoyAtr;
   }
-  const atrasadasFiltro = laboresFiltradas.filter(_esAtrasada).length;
-
-  // KPI 4: UPs con labores Atrasadas (alineado con markers rojos del mapa)
-  // Mismo criterio que _esAtrasada(): Fecha_Fin < hoy y no Completada
-  const upsConAtencion = new Set();
-  todasLasLabores.forEach(l => {
-    if (_esAtrasada(l)) {
-      const ccId = matchUpToCC(l.up);
-      if (ccId) upsConAtencion.add(ccId);
-    }
-  });
+  // Filtrar laboresFiltradas también por temporada activa (alineado con el mapa)
+  function _tempDeLabKpi(l) {
+    var t = String(l.temporada || l.Temporada || "").trim();
+    if (t) return t;
+    var cc = String(l.centro_costo || l.Centro_Costo || l.cc || "").trim();
+    if (cc && TEMP_MAP[cc]) return TEMP_MAP[cc].temporada || "";
+    return "";
+  }
+  const laboresFiltradasTemp = _tempActivaM
+    ? laboresFiltradas.filter(l => {
+        const tl = _tempDeLabKpi(l);
+        return !tl || tl === _tempActivaM;
+      })
+    : laboresFiltradas;
+  const atrasadasFiltro = laboresFiltradasTemp.filter(_esAtrasada).length;
 
   // Etiqueta corta de la temporada activa para los labels
   var _tempLabel = _tempActivaM ? " · " + _tempActivaM.replace("20","").replace("-20","-") : "";
@@ -2901,12 +2905,6 @@ function buildMapaPanel() {
         <div class="mapa-stat-val" style="color:${atrasadasFiltro>0?"#e76f51":"#4ade80"}">${atrasadasFiltro}</div>
         <div class="mapa-stat-label">Atrasadas${_tempLabel}</div>
         <div class="mapa-stat-tooltip">Labores atrasadas (Fecha_Fin &lt; hoy y no Completada) de la temporada <b>${_tempActivaM || "activa"}</b>. <b>Reacciona a los filtros del Gantt</b> (cultivo, estado).<br><br>El KPI superior del header cuenta atrasadas de <b>todas las temporadas</b>; este solo cuenta la activa.</div>
-      </div>
-      <div class="mapa-stat">
-        <div class="mapa-stat-icon">🔥</div>
-        <div class="mapa-stat-val" style="color:${upsConAtencion.size>0?"#f4a261":"#4ade80"}">${upsConAtencion.size}</div>
-        <div class="mapa-stat-label">UPs con atrasadas${_tempLabel}</div>
-        <div class="mapa-stat-tooltip">Unidades productivas de la temporada <b>${_tempActivaM || "activa"}</b> con al menos una labor atrasada (mismos puntos rojos del mapa).</div>
       </div>
     </div>
   `;
