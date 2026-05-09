@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Asistencia · Los Crisoles</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script>
+  // Si la pestaña carga dentro del Dashboard via iframe, ocultar header propio
+  document.write('<style>.hdr-standalone{display:'+(window.self===window.top?'block':'none')+'!important}</style>');
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, sans-serif; background: #f0ede6; color: #1a1a1a; }
+
+  /* HEADER (solo standalone) */
+  .hdr-standalone { background: #1a3a0a; color: #fff; padding: 18px 20px; }
+  .hdr-row { display: flex; justify-content: space-between; align-items: center; }
+  .hdr-logo { font-size: 10px; font-weight: bold; letter-spacing: 0.1em; color: #86efac; text-transform: uppercase; margin-bottom: 4px; }
+  .hdr-title { font-size: 20px; font-weight: bold; color: #fff; }
+  .hdr-date { font-size: 12px; color: #9fe1cb; }
+
+  .body { padding: 16px; max-width: 1400px; margin: 0 auto; }
+
+  /* KPIs */
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px; }
+  .kpi { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 12px 14px; }
+  .kpi-icon { font-size: 16px; }
+  .kpi-val { font-size: 26px; font-weight: bold; color: #1a3a0a; line-height: 1; margin-top: 4px; }
+  .kpi-val.amber { color: #d97706; }
+  .kpi-val.green { color: #16a34a; }
+  .kpi-val.red    { color: #dc2626; }
+  .kpi-label { font-size: 11px; color: #666; margin-top: 4px; line-height: 1.3; }
+  .kpi-sub { font-size: 10px; color: #999; margin-top: 2px; }
+
+  /* Bloques */
+  .block { background: #fff; border-radius: 10px; border: 1px solid #e5e2da; padding: 14px 16px; margin-bottom: 14px; }
+  .block-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .block-title { font-size: 11px; font-weight: bold; color: #555; letter-spacing: 0.06em; text-transform: uppercase; }
+  .block-tag { font-size: 10px; color: #16a34a; font-weight: bold; }
+  .block-tag::before { content: "● "; }
+
+  /* Mock badge */
+  .mock-badge { display: inline-block; background: #FAEEDA; color: #854F0B; font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-left: 6px; letter-spacing: 0.04em; vertical-align: middle; }
+
+  /* Mapa */
+  #mapa-asistencia { height: 380px; border-radius: 8px; }
+
+  /* Filtros */
+  .filters { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding-top: 4px; }
+  .filter-group { display: flex; gap: 4px; align-items: center; }
+  .filter-label { font-size: 11px; color: #888; }
+  .fbtn { font-size: 11px; padding: 4px 12px; border-radius: 99px; border: 1px solid #ddd; background: #f8f8f6; color: #555; cursor: pointer; }
+  .fbtn.on { background: #1a3a0a; color: #fff; border-color: #1a3a0a; }
+  .fbtn:hover:not(.on) { background: #efece5; }
+  .date-input { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid #ddd; background: #f8f8f6; color: #555; }
+
+  /* Tabla */
+  table.detalle { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.detalle th { text-align: left; padding: 8px 10px; background: #f8f6ef; border-bottom: 2px solid #e5e2da; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #666; font-weight: 600; }
+  table.detalle td { padding: 9px 10px; border-bottom: 1px solid #f0ede6; vertical-align: top; }
+  table.detalle tr:hover td { background: #fafaf6; }
+  table.detalle tr:last-child td { border-bottom: none; }
+  .pill { font-size: 10px; padding: 2px 8px; border-radius: 99px; font-weight: 600; white-space: nowrap; }
+  .pill.dia { background: #dbeafe; color: #1e40af; }
+  .pill.trato { background: #fef3c7; color: #92400e; }
+  .pill.gantt { background: #d1fae5; color: #065f46; }
+  .pill.extra { background: #f3f4f6; color: #6b7280; }
+  .pill.transp { background: #ede9fe; color: #5b21b6; }
+  .personas-list { font-size: 11px; color: #555; line-height: 1.5; }
+  .personas-list .nombre { display: inline-block; }
+  .cuadrilla-cell { font-weight: 600; color: #1a3a0a; }
+
+  /* Marker icons */
+  .person-marker {
+    background: #1a3a0a;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .person-marker.s1 { width: 28px; height: 28px; }
+  .person-marker.s2 { width: 34px; height: 34px; font-size: 12px; }
+  .person-marker.s3 { width: 42px; height: 42px; font-size: 14px; }
+
+  .leaflet-popup-content {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 8px 12px;
+  }
+  .leaflet-popup-content b { color: #1a3a0a; }
+
+  /* Empty state */
+  .empty { text-align: center; padding: 24px; color: #999; font-size: 13px; }
+
+  @media (max-width: 700px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .body { padding: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header standalone (oculto si se carga en iframe) -->
+<div class="hdr-standalone">
+  <div class="hdr-row">
+    <div>
+      <div class="hdr-logo">👥 Asistencia · Los Crisoles</div>
+      <div class="hdr-title">Personal en labores hoy</div>
+    </div>
+    <div class="hdr-date" id="hdr-date">—</div>
+  </div>
+</div>
+
+<div class="body">
+
+  <!-- KPIs -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-icon">👥</div>
+      <div class="kpi-val green" id="k-personas">8</div>
+      <div class="kpi-label">Personas presentes hoy</div>
+      <div class="kpi-sub" id="k-personas-sub">de 21 activos</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">🏢</div>
+      <div class="kpi-val" id="k-cuadrillas">2</div>
+      <div class="kpi-label">Cuadrillas activas</div>
+      <div class="kpi-sub" id="k-cuadrillas-sub">Ernesto · Los Crisoles</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">📋</div>
+      <div class="kpi-val" id="k-labores">2</div>
+      <div class="kpi-label">Labores con personal</div>
+      <div class="kpi-sub" id="k-labores-sub">2 con match Gantt</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-val" id="k-costo">$224k</div>
+      <div class="kpi-label">Costo personal del día</div>
+      <div class="kpi-sub" id="k-costo-sub">+ $11k transporte</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-icon">🚐</div>
+      <div class="kpi-val" id="k-transp">3</div>
+      <div class="kpi-label">Con transporte</div>
+      <div class="kpi-sub" id="k-transp-sub">38% del total</div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="block">
+    <div class="filters">
+      <div class="filter-group">
+        <span class="filter-label">📅 Fecha:</span>
+        <input type="date" class="date-input" id="filter-date" value="2026-05-08">
+        <button class="fbtn on" onclick="filtrarFecha('hoy')">Hoy</button>
+        <button class="fbtn" onclick="filtrarFecha('semana')">Esta semana</button>
+        <button class="fbtn" onclick="filtrarFecha('mes')">Mes actual</button>
+      </div>
+      <div class="filter-group" style="margin-left:auto;">
+        <span class="filter-label">🏢 Cuadrilla:</span>
+        <button class="fbtn on" data-cuad="all">Todas</button>
+        <button class="fbtn" data-cuad="03b9e949">Ernesto</button>
+        <button class="fbtn" data-cuad="03b9e950">Miguel</button>
+        <button class="fbtn" data-cuad="03b9e951">Los Crisoles</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mapa -->
+  <div class="block">
+    <div class="block-hd">
+      <div class="block-title">🗺️ Mapa del campo · Personal hoy</div>
+      <div class="block-tag" id="mapa-tag">EN VIVO · 8 personas</div>
+    </div>
+    <div id="mapa-asistencia"></div>
+  </div>
+
+  <!-- Tabla detalle -->
+  <div class="block">
+    <div class="block-hd">
+      <div class="block-title">📋 Detalle del día <span class="mock-badge">DEMO</span></div>
+      <div class="block-tag" id="tabla-count">2 pasadas</div>
+    </div>
+    <table class="detalle" id="tabla-detalle">
+      <thead>
+        <tr>
+          <th style="width:90px;">Cuadrilla</th>
+          <th>Personas</th>
+          <th style="width:90px;">Labor</th>
+          <th style="width:130px;">UP / CC</th>
+          <th style="width:80px;">Pago</th>
+          <th style="width:90px;">Vínculo Gantt</th>
+          <th style="width:80px;">Transporte</th>
+          <th style="width:90px;">Costo</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-body">
+        <!-- inyectado por JS -->
+      </tbody>
+    </table>
+    <div id="tabla-empty" class="empty" style="display:none;">No hay registros para los filtros seleccionados.</div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// =========================================================================
+// MOCK DATA — basado en estructura real de BD_Registro
+// =========================================================================
+// Cuando conectemos backend, reemplazar estos arrays con fetch a Apps Script
+
+const MOCK_PRESTADORES = [
+  { id: "03b9e949", nombre: "Ernesto", valor_dia: 28000 },
+  { id: "03b9e950", nombre: "Miguel", valor_dia: 28000 },
+  { id: "03b9e951", nombre: "Los Crisoles", valor_dia: 28000 }
+];
+
+const MOCK_PERSONAS = [
+  { id: "9f1196ae", nombre: "Juan Soto",       prestador: "03b9e949" },
+  { id: "9f119600", nombre: "Pedro Pérez",     prestador: "03b9e949" },
+  { id: "9f119601", nombre: "Hugo Silva",      prestador: "03b9e949" },
+  { id: "9f119604", nombre: "Leonardo Pavez",  prestador: "03b9e949" },
+  { id: "9f119605", nombre: "Daniela Guzmán",  prestador: "03b9e949" },
+  { id: "9f119613", nombre: "Carlos Cárdenas", prestador: "03b9e951" },
+  { id: "9f119614", nombre: "Cristóbal Contreras", prestador: "03b9e951" },
+  { id: "9f119615", nombre: "Víctor González", prestador: "03b9e951" },
+  { id: "9f119616", nombre: "Juan Miranda",    prestador: "03b9e951" },
+  { id: "9f119617", nombre: "Bernardino Montecino", prestador: "03b9e951" }
+];
+
+// Pasadas reales del 08-05-2026 (tomadas del sheet)
+const MOCK_PASADAS = [
+  {
+    id_pasada: "84a283ad",
+    fecha: "2026-05-08",
+    id_cc: "546f06c10",     // PIV3
+    up_nombre: "Piv 3",
+    cultivo: "Achicoria 26-27",
+    id_labor: "c3ce0005",
+    valor_unitario: 28000,
+    cantidad: 1,
+    tipo_pago: "Día",
+    id_prestador: "03b9e951", // Los Crisoles
+    transporte: false,
+    valor_transporte: 0,
+    costo_total: 28000 * 5,   // 5 personas
+    lista_personal: ["9f119613", "9f119614", "9f119615", "9f119616", "9f119617"],
+    coords: [-34.275, -71.05]   // Approx PIV3
+  },
+  {
+    id_pasada: "47d839a4",
+    fecha: "2026-05-08",
+    id_cc: "cef9691b",        // VEGA
+    up_nombre: "Vega",
+    cultivo: "Maíz 26-27",
+    id_labor: "c3ce0004",
+    valor_unitario: 28000,
+    cantidad: 1,
+    tipo_pago: "Trato",
+    id_prestador: "03b9e949",  // Ernesto
+    transporte: true,
+    valor_transporte: 2000,
+    costo_total: 28000 * 3,
+    lista_personal: ["9f1196ae", "9f119600", "9f119601"],
+    coords: [-34.282, -71.045]
+  }
+];
+
+// Plan_Labores hoy (extraído del sheet) — para match Fecha+CC
+const MOCK_PLAN_HOY = [
+  { id_plan: "L17780005930049wm7cf", fecha_inicio: "2026-05-08", fecha_fin: "2026-05-12", cc: "546f06c10", up: "Piv 3", tarea: "PIV3: Pasar rastra", estado: "Planificada" },
+  { id_plan: "L17780005930074j6v3h", fecha_inicio: "2026-05-08", fecha_fin: "2026-05-08", cc: "546f06c10", up: "Piv 3", tarea: "PIV3: evaluar subsolar/drenar lado oriente que se anega?", estado: "Planificada" }
+  // Vega (cef9691b) hoy NO tiene labor planificada → sin match → Labor extra
+];
+
+// =========================================================================
+// HELPERS
+// =========================================================================
+function fmtPeso(n) {
+  if (!n && n !== 0) return "—";
+  if (n >= 1000000) return "$" + (n/1000000).toFixed(1).replace(/\.0$/,"") + "M";
+  if (n >= 1000)    return "$" + Math.round(n/1000) + "k";
+  return "$" + Math.round(n);
+}
+
+function getPersona(id) {
+  return MOCK_PERSONAS.find(p => p.id === id);
+}
+function getPrestador(id) {
+  return MOCK_PRESTADORES.find(p => p.id === id);
+}
+function matchPlanGantt(fecha, cc) {
+  return MOCK_PLAN_HOY.filter(l => l.cc === cc &&
+    fecha >= l.fecha_inicio && fecha <= l.fecha_fin);
+}
+
+// =========================================================================
+// FECHA CABECERA
+// =========================================================================
+const HOY = new Date(2026, 4, 8); // 8 de mayo de 2026 (mock)
+const DIAS = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+document.getElementById("hdr-date").textContent =
+  DIAS[HOY.getDay()] + ", " + HOY.getDate() + " de " + MESES[HOY.getMonth()] + " de " + HOY.getFullYear();
+
+// =========================================================================
+// RENDER MAPA
+// =========================================================================
+const map = L.map("mapa-asistencia").setView([-34.278, -71.048], 15);
+
+L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+  attribution: "© Esri",
+  maxZoom: 19
+}).addTo(map);
+
+function renderMarkers(pasadas) {
+  pasadas.forEach(p => {
+    const n = p.lista_personal.length;
+    const sizeClass = n >= 5 ? "s3" : (n >= 3 ? "s2" : "s1");
+    const icon = L.divIcon({
+      html: '<div class="person-marker ' + sizeClass + '">' + n + '</div>',
+      className: '',
+      iconSize: [42, 42],
+      iconAnchor: [21, 21]
+    });
+
+    const prestador = getPrestador(p.id_prestador);
+    const personas = p.lista_personal.map(id => getPersona(id)).filter(x=>x);
+    const matches = matchPlanGantt(p.fecha, p.id_cc);
+    const tareaPlan = matches.length > 0 ? matches[0].tarea : null;
+
+    const popup = `
+      <b>${p.up_nombre}</b> · ${p.cultivo}<br>
+      <b>${prestador ? prestador.nombre : '?'}</b> · ${n} personas<br>
+      <hr style="margin:6px 0; border:0; border-top:1px solid #eee;">
+      <b>Tipo labor:</b> ${p.id_labor}<br>
+      ${tareaPlan
+        ? '<b>📋 En Gantt:</b> ' + tareaPlan + '<br>'
+        : '<span style="color:#999;">Sin labor planificada en Gantt</span><br>'}
+      <b>Pago:</b> ${p.tipo_pago} · ${fmtPeso(p.costo_total)}<br>
+      <b>Personas:</b><br>
+      <span style="font-size:11px;color:#555;">
+      ${personas.map(x => "• " + x.nombre).join("<br>")}
+      </span>
+    `;
+    L.marker(p.coords, { icon }).addTo(map).bindPopup(popup);
+  });
+}
+
+renderMarkers(MOCK_PASADAS);
+
+// =========================================================================
+// RENDER TABLA
+// =========================================================================
+function renderTabla(pasadas) {
+  const body = document.getElementById("tabla-body");
+  const empty = document.getElementById("tabla-empty");
+  body.innerHTML = "";
+
+  if (pasadas.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  pasadas.forEach(p => {
+    const prestador = getPrestador(p.id_prestador);
+    const personas = p.lista_personal.map(id => getPersona(id)).filter(x=>x);
+    const matches = matchPlanGantt(p.fecha, p.id_cc);
+    const tieneMatch = matches.length > 0;
+    const tareaPlan = tieneMatch ? matches[0].tarea : null;
+
+    const personasHtml = personas.map(x =>
+      '<span class="nombre">' + x.nombre + '</span>'
+    ).join(" · ");
+
+    const tipoPagoClass = p.tipo_pago === "Trato" ? "trato" : "dia";
+    const ganttPill = tieneMatch
+      ? '<span class="pill gantt" title="' + (tareaPlan || '') + '">🔗 En Gantt</span>'
+      : '<span class="pill extra">Labor extra</span>';
+    const transpPill = p.transporte
+      ? '<span class="pill transp">🚐 ' + fmtPeso(p.valor_transporte) + '</span>'
+      : '<span style="color:#bbb;font-size:10px;">—</span>';
+
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td class="cuadrilla-cell">${prestador ? prestador.nombre : '?'}</td>
+      <td><div class="personas-list">${personasHtml}</div>
+        <div style="font-size:10px;color:#999;margin-top:2px;">${personas.length} personas</div>
+      </td>
+      <td><code style="font-size:10px;color:#666;">${p.id_labor}</code></td>
+      <td>${p.up_nombre}<div style="font-size:10px;color:#999;">${p.cultivo}</div></td>
+      <td><span class="pill ${tipoPagoClass}">${p.tipo_pago}</span></td>
+      <td>${ganttPill}</td>
+      <td>${transpPill}</td>
+      <td style="font-weight:600;color:#1a3a0a;">${fmtPeso(p.costo_total)}</td>
+    `;
+    body.appendChild(tr);
+  });
+
+  document.getElementById("tabla-count").textContent = pasadas.length + " pasada" + (pasadas.length !== 1 ? "s" : "");
+}
+
+renderTabla(MOCK_PASADAS);
+
+// =========================================================================
+// KPIs (calculados desde MOCK_PASADAS)
+// =========================================================================
+function calcularKPIs(pasadas) {
+  const personasUnicas = new Set();
+  const cuadrillasUnicas = new Set();
+  const laboresUnicas = new Set();
+  let costoTotal = 0;
+  let transporteTotal = 0;
+  let conTransporte = 0;
+  let conMatch = 0;
+
+  pasadas.forEach(p => {
+    p.lista_personal.forEach(id => personasUnicas.add(id));
+    cuadrillasUnicas.add(p.id_prestador);
+    laboresUnicas.add(p.id_cc + "::" + p.id_labor);
+    costoTotal += p.costo_total;
+    if (p.transporte) {
+      transporteTotal += (p.valor_transporte * p.lista_personal.length);
+      conTransporte += p.lista_personal.length;
+    }
+    const matches = matchPlanGantt(p.fecha, p.id_cc);
+    if (matches.length > 0) conMatch++;
+  });
+
+  const totalPersonas = personasUnicas.size;
+  const totalActivos = MOCK_PERSONAS.length; // 21 activos en el catálogo
+
+  document.getElementById("k-personas").textContent = totalPersonas;
+  document.getElementById("k-personas-sub").textContent = "de " + totalActivos + " activos";
+  document.getElementById("k-cuadrillas").textContent = cuadrillasUnicas.size;
+  document.getElementById("k-cuadrillas-sub").textContent = Array.from(cuadrillasUnicas).map(id => {
+    const p = getPrestador(id); return p ? p.nombre : id;
+  }).join(" · ");
+  document.getElementById("k-labores").textContent = pasadas.length;
+  document.getElementById("k-labores-sub").textContent = conMatch + " con match Gantt";
+  document.getElementById("k-costo").textContent = fmtPeso(costoTotal);
+  document.getElementById("k-costo-sub").textContent = "+ " + fmtPeso(transporteTotal) + " transporte";
+  document.getElementById("k-transp").textContent = conTransporte;
+  document.getElementById("k-transp-sub").textContent = totalPersonas > 0
+    ? Math.round(conTransporte/totalPersonas*100) + "% del total" : "—";
+
+  document.getElementById("mapa-tag").textContent = "EN VIVO · " + totalPersonas + " personas";
+}
+
+calcularKPIs(MOCK_PASADAS);
+
+// =========================================================================
+// FILTROS (mock — placeholders por ahora)
+// =========================================================================
+function filtrarFecha(rango) {
+  document.querySelectorAll(".filter-group .fbtn").forEach(b => b.classList.remove("on"));
+  event.target.classList.add("on");
+  // TODO: filtrar pasadas según rango cuando conectemos backend
+}
+
+document.querySelectorAll('[data-cuad]').forEach(btn => {
+  btn.addEventListener("click", function() {
+    document.querySelectorAll('[data-cuad]').forEach(b => b.classList.remove("on"));
+    this.classList.add("on");
+    const cuad = this.getAttribute("data-cuad");
+    const filtradas = cuad === "all" ? MOCK_PASADAS : MOCK_PASADAS.filter(p => p.id_prestador === cuad);
+    renderTabla(filtradas);
+    calcularKPIs(filtradas);
+    // Limpiar markers y re-renderizar
+    map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+    renderMarkers(filtradas);
+  });
+});
+</script>
+
+</body>
+</html>
