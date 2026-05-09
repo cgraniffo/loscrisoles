@@ -1758,8 +1758,21 @@ function renderHome({ registros, asignaciones, proyecciones }) {
       { id:'b4', cobr:_sumDoc(_b4cobrar)+_sumIng(_b4ing), pago:_sumDoc(_b4pagar) }
     ];
 
-    // Calcular neto y acumulada (cascada desde caja hoy)
-    let _acum = CAJA_ACTUAL;
+    // Calcular neto de vencidos para incluirlos en el acumulado inicial.
+    // Mantener consistencia con renderCaja() en reporte.html: la caja proyectada
+    // asume que los documentos vencidos eventualmente se pagarán/cobrarán.
+    const _vencidosCobrar = cobrar.filter(r => {
+      const d = parseDate(r["Fecha_Real"]); if (!d) return false; d.setHours(0,0,0,0);
+      return d < hoy;
+    });
+    const _vencidosPagar = pagar.filter(r => {
+      const d = parseDate(r["Fecha_Real"]); if (!d) return false; d.setHours(0,0,0,0);
+      return d < hoy;
+    });
+    const _netoVencidos = _sumDoc(_vencidosCobrar) - _sumDoc(_vencidosPagar);
+
+    // Calcular neto y acumulada (cascada desde caja hoy + vencidos)
+    let _acum = CAJA_ACTUAL + _netoVencidos;
     buckets.forEach(b => {
       b.neto = b.cobr - b.pago;
       _acum += b.neto;
