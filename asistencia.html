@@ -217,19 +217,18 @@ async function fetchResumen(fecha) {
 }
 
 async function fetchCoordMap() {
-  // Leer BD_CC con un endpoint genérico tipo ?action=read_sheet&sheet=BD_CC
-  // Si tu API_CC no expone eso, dejamos coordMap vacío y los markers se omiten
+  // list_coords devuelve { id_cc: {lat, lng, nombre, ha, fundo, temporada, especie} }
   try {
-    const r = await fetch(API_CC + "?action=read_sheet&sheet=BD_CC");
+    const r = await fetch(API_ASISTENCIA + "?action=list_coords");
     const json = await r.json();
-    const rows = json.data || json || [];
+    if (!json.ok) throw new Error(json.error || "list_coords falló");
+    const data = json.data || {};
     const mapped = {};
-    rows.forEach(cc => {
-      const id = cc.Id_CC || cc.id_cc || cc.ID_CC;
-      const lat = parseFloat(cc.Latitud || cc.lat);
-      const lng = parseFloat(cc.Longitud || cc.lng);
-      if (id && !isNaN(lat) && !isNaN(lng)) {
-        mapped[String(id).trim()] = { lat, lng };
+    Object.entries(data).forEach(([id, info]) => {
+      if (info && info.lat !== null && info.lng !== null
+          && !isNaN(info.lat) && !isNaN(info.lng)) {
+        mapped[id] = { lat: info.lat, lng: info.lng,
+                       nombre: info.nombre, fundo: info.fundo };
       }
     });
     return mapped;
@@ -270,9 +269,10 @@ function renderMarkers(pasadas) {
     const personasNombres = (p.personas_info || []).map(x => x.nombre_completo || x.id_persona);
     const tareaPlan = (p.gantt_matches && p.gantt_matches.length > 0)
       ? p.gantt_matches[0].tarea : null;
+    const ccLabel = coord.nombre ? coord.nombre + (coord.fundo ? ' · ' + coord.fundo : '') : p.id_cc;
 
     const popup =
-      '<b>' + p.id_cc + '</b><br>' +
+      '<b>' + ccLabel + '</b><br>' +
       '<b>' + (p.prestador_nombre || p.id_prestador) + '</b> · ' + n + ' personas<br>' +
       '<hr style="margin:6px 0;border:0;border-top:1px solid #eee;">' +
       '<b>Tipo labor:</b> ' + p.id_labor + '<br>' +
@@ -322,13 +322,17 @@ function renderTabla(pasadas) {
       ? '<span class="pill transp">🚐 ' + fmtPeso(p.valor_transporte) + '</span>'
       : '<span style="color:#bbb;font-size:10px;">—</span>';
 
+    const ccCoord = state.coordMap[p.id_cc];
+    const ccLabel = ccCoord && ccCoord.nombre ? ccCoord.nombre : p.id_cc;
+    const ccSubtitle = ccCoord && ccCoord.fundo ? ccCoord.fundo : "";
+
     const tr = document.createElement("tr");
     tr.innerHTML =
       '<td class="cuadrilla-cell">' + (p.prestador_nombre || p.id_prestador) + '</td>' +
       '<td><div class="personas-list">' + personasHtml + '</div>' +
       '<div style="font-size:10px;color:#999;margin-top:2px;">' + personas.length + ' personas</div></td>' +
       '<td><code style="font-size:10px;color:#666;">' + p.id_labor + '</code></td>' +
-      '<td><code style="font-size:10px;color:#666;">' + p.id_cc + '</code></td>' +
+      '<td>' + ccLabel + (ccSubtitle ? '<div style="font-size:10px;color:#999;">' + ccSubtitle + '</div>' : '') + '</td>' +
       '<td><span class="pill ' + tipoPagoClass + '">' + p.tipo_pago + '</span></td>' +
       '<td>' + ganttPill + '</td>' +
       '<td>' + transpPill + '</td>' +
