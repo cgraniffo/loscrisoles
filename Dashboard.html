@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Los Crisoles · Dashboard</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #1a3a0a; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
@@ -82,27 +83,85 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
-    /* ── TABS ── */
-    .tabbar {
-      display: flex; align-items: stretch; overflow-x: auto; white-space: nowrap;
-      background: #1a3a0a; border-bottom: 1px solid rgba(134,239,172,0.15);
-      flex-shrink: 0; -webkit-overflow-scrolling: touch; margin-top: 10px;
+    /* ── NAV DROPDOWNS ── */
+    .navbar {
+      display: flex; align-items: center; gap: 4px;
+      background: #1a3a0a; padding: 10px 12px;
+      border-bottom: 1px solid rgba(134,239,172,0.15);
+      flex-shrink: 0;
+      -webkit-overflow-scrolling: touch;
+      margin-top: 10px;
+      position: relative;
+      z-index: 200;
+      overflow: visible;
     }
-    .tab-sep { width: 1px; background: rgba(134,239,172,0.2); margin: 8px 4px; flex-shrink: 0; }
-    .tab-group-label {
-      font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-      color: rgba(134,239,172,0.45); padding: 8px 8px 0 10px; flex-shrink: 0;
-      display: flex; align-items: flex-start; pointer-events: none; user-select: none;
+    .nav-item { position: relative; flex-shrink: 0; }
+    .nav-btn {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      background: transparent;
+      border: 1px solid transparent;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      white-space: nowrap;
+      font-family: inherit;
     }
-    .tab {
-      font-size: 12px; font-weight: 600; padding: 12px 15px 9px;
-      cursor: pointer; color: rgba(255,255,255,0.5);
-      border-bottom: 3px solid transparent; flex-shrink: 0; transition: color 0.15s; user-select: none;
+    .nav-btn:hover {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
     }
-    .tab:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.05); }
-    .tab.g-resumen.active  { color: #fff; border-bottom-color: #86efac; }
-    .tab.g-campo.active    { color: #fff; border-bottom-color: #6ee7b7; }
-    .tab.g-finanzas.active { color: #fff; border-bottom-color: #fcd34d; }
+    .nav-btn.active {
+      background: rgba(134,239,172,0.15);
+      border-color: rgba(134,239,172,0.4);
+      color: #fff;
+    }
+    .nav-btn .ti { font-size: 16px; line-height: 1; }
+    .nav-btn .chevron {
+      font-size: 12px;
+      opacity: 0.6;
+      transition: transform 0.15s;
+    }
+    .nav-item.open .nav-btn .chevron { transform: rotate(180deg); }
+    .nav-item.open .nav-btn {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+    .nav-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 220px;
+      background: #fff;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      padding: 6px;
+      z-index: 1000;
+      animation: dropdownIn 0.12s ease-out;
+    }
+    .nav-item.open .nav-dropdown { display: block; }
+    @keyframes dropdownIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .nav-dropdown-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px;
+      font-size: 13px; font-weight: 500;
+      color: #1a3a0a;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.1s;
+      user-select: none;
+    }
+    .nav-dropdown-item:hover { background: #f0f4ed; }
+    .nav-dropdown-item.active { background: #1a4d2e; color: #fff; }
+    .nav-dropdown-item .ti { font-size: 18px; flex-shrink: 0; }
 
     /* ── FRAME AREA ── */
     .frame-wrap { flex: 1; position: relative; overflow: hidden; background: #f5f0e8; }
@@ -164,6 +223,10 @@
       .tab { font-size: 10px; padding: 10px 10px 7px; }
       .tab-group-label { display: none; }
       .tab-sep { margin: 6px 2px; }
+      .nav-btn { font-size: 11px; padding: 7px 10px; }
+      .nav-btn span { display: none; }
+      .nav-btn .ti { font-size: 18px; }
+      .nav-btn .chevron { display: none; }
       .dash-right { flex-direction: column; align-items: flex-end; gap: 4px; }
     }
   </style>
@@ -227,24 +290,68 @@
   </div>
 </div>
 
-<div class="tabbar">
-  <div class="tab g-resumen active" onclick="show('home', this)">🏠 Resumen</div>
-  <div class="tab-sep"></div>
-  <div class="tab-group-label">Campo</div>
-  <div class="tab g-campo" onclick="show('labores', this)">📋 Labores</div>
-  <div class="tab g-campo" onclick="show('asistencia', this)">👥 Asistencia</div>
-  <div class="tab g-campo" onclick="show('produccion', this)">🌱 Producción</div>
-  <div class="tab g-campo" onclick="show('insumos', this)">📦 Insumos</div>
-  <div class="tab g-campo" onclick="show('optimizador', this)">🧪 Optimizador</div>
-  <div class="tab-sep"></div>
-  <div class="tab-group-label">Finanzas</div>
-  <div class="tab g-finanzas" onclick="show('caja', this)">🏦 Caja</div>
-  <div class="tab g-finanzas" onclick="show('ingresos', this)">🌾 Ingresos</div>
-  <div class="tab g-finanzas" onclick="show('costos', this)">💰 Costos</div>
-  <div class="tab g-finanzas" onclick="show('resultados', this)">📊 Resultados</div>
-  <div class="tab g-finanzas" onclick="show('oc', this)">📋 OC</div>
-  <div class="tab g-finanzas" onclick="show('asignar', this)">📎 Asignar</div>
-  <div class="tab g-finanzas" onclick="show('documentos', this)">📄 Documentos</div>
+<div class="navbar" id="navbar">
+
+  <div class="nav-item">
+    <button class="nav-btn active" onclick="navHome(this)" data-tab="home">
+      <i class="ti ti-home"></i>
+      <span>Resumen</span>
+    </button>
+  </div>
+
+  <div class="nav-item" data-group="campo">
+    <button class="nav-btn" onclick="toggleDropdown(this)">
+      <i class="ti ti-plant-2"></i>
+      <span>Campo</span>
+      <i class="ti ti-chevron-down chevron"></i>
+    </button>
+    <div class="nav-dropdown">
+      <div class="nav-dropdown-item" onclick="navTo('labores', 'campo')"><i class="ti ti-clipboard-list"></i><span>Labores</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('asistencia', 'campo')"><i class="ti ti-users"></i><span>Asistencia</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('produccion', 'campo')"><i class="ti ti-seeding"></i><span>Producción</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('insumos', 'campo')"><i class="ti ti-package"></i><span>Insumos</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('optimizador', 'campo')"><i class="ti ti-flask"></i><span>Optimizador</span></div>
+    </div>
+  </div>
+
+  <div class="nav-item" data-group="finanzas">
+    <button class="nav-btn" onclick="toggleDropdown(this)">
+      <i class="ti ti-coin"></i>
+      <span>Finanzas</span>
+      <i class="ti ti-chevron-down chevron"></i>
+    </button>
+    <div class="nav-dropdown">
+      <div class="nav-dropdown-item" onclick="navTo('caja', 'finanzas')"><i class="ti ti-building-bank"></i><span>Caja</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('ingresos', 'finanzas')"><i class="ti ti-wheat"></i><span>Ingresos</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('costos', 'finanzas')"><i class="ti ti-currency-dollar"></i><span>Costos</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('resultados', 'finanzas')"><i class="ti ti-chart-bar"></i><span>Resultados</span></div>
+    </div>
+  </div>
+
+  <div class="nav-item" data-group="bodega">
+    <button class="nav-btn" onclick="toggleDropdown(this)">
+      <i class="ti ti-package"></i>
+      <span>Bodega</span>
+      <i class="ti ti-chevron-down chevron"></i>
+    </button>
+    <div class="nav-dropdown">
+      <div class="nav-dropdown-item" onclick="navTo('inventario', 'bodega')"><i class="ti ti-box"></i><span>Inventario</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('oc', 'bodega')"><i class="ti ti-file-invoice"></i><span>Órdenes de compra</span></div>
+    </div>
+  </div>
+
+  <div class="nav-item" data-group="documentos">
+    <button class="nav-btn" onclick="toggleDropdown(this)">
+      <i class="ti ti-file-text"></i>
+      <span>Documentos</span>
+      <i class="ti ti-chevron-down chevron"></i>
+    </button>
+    <div class="nav-dropdown">
+      <div class="nav-dropdown-item" onclick="navTo('asignar', 'documentos')"><i class="ti ti-paperclip"></i><span>Asignar</span></div>
+      <div class="nav-dropdown-item" onclick="navTo('documentos', 'documentos')"><i class="ti ti-files"></i><span>Documentos</span></div>
+    </div>
+  </div>
+
 </div>
 
 <div class="frame-wrap">
@@ -275,6 +382,7 @@
   <iframe id="f-oc"         src=""  data-src="/oc"         data-tab=""           class="hidden"></iframe>
   <iframe id="f-asignar"    src=""  data-src="/asignar"    data-tab=""           class="hidden"></iframe>
   <iframe id="f-documentos" src=""  data-src="/documentos" data-tab=""           class="hidden"></iframe>
+  <iframe id="f-inventario" src=""  data-src="/inventario" data-tab=""           class="hidden"></iframe>
 </div>
 
 <script>
@@ -455,6 +563,57 @@
   }
   // Exponer globalmente para que los iframes puedan navegar
   window.show = show;
+
+  // ── DROPDOWNS ────────────────────────────────────────────────
+  function toggleDropdown(btn) {
+    var item = btn.parentElement;
+    var wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.nav-item.open').forEach(function(i) { i.classList.remove('open'); });
+    if (!wasOpen) item.classList.add('open');
+  }
+  window.toggleDropdown = toggleDropdown;
+
+  function navHome(btn) {
+    document.querySelectorAll('.nav-item.open').forEach(function(i) { i.classList.remove('open'); });
+    document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.nav-dropdown-item').forEach(function(d) { d.classList.remove('active'); });
+    btn.classList.add('active');
+    show('home', null);
+  }
+  window.navHome = navHome;
+
+  function navTo(name, group) {
+    document.querySelectorAll('.nav-item.open').forEach(function(i) { i.classList.remove('open'); });
+    document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.nav-dropdown-item').forEach(function(d) { d.classList.remove('active'); });
+    if (group) {
+      var groupItem = document.querySelector('.nav-item[data-group="' + group + '"]');
+      if (groupItem) {
+        var btn = groupItem.querySelector('.nav-btn');
+        if (btn) btn.classList.add('active');
+      }
+    }
+    document.querySelectorAll('.nav-dropdown-item').forEach(function(it) {
+      var oc = it.getAttribute('onclick') || '';
+      if (oc.indexOf("'" + name + "'") >= 0) it.classList.add('active');
+    });
+    show(name, null);
+  }
+  window.navTo = navTo;
+
+  // Close dropdowns on click outside
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.nav-item')) {
+      document.querySelectorAll('.nav-item.open').forEach(function(i) { i.classList.remove('open'); });
+    }
+  });
+
+  // Close dropdowns on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.nav-item.open').forEach(function(i) { i.classList.remove('open'); });
+    }
+  });
 
   // Mark home as loaded on its first load
   loaded['home'] = true;
@@ -669,18 +828,17 @@
         }
       });
 
-      // Temporadas desde BD_CC directamente (no depende de que BD_Registro haya cargado)
-      // Solo temporadas válidas — evita que aparezcan 2024-2025 u otras
+      // Count records per temporada
       var tempSet = {};
+      // Solo temporadas válidas — evita que aparezcan 2024-2025 u otras
       var TEMPORADAS_VALIDAS = ["2025-2026", "2026-2027"];
-      Object.values(TEMP_MAP).forEach(function(tmp) {
-        var t = tmp.temporada;
+      (Array.isArray(registros) ? registros : []).forEach(function(r) {
+        var ccId = String(r["Centro_Costo"]||"").trim();
+        var tmp  = TEMP_MAP[ccId];
+        if (!tmp) return;
+        var t = getTemporada(r["Fecha"], tmp.mesInicio);
         if (t && TEMPORADAS_VALIDAS.indexOf(t) !== -1) tempSet[t] = (tempSet[t]||0) + 1;
       });
-      // Fallback: si TEMP_MAP está vacío (BD_CC no cargó), usar las válidas hardcoded
-      if (Object.keys(tempSet).length === 0) {
-        TEMPORADAS_VALIDAS.forEach(function(t) { tempSet[t] = 0; });
-      }
 
       var temps = Object.entries(tempSet).sort(function(a,b){ return b[1]-a[1]; }).map(function(e){ return e[0]; });
       var sel = document.getElementById('dash-temporada');
@@ -726,7 +884,6 @@
       // Labores vencidas — fuente: Plan_Labores (Carta Gantt).
       // Recalcula: cualquier labor con Fecha_Fin < hoy y estado != Completada cuenta como vencida.
       // No depende del campo "estado" del sheet (que solo se actualiza al crear/editar).
-      // Cuenta TODAS las temporadas (visión global del estado del campo).
       try {
         var planResp = await fetch(API_PLAN + "?action=list_plan");
         var planJson = await planResp.json();
