@@ -85,6 +85,60 @@
   .pill.gantt-link { cursor: pointer; }
   .pill.gantt-link:hover { background: #a7f3d0; }
 
+  /* Badge "Cargada del Plan" */
+  .pill.cargada {
+    background: #d1fae5;
+    color: #065f46;
+    font-weight: 700;
+  }
+
+  /* Barra de progreso */
+  .progress-bar-wrap {
+    background: #f0f3f7;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+  }
+  .progress-bar-hd {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+  .progress-bar-label { color: #4338ca; font-weight: 600; }
+  .progress-bar-pct { color: #4338ca; font-weight: 700; }
+  .progress-bar-track {
+    background: #e0e7ff;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    background: linear-gradient(90deg, #16a34a, #22c55e);
+    height: 100%;
+    transition: width 0.4s ease;
+    border-radius: 4px;
+  }
+
+  /* Botón refrescar */
+  .refresh-btn {
+    background: #1a3a0a;
+    color: #fff;
+    border: 0;
+    border-radius: 99px;
+    padding: 4px 12px;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .refresh-btn:hover { background: #2d5510; }
+  .refresh-btn.loading { opacity: 0.6; cursor: wait; }
+  .refresh-btn.loading .refresh-icon { animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
   /* Filas fantasma (Plan sin registro) */
   tr.ghost-row td {
     background: #fafbfc !important;
@@ -221,6 +275,9 @@
           <button class="fbtn on" id="vista-mode-real" onclick="setModoVista('real')">Solo registradas</button>
           <button class="fbtn" id="vista-mode-plan" onclick="setModoVista('plan')">Plan + registradas</button>
         </div>
+        <button class="refresh-btn" id="btn-refresh" onclick="refrescarDatos()">
+          <span class="refresh-icon">🔄</span> Refrescar
+        </button>
         <div class="block-tag" id="tabla-count">—</div>
       </div>
     </div>
@@ -445,16 +502,17 @@ function renderMarkers(pasadas, planSinRegistro) {
   }
 }
 
-function renderTabla(pasadas, planSinRegistro) {
+function renderTabla(pasadas, planSinRegistro, planCargado, totalPlan) {
   planSinRegistro = planSinRegistro || [];
+  planCargado = planCargado || [];
+  totalPlan = totalPlan || 0;
   const body = document.getElementById("tabla-body");
   const empty = document.getElementById("tabla-empty");
   body.innerHTML = "";
 
   const totalRegistradas = pasadas.length;
-  const totalPlan = planSinRegistro.length;
 
-  if (totalRegistradas === 0 && totalPlan === 0) {
+  if (totalRegistradas === 0 && planSinRegistro.length === 0) {
     empty.style.display = "block";
     document.getElementById("tabla-count").textContent = "0 registros";
     return;
@@ -496,6 +554,11 @@ function renderTabla(pasadas, planSinRegistro) {
     const ganttPill = tieneMatch
       ? '<span class="pill gantt gantt-link" onclick="abrirModalGantt(' + idx + ')" title="Click para ver detalle">🔗 En Gantt</span>'
       : '<span class="pill extra">Labor extra</span>';
+
+    // Badge "✅ Cargada del plan" si esta pasada cumple un plan
+    const cargadaBadge = (state.modoVista === "plan" && p._del_plan)
+      ? ' <span class="pill cargada" title="Esta pasada cumple una labor del Plan_Labores">✅ Cargada</span>'
+      : '';
     const transpPill = p.transporte
       ? '<span class="pill transp">🚐 ' + fmtPeso(p.valor_transporte) + '</span>'
       : '<span style="color:#bbb;font-size:10px;">—</span>';
@@ -518,7 +581,7 @@ function renderTabla(pasadas, planSinRegistro) {
       '<td>' + laborDisplay + '</td>' +
       '<td>' + ccLabel + (ccSubtitle ? '<div style="font-size:10px;color:#999;">' + ccSubtitle + '</div>' : '') + '</td>' +
       '<td><span class="pill ' + tipoPagoClass + '">' + p.tipo_pago + '</span></td>' +
-      '<td>' + ganttPill + '</td>' +
+      '<td>' + ganttPill + cargadaBadge + '</td>' +
       '<td>' + transpPill + '</td>' +
       '<td>' + costoCell + '</td>';
     body.appendChild(tr);
@@ -528,40 +591,67 @@ function renderTabla(pasadas, planSinRegistro) {
     pasadas.length + " pasada" + (pasadas.length !== 1 ? "s" : "");
 
   // Filas fantasma del Plan_Labores (sin registro de asistencia hoy)
-  if (planSinRegistro && planSinRegistro.length > 0) {
-    // Separador visual
-    const sepTr = document.createElement("tr");
-    sepTr.innerHTML =
-      '<td colspan="8" style="background:#f0f3f7;padding:6px 10px;font-size:10px;color:#4338ca;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;">' +
-      '📋 Plan Gantt sin registro de asistencia · ' + planSinRegistro.length + ' labor' + (planSinRegistro.length !== 1 ? 'es' : '') +
+  if (state.modoVista === "plan" && totalPlan > 0) {
+    const cargadas = planCargado.length;
+    const pendientes = planSinRegistro.length;
+    const pct = totalPlan > 0 ? Math.round((cargadas / totalPlan) * 100) : 0;
+
+    // Barra de progreso
+    const progressTr = document.createElement("tr");
+    progressTr.innerHTML =
+      '<td colspan="8" style="padding:0;border-bottom:none;">' +
+      '<div class="progress-bar-wrap">' +
+        '<div class="progress-bar-hd">' +
+          '<span class="progress-bar-label">📋 Avance del Plan_Labores · ' + cargadas + ' de ' + totalPlan + ' cargadas' +
+            (pendientes > 0 ? ' · ' + pendientes + ' pendiente' + (pendientes !== 1 ? 's' : '') : '') +
+          '</span>' +
+          '<span class="progress-bar-pct">' + pct + '%</span>' +
+        '</div>' +
+        '<div class="progress-bar-track">' +
+          '<div class="progress-bar-fill" style="width:' + pct + '%;"></div>' +
+        '</div>' +
+      '</div>' +
       '</td>';
-    body.appendChild(sepTr);
+    body.appendChild(progressTr);
 
-    planSinRegistro.forEach(pl => {
-      const ccCoord = state.coordMap[pl.cc];
-      const ccLabel = ccCoord && ccCoord.nombre ? ccCoord.nombre : pl.up || pl.cc;
-      const ccSubtitle = ccCoord && ccCoord.fundo ? ccCoord.fundo : (pl.cultivo || "");
+    // Si hay pendientes, mostrarlas en filas fantasma
+    if (pendientes > 0) {
+      const sepTr = document.createElement("tr");
+      sepTr.innerHTML =
+        '<td colspan="8" style="background:#f0f3f7;padding:6px 10px;font-size:10px;color:#4338ca;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;border-bottom:none;">' +
+        '⚠️ Pendientes de cargar · ' + pendientes + ' labor' + (pendientes !== 1 ? 'es' : '') +
+        '</td>';
+      body.appendChild(sepTr);
 
-      const tr = document.createElement("tr");
-      tr.className = "ghost-row";
-      tr.innerHTML =
-        '<td><span class="ghost-icon">⚪</span><span style="color:#888;">Sin registro</span></td>' +
-        '<td><div style="color:#999;font-size:11px;">— sin personal cargado —</div>' +
-        '<div style="font-size:10px;color:#bbb;margin-top:2px;">Esperando carga AppSheet</div></td>' +
-        '<td><div style="font-size:12px;line-height:1.3;color:#666;">' + escapeHtml(truncar(pl.tarea || "—", 60)) + '</div>' +
-        (pl.responsables ? '<code style="font-size:9px;color:#aaa;">' + escapeHtml(pl.responsables) + '</code>' : '') + '</td>' +
-        '<td>' + escapeHtml(ccLabel) + (ccSubtitle ? '<div style="font-size:10px;color:#bbb;">' + escapeHtml(ccSubtitle) + '</div>' : '') + '</td>' +
-        '<td><span style="color:#bbb;font-size:11px;">—</span></td>' +
-        '<td><span class="pill sinregistro">⚠️ Pendiente cargar</span></td>' +
-        '<td><span style="color:#bbb;font-size:10px;">—</span></td>' +
-        '<td><span style="color:#bbb;font-size:11px;">—</span></td>';
-      body.appendChild(tr);
-    });
+      planSinRegistro.forEach(pl => {
+        const ccCoord = state.coordMap[pl.cc];
+        const ccLabel = ccCoord && ccCoord.nombre ? ccCoord.nombre : pl.up || pl.cc;
+        const ccSubtitle = ccCoord && ccCoord.fundo ? ccCoord.fundo : (pl.cultivo || "");
 
-    // Actualizar contador para incluir ambas
+        const tr = document.createElement("tr");
+        tr.className = "ghost-row";
+        tr.innerHTML =
+          '<td><span class="ghost-icon">⚪</span><span style="color:#888;">Sin registro</span></td>' +
+          '<td><div style="color:#999;font-size:11px;">— sin personal cargado —</div>' +
+          '<div style="font-size:10px;color:#bbb;margin-top:2px;">Esperando carga AppSheet</div></td>' +
+          '<td><div style="font-size:12px;line-height:1.3;color:#666;">' + escapeHtml(truncar(pl.tarea || "—", 60)) + '</div>' +
+          (pl.responsables ? '<code style="font-size:9px;color:#aaa;">' + escapeHtml(pl.responsables) + '</code>' : '') + '</td>' +
+          '<td>' + escapeHtml(ccLabel) + (ccSubtitle ? '<div style="font-size:10px;color:#bbb;">' + escapeHtml(ccSubtitle) + '</div>' : '') + '</td>' +
+          '<td><span style="color:#bbb;font-size:11px;">—</span></td>' +
+          '<td><span class="pill sinregistro">⚠️ Pendiente cargar</span></td>' +
+          '<td><span style="color:#bbb;font-size:10px;">—</span></td>' +
+          '<td><span style="color:#bbb;font-size:11px;">—</span></td>';
+        body.appendChild(tr);
+      });
+    }
+
+    // Actualizar contador
     document.getElementById("tabla-count").textContent =
-      pasadas.length + " registrada" + (pasadas.length !== 1 ? "s" : "") + " · " +
-      planSinRegistro.length + " del plan";
+      pasadas.length + " registrada" + (pasadas.length !== 1 ? "s" : "") +
+      " · " + cargadas + "/" + totalPlan + " del plan";
+  } else {
+    document.getElementById("tabla-count").textContent =
+      pasadas.length + " pasada" + (pasadas.length !== 1 ? "s" : "");
   }
 }
 
@@ -641,6 +731,27 @@ function calcularKPIs(pasadas, totalActivos) {
   document.getElementById("mapa-tag").textContent = "EN VIVO · " + totalPersonas + " personas";
 }
 
+async function refrescarDatos() {
+  if (!state.desde || !state.hasta) return;
+  const btn = document.getElementById("btn-refresh");
+  btn.classList.add("loading");
+  btn.disabled = true;
+  try {
+    hideError();
+    const resumen = await fetchResumenRango(state.desde, state.hasta);
+    state.resumen = resumen;
+    actualizarRangoSummary();
+    renderFiltroCuadrillas();
+    aplicarFiltros();
+  } catch (err) {
+    console.error("Error refrescando:", err);
+    showError("No se pudieron refrescar los datos: " + err.message);
+  } finally {
+    btn.classList.remove("loading");
+    btn.disabled = false;
+  }
+}
+
 function setModoVista(modo) {
   state.modoVista = modo;
   document.getElementById("vista-mode-real").classList.toggle("on", modo === "real");
@@ -655,18 +766,48 @@ function aplicarFiltros() {
     : state.resumen.pasadas.filter(p => p.id_prestador === state.cuadrillaFiltro);
   state.pasadasVisibles = pasadas;
 
-  // Plan fantasma: si modoVista=plan, calcular labores del Plan_Labores
-  // que no tienen una pasada registrada (mismo CC + fecha solapada)
+  // Matching Plan ↔ Pasadas: usamos clave compuesta CC + id_labor
+  // - planCargado: planes que ya tienen al menos una pasada con mismo CC + mismo c3ce
+  // - planSinRegistro: el resto
+  let planCargado = [];
   let planSinRegistro = [];
+  let totalPlan = 0;
+
   if (state.modoVista === "plan" && state.resumen.plan_activos_fecha) {
-    const ccsRegistrados = new Set();
-    pasadas.forEach(p => ccsRegistrados.add(p.id_cc));
-    planSinRegistro = state.resumen.plan_activos_fecha.filter(pl =>
-      !ccsRegistrados.has(pl.cc)
-    );
+    // Construir set de claves "cargadas" desde las pasadas reales
+    const clavesCargadas = new Set();
+    pasadas.forEach(p => clavesCargadas.add(p.id_cc + "::" + p.id_labor));
+
+    // Marcar cada pasada con flag "viene_del_plan" cuando coincide con un plan
+    const planesIndexCC = {};
+    state.resumen.plan_activos_fecha.forEach(pl => {
+      if (!planesIndexCC[pl.cc]) planesIndexCC[pl.cc] = [];
+      planesIndexCC[pl.cc].push(pl);
+    });
+
+    // Adjuntar info "es_del_plan" a cada pasada visible
+    pasadas.forEach(p => {
+      // Hay match plan si existe algún plan con mismo CC (no podemos matchear id_labor 
+      // contra plan porque la Gantt no tiene c3ce, pero el match Gantt ya da la pista)
+      p._del_plan = p.tiene_match_gantt;
+    });
+
+    // Separar planes en "cargados" vs "pendientes"
+    state.resumen.plan_activos_fecha.forEach(pl => {
+      // Un plan está "cargado" si existe pasada con mismo CC (criterio principal)
+      // Como Plan_Labores no tiene id_labor c3ce, usamos solo CC para matching
+      // (si en el futuro agregas el campo, esto se afina)
+      const yaCargado = pasadas.some(p => p.id_cc === pl.cc);
+      if (yaCargado) {
+        planCargado.push(pl);
+      } else {
+        planSinRegistro.push(pl);
+      }
+    });
+    totalPlan = state.resumen.plan_activos_fecha.length;
   }
 
-  renderTabla(pasadas, planSinRegistro);
+  renderTabla(pasadas, planSinRegistro, planCargado, totalPlan);
   renderMarkers(pasadas, planSinRegistro);
   calcularKPIs(pasadas, state.resumen.kpis.total_personas_activas);
 }
