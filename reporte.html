@@ -2906,6 +2906,12 @@ function buildMapaPanel() {
         <div class="mapa-stat-label">Atrasadas${_tempLabel}</div>
         <div class="mapa-stat-tooltip">Labores atrasadas (Fecha_Fin &lt; hoy y no Completada) de la temporada <b>${_tempActivaM || "activa"}</b>. <b>Reacciona a los filtros del Gantt</b> (cultivo, estado).<br><br>El KPI superior del header cuenta atrasadas de <b>todas las temporadas</b>; este solo cuenta la activa.</div>
       </div>
+      <div class="mapa-stat">
+        <div class="mapa-stat-icon">👥</div>
+        <div class="mapa-stat-val" style="color:#9fc4ad;">0</div>
+        <div class="mapa-stat-label">Personas en labores <span style="background:#FAEEDA;color:#854F0B;font-size:8px;font-weight:600;padding:1px 4px;border-radius:3px;margin-left:3px;letter-spacing:0.04em;">EN DESARROLLO</span></div>
+        <div class="mapa-stat-tooltip"><b>En desarrollo.</b> Próximamente mostrará el número total de trabajadores con asistencia registrada hoy en las labores del campo. Datos provendrán de Asistencia_Servicios cuando se conecte.</div>
+      </div>
     </div>
   `;
 }
