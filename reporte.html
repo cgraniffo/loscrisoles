@@ -2983,8 +2983,13 @@ function initMap() {
         const tmp = TEMP_MAP[id];
         if (!tmp || tmp.temporada !== tempActiva) return false;
       }
+      // Detectar si es UP productiva (función local, no usar la de buildMapaPanel)
+      const _nombre = String(CC_MAP[id] || "").toLowerCase();
+      const _fundo  = String(FUNDO_MAP[id] || "").toLowerCase();
+      const _esProd = /^(piv|pot|nogales|vega|parcela|par)/.test(_nombre)
+                   && !["gastos generales","maquinarias","pivote","remuneraciones","carrete"].includes(_fundo);
       // Productivas: siempre incluir (aunque no tengan labores)
-      if (esUpProductivaMapa(id)) return true;
+      if (_esProd) return true;
       // No productivas (Gastos Generales, Casa, Bodegas, etc): solo si tienen labores
       const labCC = laboresPorCC[id] || [];
       return labCC.length > 0;
