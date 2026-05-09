@@ -248,14 +248,14 @@
     <div class="kpi">
       <div class="kpi-icon">💰</div>
       <div class="kpi-val" id="k-costo">—</div>
-      <div class="kpi-label">Costo personal del día</div>
+      <div class="kpi-label">Costo contratistas</div>
       <div class="kpi-sub" id="k-costo-sub"></div>
     </div>
     <div class="kpi">
-      <div class="kpi-icon">🚐</div>
-      <div class="kpi-val" id="k-transp">—</div>
-      <div class="kpi-label">Con transporte</div>
-      <div class="kpi-sub" id="k-transp-sub"></div>
+      <div class="kpi-icon">🏠</div>
+      <div class="kpi-val" id="k-costo-lc">—</div>
+      <div class="kpi-label">Costo Los Crisoles</div>
+      <div class="kpi-sub" id="k-costo-lc-sub"></div>
     </div>
   </div>
 
@@ -340,6 +340,10 @@ const state = {
 
 // IDs de prestadores que NO computan en costos (van por planilla interna)
 const PRESTADORES_INTERNOS = ["03b9e951"]; // Los Crisoles
+
+// Tarifa diaria estándar para trabajadores internos Los Crisoles (placeholder).
+// Cuando definas el valor real, cambialo acá. Si está en 0, el KPI muestra "—".
+const TARIFA_DIARIA_LC = 0;
 
 let map = null;
 let markersLayer = null;
@@ -662,22 +666,28 @@ function calcularKPIs(pasadas, totalActivos) {
   const cuadrillasUnicas = new Set();
   const cuadrillasNombres = {};
   const fechasConActividad = new Set();
-  let costoTotal = 0;
-  let transporteTotal = 0;
+  let costoExternos = 0;        // mano de obra contratistas
+  let transporteExternos = 0;   // transporte contratistas
   let conTransporte = 0;
   let conMatch = 0;
+  // Para el KPI Los Crisoles: contar jornadas-persona internas
+  let jornadasInternas = 0;     // cada persona × cada labor = 1 jornada
 
   pasadas.forEach(p => {
     p.lista_personal.forEach(id => personasUnicas.add(id));
     cuadrillasUnicas.add(p.id_prestador);
     cuadrillasNombres[p.id_prestador] = p.prestador_nombre || p.id_prestador;
     fechasConActividad.add(p.fecha);
-    // Costo efectivo: 0 si es interno (Los Crisoles), valor real si es externo
     const esInterno = PRESTADORES_INTERNOS.indexOf(p.id_prestador) >= 0;
-    const costoEfectivo = esInterno ? 0 : (p.costo_efectivo !== undefined ? p.costo_efectivo : p.costo_total);
-    costoTotal += costoEfectivo;
+    if (esInterno) {
+      jornadasInternas += p.lista_personal.length;
+    } else {
+      costoExternos += p.costo_total;
+      if (p.transporte) {
+        transporteExternos += (p.valor_transporte * p.lista_personal.length);
+      }
+    }
     if (p.transporte) {
-      transporteTotal += (p.valor_transporte * p.lista_personal.length);
       conTransporte += p.lista_personal.length;
     }
     if (p.tiene_match_gantt) conMatch++;
@@ -687,7 +697,6 @@ function calcularKPIs(pasadas, totalActivos) {
   const diasActividad = fechasConActividad.size;
   const esAvg = state.modoKpi === "avg" && diasActividad > 0;
 
-  // Helpers para mostrar en modo correcto
   function valOrAvg(total, divisor) {
     if (!esAvg) return total;
     return divisor > 0 ? Math.round((total / divisor) * 10) / 10 : 0;
@@ -717,18 +726,29 @@ function calcularKPIs(pasadas, totalActivos) {
     ? "promedio labores/día"
     : conMatch + " con match Gantt";
 
-  // KPI Costo
-  document.getElementById("k-costo").textContent = pesoOrAvg(costoTotal, diasActividad);
-  document.getElementById("k-costo-sub").textContent = esAvg
-    ? "promedio diario · " + (transporteTotal > 0 ? "+ " + fmtPeso(Math.round(transporteTotal/diasActividad)) + " transporte" : "")
-    : "+ " + fmtPeso(transporteTotal) + " transporte";
+  // KPI Costo (solo externos = contratistas)
+  const totalExternos = costoExternos + transporteExternos;
+  document.getElementById("k-costo").textContent = pesoOrAvg(totalExternos, diasActividad);
+  document.getElementById("k-costo-sub").innerHTML = esAvg
+    ? "promedio diario · contratistas"
+    : fmtPeso(costoExternos) + " mano de obra · " + fmtPeso(transporteExternos) + " transporte";
 
-  // KPI Transporte
-  document.getElementById("k-transp").textContent = esAvg
-    ? valOrAvg(conTransporte, diasActividad)
-    : conTransporte;
-  document.getElementById("k-transp-sub").textContent = totalPersonas > 0
-    ? Math.round(conTransporte/totalPersonas*100) + "% del total" : "—";
+  // KPI Costo Los Crisoles (planilla interna)
+  if (TARIFA_DIARIA_LC > 0 && jornadasInternas > 0) {
+    const costoLC = jornadasInternas * TARIFA_DIARIA_LC;
+    document.getElementById("k-costo-lc").textContent = pesoOrAvg(costoLC, diasActividad);
+    document.getElementById("k-costo-lc-sub").textContent = esAvg
+      ? "promedio diario · planilla"
+      : jornadasInternas + " jornada" + (jornadasInternas !== 1 ? "s" : "") + " × " + fmtPeso(TARIFA_DIARIA_LC);
+  } else if (jornadasInternas > 0) {
+    document.getElementById("k-costo-lc").textContent = "—";
+    document.getElementById("k-costo-lc-sub").innerHTML =
+      jornadasInternas + " jornada" + (jornadasInternas !== 1 ? "s" : "") +
+      ' <span style="color:#bbb;">· tarifa pendiente</span>';
+  } else {
+    document.getElementById("k-costo-lc").textContent = "—";
+    document.getElementById("k-costo-lc-sub").textContent = "Sin jornadas hoy";
+  }
 
   document.getElementById("mapa-tag").textContent = "EN VIVO · " + totalPersonas + " personas";
 }
