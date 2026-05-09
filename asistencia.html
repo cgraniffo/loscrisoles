@@ -59,6 +59,32 @@
   .empty { text-align: center; padding: 24px; color: #999; font-size: 13px; }
   .loading { text-align: center; padding: 30px; color: #888; font-size: 13px; }
   .error-banner { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; padding: 10px 14px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 12px; max-width: 540px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .modal-hd { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #eee; background: #1a3a0a; color: #fff; border-radius: 12px 12px 0 0; }
+  .modal-hd-title { font-size: 11px; letter-spacing: 0.06em; color: #86efac; text-transform: uppercase; font-weight: bold; }
+  .modal-hd-close { background: none; border: 0; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; padding: 0 4px; }
+  .modal-hd-close:hover { opacity: 0.7; }
+  .modal-body { padding: 20px; }
+  .modal-tarea { font-size: 16px; font-weight: 600; color: #1a3a0a; margin-bottom: 14px; line-height: 1.4; }
+  .modal-row { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0ede6; font-size: 13px; }
+  .modal-row:last-child { border-bottom: none; }
+  .modal-row-label { color: #888; min-width: 110px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 1px; }
+  .modal-row-val { color: #333; flex: 1; font-weight: 500; }
+  .modal-pill { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+  .modal-pill.planificada { background: #dbeafe; color: #1e40af; }
+  .modal-pill.encurso { background: #fef3c7; color: #92400e; }
+  .modal-pill.atrasada { background: #fee2e2; color: #991b1b; }
+  .modal-pill.completada { background: #d1fae5; color: #065f46; }
+  .modal-list { list-style: none; padding: 0; margin: 0; }
+  .modal-list li { padding: 6px 10px; background: #f8f6ef; border-radius: 6px; margin-bottom: 4px; font-size: 12px; }
+
+  .pill.gantt-link { cursor: pointer; }
+  .pill.gantt-link:hover { background: #a7f3d0; }
+
   @media (max-width: 700px) {
     .kpis { grid-template-columns: repeat(2, 1fr); }
     .body { padding: 10px; }
@@ -164,6 +190,21 @@
     <div id="tabla-empty" class="empty" style="display:none;">No hay registros para los filtros seleccionados.</div>
   </div>
 
+</div>
+
+<!-- Modal de detalle Gantt -->
+<div class="modal-overlay" id="gantt-modal" onclick="if(event.target===this) cerrarModalGantt()">
+  <div class="modal">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-hd-title">📋 Labor planificada · Gantt</div>
+      </div>
+      <button class="modal-hd-close" onclick="cerrarModalGantt()" title="Cerrar">×</button>
+    </div>
+    <div class="modal-body" id="gantt-modal-body">
+      <!-- inyectado por JS -->
+    </div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -306,7 +347,7 @@ function renderTabla(pasadas) {
   }
   empty.style.display = "none";
 
-  pasadas.forEach(p => {
+  pasadas.forEach((p, idx) => {
     const personas = p.personas_info || [];
     const personasHtml = personas.map(x =>
       '<span class="nombre">' + (x.nombre_completo || x.id_persona) + '</span>'
@@ -315,8 +356,16 @@ function renderTabla(pasadas) {
     const tipoPagoClass = p.tipo_pago === "Trato" ? "trato" : "dia";
     const tieneMatch = p.tiene_match_gantt;
     const tareaPlan = tieneMatch && p.gantt_matches[0] ? p.gantt_matches[0].tarea : "";
+
+    // Nombre de labor: derivar de la tarea del match Gantt; fallback al código
+    const laborDisplay = tareaPlan
+      ? '<div style="font-size:12px;line-height:1.3;">' + escapeHtml(truncar(tareaPlan, 60)) + '</div>' +
+        '<code style="font-size:9px;color:#aaa;">' + p.id_labor + '</code>'
+      : '<code style="font-size:11px;color:#666;">' + p.id_labor + '</code>';
+
+    // Pill Gantt: si hay match, clicable abre modal; si no, "Labor extra"
     const ganttPill = tieneMatch
-      ? '<span class="pill gantt" title="' + tareaPlan.replace(/"/g,"&quot;") + '">🔗 En Gantt</span>'
+      ? '<span class="pill gantt gantt-link" onclick="abrirModalGantt(' + idx + ')" title="Click para ver detalle">🔗 En Gantt</span>'
       : '<span class="pill extra">Labor extra</span>';
     const transpPill = p.transporte
       ? '<span class="pill transp">🚐 ' + fmtPeso(p.valor_transporte) + '</span>'
@@ -331,7 +380,7 @@ function renderTabla(pasadas) {
       '<td class="cuadrilla-cell">' + (p.prestador_nombre || p.id_prestador) + '</td>' +
       '<td><div class="personas-list">' + personasHtml + '</div>' +
       '<div style="font-size:10px;color:#999;margin-top:2px;">' + personas.length + ' personas</div></td>' +
-      '<td><code style="font-size:10px;color:#666;">' + p.id_labor + '</code></td>' +
+      '<td>' + laborDisplay + '</td>' +
       '<td>' + ccLabel + (ccSubtitle ? '<div style="font-size:10px;color:#999;">' + ccSubtitle + '</div>' : '') + '</td>' +
       '<td><span class="pill ' + tipoPagoClass + '">' + p.tipo_pago + '</span></td>' +
       '<td>' + ganttPill + '</td>' +
@@ -389,6 +438,7 @@ function aplicarFiltros() {
   const pasadas = state.cuadrillaFiltro === "all"
     ? state.resumen.pasadas
     : state.resumen.pasadas.filter(p => p.id_prestador === state.cuadrillaFiltro);
+  state.pasadasVisibles = pasadas; // referencia para el modal
   renderTabla(pasadas);
   renderMarkers(pasadas);
   calcularKPIs(pasadas, state.resumen.kpis.total_personas_activas);
@@ -454,6 +504,80 @@ function setFechaAyer() {
 
 document.getElementById("filter-date").addEventListener("change", function() {
   cargarFecha(this.value);
+});
+
+function escapeHtml(s) {
+  if (s === null || s === undefined) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function truncar(s, n) {
+  if (!s) return "";
+  s = String(s);
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function fmtFechaCorta(iso) {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  return Number(d) + " " + MESES[Number(m) - 1] + " " + y;
+}
+
+function abrirModalGantt(idx) {
+  const pasada = state.pasadasVisibles && state.pasadasVisibles[idx];
+  if (!pasada || !pasada.gantt_matches || pasada.gantt_matches.length === 0) return;
+
+  const ccCoord = state.coordMap[pasada.id_cc];
+  const ccLabel = ccCoord && ccCoord.nombre ? ccCoord.nombre : pasada.id_cc;
+
+  const body = document.getElementById("gantt-modal-body");
+
+  // Si hay 1 match, mostrarlo; si hay varios, listarlos todos
+  let html = "";
+  pasada.gantt_matches.forEach((match, i) => {
+    if (i > 0) html += '<hr style="margin:18px 0;border:0;border-top:1px solid #eee;">';
+
+    const estadoClass = String(match.estado || "").toLowerCase().replace(" ","");
+    html += '<div class="modal-tarea">' + escapeHtml(match.tarea || "—") + '</div>';
+    html += '<div class="modal-row"><div class="modal-row-label">UP</div><div class="modal-row-val">' + escapeHtml(ccLabel) + '</div></div>';
+    html += '<div class="modal-row"><div class="modal-row-label">Estado</div><div class="modal-row-val"><span class="modal-pill ' + estadoClass + '">' + escapeHtml(match.estado || "—") + '</span></div></div>';
+    html += '<div class="modal-row"><div class="modal-row-label">Inicio</div><div class="modal-row-val">' + fmtFechaCorta(match.fecha_ini) + '</div></div>';
+    html += '<div class="modal-row"><div class="modal-row-label">Fin</div><div class="modal-row-val">' + fmtFechaCorta(match.fecha_fin) + '</div></div>';
+    if (match.responsables) {
+      html += '<div class="modal-row"><div class="modal-row-label">Responsables</div><div class="modal-row-val">' + escapeHtml(match.responsables) + '</div></div>';
+    }
+    html += '<div class="modal-row"><div class="modal-row-label">ID Plan</div><div class="modal-row-val"><code style="font-size:10px;color:#999;">' + escapeHtml(match.id_plan) + '</code></div></div>';
+  });
+
+  // Resumen de la pasada (asistencia ligada)
+  html += '<hr style="margin:18px 0;border:0;border-top:1px solid #eee;">';
+  html += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:#888;margin-bottom:8px;">Personal asignado hoy</div>';
+  html += '<ul class="modal-list">';
+  (pasada.personas_info || []).forEach(per => {
+    html += '<li>' + escapeHtml(per.nombre_completo || per.id_persona) + '</li>';
+  });
+  html += '</ul>';
+  html += '<div style="text-align:right;margin-top:10px;font-size:11px;color:#666;">';
+  html += (pasada.prestador_nombre || pasada.id_prestador) + ' · ' + pasada.tipo_pago + ' · ' + fmtPeso(pasada.costo_total);
+  html += '</div>';
+
+  body.innerHTML = html;
+  document.getElementById("gantt-modal").classList.add("show");
+}
+
+function cerrarModalGantt() {
+  document.getElementById("gantt-modal").classList.remove("show");
+}
+
+// Cerrar con Escape
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") cerrarModalGantt();
 });
 
 async function init() {
