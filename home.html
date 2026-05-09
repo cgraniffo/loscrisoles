@@ -677,51 +677,27 @@ if (location.search.includes('embed=1')) {
         <div class="card-body" id="card-semana"><div class="loading pulse">Cargando...</div></div>
       </details>
 
-      <!-- Card 3: Asistencia hoy (DEMO - en construcción) -->
-      <details class="card zona-card" data-zona="1">
+      <!-- Card 3: Asistencia hoy (conectado a API_ASISTENCIA) -->
+      <details class="card zona-card" data-zona="1" id="card-asistencia">
         <summary>
           <div style="display:flex;align-items:center;gap:12px;flex:1;">
             <div style="font-size:18px;">👥</div>
             <div>
-              <div class="card-title">Asistencia hoy <span style="background:#FAEEDA;color:#854F0B;font-size:9px;font-weight:600;padding:2px 6px;border-radius:4px;margin-left:6px;letter-spacing:0.04em;text-transform:uppercase;">En construcción · Demo</span></div>
-              <div class="summary-hint" style="color:var(--gris);">12 personas · 3 cuadrillas (datos demo)</div>
+              <div class="card-title">Asistencia hoy</div>
+              <div class="summary-hint" style="color:var(--gris);" id="asis-hint">Cargando…</div>
             </div>
           </div>
           <div class="summary-meta">
-            <span class="status-badge" style="background:#e6f1fb;color:#0C447C;">12 personas</span>
+            <span class="status-badge" id="asis-badge" style="background:#e6f1fb;color:#0C447C;">—</span>
             <span class="caret">▶</span>
           </div>
         </summary>
         <div class="card-body">
-          <div style="background:#FAEEDA;border:1px solid #FAC775;border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:#854F0B;">
-            ⚠️ <b>En construcción.</b> Los datos mostrados son demo. La asistencia real se cargará cuando empiece a registrarse en AppSheet.
+          <div id="asis-body">
+            <div style="padding:8px 10px;font-size:11px;color:var(--gris);">Cargando datos del día…</div>
           </div>
-          <div style="border-top:0.5px solid rgba(0,0,0,0.06);padding-top:8px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);">
-              <div>
-                <div style="font-size:12px;font-weight:500;">Cuadrilla Soto Pérez</div>
-                <div style="font-size:11px;color:var(--gris);">Cosecha · POT3 (Trigo 26-27)</div>
-              </div>
-              <span style="font-size:14px;font-weight:600;color:#185FA5;font-variant-numeric:tabular-nums;">5</span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.05);">
-              <div>
-                <div style="font-size:12px;font-weight:500;">Cuadrilla Pérez</div>
-                <div style="font-size:11px;color:var(--gris);">Cosecha · NOG19 (Nogales 26-27)</div>
-              </div>
-              <span style="font-size:14px;font-weight:600;color:#185FA5;font-variant-numeric:tabular-nums;">4</span>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;">
-              <div>
-                <div style="font-size:12px;font-weight:500;">Cuadrilla Cárdenas</div>
-                <div style="font-size:11px;color:var(--gris);">Cosecha · PIV1 (Achicoria 26-27)</div>
-              </div>
-              <span style="font-size:14px;font-weight:600;color:#185FA5;font-variant-numeric:tabular-nums;">3</span>
-            </div>
-          </div>
-          <div style="margin-top:10px;padding:8px 10px;background:#f6f4ec;border-radius:6px;display:flex;justify-content:space-between;font-size:11px;">
-            <span style="color:var(--gris);">Total trabajadores hoy:</span>
-            <span style="font-weight:600;color:#185FA5;font-variant-numeric:tabular-nums;">12 personas</span>
+          <div style="margin-top:10px;text-align:right;">
+            <a href="#" onclick="event.preventDefault(); if (window.parent && window.parent.navTo) window.parent.navTo('asistencia','campo'); else window.location.href='/asistencia';" style="font-size:11px;color:#0F6E56;text-decoration:none;font-weight:600;">Ver detalle completo →</a>
           </div>
         </div>
       </details>
@@ -1050,6 +1026,7 @@ const API_CC  = "https://script.google.com/macros/s/AKfycby2FLw2eD7uP_xpKVMaDYt9
 const API_FIN     = "https://script.google.com/macros/s/AKfycbzdx7jbQMXX0INGtSC7MnG3yEoSEPscLPJ1QkW934Wss3jezRmQHaFgH8HmEZcdYp3QRA/exec";
 const API_LABORES = "https://script.google.com/macros/s/AKfycbzTk-xJWAsbT_OFMagD9OcYGjSpOM6tP6fDEkIaz9O28IQ4Ydb8EL0_GpgOrl5D0-vF/exec";
 const API_PLAN    = "https://script.google.com/macros/s/AKfycbzsEgcVC94wKXamVV5TOQuRXpSiXr4di2CJU3BVfYIcNgP9j-OS3dMOWauFwijCxSnO/exec";
+const API_ASISTENCIA = "https://script.google.com/macros/s/AKfycbzB-hrePpPZIHKg7KeJYrTS5TYs19hMWTvcqwHZwRvTCcjkNY0xE7aXZ15erHBUUHi6Eg/exec";
 const RUT_LC  = "76099766-8";
 let CAJA_ACTUAL = 61805719; // se actualiza desde BD_Banco
 const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
@@ -2321,6 +2298,7 @@ function sincronizarUIDesdePlanLabores() {
 
 // Esperar 1.5s para que main() termine y luego sobreescribir con datos de Plan_Labores
 setTimeout(actualizarVencidasDesdePlanLabores, 1500);
+setTimeout(cargarAsistenciaHoy, 800);
 
 // También resincronizar cada 5s mientras la UI está activa, por si renderHome corre
 // después del fetch inicial (red lenta en mobile, switch de tab, etc).
@@ -2328,6 +2306,115 @@ setTimeout(actualizarVencidasDesdePlanLabores, 1500);
 setInterval(() => {
   if (window._planLaboresStats) sincronizarUIDesdePlanLabores();
 }, 5000);
+
+// Refresh asistencia hoy cada 60 segundos
+setInterval(cargarAsistenciaHoy, 60000);
+
+// =====================================================================
+// CARD ASISTENCIA HOY — conectado a API_ASISTENCIA
+// =====================================================================
+async function cargarAsistenciaHoy() {
+  const hint  = document.getElementById('asis-hint');
+  const badge = document.getElementById('asis-badge');
+  const body  = document.getElementById('asis-body');
+  if (!hint || !badge || !body) return;
+
+  try {
+    // Fecha hoy en formato ISO
+    const d = new Date();
+    const iso = d.getFullYear() + "-"
+              + String(d.getMonth()+1).padStart(2,"0") + "-"
+              + String(d.getDate()).padStart(2,"0");
+    const url = API_ASISTENCIA + "?action=resumen_dia&fecha=" + iso;
+    const resp = await fetch(url);
+    const json = await resp.json();
+    if (!json.ok) throw new Error(json.error || "Error backend");
+
+    const data = json.data || {};
+    const k = data.kpis || {};
+    const pasadas = data.pasadas || [];
+
+    const totalPersonas = k.personas_presentes || 0;
+    const totalCuadrillas = k.cuadrillas_activas || 0;
+
+    // Caso vacío: aún no hay registros hoy
+    if (totalPersonas === 0 || pasadas.length === 0) {
+      hint.textContent = "Aún no hay asistencia registrada hoy";
+      badge.textContent = "0 personas";
+      badge.style.background = "#f5f4ee";
+      badge.style.color = "#888";
+      body.innerHTML =
+        '<div style="padding:14px 10px;font-size:11px;color:var(--gris);text-align:center;">' +
+        '<div style="font-size:22px;margin-bottom:4px;">🌅</div>' +
+        'Aún no se han registrado labores hoy en AppSheet.<br>' +
+        'Las cuadrillas aparecerán acá cuando empiecen a cargar.</div>';
+      return;
+    }
+
+    // Resumen
+    hint.textContent = totalPersonas + " persona" + (totalPersonas !== 1 ? "s" : "") +
+                       " · " + totalCuadrillas + " cuadrilla" + (totalCuadrillas !== 1 ? "s" : "");
+    badge.textContent = totalPersonas + " persona" + (totalPersonas !== 1 ? "s" : "");
+    badge.style.background = "#e6f1fb";
+    badge.style.color = "#0C447C";
+
+    // Lista de pasadas
+    let html = '<div style="border-top:0.5px solid rgba(0,0,0,0.06);padding-top:8px;">';
+    pasadas.forEach((p, i) => {
+      const personasN = (p.lista_personal || []).length;
+      const nombreCuadrilla = p.prestador_nombre || p.id_prestador || "—";
+      const ccNombre = (p.gantt_matches && p.gantt_matches[0])
+        ? p.gantt_matches[0].tarea
+        : (p.id_cc || "—");
+      const isLast = i === pasadas.length - 1;
+      const borderStyle = isLast ? "" : "border-bottom:1px solid rgba(0,0,0,0.05);";
+      html +=
+        '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;' + borderStyle + '">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:12px;font-weight:500;">' + escapeHTML(nombreCuadrilla) + '</div>' +
+          '<div style="font-size:11px;color:var(--gris);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHTML(truncarTexto(ccNombre, 50)) + '</div>' +
+        '</div>' +
+        '<span style="font-size:14px;font-weight:600;color:#185FA5;font-variant-numeric:tabular-nums;margin-left:8px;">' + personasN + '</span>' +
+        '</div>';
+    });
+    html += '</div>';
+
+    // Footer total
+    html +=
+      '<div style="margin-top:10px;padding:8px 10px;background:#f6f4ec;border-radius:6px;display:flex;justify-content:space-between;font-size:11px;">' +
+      '<span style="color:var(--gris);">Total trabajadores hoy:</span>' +
+      '<span style="font-weight:600;color:#185FA5;font-variant-numeric:tabular-nums;">' + totalPersonas + ' personas</span>' +
+      '</div>';
+
+    body.innerHTML = html;
+
+  } catch (err) {
+    console.error("Error cargando asistencia hoy:", err);
+    hint.textContent = "Error al cargar";
+    badge.textContent = "—";
+    badge.style.background = "#fef2f2";
+    badge.style.color = "#991b1b";
+    body.innerHTML =
+      '<div style="padding:10px;font-size:11px;color:#991b1b;background:#fef2f2;border-radius:6px;">' +
+      '⚠️ No se pudo conectar con el servicio de asistencia. ' +
+      'Reintenta en un momento o ve a la pestaña Asistencia.</div>';
+  }
+}
+
+function escapeHTML(s) {
+  if (s === null || s === undefined) return "";
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function truncarTexto(s, n) {
+  if (!s) return "";
+  s = String(s);
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
 
 document.querySelectorAll('details.card').forEach(d => {
   const summary = d.querySelector('summary');
