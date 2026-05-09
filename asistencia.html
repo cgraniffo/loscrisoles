@@ -218,7 +218,9 @@ const state = {
   fecha: null,
   resumen: null,
   cuadrillaFiltro: "all",
-  coordMap: {}
+  coordMap: {},
+  laboresMap: {},
+  pasadasVisibles: []
 };
 
 let map = null;
@@ -255,6 +257,19 @@ async function fetchResumen(fecha) {
   const json = await r.json();
   if (!json.ok) throw new Error(json.error || "Error desconocido del backend");
   return json.data;
+}
+
+async function fetchLaboresMap() {
+  // list_labores devuelve catálogo BD_Labores: { id_labor: { nombre, tipo, costo_aprox, um, desc } }
+  try {
+    const r = await fetch(API_ASISTENCIA + "?action=list_labores");
+    const json = await r.json();
+    if (!json.ok) throw new Error(json.error || "list_labores falló");
+    return json.data || {};
+  } catch (e) {
+    console.warn("No se pudo cargar catálogo de labores:", e);
+    return {};
+  }
 }
 
 async function fetchCoordMap() {
@@ -311,12 +326,14 @@ function renderMarkers(pasadas) {
     const tareaPlan = (p.gantt_matches && p.gantt_matches.length > 0)
       ? p.gantt_matches[0].tarea : null;
     const ccLabel = coord.nombre ? coord.nombre + (coord.fundo ? ' · ' + coord.fundo : '') : p.id_cc;
+    const labCat = state.laboresMap[p.id_labor];
+    const nombreLab = labCat ? labCat.nombre : p.id_labor;
 
     const popup =
       '<b>' + ccLabel + '</b><br>' +
       '<b>' + (p.prestador_nombre || p.id_prestador) + '</b> · ' + n + ' personas<br>' +
       '<hr style="margin:6px 0;border:0;border-top:1px solid #eee;">' +
-      '<b>Tipo labor:</b> ' + p.id_labor + '<br>' +
+      '<b>Labor:</b> ' + nombreLab + '<br>' +
       (tareaPlan
         ? '<b>📋 En Gantt:</b> ' + tareaPlan + '<br>'
         : '<span style="color:#999;">Sin labor planificada en Gantt</span><br>') +
@@ -357,11 +374,26 @@ function renderTabla(pasadas) {
     const tieneMatch = p.tiene_match_gantt;
     const tareaPlan = tieneMatch && p.gantt_matches[0] ? p.gantt_matches[0].tarea : "";
 
-    // Nombre de labor: derivar de la tarea del match Gantt; fallback al código
-    const laborDisplay = tareaPlan
-      ? '<div style="font-size:12px;line-height:1.3;">' + escapeHtml(truncar(tareaPlan, 60)) + '</div>' +
-        '<code style="font-size:9px;color:#aaa;">' + p.id_labor + '</code>'
-      : '<code style="font-size:11px;color:#666;">' + p.id_labor + '</code>';
+    // Nombre de labor: prioridad tarea Gantt > catálogo BD_Labores > código
+    const laborCat = state.laboresMap[p.id_labor];
+    const nombreLabor = laborCat ? laborCat.nombre : "";
+    let laborDisplay;
+    if (tareaPlan) {
+      // Hay match Gantt: mostrar la tarea específica
+      laborDisplay =
+        '<div style="font-size:12px;line-height:1.3;">' + escapeHtml(truncar(tareaPlan, 60)) + '</div>' +
+        '<code style="font-size:9px;color:#aaa;">' + (nombreLabor || p.id_labor) + '</code>';
+    } else if (nombreLabor) {
+      // Sin match pero con nombre en catálogo
+      laborDisplay =
+        '<div style="font-size:12px;line-height:1.3;color:#666;">' + escapeHtml(nombreLabor) + '</div>' +
+        '<code style="font-size:9px;color:#bbb;">Labor no registrada</code>';
+    } else {
+      // Ni match ni catálogo: solo código
+      laborDisplay =
+        '<div style="font-size:11px;color:#999;">Labor no registrada</div>' +
+        '<code style="font-size:9px;color:#bbb;">' + p.id_labor + '</code>';
+    }
 
     // Pill Gantt: si hay match, clicable abre modal; si no, "Labor extra"
     const ganttPill = tieneMatch
@@ -582,12 +614,15 @@ document.addEventListener("keydown", function(e) {
 
 async function init() {
   initMap();
-  fetchCoordMap().then(coordMap => {
+  // Cargar coords y labores en paralelo (no bloquean)
+  Promise.all([fetchCoordMap(), fetchLaboresMap()]).then(([coordMap, laboresMap]) => {
     state.coordMap = coordMap;
+    state.laboresMap = laboresMap;
     if (state.resumen) {
       const pasadas = state.cuadrillaFiltro === "all"
         ? state.resumen.pasadas
         : state.resumen.pasadas.filter(p => p.id_prestador === state.cuadrillaFiltro);
+      renderTabla(pasadas);     // re-render para incorporar nombres del catálogo
       renderMarkers(pasadas);
     }
   });
