@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <title>Asistencia · Los Crisoles</title>
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="apple-touch-icon" href="/favicon.png">
+
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script>
   // Si la pestaña carga dentro del Dashboard via iframe, ocultar header propio
@@ -151,6 +155,11 @@
     background: #e0e7ff;
     color: #4338ca;
     font-style: normal;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .pill.sinregistro:hover {
+    background: #c7d2fe;
   }
 
   /* Marker plan sin registro */
@@ -408,7 +417,8 @@ async function fetchCoordMap() {
       if (info && info.lat !== null && info.lng !== null
           && !isNaN(info.lat) && !isNaN(info.lng)) {
         mapped[id] = { lat: info.lat, lng: info.lng,
-                       nombre: info.nombre, fundo: info.fundo };
+                       nombre: info.nombre, fundo: info.fundo,
+                       cultivo: info.especie, ha: info.ha };
       }
     });
     return mapped;
@@ -629,7 +639,7 @@ function renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsCon
         '</td>';
       body.appendChild(sepTr);
 
-      planSinRegistro.forEach(pl => {
+      planSinRegistro.forEach((pl, idx) => {
         const ccCoord = state.coordMap[pl.cc];
         const ccLabel = ccCoord && ccCoord.nombre ? ccCoord.nombre : pl.up || pl.cc;
         const ccSubtitle = ccCoord && ccCoord.fundo ? ccCoord.fundo : (pl.cultivo || "");
@@ -644,7 +654,7 @@ function renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsCon
           (pl.responsables ? '<code style="font-size:9px;color:#aaa;">' + escapeHtml(pl.responsables) + '</code>' : '') + '</td>' +
           '<td>' + escapeHtml(ccLabel) + (ccSubtitle ? '<div style="font-size:10px;color:#bbb;">' + escapeHtml(ccSubtitle) + '</div>' : '') + '</td>' +
           '<td><span style="color:#bbb;font-size:11px;">—</span></td>' +
-          '<td><span class="pill sinregistro">⚠️ Pendiente cargar</span></td>' +
+          '<td><span class="pill sinregistro" onclick="abrirModalPendiente(' + idx + ')" title="Ver detalle">⚠️ Pendiente cargar</span></td>' +
           '<td><span style="color:#bbb;font-size:10px;">—</span></td>' +
           '<td><span style="color:#bbb;font-size:11px;">—</span></td>';
         body.appendChild(tr);
@@ -840,6 +850,7 @@ function aplicarFiltros() {
   }
 
   renderTabla(pasadas, planSinRegistro, planCargado, ccsAtendidos, ccsConPlan, laboresCargadas);
+  state.planSinRegistroVisible = planSinRegistro; // para que el modal pueda acceder por idx
   renderMarkers(pasadas, planSinRegistro);
   calcularKPIs(pasadas, state.resumen.kpis.total_personas_activas);
 }
@@ -1073,6 +1084,67 @@ function abrirModalGantt(idx) {
   const esInternoModal = PRESTADORES_INTERNOS.indexOf(pasada.id_prestador) >= 0;
   const costoLabel = esInternoModal ? "Planilla interna" : fmtPeso(pasada.costo_total);
   html += (pasada.prestador_nombre || pasada.id_prestador) + ' · ' + pasada.tipo_pago + ' · ' + costoLabel;
+  html += '</div>';
+
+  body.innerHTML = html;
+  document.getElementById("gantt-modal").classList.add("show");
+}
+
+// URL del formulario de carga de Pasada en AppSheet.
+// Apunta al webapp de AppSheet con deep-link a la vista "Form_Asistencia_Cargar"
+// (si tu app usa otra vista o un launch URL, edita esta constante).
+const APPSHEET_URL = "https://www.appsheet.com/start/4ebeeb93-b37d-47e3-9ac8-04b05fea7d93";
+
+function abrirModalPendiente(idx) {
+  const pl = state.planSinRegistroVisible && state.planSinRegistroVisible[idx];
+  if (!pl) return;
+
+  const ccCoord = state.coordMap[pl.cc];
+  const ccLabel = ccCoord && ccCoord.nombre ? ccCoord.nombre : (pl.up || pl.cc);
+  const cultivo = (ccCoord && ccCoord.cultivo) ? ccCoord.cultivo : (pl.cultivo || "—");
+  const fundo = (ccCoord && ccCoord.fundo) ? ccCoord.fundo : "";
+
+  // Días sin cargarse: desde fecha_ini hasta hoy (si fecha_ini está en el pasado)
+  let diasSinCargar = 0;
+  let labelDias = "—";
+  if (pl.fecha_ini) {
+    const hoy = new Date(); hoy.setHours(0,0,0,0);
+    const ini = new Date(pl.fecha_ini); ini.setHours(0,0,0,0);
+    const diff = Math.floor((hoy - ini) / (1000 * 60 * 60 * 24));
+    if (diff > 0) {
+      diasSinCargar = diff;
+      labelDias = diff + " día" + (diff !== 1 ? "s" : "") + " sin carga";
+    } else if (diff === 0) {
+      labelDias = "Empieza hoy";
+    } else {
+      labelDias = "Empieza en " + Math.abs(diff) + " día" + (Math.abs(diff) !== 1 ? "s" : "");
+    }
+  }
+  const colorDias = diasSinCargar >= 3 ? "#dc2626" : (diasSinCargar > 0 ? "#d97706" : "#888");
+
+  const estadoClass = String(pl.estado || "").toLowerCase().replace(" ","");
+  const body = document.getElementById("gantt-modal-body");
+
+  let html = '<div class="modal-tarea">' + escapeHtml(pl.tarea || "—") + '</div>';
+  html += '<div class="modal-row"><div class="modal-row-label">UP</div><div class="modal-row-val">' + escapeHtml(ccLabel) +
+          (fundo ? ' <span style="color:#999;font-size:11px;">· ' + escapeHtml(fundo) + '</span>' : '') + '</div></div>';
+  html += '<div class="modal-row"><div class="modal-row-label">Cultivo</div><div class="modal-row-val">' + escapeHtml(cultivo) + '</div></div>';
+  html += '<div class="modal-row"><div class="modal-row-label">Estado</div><div class="modal-row-val"><span class="modal-pill ' + estadoClass + '">' + escapeHtml(pl.estado || "—") + '</span></div></div>';
+  html += '<div class="modal-row"><div class="modal-row-label">Inicio</div><div class="modal-row-val">' + fmtFechaCorta(pl.fecha_ini) + '</div></div>';
+  html += '<div class="modal-row"><div class="modal-row-label">Fin</div><div class="modal-row-val">' + fmtFechaCorta(pl.fecha_fin) + '</div></div>';
+  html += '<div class="modal-row"><div class="modal-row-label">Avance</div><div class="modal-row-val"><span style="color:' + colorDias + ';font-weight:600;">' + labelDias + '</span></div></div>';
+  if (pl.responsables) {
+    html += '<div class="modal-row"><div class="modal-row-label">Responsables</div><div class="modal-row-val">' + escapeHtml(pl.responsables) + '</div></div>';
+  }
+  html += '<div class="modal-row"><div class="modal-row-label">ID Plan</div><div class="modal-row-val"><code style="font-size:10px;color:#999;">' + escapeHtml(pl.id_plan) + '</code></div></div>';
+
+  // Aviso + botón AppSheet
+  html += '<div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:12px;margin-top:18px;font-size:12px;color:#854f0b;">';
+  html += '⚠️ <b>Esta labor aún no tiene asistencia cargada</b><br>';
+  html += '<span style="color:#a16207;font-size:11px;">Las cuadrillas y el personal se cargan desde AppSheet (Pasada_Lista_Masiva).</span>';
+  html += '</div>';
+  html += '<div style="text-align:right;margin-top:14px;">';
+  html += '<a href="' + APPSHEET_URL + '" target="_blank" rel="noopener" style="display:inline-block;background:#1a3a0a;color:#fff;padding:8px 16px;border-radius:99px;font-size:12px;font-weight:600;text-decoration:none;">📱 Ir a cargar en AppSheet</a>';
   html += '</div>';
 
   body.innerHTML = html;
