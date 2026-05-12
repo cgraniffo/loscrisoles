@@ -4610,10 +4610,15 @@ function ganttExportarPDF() {
   y += 6;
   doc.setTextColor(0);
 
-  // Helper: formatear fecha "MM-DD" o rango "MM-DD a MM-DD"
+  // Helper: formatear fecha "DD-MM" o rango "DD-MM a DD-MM" (formato chileno)
   function fmtRango(ini, fin) {
-    const i = String(ini||"").slice(5);
-    const f = String(fin||"").slice(5);
+    const toDDMM = s => {
+      if (!s) return "";
+      const m = String(s).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      return m ? m[3] + "-" + m[2] : String(s).slice(5);
+    };
+    const i = toDDMM(ini);
+    const f = toDDMM(fin);
     if (!i) return "";
     if (!f || f === i) return i;
     return i + " a " + f;
@@ -4708,8 +4713,11 @@ function ganttExportarPDF() {
     );
   }
 
-  // Guardar
-  const nombreArchivo = "Tareas_LosCrisoles_" + hoy.toISOString().slice(0,10) + ".pdf";
+  // Guardar (nombre archivo en formato DD-MM-YYYY)
+  const _dd = String(hoy.getDate()).padStart(2,"0");
+  const _mm = String(hoy.getMonth()+1).padStart(2,"0");
+  const _yyyy = hoy.getFullYear();
+  const nombreArchivo = "Tareas_LosCrisoles_" + _dd + "-" + _mm + "-" + _yyyy + ".pdf";
   doc.save(nombreArchivo);
   ganttToast("PDF generado: " + nombreArchivo, "");
 }
