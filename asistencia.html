@@ -1090,10 +1090,10 @@ function abrirModalGantt(idx) {
   document.getElementById("gantt-modal").classList.add("show");
 }
 
-// URL del formulario de carga de Pasada en AppSheet.
-// Apunta al webapp de AppSheet con deep-link a la vista "Form_Asistencia_Cargar"
-// (si tu app usa otra vista o un launch URL, edita esta constante).
-const APPSHEET_URL = "https://www.appsheet.com/start/4ebeeb93-b37d-47e3-9ac8-04b05fea7d93";
+// URL del formulario "Carga Asistencia" en AppSheet.
+// appId y appName extraídos de la app real LosCrisoles-GestiónAgrícola.
+// Apunta directo a la vista "Carga Asistencia" (encodeada como Carga%20Asistencia).
+const APPSHEET_URL = "https://www.appsheet.com/start/4ebeeb93-b37d-47e3-9008-04b05fea7d93?platform=desktop#appName=LosCrisoles-Gesti%C3%B3nAgr%C3%ADcola-3556686-26-01-23&view=Carga%20Asistencia";
 
 function abrirModalPendiente(idx) {
   const pl = state.planSinRegistroVisible && state.planSinRegistroVisible[idx];
