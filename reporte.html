@@ -900,32 +900,27 @@ function renderResultados() {
     costosPorUP[id] = (costosPorUP[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIva, keyDoc, totalDoc);
   });
 
-  // ── INGRESOS: Ppto (Proyecciones) + Facturado real ───────────────────────
+  // ── INGRESOS: leer DIRECTO desde renderIngresos (no recalcular) ─────────
+  // Esto garantiza que Resultados muestre exactamente lo mismo que Ingresos
+  // (NC restando, IVA, anticipos nueces, etc.)
+  if (!window._ingresosData) {
+    if (typeof renderIngresos === 'function') renderIngresos();  // forzar cálculo si no existe
+  }
+  const _ingData = window._ingresosData || { cultivoRows: {}, cobradoContratos: 0 };
+
+  // Ppto y Facturado por UP (extraído de cultivoRows que viene de Ingresos)
   const ingPpto = {}, ingFact = {}, kilosPpto = {};
+  Object.values(_ingData.cultivoRows || {}).forEach(data => {
+    Object.entries(data.ups || {}).forEach(([upId, upData]) => {
+      ingPpto[upId] = (ingPpto[upId] || 0) + (upData.ppto || 0);
+      ingFact[upId] = (ingFact[upId] || 0) + (upData.fact || 0);
+    });
+  });
+  // Kilos estimados (Proyecciones_Manuales) — esto no viene de _ingresosData, lo calculamos local
   (window.PROYECCIONES||[]).forEach(r => {
     const id = String(r["Unidad_Productiva"]||"").trim();
     if (!esUpProd(id) || !passTemp(id)) return;
-    ingPpto[id]   = (ingPpto[id]||0)   + aplicarIvaMonto(Number(r["Monto_Total"]||0), 'proyeccion');
     kilosPpto[id] = (kilosPpto[id]||0) + Number(r["Kilos_Estimados"]||0);
-  });
-  (window.ASIGNACIONES||[]).forEach(r => {
-    const id   = getUpId(r);
-    if (!esUpProd(id) || !passTemp(id)) return;
-    const tipo = String(r["Tipo_Doc"]||"").toLowerCase();
-    const rut  = rutEmisor(r);
-    const esIng = tipo.includes("emit") || (tipo.includes("factura") && rut === RUT_LC);
-    if (!esIng || Number(r["Monto_Asignado"]||0) <= 0) return;
-    // Factura emitida LC → DTE 33; guía emitida → tal cual
-    const keyDoc = String(r["KEY_Documento"]||"").trim();
-    const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
-    const fuenteIng = tipo.includes("factura") ? 'asig_factura_emitida' : 'asig_guia';
-    // Detectar NC vía TipoDTE=61 en CargaHTML_Demo (mismo patrón que renderIngresos)
-    const docOrigen = (window.DOCUMENTOS||[]).find(d => String(d["KEY"]||"").trim() === keyDoc);
-    const tipoDte = docOrigen ? String(docOrigen["TipoDTE"]||"").trim() : "";
-    const esNC = tipoDte === "61";
-    let monto = aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIng, keyDoc, totalDoc);
-    if (esNC) monto = -Math.abs(monto);  // NC siempre resta
-    ingFact[id] = (ingFact[id]||0) + monto;
   });
 
   // ── PRORRATEO ───────────────────────────────────────────────────────────
@@ -1686,6 +1681,18 @@ function renderIngresos() {
   }
 
   const cultivoOrden = Object.entries(cultivoRows).sort((a,b) => (b[1].ppto + b[1].fact + b[1].cobrado) - (a[1].ppto + a[1].fact + a[1].cobrado));
+
+  // Bridge para renderResultados: expone los datos ya calculados (con NC restando, IVA aplicado, etc)
+  // Así Resultados no recalcula y queda automáticamente sincronizado con Ingresos
+  window._ingresosData = {
+    cultivoRows: cultivoRows,
+    cultivoOrden: cultivoOrden,
+    cobradoContratos: cobradoContratos,
+    pptoContratos: pptoContratos,
+    tFactCombinado: tFactCombinado,
+    tEstF: tEstF,
+    timestamp: Date.now()
+  };
 
   const cultivosHTML = cultivoOrden.map(([cultivo, data], idx) => {
     const factTotal = data.fact + data.cobrado;
