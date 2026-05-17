@@ -919,7 +919,13 @@ function renderResultados() {
     const keyDoc = String(r["KEY_Documento"]||"").trim();
     const totalDoc = Number(String(r["Monto_Total_Doc"]||"").replace(/\./g,"").replace(/,/g,".")) || 0;
     const fuenteIng = tipo.includes("factura") ? 'asig_factura_emitida' : 'asig_guia';
-    ingFact[id] = (ingFact[id]||0) + aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIng, keyDoc, totalDoc);
+    // Detectar NC vía TipoDTE=61 en CargaHTML_Demo (mismo patrón que renderIngresos)
+    const docOrigen = (window.DOCUMENTOS||[]).find(d => String(d["KEY"]||"").trim() === keyDoc);
+    const tipoDte = docOrigen ? String(docOrigen["TipoDTE"]||"").trim() : "";
+    const esNC = tipoDte === "61";
+    let monto = aplicarIvaMonto(Number(r["Monto_Asignado"]||0), fuenteIng, keyDoc, totalDoc);
+    if (esNC) monto = -Math.abs(monto);  // NC siempre resta
+    ingFact[id] = (ingFact[id]||0) + monto;
   });
 
   // ── PRORRATEO ───────────────────────────────────────────────────────────
