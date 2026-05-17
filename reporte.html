@@ -1041,7 +1041,7 @@ function renderResultados() {
 
   const unidad = stateResultados.unidad;
 
-  // ── TABLA AGRUPADA: Cultivo → UP → Docs ──────────────────────────────────
+  // ── CARDS ESTILO INGRESOS: Cultivo → UP → Documentos ────────────────────────
   // Las facturas vienen del bridge _ingresosData (con NC restando y ya filtradas)
   const facturasPorUP = {};
   Object.values(_ingData.cultivoRows || {}).forEach(data => {
@@ -1052,60 +1052,18 @@ function renderResultados() {
     });
   });
 
-  // Construir helper para renderizar una fila UP
-  const renderUpRow = (r) => {
-    const clsR = r.mgnReal === null ? "color:#aaa;" : (r.mgnReal >= 0 ? "color:#1a6e3a;" : "color:#cc2222;");
-    const clsP = r.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
-    const avC  = r.pctAv >= 100 ? "#1a6e3a" : r.pctAv >= 50 ? "#d97706" : "#888";
-    const medidaVal = unidad === "ton" ? r.mgnTon : r.mgnHa;
-    const medidaLbl = unidad === "ton" ? "/t" : "/há";
-    const costoLbl  = r.cPrr > 0
-      ? `<b>${fmtPeso(r.cTot)}</b><br><span style="font-size:9px;color:#888;">${fmtPeso(r.cDir)} + ${fmtPeso(r.cPrr)}</span>`
-      : `<b>${fmtPeso(r.cTot)}</b>`;
-    const hasDocs = (facturasPorUP[r.id] || []).length > 0;
-    const expandIcon = hasDocs ? `<span class="res-up-arrow" data-up="${r.id}" style="display:inline-block;margin-right:6px;font-size:10px;color:#888;transition:transform 0.15s;">▶</span>` : `<span style="display:inline-block;margin-right:6px;width:10px;"></span>`;
-    return `<tr data-up-row="${r.id}" onclick="toggleResUpExpand('${r.id}')" style="cursor:pointer;border-bottom:1px solid #f0ede6;background:#fff;" onmouseover="this.style.background='#fafaf7'" onmouseout="this.style.background='#fff'">
-      <td style="padding:10px 12px;font-weight:600;padding-left:32px;">${expandIcon}${r.nombre}<br><span style="font-size:10px;color:#888;font-weight:400;margin-left:16px;">${r.fundo}</span></td>
-      <td style="text-align:right;padding:10px 12px;color:#555;">${r.ha}</td>
-      <td style="text-align:right;padding:10px 12px;color:#b45309;">${fmtPeso(r.pptoI)}</td>
-      <td style="text-align:right;padding:10px 12px;color:#1a6e3a;">${r.factI>0?fmtPeso(r.factI):"—"}</td>
-      <td style="text-align:right;padding:10px 12px;color:#cc2222;">${costoLbl}</td>
-      <td style="text-align:right;padding:10px 12px;font-weight:700;${clsP}">${fmtPeso(r.mgnPpto)}</td>
-      <td style="text-align:right;padding:10px 12px;font-weight:700;${clsR}">${r.mgnReal !== null ? fmtPeso(r.mgnReal) : "—"}</td>
-      <td style="text-align:right;padding:10px 12px;${clsR}">${medidaVal ? fmtPeso(medidaVal)+medidaLbl : "—"}</td>
-      <td style="padding:10px 12px;" onclick="event.stopPropagation();abrirDrawerUP('${r.id}')">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="height:6px;background:#f0ede6;border-radius:3px;width:50px;">
-            <div style="height:6px;background:${avC};border-radius:3px;width:${Math.min(100,r.pctAv)*0.5}px;"></div>
-          </div>
-          <span style="font-size:11px;font-weight:700;color:${avC};">${r.pctAv>0?r.pctAv+"%":"—"}</span>
-        </div>
-      </td>
-    </tr>`;
-  };
+  // Tooltip helper para columnas con explicación (ⓘ)
+  const helpIcon = (title) => `<span title="${title.replace(/"/g, '&quot;')}" style="display:inline-block;width:13px;height:13px;border-radius:50%;background:#dde;color:#446;font-size:9px;font-weight:700;text-align:center;line-height:13px;margin-left:3px;cursor:help;user-select:none;">i</span>`;
 
-  // Helper para renderizar las filas de documentos de una UP
-  const renderDocsRows = (upId) => {
-    const docs = (facturasPorUP[upId] || []).slice().sort((a,b) => String(a.fecha).localeCompare(String(b.fecha)));
-    if (docs.length === 0) return "";
-    const docRows = docs.map(d => {
-      const isNC = d.tipo === "nc";
-      const color = isNC ? "#cc2222" : "#1a6e3a";
-      const tipoBadge = isNC ? `<span style="background:#fee2e2;color:#991b1b;font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:6px;">NC</span>` : "";
-      const fechaCorta = d.fecha ? String(d.fecha).slice(0,10) : "—";
-      return `<tr style="background:#fafaf7;border-bottom:1px solid #f0ede6;">
-        <td colspan="9" style="padding:6px 12px 6px 60px;font-size:11px;color:#555;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="color:#888;min-width:80px;">${fechaCorta}</span>
-            ${tipoBadge}<span style="font-weight:600;color:#444;">F:${d.folio||"—"}</span>
-            <span style="flex:1;color:#666;">${d.razon||"—"}</span>
-            <span style="font-weight:700;color:${color};min-width:100px;text-align:right;">${fmtPeso(d.monto)}</span>
-          </div>
-        </td>
-      </tr>`;
-    }).join("");
-    return `<tr data-up-docs="${upId}" style="display:none;"><td colspan="9" style="padding:0;background:#fafaf7;"><table style="width:100%;border-collapse:collapse;"><tbody>${docRows}</tbody></table></td></tr>`;
-  };
+  const TIP_PPTO_ING  = "Ingreso presupuestado: suma de Proyecciones_Manuales (Estado=Estimado o Real) asignadas a la UP para la temporada activa.";
+  const TIP_PPTO_COST = "Costo presupuestado: estimado por ahora igual al costo real (no hay presupuesto separado de costos).";
+  const TIP_PPTO_MGN  = "Margen presupuestado: Ingreso presupuestado − Costo presupuestado.";
+  const TIP_REAL_ING  = "Ingreso real facturado: facturas DTE emitidas a clientes (excluye Notas de Crédito, que restan).";
+  const TIP_REAL_COST = "Costo real ejecutado: BD_Registro (antes 30-mar-2026) + Asignaciones_U (desde esa fecha). Incluye directos + prorrateados.";
+  const TIP_REAL_MGN  = "Margen real: Ingreso real facturado − Costo real ejecutado. Sólo se calcula si hay facturación real.";
+  const TIP_AVANCE    = "% Avance = Ingreso real facturado / Ingreso presupuestado × 100. Cuánto del ingreso esperado ya se materializó en facturas DTE.";
+  const TIP_COSTO_HA  = "Costo por hectárea = Costo total ÷ hectáreas de la UP. Compara eficiencia entre UPs de tamaños distintos.";
+  const TIP_MGN_TON   = "Margen por tonelada = Margen ÷ kilos estimados / 1000. Útil para cultivos donde lo relevante es rendimiento.";
 
   // Agrupar filas por cultivo
   const filasPorCultivo = {};
@@ -1115,75 +1073,158 @@ function renderResultados() {
     filasPorCultivo[cultivo].push(r);
   });
 
-  // Ordenar cultivos por suma de margen real (o ppto si no hay real)
+  // Ordenar cultivos por margen real (o ppto si no hay real)
   const cultivosOrdenados = Object.entries(filasPorCultivo).sort((a,b) => {
     const mgnA = a[1].reduce((s,r) => s + (r.mgnReal !== null ? r.mgnReal : r.mgnPpto), 0);
     const mgnB = b[1].reduce((s,r) => s + (r.mgnReal !== null ? r.mgnReal : r.mgnPpto), 0);
     return mgnB - mgnA;
   });
 
-  // Construir el HTML agrupado
+  // Grid de columnas para card (cultivo) y filas internas (UP) — mantener consistente
+  // 30px chevron | 1.6fr nombre | 0.6fr há | PPTO(ing,costo,mgn) | REAL(ing,costo,mgn) | 0.5fr avance
+  const COLS_CARD = "30px 1.6fr 0.5fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.5fr";
+
   const tbody = cultivosOrdenados.map(([cultivo, filasUp]) => {
-    // Totales del cultivo
+    // Totales del cultivo (agregados de las UPs)
     const ct = filasUp.reduce((acc,r) => {
-      acc.pptoI += r.pptoI;
-      acc.factI += r.factI;
-      acc.cDir  += r.cDir;
-      acc.cPrr  += r.cPrr;
-      acc.cTot  += r.cTot;
-      acc.ha    += r.ha;
-      acc.mgnPpto += r.mgnPpto;
-      acc.mgnReal += (r.mgnReal !== null ? r.mgnReal : 0);
+      acc.pptoI    += r.pptoI;
+      acc.factI    += r.factI;
+      acc.cDir     += r.cDir;
+      acc.cPrr     += r.cPrr;
+      acc.cTot     += r.cTot;
+      acc.ha       += r.ha;
+      acc.toneladas += r.toneladas;
+      acc.mgnPpto  += r.mgnPpto;
+      acc.mgnReal  += (r.mgnReal !== null ? r.mgnReal : 0);
       acc.tieneReal = acc.tieneReal || (r.mgnReal !== null);
       return acc;
-    }, { pptoI:0, factI:0, cDir:0, cPrr:0, cTot:0, ha:0, mgnPpto:0, mgnReal:0, tieneReal:false });
+    }, { pptoI:0, factI:0, cDir:0, cPrr:0, cTot:0, ha:0, toneladas:0, mgnPpto:0, mgnReal:0, tieneReal:false });
     const ctMgnReal = ct.tieneReal ? ct.mgnReal : null;
-    const ctClsP = ct.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
-    const ctClsR = ctMgnReal === null ? "color:#aaa;" : (ctMgnReal >= 0 ? "color:#1a6e3a;" : "color:#cc2222;");
-    const ctPctAv = ct.pptoI > 0 ? Math.round(ct.factI/ct.pptoI*100) : 0;
-    const ctAvC  = ctPctAv >= 100 ? "#1a6e3a" : ctPctAv >= 50 ? "#d97706" : "#888";
-    const cultivoSafe = cultivo.replace(/'/g,"\\'");
-    const ctCostoLbl = ct.cPrr > 0
-      ? `<b>${fmtPeso(ct.cTot)}</b><br><span style="font-size:9px;color:#888;font-weight:400;">${fmtPeso(ct.cDir)} + ${fmtPeso(ct.cPrr)}</span>`
-      : `<b>${fmtPeso(ct.cTot)}</b>`;
+    const ctPctAv   = ct.pptoI > 0 ? Math.round(ct.factI / ct.pptoI * 100) : 0;
+    const ctAvC     = ctPctAv >= 75 ? "#1a6e3a" : ctPctAv >= 25 ? "#d97706" : "#ef4444";
+    const ctClsP    = ct.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
+    const ctClsR    = ctMgnReal === null ? "color:#aaa;" : (ctMgnReal >= 0 ? "color:#1a6e3a;" : "color:#cc2222;");
 
-    // Header de cultivo (expandible)
-    const cultivoHeader = `<tr data-cultivo-row="${cultivoSafe}" onclick="toggleResCultivoExpand('${cultivoSafe}')" style="cursor:pointer;background:#f0ede6;border-bottom:2px solid #d5d0c0;font-weight:700;">
-      <td style="padding:10px 12px;">
-        <span class="res-cult-arrow" data-cultivo="${cultivoSafe}" style="display:inline-block;margin-right:8px;font-size:11px;color:#555;transition:transform 0.15s;">▶</span>
-        <span style="color:#1a3a0a;font-size:13px;">${cultivo}</span>
-        <span style="font-size:10px;color:#888;font-weight:400;margin-left:6px;">· ${filasUp.length} UP${filasUp.length>1?'s':''}</span>
-      </td>
-      <td style="text-align:right;padding:10px 12px;color:#555;">${ct.ha}</td>
-      <td style="text-align:right;padding:10px 12px;color:#b45309;">${fmtPeso(ct.pptoI)}</td>
-      <td style="text-align:right;padding:10px 12px;color:#1a6e3a;">${ct.factI>0?fmtPeso(ct.factI):"—"}</td>
-      <td style="text-align:right;padding:10px 12px;color:#cc2222;">${ctCostoLbl}</td>
-      <td style="text-align:right;padding:10px 12px;${ctClsP}">${fmtPeso(ct.mgnPpto)}</td>
-      <td style="text-align:right;padding:10px 12px;${ctClsR}">${ctMgnReal !== null ? fmtPeso(ctMgnReal) : "—"}</td>
-      <td style="text-align:right;padding:10px 12px;color:#888;font-size:11px;">—</td>
-      <td style="padding:10px 12px;">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="height:6px;background:#fff;border-radius:3px;width:50px;">
-            <div style="height:6px;background:${ctAvC};border-radius:3px;width:${Math.min(100,ctPctAv)*0.5}px;"></div>
+    // ── Filas UP dentro del cultivo (ordenadas por margen) ────────
+    const upsRows = filasUp.slice()
+      .sort((a,b) => {
+        const ma = a.mgnReal !== null ? a.mgnReal : a.mgnPpto;
+        const mb = b.mgnReal !== null ? b.mgnReal : b.mgnPpto;
+        return mb - ma;
+      })
+      .map(r => {
+        const clsP = r.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
+        const clsR = r.mgnReal === null ? "color:#aaa;" : (r.mgnReal >= 0 ? "color:#1a6e3a;" : "color:#cc2222;");
+        const avC  = r.pctAv >= 75 ? "#1a6e3a" : r.pctAv >= 25 ? "#d97706" : "#888";
+        const costoLbl = r.cPrr > 0
+          ? `${fmtPeso(r.cTot)}<br><span style="font-size:9px;color:#888;font-weight:400;">${fmtPeso(r.cDir)}+${fmtPeso(r.cPrr)}</span>`
+          : fmtPeso(r.cTot);
+        const docs = (facturasPorUP[r.id] || []).slice().sort((a,b) => {
+          const fa = Number(String(a.folio||"").replace(/[^0-9]/g,"")) || 0;
+          const fb = Number(String(b.folio||"").replace(/[^0-9]/g,"")) || 0;
+          return fb - fa;
+        });
+        const docsHTML = docs.length > 0 ? `
+          <details style="margin-top:6px;border-top:1px dashed #eee;padding-top:6px;">
+            <summary style="cursor:pointer;list-style:none;font-size:10px;color:#666;font-weight:600;padding:2px 0;">
+              <span style="display:inline-block;transition:transform 0.15s;">▶</span> Detalle facturado · ${docs.length} ${docs.length===1?'documento':'documentos'}
+            </summary>
+            <div style="padding-top:6px;">
+              <div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.8fr 0.7fr;gap:8px;padding:3px 0;border-bottom:1px solid #ddd;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">
+                <div>Fecha</div>
+                <div>Folio</div>
+                <div>Razón social</div>
+                <div style="text-align:right;">Neto</div>
+              </div>
+              ${docs.map(f => {
+                const fd = parseDate(f.fecha);
+                const fechaTxt = fd ? fd.toLocaleDateString("es-CL",{day:"2-digit",month:"2-digit",year:"2-digit"}) : "—";
+                let tipoIcon = "";
+                let montoColor = "#1a6e3a";
+                if (f.tipo === "anticipo") tipoIcon = '<span title="Anticipo nueces" style="color:#b45309;">●</span> ';
+                else if (f.tipo === "nc")  { tipoIcon = '<span title="Nota de crédito" style="color:#b91c1c;">●</span> '; montoColor = "#b91c1c"; }
+                const montoTxt = f.tipo === "nc" ? "−" + fmtPeso(Math.abs(f.monto)) : fmtPeso(f.monto);
+                return `<div style="display:grid;grid-template-columns:0.7fr 0.6fr 1.8fr 0.7fr;gap:8px;padding:3px 0;border-bottom:1px dotted #eee;font-size:10px;align-items:center;">
+                  <div style="color:#555;">${tipoIcon}${fechaTxt}</div>
+                  <div style="color:#555;font-family:monospace;">${f.folio || "—"}</div>
+                  <div style="color:#1a1a1a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${f.razon||""}">${f.razon || "—"}</div>
+                  <div style="text-align:right;color:${montoColor};font-weight:600;">${montoTxt}</div>
+                </div>`;
+              }).join("")}
+            </div>
+          </details>
+        ` : "";
+
+        return `<details style="border-bottom:1px dotted #eee;background:#fff;">
+          <summary style="display:grid;grid-template-columns:${COLS_CARD};gap:6px;padding:6px 0;align-items:center;cursor:pointer;list-style:none;font-size:11px;">
+            <span style="font-size:11px;color:#aaa;text-align:center;">${docs.length > 0 ? '▶' : ''}</span>
+            <div><b>${r.nombre}</b><span style="color:#888;font-size:10px;"> · ${r.fundo}</span></div>
+            <div style="text-align:right;color:#666;">${r.ha > 0 ? r.ha.toFixed(0) + " há" : "—"}</div>
+            <div style="text-align:right;color:#b45309;">${r.pptoI > 0 ? fmtPeso(r.pptoI) : "—"}</div>
+            <div style="text-align:right;color:#999;">—</div>
+            <div style="text-align:right;font-weight:600;${clsP}">${fmtPeso(r.mgnPpto)}</div>
+            <div style="text-align:right;color:#1a6e3a;">${r.factI > 0 ? fmtPeso(r.factI) : "—"}</div>
+            <div style="text-align:right;color:#cc2222;">${costoLbl}</div>
+            <div style="text-align:right;font-weight:600;${clsR}">${r.mgnReal !== null ? fmtPeso(r.mgnReal) : "—"}</div>
+            <div style="text-align:right;font-weight:700;color:${avC};">${r.pctAv > 0 ? r.pctAv + "%" : "—"}</div>
+          </summary>
+          <div style="padding:4px 14px 8px 44px;">
+            <div style="font-size:10px;color:#888;margin-bottom:4px;">
+              <a href="#" onclick="event.preventDefault();abrirDrawerUP('${r.id}');return false;" style="color:#1a6e3a;text-decoration:none;font-weight:600;">→ ver ficha completa de la UP</a>
+            </div>
+            ${docsHTML}
           </div>
-          <span style="font-size:11px;font-weight:700;color:${ctAvC};">${ctPctAv>0?ctPctAv+"%":"—"}</span>
+        </details>`;
+      }).join("");
+
+    // ── Card header de Cultivo ─────────
+    return `<details style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:6px;background:#fff;">
+      <summary style="display:grid;grid-template-columns:${COLS_CARD};gap:6px;padding:10px 12px;background:#fafafa;align-items:center;cursor:pointer;list-style:none;">
+        <span style="font-size:13px;color:#888;text-align:center;">▶</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1a1a1a;">${cultivo}</div>
+          <div style="font-size:10px;color:#888;">${ct.ha > 0 ? ct.ha.toFixed(0) + " há · " : ""}${filasUp.length} UP${filasUp.length!==1?'s':''}</div>
         </div>
-      </td>
-    </tr>`;
-
-    // Filas hijas (UPs) — ocultas por defecto
-    const upRows = filasUp.map(r => {
-      return `<tr data-cultivo-child="${cultivoSafe}" style="display:none;">
-        <td colspan="9" style="padding:0;">
-          <table style="width:100%;border-collapse:collapse;font-size:13px;">
-            <tbody>${renderUpRow(r)}${renderDocsRows(r.id)}</tbody>
-          </table>
-        </td>
-      </tr>`;
-    }).join("");
-
-    return cultivoHeader + upRows;
+        <div style="text-align:right;font-size:11px;color:#666;font-weight:600;">${ct.ha > 0 ? ct.ha.toFixed(0) : "—"}</div>
+        <div style="text-align:right;font-size:12px;color:#b45309;font-weight:600;">${fmtPeso(ct.pptoI)}</div>
+        <div style="text-align:right;font-size:12px;color:#999;">—</div>
+        <div style="text-align:right;font-size:12px;font-weight:700;${ctClsP}">${fmtPeso(ct.mgnPpto)}</div>
+        <div style="text-align:right;font-size:12px;color:#1a6e3a;font-weight:600;">${ct.factI > 0 ? fmtPeso(ct.factI) : "—"}</div>
+        <div style="text-align:right;font-size:12px;color:#cc2222;font-weight:600;">${fmtPeso(ct.cTot)}</div>
+        <div style="text-align:right;font-size:12px;font-weight:700;${ctClsR}">${ctMgnReal !== null ? fmtPeso(ctMgnReal) : "—"}</div>
+        <div style="text-align:right;font-size:13px;font-weight:700;color:${ctAvC};">${ctPctAv > 0 ? ctPctAv + "%" : "—"}</div>
+      </summary>
+      <div style="padding:6px 14px 8px 14px;background:#fff;border-top:1px dashed #e5e5e5;">
+        ${upsRows}
+      </div>
+    </details>`;
   }).join("");
+
+  // Header de la tabla — dos niveles (PRESUPUESTO / REAL) con tooltips
+  const headerHTML = `
+    <div style="border:1px solid #e5e5e5;border-radius:8px;overflow:hidden;margin-bottom:8px;background:#fff;">
+      <div style="display:grid;grid-template-columns:${COLS_CARD};gap:6px;padding:6px 12px;background:#1a3a0a;color:#fff;font-size:10px;font-weight:700;letter-spacing:0.04em;align-items:center;">
+        <div></div>
+        <div></div>
+        <div></div>
+        <div colspan="3" style="grid-column:span 3;text-align:center;background:#b45309;padding:4px 0;border-radius:4px;">📊 PRESUPUESTADO</div>
+        <div colspan="3" style="grid-column:span 3;text-align:center;background:#1a6e3a;padding:4px 0;border-radius:4px;">🧾 REAL EJECUTADO</div>
+        <div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:${COLS_CARD};gap:6px;padding:6px 12px;background:#f8f8f6;font-size:10px;color:#666;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;align-items:center;border-top:1px solid #e5e5e5;">
+        <div></div>
+        <div>Cultivo / UP</div>
+        <div style="text-align:right;">Há</div>
+        <div style="text-align:right;color:#b45309;">Ingreso ${helpIcon(TIP_PPTO_ING)}</div>
+        <div style="text-align:right;color:#b45309;">Costo ${helpIcon(TIP_PPTO_COST)}</div>
+        <div style="text-align:right;color:#b45309;">Margen ${helpIcon(TIP_PPTO_MGN)}</div>
+        <div style="text-align:right;color:#1a6e3a;">Ingreso ${helpIcon(TIP_REAL_ING)}</div>
+        <div style="text-align:right;color:#1a6e3a;">Costo ${helpIcon(TIP_REAL_COST)}</div>
+        <div style="text-align:right;color:#1a6e3a;">Margen ${helpIcon(TIP_REAL_MGN)}</div>
+        <div style="text-align:right;color:#555;">% Avance ${helpIcon(TIP_AVANCE)}</div>
+      </div>
+    </div>
+  `;
 
   const totalCostoLbl = t.cPrr > 0
     ? `${fmtPeso(t.cTot)}<br><span style="font-size:9px;color:#888;font-weight:400;">${fmtPeso(t.cDir)} + ${fmtPeso(t.cPrr)}</span>`
@@ -1300,37 +1341,23 @@ function renderResultados() {
       </div>
     </div>
 
-    <!-- TABLA UNIFICADA -->
-    <div class="stat-card" style="margin-bottom:12px;padding:0;overflow:hidden;">
-      <div style="padding:10px 16px;border-bottom:1px solid #f0ede6;display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:13px;font-weight:700;">Desglose por cultivo · ${filas.length} UPs en ${Object.keys(filasPorCultivo).length} cultivos</div>
+    <!-- DESGLOSE POR CULTIVO (cards estilo Ingresos) -->
+    <div style="background:#fff;border:1px solid #e5e2da;border-radius:10px;padding:14px 16px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:13px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:#1a3a0a;">Desglose por cultivo · ${filas.length} UPs en ${Object.keys(filasPorCultivo).length} cultivos</div>
         <div style="display:flex;gap:4px;align-items:center;">
           <span style="font-size:10px;color:#888;margin-right:4px;">Vista:</span>
           <button class="fbtn${unidad==='ha'?' on':''}" onclick="setResUnidad('ha')">$/Há</button>
           <button class="fbtn${unidad==='ton'?' on':''}" onclick="setResUnidad('ton')">$/Ton</button>
         </div>
       </div>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:13px;">
-          <thead style="background:#f8f8f6;">
-            <tr>
-              <th style="text-align:left;padding:10px 12px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('nombre')">UP</th>
-              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('ha')">Há</th>
-              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#b45309;border-bottom:2px solid #e5e2da;">🔮 Ppto</th>
-              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#1a6e3a;border-bottom:2px solid #e5e2da;">🧾 Fact</th>
-              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#cc2222;border-bottom:2px solid #e5e2da;">💰 Costos</th>
-              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('mgnPpto')">Mgn Ppto</th>
-              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#1a3a0a;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('margenReal')">Mgn Real ↓</th>
-              <th style="text-align:right;padding:10px 12px;font-size:11px;color:#555;border-bottom:2px solid #e5e2da;">${unidad==='ton'?'Mgn/Ton':'Mgn/Há'}</th>
-              <th style="padding:10px 12px;font-size:11px;color:#888;border-bottom:2px solid #e5e2da;cursor:pointer;" onclick="setResOrden('pctAv')">% Avance</th>
-            </tr>
-          </thead>
-          <tbody>${tbody}</tbody>
-          <tfoot>${tfoot}</tfoot>
-        </table>
+      <div style="font-size:11px;color:#666;margin-bottom:10px;">
+        Click en un cultivo para ver sus UPs · Click en una UP para ver sus documentos · Click en "ver ficha completa" para abrir el detalle lateral.
       </div>
+      ${headerHTML}
+      ${tbody}
     </div>
-    <div class="footer">Click en una UP → detalle lateral · Ingresos: Fact + Ppto · Costos: Directos + Prorrateo · ${tempActiva} · Los Crisoles · BData</div>`;
+    <div class="footer">Resultados sincronizados con Ingresos (NC restando, IVA aplicado) · ${tempActiva} · Los Crisoles · BData</div>`;
 
   // Renderizar el mapa
   // Renderizar el mapa con RAF + setTimeout combinados para asegurar que el
