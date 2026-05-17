@@ -28,6 +28,8 @@
     --pn-bg: #E1F5EE;
     --vk: #BA7517;
     --vk-bg: #FAEEDA;
+    --gx: #A32D2D;
+    --gx-bg: #FCEBEB;
     --neutral: #5F5E5A;
     --neutral-bg: #F1EFE8;
     --radius: 8px;
@@ -152,6 +154,114 @@
   .gantt-legend { font-size: 11px; color: var(--text-2); display: flex; gap: 14px; flex-wrap: wrap; }
   .gantt-svg-wrap { overflow-x: auto; }
 
+  /* Toggles explicativos */
+  .info {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    margin: 0 0 1rem;
+    font-size: 12.5px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+  .info > summary {
+    cursor: pointer;
+    padding: 9px 14px;
+    list-style: none;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+  }
+  .info > summary::-webkit-details-marker { display: none; }
+  .info > summary::before {
+    content: "ⓘ";
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  .info > summary::after {
+    content: "▾";
+    font-size: 10px;
+    margin-left: auto;
+    color: var(--text-3);
+    transition: transform 0.15s;
+  }
+  .info[open] > summary::after { transform: rotate(180deg); }
+  .info[open] > summary {
+    border-bottom: 0.5px solid var(--border);
+    background: var(--accent-bg);
+  }
+  .info-body {
+    padding: 12px 14px 14px;
+  }
+  .info-body p { margin: 0 0 8px; }
+  .info-body p:last-child { margin-bottom: 0; }
+  .info-body ul { margin: 4px 0 8px; padding-left: 20px; }
+  .info-body li { margin-bottom: 3px; }
+  .info-body b { color: var(--text); font-weight: 500; }
+  .info-body code {
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 11.5px;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+  }
+  .info-inline {
+    margin: 0 0 0 4px;
+    display: inline-block;
+    vertical-align: baseline;
+  }
+  .info-inline > summary {
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--text-3);
+    font-size: 11px;
+    font-weight: 400;
+  }
+  .info-inline > summary::before { content: "ⓘ"; }
+  .info-inline > summary::after { display: none; }
+  .info-inline[open] > summary { color: var(--accent); }
+  .info-inline-body {
+    margin-top: 6px;
+    padding: 8px 10px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    font-size: 11.5px;
+    color: var(--text-2);
+    line-height: 1.55;
+  }
+  .card-info {
+    margin-top: 8px;
+    border-top: 0.5px solid var(--border);
+    padding-top: 8px;
+  }
+  .card-info > summary {
+    list-style: none;
+    cursor: pointer;
+    font-size: 11.5px;
+    color: var(--accent);
+    user-select: none;
+  }
+  .card-info > summary::-webkit-details-marker { display: none; }
+  .card-info > summary::before { content: "ⓘ "; }
+  .card-info-body {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-radius: 6px;
+    font-size: 11.5px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+  .card-info-body p { margin: 0 0 6px; }
+  .card-info-body p:last-child { margin-bottom: 0; }
+  .card-info-body b { color: var(--text); font-weight: 500; }
+
   .cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -184,6 +294,7 @@
   .chip-nds { background: var(--nds-bg); color: var(--nds); }
   .chip-pn  { background: var(--pn-bg);  color: var(--pn); }
   .chip-vk  { background: var(--vk-bg);  color: var(--vk); }
+  .chip-gx  { background: var(--gx-bg);  color: var(--gx); }
   .chip-neutral { background: var(--neutral-bg); color: var(--neutral); }
 
   .card-meta { font-size: 12px; color: var(--text-2); line-height: 1.7; margin-bottom: 12px; }
@@ -284,6 +395,21 @@
     <span id="syncMsg">Iniciando...</span>
   </div>
 
+  <details class="info">
+    <summary>Cómo funciona esta página</summary>
+    <div class="info-body">
+      <p>Esta página muestra los <b>cobros proyectados y recibidos</b> de los contratos de nueces de la temporada 2026. Los datos se cargan desde el Google Sheet <code>Milestones_Nueces</code> y se cruzan con los pagos efectivos registrados en <code>Pagos_Nueces</code>.</p>
+      <p><b>Estructura:</b></p>
+      <ul>
+        <li><b>KPIs (arriba):</b> totales agregados de los 4 clientes — kg comprometidos, anticipos proyectados, recibido a la fecha y pendiente.</li>
+        <li><b>Gantt anual:</b> una fila por cliente, con un punto por cada hito de cobro (anticipo, PMG o liquidación). Los puntos se pintan en verde cuando el cobro está recibido.</li>
+        <li><b>Tarjetas:</b> detalle por cliente con su lista de hitos. Marca el checkbox cuando recibas el pago e ingresa el monto real si difiere del proyectado.</li>
+      </ul>
+      <p><b>Tipo de cambio:</b> editable arriba (default 820). Afecta solo la visualización en CLP — los montos en USD del contrato se mantienen fijos.</p>
+      <p><b>Sincronización:</b> los cambios se guardan automáticamente al Sheet. El indicador de estado (arriba a la izquierda) muestra si la sincronización fue exitosa.</p>
+    </div>
+  </details>
+
   <div class="controls">
     <div class="ctrl-group">
       <span class="ctrl-label">TC USD→CLP</span>
@@ -309,11 +435,21 @@
     </div>
   </div>
 
+  <details class="info">
+    <summary>Qué hace cada control</summary>
+    <div class="info-body">
+      <p><b>TC USD→CLP:</b> tipo de cambio usado para convertir los montos USD del contrato a pesos chilenos. Es un valor fijo y editable — no se actualiza automáticamente. Default: 820. Solo afecta cómo se ven los montos cuando estás en CLP; los valores en USD del contrato no cambian.</p>
+      <p><b>Moneda (CLP / USD):</b> cambia la moneda en que se muestran todos los montos de la página. Los contratos están denominados en USD, pero el dashboard puede mostrarlos en CLP para conveniencia.</p>
+      <p><b>Pacific Nut rend. (Sobre 48% / Bajo 48%):</b> Pacific Nut paga distinto según el rendimiento de pulpa de la nuez. Si el rendimiento es <b>sobre 48%</b> se usa el escenario optimista (USD/kg más alto); <b>bajo 48%</b> usa el conservador. Solo afecta los montos proyectados de PN; los demás clientes tienen precio único.</p>
+      <p><b>⟳ Recargar:</b> fuerza una relectura desde el Google Sheet por si hubo cambios externos (otra persona editó los pagos directamente en el Sheet).</p>
+    </div>
+  </details>
+
   <div class="kpi-row">
     <div class="kpi">
       <div class="kpi-label">Kg comprometidos</div>
       <div class="kpi-val" id="kpiKg">190.000</div>
-      <div class="kpi-hint" id="kpiKgHint">NDS · PN · VK</div>
+      <div class="kpi-hint" id="kpiKgHint">NDS · PN · VK · GX</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Total anticipos proyectado</div>
@@ -332,6 +468,16 @@
     </div>
   </div>
 
+  <details class="info">
+    <summary>Cómo se calculan los KPIs</summary>
+    <div class="info-body">
+      <p><b>Kg comprometidos:</b> suma de los kg contratados de los 4 clientes (NDS 60.000 + PN 40.000 + VK 50.000 + GX 40.000 = 190.000 kg).</p>
+      <p><b>Total anticipos proyectado:</b> suma de todos los hitos tipo <code>anticipo</code> × kg del cliente × USD/kg. Incluye los anticipos firmados y pactados, pero <b>excluye</b> las liquidaciones finales de diciembre (cuyo monto depende del precio de venta final y aún no se conoce). Si Pacific Nut está en escenario "Bajo 48%" se usa <code>usd_kg_con</code> en vez de <code>usd_kg_opt</code>.</p>
+      <p><b>Recibido a la fecha:</b> suma de los hitos marcados como recibidos. Si el monto real difiere del proyectado, se usa el real. El % se calcula sobre el total proyectado.</p>
+      <p><b>Pendiente:</b> proyectado − recibido. Incluye los anticipos aún no cobrados y las liquidaciones de diciembre.</p>
+    </div>
+  </details>
+
   <div class="gantt">
     <div class="gantt-title">
       <span>Calendario anual de cobros 2026</span>
@@ -346,6 +492,33 @@
       <svg id="ganttSvg" width="100%" viewBox="0 0 900 300" preserveAspectRatio="xMinYMin meet" style="min-width: 760px;"></svg>
     </div>
   </div>
+
+  <details class="info">
+    <summary>Cómo leer el calendario</summary>
+    <div class="info-body">
+      <p>Cada fila representa un cliente. Cada marca en el calendario representa un hito de cobro:</p>
+      <ul>
+        <li><b>○ Anticipo:</b> pago programado contra factura — son cobros relativamente seguros.</li>
+        <li><b>◆ Precio mín. garantizado (PMG):</b> aplica solo a Pacific Nut. En octubre se confirma el precio mínimo y se ajusta el pago de octubre con la diferencia.</li>
+        <li><b>▪ Liquidación final:</b> el saldo final del contrato, que se determina recién en diciembre cuando el comprador exporta la fruta y calcula el precio promedio real. <b>El monto no está fijo</b> — depende del precio de venta, calidad de la fruta y descuentos de proceso/exportación.</li>
+        <li><b>● Recibido (verde):</b> hito marcado como cobrado en la tarjeta correspondiente.</li>
+      </ul>
+      <p>Pasa el mouse sobre cada marca para ver fecha, monto y estado.</p>
+    </div>
+  </details>
+
+  <details class="info">
+    <summary>Cómo usar las tarjetas de cliente</summary>
+    <div class="info-body">
+      <p>Cada tarjeta muestra el detalle de un contrato. Para cada hito:</p>
+      <ul>
+        <li><b>Marcar el checkbox</b> cuando se reciba el pago. El hito pasa a "recibido" y se actualiza el KPI y el Gantt.</li>
+        <li><b>Ingresar monto real</b> si difiere del proyectado (por TC, ajustes de calidad, descuentos, etc.). Si lo dejas vacío, se usa el monto proyectado.</li>
+        <li><b>Observación:</b> espacio libre para anotar diferencias, número de factura, etc.</li>
+      </ul>
+      <p>Los cambios se guardan automáticamente. Si el indicador de sync arriba está rojo, los cambios quedan en localStorage hasta que se restaure la conexión.</p>
+    </div>
+  </details>
 
   <div class="cards" id="cardsContainer"></div>
 
@@ -475,19 +648,43 @@ const MILESTONES_FALLBACK = [
   { milestone_id: 'vk_mar',    cliente: 'VK',  kg: 50000, fecha_prog: '2026-03-15', usd_kg_opt: 0.50, usd_kg_con: 0.50, tipo: 'anticipo', label: 'Marzo 2026' },
   { milestone_id: 'vk_may',    cliente: 'VK',  kg: 50000, fecha_prog: '2026-05-15', usd_kg_opt: 0.50, usd_kg_con: 0.50, tipo: 'anticipo', label: 'Mayo 2026' },
   { milestone_id: 'vk_jul',    cliente: 'VK',  kg: 50000, fecha_prog: '2026-07-15', usd_kg_opt: 0.80, usd_kg_con: 0.80, tipo: 'anticipo', label: 'Julio 2026' },
-  { milestone_id: 'vk_liq',    cliente: 'VK',  kg: 50000, fecha_prog: '2026-12-30', usd_kg_opt: null, usd_kg_con: null, tipo: 'liquidacion', label: '30 dic 2026 (liq.)' }
+  { milestone_id: 'vk_liq',    cliente: 'VK',  kg: 50000, fecha_prog: '2026-12-30', usd_kg_opt: null, usd_kg_con: null, tipo: 'liquidacion', label: '30 dic 2026 (liq.)' },
+  { milestone_id: 'gx_may',    cliente: 'GX',  kg: 40000, fecha_prog: '2026-05-21', usd_kg_opt: 0.50, usd_kg_con: 0.50, tipo: 'anticipo', label: 'Mayo 2026' },
+  { milestone_id: 'gx_jun',    cliente: 'GX',  kg: 40000, fecha_prog: '2026-06-18', usd_kg_opt: 0.50, usd_kg_con: 0.50, tipo: 'anticipo', label: 'Junio 2026' },
+  { milestone_id: 'gx_ago',    cliente: 'GX',  kg: 40000, fecha_prog: '2026-08-20', usd_kg_opt: 0.50, usd_kg_con: 0.50, tipo: 'anticipo', label: 'Agosto 2026' },
+  { milestone_id: 'gx_oct',    cliente: 'GX',  kg: 40000, fecha_prog: '2026-10-15', usd_kg_opt: 0.30, usd_kg_con: 0.30, tipo: 'anticipo', label: 'Octubre 2026' },
+  { milestone_id: 'gx_liq',    cliente: 'GX',  kg: 40000, fecha_prog: '2026-12-07', usd_kg_opt: null, usd_kg_con: null, tipo: 'liquidacion', label: '1ra sem dic (liq.)' }
 ];
 
 const CLIENTES_META = {
   NDS: { nombre: 'NDS · Nueces del Sur', chipClass: 'chip-nds', color: '#534AB7', bgColor: '#EEEDFE', modalidad: 'Consignación · comisión 8%', extras: 'Secado USD 0,28/kg (descuento)' },
   PN:  { nombre: 'Pacific Nut',          chipClass: 'chip-pn',  color: '#0F6E56', bgColor: '#E1F5EE', modalidad: 'Consignación · comisión 8%', extras: 'Descuentos: secado USD 0,14/kg · análisis 5 UF · proceso USD 0,49/kg (cáscara)' },
-  VK:  { nombre: 'Vitakai',              chipClass: 'chip-vk',  color: '#BA7517', bgColor: '#FAEEDA', modalidad: 'Compraventa · comisión 8%',   extras: 'Bonificación 50% flete campo-planta' }
+  VK:  { nombre: 'Vitakai',              chipClass: 'chip-vk',  color: '#BA7517', bgColor: '#FAEEDA', modalidad: 'Compraventa · comisión 8%',   extras: 'Bonificación 50% flete campo-planta' },
+  GX:  { nombre: 'Growex',               chipClass: 'chip-gx',  color: '#A32D2D', bgColor: '#FCEBEB', modalidad: 'Consignación · comisión 6%', extras: 'Secado USD 0,31/kg (descuento si aplica)' }
 };
 
-const PLACEHOLDERS = [
-  { id: 'VV', nombre: 'Vista Volcán',     texto: 'Cliente histórico sin contrato cargado. Completar con fechas y montos al recibir documento.' },
-  { id: '2N', nombre: 'Inversiones 2N',   texto: 'Cliente histórico sin contrato cargado. Completar con fechas y montos al recibir documento.' }
-];
+const CLIENTES_DETALLE = {
+  NDS: `<p><b>Modalidad:</b> Consignación con anticipos. Los Crisoles entrega la fruta a NDS, quien la procesa, comercializa y liquida el saldo en diciembre. La propiedad pasa al comprador al momento de la entrega.</p>
+        <p><b>Comisión:</b> 8% sobre el total de ingresos por comercialización.</p>
+        <p><b>Descuentos del precio final:</b> servicio de secado USD 0,28/kg sobre la fruta seca + costos de proceso de exportación + comisión.</p>
+        <p><b>Liquidación:</b> 3ra semana de diciembre. El precio final depende del precio promedio obtenido por categoría de calidad.</p>`,
+  PN:  `<p><b>Modalidad:</b> Consignación con anticipos. La fruta se entrega para procesamiento y exportación.</p>
+        <p><b>Comisión:</b> 8% sobre el total de ingresos.</p>
+        <p><b>Particularidad — rendimiento:</b> Pacific Nut tiene dos escenarios de pago según el rendimiento de pulpa: <b>sobre 48%</b> paga más por kg (escenario optimista), <b>bajo 48%</b> paga menos (escenario conservador). El switch arriba afecta solo a este cliente.</p>
+        <p><b>PMG (Precio Mínimo Garantizado):</b> en octubre se confirma el PMG y se ajusta el saldo pendiente con un pago intermedio.</p>
+        <p><b>Descuentos:</b> secado USD 0,14/kg · análisis de calidad 5 UF · proceso de cáscara USD 0,49/kg.</p>`,
+  VK:  `<p><b>Modalidad:</b> Compraventa (no consignación). La operación funciona como una venta directa con anticipos, no como liquidación a fin de temporada.</p>
+        <p><b>Comisión:</b> 8% sobre el total de ingresos.</p>
+        <p><b>Bonificación:</b> Vitakai paga el 50% del flete campo-planta — esto reduce el costo logístico de Los Crisoles.</p>
+        <p><b>Liquidación:</b> 30 de diciembre. Saldo final tras ajustar por calidad efectiva y descuentos.</p>`,
+  GX:  `<p><b>Comprador:</b> Exportadora Growex S.A. (RUT 76.185.455-0) · Camino Las Parcelas, Isla de Maipo.</p>
+        <p><b>Modalidad:</b> Consignación con anticipos. Variedad Chandler, 40.000 kg para temporada 2026.</p>
+        <p><b>Comisión:</b> 6% sobre el "Total Ingreso" — la comisión más baja de los 4 contratos.</p>
+        <p><b>Anticipos:</b> USD 1,8/kg distribuidos en 4 cuotas (mayo 0,5 · junio 0,5 · agosto 0,5 · octubre 0,3), pagados antes del 3er jueves de cada mes contra emisión de factura.</p>
+        <p><b>Secado y despelonado:</b> se realiza en planta Servicios Vista Volcán (Requínoa), valor USD 0,31/kg de fruta seca. Lo paga Growex y se descuenta de la cuota acordada.</p>
+        <p><b>Calidad:</b> fruta debe cumplir norma CHWC-INN. Análisis disponible en 48h tras recepción; se aprueba si no hay discrepancias en 7 días.</p>
+        <p><b>Liquidación final:</b> primera semana de diciembre 2026. Si el comprador anticipó más que el precio final, Los Crisoles debe saldar la diferencia antes de fin de año — de lo contrario el contrato se renueva automáticamente para la temporada siguiente.</p>`
+};
 
 // ============================================================
 // STATE
@@ -710,7 +907,7 @@ function renderGantt() {
   const monthWidth = (width - leftPad - 20) / 12;
 
   const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const clientesActivos = ['NDS', 'PN', 'VK'];
+  const clientesActivos = ['NDS', 'PN', 'VK', 'GX'];
 
   let html = '';
 
@@ -729,7 +926,7 @@ function renderGantt() {
     const rowY = topPad + idx * rowHeight;
     const rowMidY = rowY + rowHeight / 2;
 
-    const label = clienteId === 'NDS' ? 'NDS' : clienteId === 'PN' ? 'Pacific Nut' : 'Vitakai';
+    const label = clienteId === 'NDS' ? 'NDS' : clienteId === 'PN' ? 'Pacific Nut' : clienteId === 'VK' ? 'Vitakai' : 'Growex';
     html += `<text x="${leftPad - 12}" y="${rowMidY + 4}" text-anchor="end" font-size="12" font-weight="500" fill="#1c1c1a" font-family="inherit">${label}</text>`;
     html += `<rect x="${leftPad}" y="${rowY + 8}" width="${width - leftPad - 20}" height="${rowHeight - 16}" rx="4" fill="${meta.bgColor}" opacity="0.35"/>`;
 
@@ -756,10 +953,9 @@ function renderGantt() {
     });
   });
 
-  const placeY = topPad + clientesActivos.length * rowHeight + 15;
-  html += `<text x="${width/2}" y="${placeY}" text-anchor="middle" font-size="11" fill="#8a8a85" font-style="italic" font-family="inherit">Vista Volcán · Inversiones 2N — sin contrato cargado</text>`;
+  const bottomY = topPad + clientesActivos.length * rowHeight + 15;
 
-  svg.setAttribute('viewBox', `0 0 ${width} ${placeY + 20}`);
+  svg.setAttribute('viewBox', `0 0 ${width} ${bottomY + 10}`);
   svg.innerHTML = html;
 }
 
@@ -771,7 +967,7 @@ function renderCards() {
   const container = document.getElementById('cardsContainer');
   let html = '';
 
-  ['NDS', 'PN', 'VK'].forEach(clienteId => {
+  ['NDS', 'PN', 'VK', 'GX'].forEach(clienteId => {
     const meta = CLIENTES_META[clienteId];
     const kg = getClientKg(clienteId);
     const total_usd_kg = getClientTotalUsdKg(clienteId);
@@ -848,17 +1044,14 @@ function renderCards() {
     html += `<b>${fmtMoney(totalReceived, state.currency)} / ${fmtMoney(totalProjectedCurrency, state.currency)}</b>`;
     html += `</div>`;
 
-    html += `</div>`;
-  });
+    const detalle = CLIENTES_DETALLE[clienteId];
+    if (detalle) {
+      html += `<details class="card-info">`;
+      html += `<summary>Ver detalle del contrato</summary>`;
+      html += `<div class="card-info-body">${detalle}</div>`;
+      html += `</details>`;
+    }
 
-  // Placeholders
-  PLACEHOLDERS.forEach(p => {
-    html += `<div class="card placeholder">`;
-    html += `<div class="card-head">`;
-    html += `<h3 class="card-name">${p.nombre}</h3>`;
-    html += `<span class="card-chip chip-neutral">sin contrato</span>`;
-    html += `</div>`;
-    html += `<div class="card-meta" style="font-style:italic; color: var(--text-3);">${p.texto}</div>`;
     html += `</div>`;
   });
 
@@ -877,7 +1070,7 @@ function renderCards() {
 }
 
 function updateCardTotals() {
-  ['NDS', 'PN', 'VK'].forEach((clienteId, idx) => {
+  ['NDS', 'PN', 'VK', 'GX'].forEach((clienteId, idx) => {
     const kg = getClientKg(clienteId);
     const total_usd_kg = getClientTotalUsdKg(clienteId);
     const totalUsd = total_usd_kg * kg;
@@ -932,7 +1125,7 @@ function renderKPIs() {
   let totalKg = 0;
   const kgByClient = [];
 
-  ['NDS', 'PN', 'VK'].forEach(clienteId => {
+  ['NDS', 'PN', 'VK', 'GX'].forEach(clienteId => {
     const kg = getClientKg(clienteId);
     totalKg += kg;
     kgByClient.push(`${clienteId} ${(kg/1000).toFixed(0)}k`);
