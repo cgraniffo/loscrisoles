@@ -848,6 +848,45 @@ function setResOrden(col) {
   renderResultados();
 }
 
+// ── Expansión cultivo → UPs en pestaña Resultados ────────────────────────────
+function toggleResCultivoExpand(cultivo) {
+  const sel = `[data-cultivo-child="${CSS.escape(cultivo)}"]`;
+  const childs = document.querySelectorAll(sel);
+  const arrow  = document.querySelector(`.res-cult-arrow[data-cultivo="${CSS.escape(cultivo)}"]`);
+  let expanded = false;
+  childs.forEach(tr => {
+    if (tr.style.display === "none") { tr.style.display = ""; expanded = true; }
+    else { tr.style.display = "none"; }
+  });
+  if (arrow) arrow.style.transform = expanded ? "rotate(90deg)" : "rotate(0deg)";
+  // Si se colapsa el cultivo, cerrar también los docs de sus UPs
+  if (!expanded) {
+    childs.forEach(tr => {
+      const inner = tr.querySelectorAll('[data-up-row]');
+      inner.forEach(upRow => {
+        const upId = upRow.getAttribute('data-up-row');
+        const docs = document.querySelector(`[data-up-docs="${CSS.escape(upId)}"]`);
+        if (docs) docs.style.display = "none";
+        const upArrow = document.querySelector(`.res-up-arrow[data-up="${CSS.escape(upId)}"]`);
+        if (upArrow) upArrow.style.transform = "rotate(0deg)";
+      });
+    });
+  }
+}
+
+function toggleResUpExpand(upId) {
+  const docs = document.querySelector(`[data-up-docs="${CSS.escape(upId)}"]`);
+  const arrow = document.querySelector(`.res-up-arrow[data-up="${CSS.escape(upId)}"]`);
+  if (!docs) return;  // UP sin docs
+  if (docs.style.display === "none") {
+    docs.style.display = "";
+    if (arrow) arrow.style.transform = "rotate(90deg)";
+  } else {
+    docs.style.display = "none";
+    if (arrow) arrow.style.transform = "rotate(0deg)";
+  }
+}
+
 function renderResultados() {
   const FECHA_CORTE = FECHA_CORTE_COSTOS;
   const tempActiva  = TEMPORADA_ACTIVA || getTemporadaActiva();
@@ -1002,8 +1041,19 @@ function renderResultados() {
 
   const unidad = stateResultados.unidad;
 
-  // ── TABLA ────────────────────────────────────────────────────────────────
-  const tbody = filas.map(r => {
+  // ── TABLA AGRUPADA: Cultivo → UP → Docs ──────────────────────────────────
+  // Las facturas vienen del bridge _ingresosData (con NC restando y ya filtradas)
+  const facturasPorUP = {};
+  Object.values(_ingData.cultivoRows || {}).forEach(data => {
+    (data.facturas || []).forEach(f => {
+      const up = f.up || "—";
+      if (!facturasPorUP[up]) facturasPorUP[up] = [];
+      facturasPorUP[up].push(f);
+    });
+  });
+
+  // Construir helper para renderizar una fila UP
+  const renderUpRow = (r) => {
     const clsR = r.mgnReal === null ? "color:#aaa;" : (r.mgnReal >= 0 ? "color:#1a6e3a;" : "color:#cc2222;");
     const clsP = r.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
     const avC  = r.pctAv >= 100 ? "#1a6e3a" : r.pctAv >= 50 ? "#d97706" : "#888";
@@ -1012,8 +1062,10 @@ function renderResultados() {
     const costoLbl  = r.cPrr > 0
       ? `<b>${fmtPeso(r.cTot)}</b><br><span style="font-size:9px;color:#888;">${fmtPeso(r.cDir)} + ${fmtPeso(r.cPrr)}</span>`
       : `<b>${fmtPeso(r.cTot)}</b>`;
-    return `<tr onclick="abrirDrawerUP('${r.id}')" style="cursor:pointer;border-bottom:1px solid #f0ede6;" onmouseover="this.style.background='#fafaf7'" onmouseout="this.style.background=''">
-      <td style="padding:10px 12px;font-weight:600;">${r.nombre}<br><span style="font-size:10px;color:#888;font-weight:400;">${r.fundo}</span></td>
+    const hasDocs = (facturasPorUP[r.id] || []).length > 0;
+    const expandIcon = hasDocs ? `<span class="res-up-arrow" data-up="${r.id}" style="display:inline-block;margin-right:6px;font-size:10px;color:#888;transition:transform 0.15s;">▶</span>` : `<span style="display:inline-block;margin-right:6px;width:10px;"></span>`;
+    return `<tr data-up-row="${r.id}" onclick="toggleResUpExpand('${r.id}')" style="cursor:pointer;border-bottom:1px solid #f0ede6;background:#fff;" onmouseover="this.style.background='#fafaf7'" onmouseout="this.style.background='#fff'">
+      <td style="padding:10px 12px;font-weight:600;padding-left:32px;">${expandIcon}${r.nombre}<br><span style="font-size:10px;color:#888;font-weight:400;margin-left:16px;">${r.fundo}</span></td>
       <td style="text-align:right;padding:10px 12px;color:#555;">${r.ha}</td>
       <td style="text-align:right;padding:10px 12px;color:#b45309;">${fmtPeso(r.pptoI)}</td>
       <td style="text-align:right;padding:10px 12px;color:#1a6e3a;">${r.factI>0?fmtPeso(r.factI):"—"}</td>
@@ -1021,7 +1073,7 @@ function renderResultados() {
       <td style="text-align:right;padding:10px 12px;font-weight:700;${clsP}">${fmtPeso(r.mgnPpto)}</td>
       <td style="text-align:right;padding:10px 12px;font-weight:700;${clsR}">${r.mgnReal !== null ? fmtPeso(r.mgnReal) : "—"}</td>
       <td style="text-align:right;padding:10px 12px;${clsR}">${medidaVal ? fmtPeso(medidaVal)+medidaLbl : "—"}</td>
-      <td style="padding:10px 12px;">
+      <td style="padding:10px 12px;" onclick="event.stopPropagation();abrirDrawerUP('${r.id}')">
         <div style="display:flex;align-items:center;gap:6px;">
           <div style="height:6px;background:#f0ede6;border-radius:3px;width:50px;">
             <div style="height:6px;background:${avC};border-radius:3px;width:${Math.min(100,r.pctAv)*0.5}px;"></div>
@@ -1030,6 +1082,107 @@ function renderResultados() {
         </div>
       </td>
     </tr>`;
+  };
+
+  // Helper para renderizar las filas de documentos de una UP
+  const renderDocsRows = (upId) => {
+    const docs = (facturasPorUP[upId] || []).slice().sort((a,b) => String(a.fecha).localeCompare(String(b.fecha)));
+    if (docs.length === 0) return "";
+    const docRows = docs.map(d => {
+      const isNC = d.tipo === "nc";
+      const color = isNC ? "#cc2222" : "#1a6e3a";
+      const tipoBadge = isNC ? `<span style="background:#fee2e2;color:#991b1b;font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;margin-right:6px;">NC</span>` : "";
+      const fechaCorta = d.fecha ? String(d.fecha).slice(0,10) : "—";
+      return `<tr style="background:#fafaf7;border-bottom:1px solid #f0ede6;">
+        <td colspan="9" style="padding:6px 12px 6px 60px;font-size:11px;color:#555;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="color:#888;min-width:80px;">${fechaCorta}</span>
+            ${tipoBadge}<span style="font-weight:600;color:#444;">F:${d.folio||"—"}</span>
+            <span style="flex:1;color:#666;">${d.razon||"—"}</span>
+            <span style="font-weight:700;color:${color};min-width:100px;text-align:right;">${fmtPeso(d.monto)}</span>
+          </div>
+        </td>
+      </tr>`;
+    }).join("");
+    return `<tr data-up-docs="${upId}" style="display:none;"><td colspan="9" style="padding:0;background:#fafaf7;"><table style="width:100%;border-collapse:collapse;"><tbody>${docRows}</tbody></table></td></tr>`;
+  };
+
+  // Agrupar filas por cultivo
+  const filasPorCultivo = {};
+  filas.forEach(r => {
+    const cultivo = (CULTIVO_MAP[r.id] || "Sin clasificar").trim() || "Sin clasificar";
+    if (!filasPorCultivo[cultivo]) filasPorCultivo[cultivo] = [];
+    filasPorCultivo[cultivo].push(r);
+  });
+
+  // Ordenar cultivos por suma de margen real (o ppto si no hay real)
+  const cultivosOrdenados = Object.entries(filasPorCultivo).sort((a,b) => {
+    const mgnA = a[1].reduce((s,r) => s + (r.mgnReal !== null ? r.mgnReal : r.mgnPpto), 0);
+    const mgnB = b[1].reduce((s,r) => s + (r.mgnReal !== null ? r.mgnReal : r.mgnPpto), 0);
+    return mgnB - mgnA;
+  });
+
+  // Construir el HTML agrupado
+  const tbody = cultivosOrdenados.map(([cultivo, filasUp]) => {
+    // Totales del cultivo
+    const ct = filasUp.reduce((acc,r) => {
+      acc.pptoI += r.pptoI;
+      acc.factI += r.factI;
+      acc.cDir  += r.cDir;
+      acc.cPrr  += r.cPrr;
+      acc.cTot  += r.cTot;
+      acc.ha    += r.ha;
+      acc.mgnPpto += r.mgnPpto;
+      acc.mgnReal += (r.mgnReal !== null ? r.mgnReal : 0);
+      acc.tieneReal = acc.tieneReal || (r.mgnReal !== null);
+      return acc;
+    }, { pptoI:0, factI:0, cDir:0, cPrr:0, cTot:0, ha:0, mgnPpto:0, mgnReal:0, tieneReal:false });
+    const ctMgnReal = ct.tieneReal ? ct.mgnReal : null;
+    const ctClsP = ct.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
+    const ctClsR = ctMgnReal === null ? "color:#aaa;" : (ctMgnReal >= 0 ? "color:#1a6e3a;" : "color:#cc2222;");
+    const ctPctAv = ct.pptoI > 0 ? Math.round(ct.factI/ct.pptoI*100) : 0;
+    const ctAvC  = ctPctAv >= 100 ? "#1a6e3a" : ctPctAv >= 50 ? "#d97706" : "#888";
+    const cultivoSafe = cultivo.replace(/'/g,"\\'");
+    const ctCostoLbl = ct.cPrr > 0
+      ? `<b>${fmtPeso(ct.cTot)}</b><br><span style="font-size:9px;color:#888;font-weight:400;">${fmtPeso(ct.cDir)} + ${fmtPeso(ct.cPrr)}</span>`
+      : `<b>${fmtPeso(ct.cTot)}</b>`;
+
+    // Header de cultivo (expandible)
+    const cultivoHeader = `<tr data-cultivo-row="${cultivoSafe}" onclick="toggleResCultivoExpand('${cultivoSafe}')" style="cursor:pointer;background:#f0ede6;border-bottom:2px solid #d5d0c0;font-weight:700;">
+      <td style="padding:10px 12px;">
+        <span class="res-cult-arrow" data-cultivo="${cultivoSafe}" style="display:inline-block;margin-right:8px;font-size:11px;color:#555;transition:transform 0.15s;">▶</span>
+        <span style="color:#1a3a0a;font-size:13px;">${cultivo}</span>
+        <span style="font-size:10px;color:#888;font-weight:400;margin-left:6px;">· ${filasUp.length} UP${filasUp.length>1?'s':''}</span>
+      </td>
+      <td style="text-align:right;padding:10px 12px;color:#555;">${ct.ha}</td>
+      <td style="text-align:right;padding:10px 12px;color:#b45309;">${fmtPeso(ct.pptoI)}</td>
+      <td style="text-align:right;padding:10px 12px;color:#1a6e3a;">${ct.factI>0?fmtPeso(ct.factI):"—"}</td>
+      <td style="text-align:right;padding:10px 12px;color:#cc2222;">${ctCostoLbl}</td>
+      <td style="text-align:right;padding:10px 12px;${ctClsP}">${fmtPeso(ct.mgnPpto)}</td>
+      <td style="text-align:right;padding:10px 12px;${ctClsR}">${ctMgnReal !== null ? fmtPeso(ctMgnReal) : "—"}</td>
+      <td style="text-align:right;padding:10px 12px;color:#888;font-size:11px;">—</td>
+      <td style="padding:10px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="height:6px;background:#fff;border-radius:3px;width:50px;">
+            <div style="height:6px;background:${ctAvC};border-radius:3px;width:${Math.min(100,ctPctAv)*0.5}px;"></div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:${ctAvC};">${ctPctAv>0?ctPctAv+"%":"—"}</span>
+        </div>
+      </td>
+    </tr>`;
+
+    // Filas hijas (UPs) — ocultas por defecto
+    const upRows = filasUp.map(r => {
+      return `<tr data-cultivo-child="${cultivoSafe}" style="display:none;">
+        <td colspan="9" style="padding:0;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <tbody>${renderUpRow(r)}${renderDocsRows(r.id)}</tbody>
+          </table>
+        </td>
+      </tr>`;
+    }).join("");
+
+    return cultivoHeader + upRows;
   }).join("");
 
   const totalCostoLbl = t.cPrr > 0
@@ -1150,7 +1303,7 @@ function renderResultados() {
     <!-- TABLA UNIFICADA -->
     <div class="stat-card" style="margin-bottom:12px;padding:0;overflow:hidden;">
       <div style="padding:10px 16px;border-bottom:1px solid #f0ede6;display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:13px;font-weight:700;">Comparativa por UP — ${filas.length} UPs</div>
+        <div style="font-size:13px;font-weight:700;">Desglose por cultivo · ${filas.length} UPs en ${Object.keys(filasPorCultivo).length} cultivos</div>
         <div style="display:flex;gap:4px;align-items:center;">
           <span style="font-size:10px;color:#888;margin-right:4px;">Vista:</span>
           <button class="fbtn${unidad==='ha'?' on':''}" onclick="setResUnidad('ha')">$/Há</button>
