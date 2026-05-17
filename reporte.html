@@ -1075,8 +1075,18 @@ function renderResultados() {
 
   // Ordenar cultivos por margen real (o ppto si no hay real)
   const cultivosOrdenados = Object.entries(filasPorCultivo).sort((a,b) => {
-    const mgnA = a[1].reduce((s,r) => s + (r.mgnReal !== null ? r.mgnReal : r.mgnPpto), 0);
-    const mgnB = b[1].reduce((s,r) => s + (r.mgnReal !== null ? r.mgnReal : r.mgnPpto), 0);
+    // "Otros" siempre al final
+    const aIsOtros = a[0].toLowerCase() === "otros";
+    const bIsOtros = b[0].toLowerCase() === "otros";
+    if (aIsOtros && !bIsOtros) return 1;
+    if (bIsOtros && !aIsOtros) return -1;
+    // Resto: ordenar SOLO por Margen Real (sin caer a Ppto). Los que no tienen Real van al final.
+    const mgnA = a[1].reduce((s,r) => s + (r.mgnReal !== null ? r.mgnReal : 0), 0);
+    const mgnB = b[1].reduce((s,r) => s + (r.mgnReal !== null ? r.mgnReal : 0), 0);
+    const tieneRealA = a[1].some(r => r.mgnReal !== null);
+    const tieneRealB = b[1].some(r => r.mgnReal !== null);
+    if (tieneRealA && !tieneRealB) return -1;
+    if (tieneRealB && !tieneRealA) return 1;
     return mgnB - mgnA;
   });
 
@@ -1113,8 +1123,11 @@ function renderResultados() {
     // ── Filas UP dentro del cultivo (ordenadas por margen) ────────
     const upsRows = filasUp.slice()
       .sort((a,b) => {
-        const ma = a.mgnReal !== null ? a.mgnReal : a.mgnPpto;
-        const mb = b.mgnReal !== null ? b.mgnReal : b.mgnPpto;
+        // Ordenar SOLO por Margen Real. Las UPs sin Real van al final.
+        if (a.mgnReal !== null && b.mgnReal === null) return -1;
+        if (b.mgnReal !== null && a.mgnReal === null) return 1;
+        const ma = a.mgnReal !== null ? a.mgnReal : 0;
+        const mb = b.mgnReal !== null ? b.mgnReal : 0;
         return mb - ma;
       })
       .map(r => {
