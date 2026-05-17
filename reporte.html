@@ -1080,9 +1080,11 @@ function renderResultados() {
     return mgnB - mgnA;
   });
 
-  // Grid de columnas para card (cultivo) y filas internas (UP) — mantener consistente
-  // 30px chevron | 1.6fr nombre | 0.6fr há | PPTO(ing,costo,mgn) | REAL(ing,costo,mgn) | 0.5fr avance
-  const COLS_CARD = "30px 1.6fr 0.5fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.5fr";
+  // Grid de columnas — 11 columnas
+  // 30px chevron | 1.6fr nombre | 0.5fr há | PPTO(ing,costo,mgn) | REAL(ing,costo,mgn) | 0.6fr mgn/unidad | 0.5fr avance
+  const COLS_CARD = "30px 1.6fr 0.5fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.7fr 0.6fr 0.5fr";
+  const medidaLbl = unidad === "ton" ? "/Ton" : "/Há";
+  const TIP_MGN_UNIDAD = unidad === "ton" ? TIP_MGN_TON : TIP_COSTO_HA.replace("Costo","Margen");
 
   const tbody = cultivosOrdenados.map(([cultivo, filasUp]) => {
     // Totales del cultivo (agregados de las UPs)
@@ -1104,6 +1106,9 @@ function renderResultados() {
     const ctAvC     = ctPctAv >= 75 ? "#1a6e3a" : ctPctAv >= 25 ? "#d97706" : "#ef4444";
     const ctClsP    = ct.mgnPpto >= 0 ? "color:#1a6e3a;" : "color:#cc2222;";
     const ctClsR    = ctMgnReal === null ? "color:#aaa;" : (ctMgnReal >= 0 ? "color:#1a6e3a;" : "color:#cc2222;");
+    // Margen por unidad (por há o por tonelada) del cultivo
+    const ctMgnBase  = ctMgnReal !== null ? ctMgnReal : ct.mgnPpto;
+    const ctMedidaVal = unidad === "ton" ? (ct.toneladas > 0 ? ctMgnBase / ct.toneladas : 0) : (ct.ha > 0 ? ctMgnBase / ct.ha : 0);
 
     // ── Filas UP dentro del cultivo (ordenadas por margen) ────────
     const upsRows = filasUp.slice()
@@ -1166,6 +1171,7 @@ function renderResultados() {
             <div style="text-align:right;color:#1a6e3a;">${r.factI > 0 ? fmtPeso(r.factI) : "—"}</div>
             <div style="text-align:right;color:#cc2222;">${costoLbl}</div>
             <div style="text-align:right;font-weight:600;${clsR}">${r.mgnReal !== null ? fmtPeso(r.mgnReal) : "—"}</div>
+            <div style="text-align:right;font-size:10px;${clsR}">${(unidad === "ton" ? r.mgnTon : r.mgnHa) ? fmtPeso(unidad === "ton" ? r.mgnTon : r.mgnHa) : "—"}</div>
             <div style="text-align:right;font-weight:700;color:${avC};">${r.pctAv > 0 ? r.pctAv + "%" : "—"}</div>
           </summary>
           <div style="padding:4px 14px 8px 44px;">
@@ -1192,6 +1198,7 @@ function renderResultados() {
         <div style="text-align:right;font-size:12px;color:#1a6e3a;font-weight:600;">${ct.factI > 0 ? fmtPeso(ct.factI) : "—"}</div>
         <div style="text-align:right;font-size:12px;color:#cc2222;font-weight:600;">${fmtPeso(ct.cTot)}</div>
         <div style="text-align:right;font-size:12px;font-weight:700;${ctClsR}">${ctMgnReal !== null ? fmtPeso(ctMgnReal) : "—"}</div>
+        <div style="text-align:right;font-size:11px;${ctClsR}">${ctMedidaVal ? fmtPeso(ctMedidaVal) : "—"}</div>
         <div style="text-align:right;font-size:13px;font-weight:700;color:${ctAvC};">${ctPctAv > 0 ? ctPctAv + "%" : "—"}</div>
       </summary>
       <div style="padding:6px 14px 8px 14px;background:#fff;border-top:1px dashed #e5e5e5;">
@@ -1207,8 +1214,9 @@ function renderResultados() {
         <div></div>
         <div></div>
         <div></div>
-        <div colspan="3" style="grid-column:span 3;text-align:center;background:#b45309;padding:4px 0;border-radius:4px;">📊 PRESUPUESTADO</div>
-        <div colspan="3" style="grid-column:span 3;text-align:center;background:#1a6e3a;padding:4px 0;border-radius:4px;">🧾 REAL EJECUTADO</div>
+        <div style="grid-column:span 3;text-align:center;background:#b45309;padding:4px 0;border-radius:4px;">📊 PRESUPUESTADO</div>
+        <div style="grid-column:span 3;text-align:center;background:#1a6e3a;padding:4px 0;border-radius:4px;">🧾 REAL EJECUTADO</div>
+        <div></div>
         <div></div>
       </div>
       <div style="display:grid;grid-template-columns:${COLS_CARD};gap:6px;padding:6px 12px;background:#f8f8f6;font-size:10px;color:#666;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;align-items:center;border-top:1px solid #e5e5e5;">
@@ -1221,6 +1229,7 @@ function renderResultados() {
         <div style="text-align:right;color:#1a6e3a;">Ingreso ${helpIcon(TIP_REAL_ING)}</div>
         <div style="text-align:right;color:#1a6e3a;">Costo ${helpIcon(TIP_REAL_COST)}</div>
         <div style="text-align:right;color:#1a6e3a;">Margen ${helpIcon(TIP_REAL_MGN)}</div>
+        <div style="text-align:right;color:#555;">Mgn${medidaLbl} ${helpIcon(unidad === "ton" ? TIP_MGN_TON : "Margen por hectárea = Margen ÷ hectáreas de la UP. Compara rentabilidad por superficie entre UPs de tamaños distintos.")}</div>
         <div style="text-align:right;color:#555;">% Avance ${helpIcon(TIP_AVANCE)}</div>
       </div>
     </div>
@@ -1356,6 +1365,20 @@ function renderResultados() {
       </div>
       ${headerHTML}
       ${tbody}
+      <!-- Fila de Totales -->
+      <div style="display:grid;grid-template-columns:${COLS_CARD};gap:6px;padding:10px 12px;background:#1a3a0a;color:#fff;font-size:12px;font-weight:700;align-items:center;border-radius:6px;margin-top:8px;">
+        <div></div>
+        <div>TOTAL · ${filas.length} UPs</div>
+        <div style="text-align:right;">${t.ha > 0 ? t.ha.toFixed(0) : "—"}</div>
+        <div style="text-align:right;color:#fcd34d;">${fmtPeso(t.pptoI)}</div>
+        <div style="text-align:right;color:#fcd34d;">—</div>
+        <div style="text-align:right;color:${t.mgnPpto >= 0 ? '#86efac' : '#fca5a5'};">${fmtPeso(t.mgnPpto)}</div>
+        <div style="text-align:right;color:#86efac;">${t.factI > 0 ? fmtPeso(t.factI) : "—"}</div>
+        <div style="text-align:right;color:#fca5a5;">${fmtPeso(t.cTot)}</div>
+        <div style="text-align:right;color:${t.mgnReal !== null && t.mgnReal >= 0 ? '#86efac' : '#fca5a5'};">${t.mgnReal !== null ? fmtPeso(t.mgnReal) : "—"}</div>
+        <div style="text-align:right;font-size:11px;color:${(t.mgnReal !== null ? t.mgnReal : t.mgnPpto) >= 0 ? '#86efac' : '#fca5a5'};">${totalMedida ? fmtPeso(totalMedida) : "—"}</div>
+        <div style="text-align:right;color:${t.pctAv >= 75 ? '#86efac' : t.pctAv >= 25 ? '#fcd34d' : '#fca5a5'};">${t.pctAv > 0 ? t.pctAv + "%" : "—"}</div>
+      </div>
     </div>
     <div class="footer">Resultados sincronizados con Ingresos (NC restando, IVA aplicado) · ${tempActiva} · Los Crisoles · BData</div>`;
 
