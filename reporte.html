@@ -1056,8 +1056,8 @@ function renderResultados() {
   const helpIcon = (title) => `<span title="${title.replace(/"/g, '&quot;')}" style="display:inline-block;width:13px;height:13px;border-radius:50%;background:#dde;color:#446;font-size:9px;font-weight:700;text-align:center;line-height:13px;margin-left:3px;cursor:help;user-select:none;">i</span>`;
 
   const TIP_PPTO_ING  = "Ingreso presupuestado: suma de Proyecciones_Manuales (Estado=Estimado o Real) asignadas a la UP para la temporada activa.";
-  const TIP_PPTO_COST = "Costo presupuestado: estimado por ahora igual al costo real (no hay presupuesto separado de costos).";
-  const TIP_PPTO_MGN  = "Margen presupuestado: Ingreso presupuestado − Costo presupuestado.";
+  const TIP_PPTO_COST = "Costo presupuestado: aún NO se carga un presupuesto separado de costos. Por eso esta columna aparece vacía. Cuando exista, se mostrará aquí.";
+  const TIP_PPTO_MGN  = "Margen presupuestado = Ingreso presupuestado − Costo REAL ejecutado. Como aún no hay presupuesto de costos, se usa el costo real para calcular este margen.";
   const TIP_REAL_ING  = "Ingreso real facturado: facturas DTE emitidas a clientes (excluye Notas de Crédito, que restan).";
   const TIP_REAL_COST = "Costo real ejecutado: BD_Registro (antes 30-mar-2026) + Asignaciones_U (desde esa fecha). Incluye directos + prorrateados.";
   const TIP_REAL_MGN  = "Margen real: Ingreso real facturado − Costo real ejecutado. Sólo se calcula si hay facturación real.";
